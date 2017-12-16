@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<head>
+<LINK REL="StyleSheet" HREF="style.css" TYPE="text/css">
+<title>fonctionnement PNK version 5</title>
+<meta charset="UTF-8" />
+</head>
+
+<h1>SeLG</h1>
+
+
+SeLG est un système d'exploitation dévellopé pour ordinateur de type "PC" par Nicolas Leprince Granger pour son usage personnel.
+Le logiciel est ecrit exclusivement en assembleur pour processeur x386 et compilable par le logiciel <a href="http://flatassembler.net">FASM 1.70.16</a> Cette documentation a été rédigé pour definir proprement les caractéristique du système et dans l'éventualité peu probable que quelqu'un d'autre souhaite utiliser ou modifier ce logiciel. </br>
+</br>
+la version actuellement en cours de dévellopement est la 0.5</br>
+
+
+<h4>uttilisation</h4>
+<a href="#prez">fonctionnement</a></br>
+<a href="#nav">navigation entre les applications</a></br>
+<a href="#term">terminal de commande principal</a></br>
+<a href="#cmdi">commande integré</a></br>
+<a href="#cmdo">commande optionnelles</a></br>
+
+
+
+
+
+<h4>devellopement d'applications</h4>
+<a href="#bid">commandes système accesible par interruption</a></br>
+<a href="fe.htm">format du fichier executable</a></br>
+
+
+<h4>devellopement du noyau</h4>
+<a href="#bid">description de la phase d'amorçage</a></br>
+<a href="organisation_memoire.htm">organisation mémoire</a></br>
+<a href="#bid">variables utillisé par le noyau</a></br>
+
+
+
+
+
+
+<h3><a id="prez"></a>fonctionnement</h3>
+
+
+SeLG est un système multitache préemptif, une tache principale est chargé de l'affichage et la gestion du TECOP (lorsque celle ci est affiché), de l'interpretation des commandes envoyé au système, de la mise a jour de l'écran, et de quelques travaux periodique (gestion moteur disquette, etc...). les autres taches sont créer lorsque que l'on execute une commande associé a un fichier executable
+
+le système utilise un journal ou chaque tache peut ecrire le résultat de ces
+
+le système d'exploitation emploie le BIOS de l'ordinateur uniquement pour obtenir des informations sur les modes vidéo utillisables, pour changer le mode vidéo de la carte, et pour accèder a la mémoire vidéo en mode fenêtré par contre il s'avère que certains bios ont des effet de bord sur le fonctionnement du système, il est donc recommandé de limiter l'usage des fonction LV et MODV et de choisir des mode vidéo avec accès a la mémoire linéaire
+
+
+<h3><a id="nav">navigation entres les interfaces</h3>
+au démarrage de l'installation le système peut eventuellement vous demander un mot de passe, cette demande est symbolisé par le symblole "O&#x2500;&#x2556;" (sensé représenté une clef)lors de cette saisie, les lettres entrée sont représenté par des étoile, la touche "backspace" permet de corriger une erreur de saisie
+
+une fois le système initialisé le terminal de commande (voir plus loin) s'affiche. les touches F11 et F12 permettent de naviger entre les différentes interface, et la touche F10 permet de revenir a l'affichage du terminal de commande.
+
+
+<h3><a id="term">Terminal de Commande Principal (TECOP)</h3>
+
+le TECOP est l'interface standard entre l'utilisateur et le système, l'écran s'organise de la fasçon suivante:
+<div style="width: 640px;height: 336px;border-top: 1px dotted #FFFFFF;color:#FFFFFF;background:#000000;">espace reservé a l'affichage du journal système</div>
+<div style="width: 640px;height: 32px; border-top: 1px dotted #FFFFFF;color:#00FF00;background:#000000;" >espace reservé a l'affichage de l'adresse du dossier en cours d'utillisation</div>
+<div style="width: 640px;height: 32px;border-top: 1px dotted #FFFFFF;color:#FFFFFF;background:#000000;" >espace reservé a la commande en cours d'écriture</div>
+<br/>
+les touches reservé sont:<br/>
+les fleche gauche et droite déplace le curseur dans la ligne de commande<br/>
+les fleche haut et bas font défiler le journal<br/>
+la touche debut fait visionner le debut du journal<br/>
+la touche fin permet de visualiser la fin du journal<br/>
+
+
+
+le système étant prévu pour un usage personnel uniquement, il n'y as pas de gestion multi utilisateur<br/>
+les première lignes sont réservé a l'affichage du "journal"<br/>
+deux lignes sont réservé a l'affichage du dossier en cours d'utillisation<br/>
+deux lignes son reservé a l'affichage de la ligne de commande en cours de rédaction<br/>
+
+<h3><a id="fonc"></a>fonction sytème</h3>
+les fonctions système sont appelé par le mécanisme de l'interruption, ce
+
+
+
+<h3><a id="cmdi"></a>commande integré</h3>
+<kbd>af XXX</kbd> ajoute le texte XXX au journal<br/>
+<kbd>cd</kbd> change de dossier, cd.. permet de revenir au dossier parent<br/>
+<kbd>ld</kbd> Liste les partitions et cdrom qui ont été détecté par le système<br/>
+<kbd>lm</kbd> Liste les espaces mémoires utilisé par le système<br/>
+<kbd>lt</kbd> Liste les Taches en cours d'execution sur le système<br/>
+<kbd>lv</kbd> Liste les modes d'affichage reconnue par la carte video<br/>
+<kbd>cop XXX YYY</kbd> copie le fichier XXX dans le dossier YYY<br/>
+<kbd>dir</kbd> Liste le contenue du dossier en cours d'utilisation<br/>
+<kbd>efj</kbd> efface le contenue du journal système<br/>
+<kbd>fix</kbd> fait enregistrer au système que le dossier en cours d'uttilisation est le dossier système<br/>
+<kbd>mtt XXX YYY</kbd> fixe le temp d'execution de la tache XXX a la valeur YYY (unité de temps 2.5ms)<br/>
+<kbd>ren XXX YYY</kbd> renomme le fichier XXX en YYY<br/>
+<kbd>sup XXX</kbd> supprime le fichier XXX <br/>
+<kbd>ver</kbd> affiche la version du système<br/>
+<kbd>modv XXX</kbd> change le mode video de l'écran pour le mode XXX<br/>
+<kbd>stop XXX</kbd> arrête la tâche numéros XXX<br/>
+
+
+
+
+lors de l'execution d'une commande, le système verifie d'abord si le premier mot de la commande correspond a une commande integré, ensuite le système cherche dans le dossier système si un fichier executable est du même nom que le verbe et si il est trouvé l'execute . si le 
+
+
+
+<h3><a id="cmdo"></a>commande optionnelles</h3>
+les commandes optinnelles sont tous les fichier executable rangé dans le dossier système, comme leur nom l'indique ces commande ne sont pas obligatoirement présente dans le système surtout si le dossier système n'as pas été définis (par la commande <kbd>fix</kbd>) on peut simplement considerer que les commande optionelles sont de simple executable qui sont présent dans le repertoire du système
+
+
+
+<h3>sous fonctions systême</h3>
+int 60h - fin de l'execution de la tache</br>
+<a href="int61h.htm">int 61h - sous fonction général</a></br>
+int 62h - déclenche la commutation de tache</br>
+<a href="int63h.htm">int 63h - sous fonction interface</a></br>
+<a href="int64h.htm">int 64h - sous fonction fichier</a></br>
+<a href="int65h.htm">int 65h - sous fonction communication</a></br>
+<a href="int66h.htm">int 66h - sous fonction port</a></br>
+<a href="int67h.htm">int 67h - sous fonction périphériques USB</a></br>
+<a href="int68h.htm">int 68h - sous fonction réseau IP</a></br>
+int 69h<br/>à <em>innutilisé</em><br/>int 6Fh<br/>
+
+
+<h3>codes d'erreurs</h3>
+<table>
+<tr><td>code</td><td>signification</td></tr>
+<tr><td>0</td><td>fonction executé sans erreur</td></tr>
+<tr><td>1</td><td>paramètde incorrecte</td></tr>
+<tr><td>2</td><td>erreur de lecture</td></tr>
+<tr><td>3</td><td>lecteur/disque/fichier non trouvé</td></tr>
+<tr><td>4</td><td>erreur du systême de fichier</td></tr>
+<tr><td>5</td><td>erreur d'écriture</td></tr>
+<tr><td>6</td><td>pas de réponse disque</td></tr>
+<tr><td>7</td><td>disque occupé</td></tr>
+<tr><td>8</td><td>fichier deja ouvert</td></tr>
+<tr><td>9</td><td>interdiction de lecture</td></tr>
+<tr><td>10</td><td>interdicion d'ouverture</td></tr>
+<tr><td>11</td><td>plus assez de mémoire</td></tr>
+<tr><td>12</td><td>le fichier ouvert est un dossier</td></tr>
+<tr><td>13</td><td>erreur d'origine inconnue (normallement jamais utilisé, sauf erreur)</td></tr>
+<tr><td>14</td><td>nombre de couleur non reconnue</td></tr>
+<tr><td>15</td><td>ecran absent</td></tr>
+<tr><td>16</td><td>zone tampon vide</td></tr>
+<tr><td>17</td><td>zone tampon pleine</td></tr>
+<tr><td>18</td><td>controleur ne répond pas</td></tr>
+<tr><td>19</td><td>controleur absent</td></tr>
+<tr><td>20</td><td>dossier non vide (dans le cas d'une suppression)</td></tr>
+<tr><td>21</td><td>dossier non vide (dans le cas d'une suppression)</td></tr>
+<tr><td>22</td><td>caractère interdit dans le nom de fichier</td></tr>
+<tr><td>23</td><td>création de fichier impossible</td></tr>
+</table>
+
+
+<h3>codes de services</h3>
+<table>
+<tr><td>code</td><td>signification</td></tr>
+<tr><td>0</td><td>aucun service</td></tr>
+<tr><td>1</td><td>ecran</td></tr>
+<tr><td>2</td><td>camera</td></tr>
+<tr><td>3</td><td>imprimante</td></tr>
+<tr><td>4</td><td>scanner</td></tr>
+<tr><td>5</td><td>son</td></tr>
+<tr><td>6</td><td>reseau ethernet</td></tr>
+<tr><td>7</td><td>reseau wifi</td></tr>
+<tr><td>8</td><td></td></tr>
+<tr><td>9</td><td></td></tr>
+<tr><td>10</td><td>aucun service</td></tr>
+<tr><td>11 à 63</td><td>réservé pour les standard</td></tr>
+<tr><td>64 à 255</td><td>utilisable</td></tr>
+</table>
+
+
+
+<h2>Annexes</h2>
+<h3><a id="tsx"></a>Termes "spéciaux"</h3>
+UTF8Z -> chaine de caractère codé en UTF8 dont la fin est signalé par le caractère NULL (octet a zéro)
+
+
+
+
+
