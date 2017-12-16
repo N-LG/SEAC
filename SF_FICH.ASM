@@ -1,0 +1,4711 @@
+;fonction fichier (interruption terminé par un iret)  int 64h
+;al=0  ouvrir fichier 
+;al=1  fermer le fichier
+;al=2  créer fichier
+;al=3  supprimer fichier
+;al=4  lit le fichier
+;al=5  ecrire dans le fichier
+;al=6  lit les attributs d'un fichier
+;al=7  ecrire les attributs d'un fichier
+;al=8  lire dans un secteur
+;al=9  ecrire dans un secteur
+;al=10 lire les information d'un disque
+;************************************
+
+pushad        ;sauvegarde les registres et initialise les segments de données
+push ds
+push es
+push fs
+push gs
+
+push eax
+mov ax,seldat
+mov fs,ax
+mov ax,selramh
+mov gs,ax
+
+
+
+
+testsifcfichierlibre:
+cli
+fs
+test byte[at_fc_fichier],01h
+jz fcfichierlibre
+sti
+int 62h
+jmp testsifcfichierlibre
+
+fcfichierlibre:
+fs
+or byte[at_fc_fichier],01h
+fs
+mov ax,[id_tache_exec]      ;sauvegarde de l'id de la tache qui utillise les fichier pour qu'au cas ou il y a plantage
+fs
+mov [id_tache_fichier],ax   ;on pense a rerendre les fonctions fichiers accesible
+sti
+pop eax 
+cmp al,0
+je ouvrirfichier
+cmp al,1
+je fermerfichier
+cmp al,2
+je creerfichier
+cmp al,3
+je supprimerfichier
+cmp al,4
+je lirefichier
+cmp al,5
+je ecrirefichier
+cmp al,6
+je infofichier
+cmp al,7
+je minfofichier
+cmp al,8
+je liresecteur
+cmp al,9
+je ecriresecteur
+cmp al,10
+je infodisque_ata_atapi
+
+
+errprmsf:   ;erreur de paramètres
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+errsysf:    ;erreur du système de fichier
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_sysf
+iret
+
+errlec:   ;erreur de lecture
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_lec
+iret
+
+errecr:   ;erreur d'écriture
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_ecr
+iret
+
+errlecnt:   ;lecteur non trouvé
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_lecnt
+iret
+
+errpaderep:   ;pas de réponse disque
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_prd
+iret
+
+errinterdit: ;action non autorisé
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_ano
+iret
+
+finfonctionfichiererr:    ;préserve eax
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+ss
+mov [esp+28],eax
+popad
+iret
+
+finfonctionfichierokebx:  ;préserve eax et ebx
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+ss
+mov [esp+28],eax
+ss
+mov [esp+16],ebx
+popad
+iret
+
+finfonctionfichier:
+fs
+and byte[at_fc_fichier],0FEh
+int 62h
+pop gs
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+
+
+;*******************************************************************************
+;                                                   ****************************
+ouvrirfichier:     ;ouvre fichier
+		   ;ds:edx chaine asciiz du nom du fichier
+		   ;bx=nø du decripteur du dossier
+		   ;retour: bx=numéros du déscripteur de dossier
+		   ;        al erreur
+fs
+mov byte[option_ouverture],0
+ouvrir_creer_fichier:		   
+call initdescrfdcourant
+
+
+cmp byte [edx],"#"
+je nouvlec              ;si le premier carac est un # ouvre un nouveau lecteur
+cmp byte [edx],"/"
+je debutslash
+cmp byte [edx],"\"
+je debutslash
+jmp debutpaslach
+
+nouvlec:
+inc edx
+cmp word [edx],"ds"
+je lec_disquette
+cmp word [edx],"dd"
+je lec_disquedur
+cmp word [edx],"cd"
+je lec_cdrom
+cmp word [edx],"DS"
+je lec_disquette
+cmp word [edx],"DD"
+je lec_disquedur
+cmp word [edx],"CD"
+je lec_cdrom
+jmp errprmsf
+
+lec_disquette:
+cmp byte [edx+2],"/"
+je suite1_lec_disquette
+cmp byte [edx+2],"\"
+je suite1_lec_disquette
+cmp byte [edx+2],0
+jne errprmsf
+suite1_lec_disquette:
+
+fs                                    ;le descripteur 0 est réservé pour la disquette
+mov byte[no_part],0                    
+fs                                     
+mov dword[ad_partition],0              ;charge les données coresspondant a un disquette de 1.44Mo en FAT12
+fs
+mov dword[to_partition],2880
+fs
+mov byte[no_disquepart],01h
+fs
+mov byte[at_partition],04h
+
+
+push es               ;charge le MBR de la disquette
+mov bx,seldat
+mov es,bx
+fs
+mov ebx,[ad_partition]
+fs
+mov ch,[no_disquepart]
+mov cl,01
+mov edi,bootsecteur+512
+call lsct     
+pop es
+cmp eax,0
+jne errlec
+
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Eh] ;nombre de secteur réservé en debut de partition
+fs
+add eax,[ad_partition]
+fs
+mov [ad_fat],eax          ;adresse absolue de la FAT   
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+16h]    ;taille d'une fat en secteur
+fs
+mov [to_fat],eax  ;taille d'une fat
+
+push edx
+xor ecx,ecx
+xor edx,edx
+fs
+mov cl,[bootsecteur+512+10h]  ;nombre de FAT
+fs
+mov [nb_fat],cl
+mul ecx
+pop edx
+fs
+add eax,[ad_fat]
+push eax   ;adresse du repertoire racine  
+
+xor ecx,ecx
+fs
+mov cx,[bootsecteur+512+11h]   ;taille du repertoir racine (en nombre d'entrée de 32 octet)
+shr ecx,4    ;mul par 32 et div par 512 (divise par 8)pour avoir la taille du rep racine en secteur
+add eax,ecx  ;eax=adresse du cluster 2
+
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]
+fs
+mov [nb_sec_cluster],cl      ;nombre de secteur par cluster
+
+shl ecx,1    ;ecx=nombre de secteur pour 2 cluster  
+sub eax,ecx  ;les cluster 1 et 2 n'existe pas!
+fs
+mov [ad_cluster0],eax  ;adresse du cluster 0
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Bh]      ;nombre d'octet par secteur
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]      ;nombre de secteur par cluster  
+push edx
+xor edx,edx
+mul ecx
+pop edx
+fs
+mov [to_1cluster],eax   ;taille d'un cluster en octet
+
+
+pop eax
+fs
+mov [ad_fichier],eax ;adresse du dossier racine
+xor ecx,ecx
+fs
+mov cx,[bootsecteur+512+11h]   ;taille du repertoir racine (en nombre d'entrée de 32 octet)
+shl ecx,5          ;mul par 32, la taille est en octet
+fs
+mov [to_fichier],ecx 
+
+fs
+mov byte[at_fichier],010011b  ;attribut de dossier racine fat12 
+
+xor eax,eax    ;efface les données du repertoire du fichier
+fs
+mov [ad_dossierfichier],eax
+fs
+mov [to_dossierfichier],eax
+fs
+mov [ad_dansdossier],eax
+
+fs
+mov ax,[id_tache_exec]
+fs
+mov [id_ouvf],ax
+
+call sauvdescp ;sauve le descripteur car il  a été mis a jour
+
+add edx,2
+jmp dossiersuivant
+
+
+lec_disquedur:
+cmp byte [edx+3],"/"
+je unchiffre_lec_disquedur
+cmp byte [edx+3],"\"
+je unchiffre_lec_disquedur
+cmp byte [edx+3],0
+je unchiffre_lec_disquedur
+
+cmp byte [edx+4],"/"
+je deuxchiffres_lec_disquedur
+cmp byte [edx+4],"\"
+je deuxchiffres_lec_disquedur
+cmp byte [edx+4],0
+jne errprmsf
+
+unchiffre_lec_disquedur:
+mov al,[edx+2]
+sub al,"0"  ;numéros de disque
+cmp al,9 
+ja errprmsf
+xor ecx,ecx
+mov cl,al
+add edx,3
+jmp suite1_lec_disquedur
+
+deuxchiffres_lec_disquedur:
+mov ax,[edx+2]
+sub al,"0"  ;dizaine numéros de partition
+sub ah,"0"  ;unité du numéros de partition
+cmp al,9 
+ja errprmsf
+cmp ah,9 
+ja errprmsf
+xor ecx,ecx
+mov cl,ah
+and eax,0FFh
+push ecx
+push edx
+mov ecx,10
+xor edx,edx
+mul ecx
+pop edx
+pop ecx
+add ecx,eax
+add edx,4
+
+suite1_lec_disquedur:     ;ecx=numéros de partition edx=suite de la chaine de dossier
+cmp ecx,0
+je errprmsf   ;le numéro zéro n'est pas un disque dur
+fs
+mov [no_part],cl 
+
+call chardescp
+
+;depend du type de partition
+fs
+cmp byte[at_partition],05h
+je repfat16
+fs
+cmp byte[at_partition],06h
+je repfat32
+jmp errsysf
+
+repfat16:
+push es               ;charge le MBR de la partition
+mov bx,seldat
+mov es,bx
+fs
+mov ebx,[ad_partition]
+fs
+mov ch,[no_disquepart]
+mov cl,01
+mov edi,bootsecteur+512
+call lsct     
+pop es
+cmp eax,0
+jne errlec
+
+fs
+cmp byte[ad_fat],0
+jne pasmajinfopartfat16  ;si le système a enregistré 0 fat il faut faire une maj des données de la partition
+
+push edx
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Eh] ;nombre de secteur réservé en debut de partition
+fs
+add eax,[ad_partition]
+fs
+mov [ad_fat],eax          ;adresse absolue de la FAT   
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+16h]    ;taille d'une fat en secteur
+fs
+mov [to_fat],eax  ;taille d'une fat
+
+xor ecx,ecx
+xor edx,edx
+fs
+mov cl,[bootsecteur+512+10h]  ;nombre de FAT
+fs
+mov [nb_fat],cl
+mul ecx
+
+fs
+add eax,[ad_fat]  ;eax=adresse du repertoire racine  
+
+xor ecx,ecx
+fs
+mov cx,[bootsecteur+512+11h]   ;taille du repertoir racine (en nombre d'entrée de 32 octet)
+shr ecx,4    ;mul par 32 et div par 512 (divise par 8)pour avoir la taille du rep racine en secteur
+add eax,ecx  ;eax=adresse du cluster 2
+
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]
+fs
+mov [nb_sec_cluster],cl      ;nombre de secteur par cluster
+
+shl ecx,1    ;ecx=nombre de secteur pour 2 cluster  
+sub eax,ecx  ;les cluster 1 et 2 n'existe pas!
+fs
+mov [ad_cluster0],eax  ;adresse du cluster 0
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Bh]      ;nombre d'octet par secteur
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]      ;nombre de secteur par cluster  
+xor edx,edx
+mul ecx
+fs
+mov [to_1cluster],eax   ;taille d'un cluster en octet
+
+call sauvdescp ;sauve le descripteur car il  a été mis a jour
+pop edx
+
+pasmajinfopartfat16:
+
+push edx ;determine l'adresse du dossier racine
+fs
+mov eax,[to_fat]
+xor ecx,ecx
+xor edx,edx
+fs
+mov cl,[bootsecteur+512+10h]  ;nombre de FAT
+fs
+mov [nb_fat],cl
+mul ecx
+pop edx
+fs
+add eax,[ad_fat]  ;eax=adresse du repertoire racine  
+fs
+mov [ad_fichier],eax
+
+
+fs     ;determine la taille du dossier racine
+mov ax,[bootsecteur+512+11h]
+shl eax,5      ;mul par 32 car c'est exprimé en nombre d'entrée de répertoire
+fs
+mov [to_fichier],eax
+
+fs
+mov byte[at_fichier],010111b  ;attribut de dossier racine fat16 
+fs
+mov ax,[id_tache_exec]
+fs
+mov [id_ouvf],ax
+
+xor eax,eax    ;efface les données du repertoire du fichier
+fs
+mov [ad_dossierfichier],eax
+fs
+mov [to_dossierfichier],eax
+fs
+mov [ad_dansdossier],eax
+jmp dossiersuivant
+
+
+
+
+
+repfat32:
+push es               ;charge le MBR de la partition
+mov bx,seldat
+mov es,bx
+fs
+mov ebx,[ad_partition]
+fs
+mov ch,[no_disquepart]
+mov cl,01
+mov edi,bootsecteur+512
+call lsct     
+pop es
+cmp eax,0
+jne errlec
+
+fs
+cmp byte[ad_fat],0
+jne pasmajinfopartfat32  ;si le système a enregistré 0 fat il faut faire une maj des données de la partition
+
+push edx
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Eh] ;nombre de secteur réservé en debut de partition
+fs
+add eax,[ad_partition]
+fs
+mov [ad_fat],eax          ;adresse absolue de la FAT   
+
+fs
+mov eax,[bootsecteur+512+24h]    ;taille d'une fat en secteur
+fs
+mov [to_fat],eax  ;taille d'une fat
+
+xor ecx,ecx
+xor edx,edx
+fs
+mov cl,[bootsecteur+512+10h]  ;nombre de FAT
+fs
+mov [nb_fat],cl
+mul ecx
+pop edx
+add eax,[ad_fat]  ;eax=adresse du cluster 2
+
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]
+fs
+mov [nb_sec_cluster],cl      ;nombre de secteur par cluster
+
+shl ecx,1    ;ecx=nombre de secteur pour 2 cluster  
+sub eax,ecx  ;les cluster 1 et 2 n'existe pas!
+fs
+mov [ad_cluster0],eax  ;adresse du cluster 0
+
+xor eax,eax
+fs
+mov ax,[bootsecteur+512+0Bh]      ;nombre d'octet par secteur
+xor ecx,ecx
+fs
+mov cl,[bootsecteur+512+0Dh]      ;nombre de secteur par cluster  
+push edx
+xor edx,edx
+mul ecx
+fs
+mov [to_1cluster],eax   ;taille d'un cluster en octet
+
+call sauvdescp ;sauve le descripteur car il  a été mis a jour
+pop edx
+
+pasmajinfopartfat32:
+
+fs                            ;determine l'adresse du dossier racine
+mov eax,[bootsecteur+512+2Ch]
+fs
+mov [ad_fichier],eax
+
+fs         ;determine la taille du dossier racine
+mov dword[to_fichier],0FFFFFFFFh   ;la taille du répertoire root n'est pas connue, on met le max
+
+fs
+mov byte[at_fichier],011011b  ;attribut de dossier racine fat32 
+fs
+mov ax,[id_tache_exec]
+fs
+mov [id_ouvf],ax
+
+xor eax,eax    ;efface les données du repertoire du fichier
+fs
+mov [ad_dossierfichier],eax
+fs
+mov [to_dossierfichier],eax
+fs
+mov [ad_dansdossier],eax
+jmp dossiersuivant
+
+
+lec_cdrom:
+cmp byte [edx+3],"/"
+je suite1_lec_cdrom
+cmp byte [edx+3],"\"
+je suite1_lec_cdrom
+cmp byte [edx+3],0
+jne errprmsf
+suite1_lec_cdrom:
+mov al,[edx+2]
+sub al,"1"  ;numéros de disque
+test al,0F8h
+jnz errprmsf
+add al,18h      ;on obtient le numéros correcte du disque
+
+;on charge le secteur 16 du disque
+mov ch,al  ;ch=nø de disque
+mov cl,1   ;cl=nombre de secteur a lire
+mov ebx,16 ;ebx=numéros de secteur
+push es
+mov ax,seldat
+mov es,ax
+mov edi,bootsecteur
+call lsct  ; es:edi zone de destination
+pop es
+cmp eax,0
+jne finfonctionfichiererr
+
+
+exrootcd:  
+fs
+cmp byte[bootsecteur],1   ;on verifie que le secteur est bien le primary volume descriptor
+jne errsysf
+fs
+cmp dword[bootsecteur+1],"CD00"
+jne errsysf
+fs
+cmp byte[bootsecteur+5],"1"
+jne errsysf
+	    ;on extrait les paramètre du repertoire racine (root) 
+fs
+mov eax,[bootsecteur+158]    ;1er secteur du dossier root
+fs
+mov [ad_fichier],eax
+fs
+mov eax,[bootsecteur+166]    ;taille du dossier root
+fs
+mov [to_fichier],eax
+fs
+mov [no_part],ch
+
+fs
+mov byte[at_fichier],111b       ;dossier racine de lecteur cdrom
+
+xor eax,eax    ;efface les données du repertoire du fichier
+fs
+mov [ad_dossierfichier],eax
+fs
+mov [to_dossierfichier],eax
+fs
+mov [ad_dansdossier],eax
+
+fs                ;charge l'ID de la tache en cours d'execution
+mov ax,[id_tache_exec]
+fs
+mov [id_ouvf],ax
+
+add edx,3               ;edx pointe sur la suite du nom du fichier a lire
+
+
+
+dossiersuivant:
+cmp byte [edx],0
+je finchainefichier
+cmp word [edx],002Fh ;/&0 
+je finchainefichier
+cmp word [edx],005Ch ;\&0
+je finchainefichier
+
+
+debutslash:
+inc edx
+debutpaslach:
+mov edi,ad_nomfichier1
+bouclerecopienomfichier:
+mov al,[edx]
+cmp al,"/"
+je finrecopienomfichier
+cmp al,"\"
+je finrecopienomfichier
+cmp al,0
+je finrecopienomfichier
+inc edx
+fs
+mov [edi],al
+inc edi
+cmp edi,ad_nomfichier1+01FFh
+jne bouclerecopienomfichier
+finrecopienomfichier:
+fs
+mov byte[edi],0   ;ad_nomfichier1 contient une chaine utf8z 
+	       ;edx pointe sur le reste de la chaine a decoder
+
+;remet a 0 les pointeurs de parcours dossier
+xor eax,eax
+fs
+mov [po_ztexpdossier],eax
+fs
+mov [po_descripteur_expdossier],eax
+
+;reserve une zt pour la lecture du dossier
+mov ecx,4096
+fs
+mov [to_ztexpdossier],ecx
+call resmem
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§erreur d'allocation de mémoire
+add ebx,10h
+fs
+mov [ad_ztexpdossier],ebx
+
+
+
+
+charge_partie_dossier:              ;charge une partie du dossier
+
+fs
+mov eax,[po_descripteur_expdossier]
+fs
+add [po_ztexpdossier],eax
+xor eax,eax
+fs
+mov [po_descripteur_expdossier],eax
+
+fs
+mov eax,[po_ztexpdossier]
+fs
+cmp eax,[to_fichier]
+jb ok_charge_partie_dossier
+
+fs
+cmp byte[option_ouverture],0  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
+je err_fichier_nt
+
+
+cmp byte [edx],0
+je cree_fichier_final
+cmp word [edx],002Fh ;/&0 
+je cree_fichier_final
+cmp word [edx],005Ch ;\&0
+je cree_fichier_final
+call sf_cree_dossier     ;si on est pas a la fin de la chaine de caractère on crée un dossier intermédiaire
+;?????????????????????????????????????????????
+jmp ok_charge_partie_dossier
+
+cree_fichier_final:       ;sinon on créer le fichier final voulu
+call sf_cree_fichier
+;?????????????????
+
+
+
+
+ok_charge_partie_dossier: 
+push edx
+push es
+mov ax, selramh
+mov es,ax
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+fs
+mov edx,[po_ztexpdossier]
+call sflirefichier
+pop es
+pop edx
+cmp eax,0
+jne errouvfichier
+
+bouclerecherche_fichier:
+;charge le nom et info du fichier dont le descripteur est pointé par "po_descripteur_expdossier" dans ad_nomfichier2
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00000100b
+je exnomiso9660
+cmp al,00010000b
+je exnomfat
+cmp al,00010100b
+je exnomfat
+cmp al,00011000b
+je exnomfat
+mov eax,cer_sysf  ;erreur du système de fichier
+jmp errouvfichier
+
+
+;*********************************************************************************************
+exnomiso9660:           ;extrait les données d'un dossier de type iso9660 
+xor eax,eax
+fs
+mov ebx,[ad_ztexpdossier]
+fs
+add ebx,[po_descripteur_expdossier]
+gs
+mov al,[ebx]                              ;eax=taille du descripteur
+cmp eax,0
+je err_fichier_nt   ;si la taille du descripteur est nulle on est arrivé a la fin du dossier
+fs
+mov [to_descripteur_expdossier],eax
+fs
+add eax,[po_descripteur_expdossier]
+fs
+cmp eax,[to_ztexpdossier]
+ja charge_partie_dossier    ;si le descripteur n'est pas dans la zone tampon on réactualise celle ci
+
+gs                     ;extrait le nom
+mov cl,[ebx+32]        ;taille de la chaine du nom
+mov esi,ebx
+add esi,33
+mov edi,ad_nomfichier2
+
+boucleextraitnomiso9660:
+gs
+mov al,[esi]
+cmp al,";"
+je finextraitnomiso9660
+fs
+mov [edi],al
+inc esi
+inc edi
+dec cl
+jnz boucleextraitnomiso9660
+
+finextraitnomiso9660:
+fs
+mov byte[edi],0
+
+gs                  ;extrait l'adresse
+mov eax,[ebx+2]
+fs
+mov [ad_fichier_expdossier],eax
+
+gs                  ;extrait la taille
+mov eax,[ebx+10]
+fs
+mov [to_fichier_expdossier],eax
+
+gs         ;extrait le type
+test byte[ebx+25],02h
+jnz dossieriso9660
+fs
+mov byte[at_fichier_expdossier],001b
+jmp comparaisondesdeuxnom
+
+dossieriso9660:
+fs
+mov byte[at_fichier_expdossier],010b
+jmp comparaisondesdeuxnom
+
+
+;*********************************************************************************************
+exnomfat:               ;extrait les données d'un dossier de type FAT simple
+fs
+mov ebx,[ad_ztexpdossier]
+fs
+add ebx,[po_descripteur_expdossier]
+gs
+cmp byte[ebx],0
+je err_fichier_nt
+gs
+cmp byte[ebx],0E5h
+je fat_non_valide
+gs
+cmp byte[ebx],05h
+je fat_bizzard
+gs
+cmp byte[ebx],"."
+je fat_non_valide
+gs
+cmp byte[ebx+0Bh],0Fh
+je fat_vfat
+jmp fat_origine
+
+fat_vfat:
+gs
+mov al,[ebx]
+test al,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
+je fat_non_valide
+and eax,3Fh
+
+shl eax,5
+mov esi,ebx
+add esi,eax
+
+;calcul du checksum  
+mov cx,11  ;ch=sum cl=i
+push eax
+push esi
+boucle_chesum_vfat:
+mov al,ch
+shl ch,7
+shr al,1
+add ch,al
+gs
+add ch,[esi]
+inc esi
+dec cl
+jnz boucle_chesum_vfat
+pop esi
+pop eax
+
+mov edi,ad_nomfichier2
+add eax,32
+fs
+mov [to_descripteur_expdossier],eax
+fs
+add eax,[po_descripteur_expdossier]
+fs
+cmp eax,[to_ztexpdossier]
+ja charge_partie_dossier    ;si le descripteur n'est pas dans la zone tampon on réactualise celle ci
+
+
+boucle_fat_vfat:
+sub esi,32
+gs 
+cmp [esi+0Dh],ch   ;verification du cheksum
+jne fat_non_valide
+xor eax,eax
+gs
+mov ax,[esi+01h]
+call utf8_vfat
+gs
+mov ax,[esi+03h]
+call utf8_vfat
+gs
+mov ax,[esi+05h]
+call utf8_vfat
+gs
+mov ax,[esi+07h]
+call utf8_vfat
+gs
+mov ax,[esi+09h]
+call utf8_vfat
+gs
+mov ax,[esi+0Eh]
+call utf8_vfat
+gs
+mov ax,[esi+10h]
+call utf8_vfat
+gs
+mov ax,[esi+12h]
+call utf8_vfat
+gs
+mov ax,[esi+14h]
+call utf8_vfat
+gs
+mov ax,[esi+16h]
+call utf8_vfat
+gs
+mov ax,[esi+18h]
+call utf8_vfat
+gs
+mov ax,[esi+1Ch]
+call utf8_vfat
+gs
+mov ax,[esi+1Eh]
+call utf8_vfat
+cmp esi,ebx
+jne boucle_fat_vfat
+fs
+mov byte[edi],0
+
+fs
+add esi,[to_descripteur_expdossier]
+sub esi,32
+jmp extrait_fat
+
+
+utf8_vfat:
+cmp eax,80h   ;-de 7 bit
+jb utf8_vfat1
+cmp eax,800h  ;-de 11 bits
+jb utf8_vfat2
+push eax
+push eax
+and al,3Fh
+or al,80h
+fs
+mov [edi+2],al
+pop eax
+shr eax,6
+and al,3Fh
+or al,80h
+fs
+mov [edi+1],al
+pop eax
+shr eax,12
+and al,0Fh
+or al,0E0h
+fs
+mov [edi],al
+add edi,3  
+ret
+
+utf8_vfat1:
+fs
+mov [edi],al
+inc edi
+ret
+
+utf8_vfat2:
+push eax
+and al,3Fh
+or al,80h
+fs
+mov [edi+1],al
+pop eax
+shr eax,6
+and al,01Fh
+or al,0C0h
+fs
+mov [edi],al
+add edi,2    
+ret
+
+
+
+fat_non_valide:
+fs
+mov dword[to_descripteur_expdossier],20h 
+jmp fichierpastrouve                         ;on ignore le descripteur
+
+fat_bizzard:
+gs
+mov byte[ebx],0E5h    ;entrée fat originel commençant par le caractère 0E5h remplacé par le caractère 05h
+
+fat_origine:
+mov esi,ebx
+mov edi,ad_nomfichier2
+boucle_fat_nom8:
+gs
+mov al,[esi]
+cmp al," "
+je finboucle_fat_nom8
+fs
+mov [edi],al
+inc esi
+inc edi
+cmp edi,ad_nomfichier2+8
+jb boucle_fat_nom8
+
+finboucle_fat_nom8:
+gs
+mov eax,[ebx+8]
+and eax,0FFFFFFh
+cmp eax,202020h
+je fin_fat_origine
+fs
+mov byte[edi],"."
+inc edi
+fs
+mov [edi],eax
+inc edi
+fs
+cmp byte[edi]," "
+je fin_fat_origine
+inc edi
+fs
+cmp byte[edi]," "
+je fin_fat_origine
+inc edi
+fin_fat_origine:
+fs
+mov byte[edi],0
+
+fs
+mov dword[to_descripteur_expdossier],20h 
+mov esi,ebx
+
+extrait_fat:
+
+xor eax,eax
+gs                  ;extrait l'adresse
+mov ax,[esi+1Ah]
+fs
+mov [ad_fichier_expdossier],eax
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00011000b
+jne pasdatafat32
+gs                  ;extrait les MSB du cluster si on est en fat32
+mov ax,[esi+14h]
+fs
+mov [ad_fichier_expdossier+2],ax
+pasdatafat32:
+
+gs                  ;extrait la taille
+mov eax,[esi+1Ch]
+fs
+mov [to_fichier_expdossier],eax
+
+gs         ;extrait le type
+test byte[esi+0Bh],010h
+jnz dossierfatorigine
+fs
+mov byte[at_fichier_expdossier],001b
+jmp comparaisondesdeuxnom
+
+dossierfatorigine:
+fs
+mov byte[at_fichier_expdossier],010b
+fs
+mov dword[to_fichier_expdossier],0FFFFFFFFh ;la taille des dossier n'est pas enregistré!
+
+
+
+
+;******************************************************************************************************
+comparaisondesdeuxnom: ;compare ad_nomfichier1 et ad_nomfichier2
+mov esi,ad_nomfichier1
+mov edi,ad_nomfichier2
+bouclecomparaison:
+fs
+mov al,[esi]
+fs
+cmp al,[edi]
+jne fichierpastrouve
+cmp al,0
+je fichiertrouve
+inc edi
+inc esi
+jmp bouclecomparaison
+
+
+fichierpastrouve:     ;si pas trouvé on passe au descripteur suivant
+fs
+mov ebx,[to_descripteur_expdossier]
+fs
+add [po_descripteur_expdossier],ebx
+fs
+mov eax,[to_ztexpdossier]
+fs
+cmp [po_descripteur_expdossier],eax 
+ja charge_partie_dossier            ;si le descripteur est hors de la zt on recharge la zt
+jmp bouclerecherche_fichier
+
+
+fichiertrouve:  ;si trouvé, désalloue la zt de lecture dossier
+fs
+mov ebx,[ad_ztexpdossier]
+sub ebx,10h
+call libmem
+
+
+;met a jour les données du descripteur fichier avec celuis trouvé dans le dossier
+fs
+mov al,[at_fichier]   ;récupère les données du dossier
+fs
+and byte[at_fichier],03Ch ;ne garde que les données de type de système de fichier
+and al,03h
+cmp al,03h
+jne pasdossierracine
+fs
+or byte[at_fichier],40h
+pasdossierracine:
+fs
+mov al,[at_fichier_expdossier]
+fs
+or [at_fichier],al
+
+fs                       ;transfert les données de dossier précédent
+mov eax,[ad_fichier]     
+fs
+mov [ad_dossierfichier],eax  ;adresse
+fs
+mov eax,[to_fichier]
+fs
+mov [to_dossierfichier],eax  ;et taille du dossier
+
+fs
+mov eax,[po_ztexpdossier]
+fs
+add eax,[po_descripteur_expdossier]
+fs
+mov [ad_dansdossier],eax     ;position du descripteur dans le dossier
+
+fs                            ;enregistre les données du fichier
+mov eax,[ad_fichier_expdossier]
+fs
+mov [ad_fichier],eax  ;nouvelle adresse du fichier
+fs
+mov eax,[to_fichier_expdossier]
+fs
+mov [to_fichier],eax  ;et nouvelle taille 
+
+
+
+
+cmp byte[edx],0        ;si c'est la fin de la chaine on termine
+je finchainefichier
+
+fs
+mov al,[at_fichier]
+and al,03h
+cmp al,010b   
+je debutslash         ;si dossier trouvé et chaine pas terminé -> on recommence
+jmp errprmsf          ;si fichier trouvé et chaine pas terminé -> erreur de paramètre
+
+finchainefichier:
+;verifie que le fichier n'as pas déja été ouvert
+fs
+mov ebx,[ad_ficho]
+fs
+mov ebp,[max_ficho]
+add ebp,ebx
+add ebx,64           ;on ignore le descripteur de dossier courant et le descripteur de dossier système
+
+boucle_verif_dejaouvert:
+fs
+mov eax,[at_fichier+4]
+gs
+cmp eax,[ebx+4]
+jne nok_verif_dejaouvert
+fs
+mov eax,[at_fichier+8]
+gs
+cmp eax,[ebx+8]
+jne nok_verif_dejaouvert
+fs
+mov ax,[at_fichier]      ;pas dans l'ordre parce que les param précédent avait plus de chance d'être différent
+gs
+cmp ax,[ebx]
+jne nok_verif_dejaouvert  ;mais pas l'id de celuis qui a ouvert la tache parce que ça peut être différent     
+fs
+mov eax,[at_fichier+12]
+gs
+cmp eax,[ebx+12]
+jne nok_verif_dejaouvert
+fs
+mov eax,[at_fichier+16]
+gs
+cmp eax,[ebx+16]
+jne nok_verif_dejaouvert
+fs
+mov eax,[at_fichier+20]
+gs
+cmp eax,[ebx+20]
+jne nok_verif_dejaouvert
+;fs
+;mov eax,[at_fichier+24]   ;on n'as pas encore besoin de cette partie du descripteur
+;gs
+;cmp eax,[ebx+24]
+;jne nok_verif_dejaouvert
+;fs
+;mov eax,[at_fichier+28]
+;gs
+;cmp eax,[ebx+28]
+;jne nok_verif_dejaouvert
+
+fs
+mov ax,[at_fichier+2]
+gs
+cmp ax,[ebx+2]
+je descr_fichier_ok          ;si le fichier est identique et a été ouvert par le même programme on lui renvoie son numéro
+
+mov eax,cer_fdo
+jmp finfonctionfichiererr
+
+nok_verif_dejaouvert:
+add ebx,20h
+cmp ebx,ebp
+jb boucle_verif_dejaouvert
+
+;trouve un emplacement vide dans les descripteur de fichier 
+fs
+mov ebx,[ad_ficho]
+add ebx,40h       ;les deux premiers descripteur son reservé au dossier courant et au dossier système
+fs
+mov ebp,[max_ficho]
+add ebp,ebx
+bouclerechempv:
+gs
+cmp byte[ebx],0
+je descfichvidet
+add ebx,20h
+cmp ebx,ebp
+jb bouclerechempv
+;on n'as pas trouvé de place libre :/
+mov eax,cer_pasm
+jmp finfonctionfichiererr
+
+
+descfichvidet:
+fs                ;charge l'ID de la tache en cours d'execution
+mov ax,[id_tache_exec]
+fs
+mov [id_ouvf],ax
+
+fs
+mov esi,[at_fichier]
+fs
+mov edi,[at_fichier+4]
+gs
+mov [ebx],esi
+gs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_fichier+8]
+fs
+mov edi,[at_fichier+12]
+gs
+mov [ebx+8],esi
+gs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_fichier+16]
+fs
+mov edi,[at_fichier+20]
+gs
+mov [ebx+16],esi
+gs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_fichier+24]     
+fs
+mov edi,[at_fichier+28]
+gs
+mov [ebx+24],esi
+gs
+mov [ebx+28],edi
+
+descr_fichier_ok:
+fs
+sub ebx,[ad_ficho]
+shr ebx,5
+xor eax,eax
+
+fs
+mov al,[at_fichier]
+and al,03h
+cmp al,01b
+je cestunfichierouvert
+mov eax,cer_dov
+jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
+
+cestunfichierouvert:
+xor eax,eax
+jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
+
+
+err_fichier_nt:
+mov eax,cer_lecnt
+
+errouvfichier:   ;erreur, désalocation mémoire, préservation de eax et raz de ebx
+fs
+mov ebx,[ad_ztexpdossier]
+sub ebx,10h
+call libmem
+xor ebx,ebx
+jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
+
+
+
+
+
+
+;****************************************************************************
+initdescrfdcourant:  ;initialise le descriteur de fichier courant ainsi que 
+;le descripteur de disque courant a partir du numéros de fichier en ebx
+pushad
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+cmp ebx,[max_ficho]
+ja erinitdescrfdcourant              ;test si le descripteur ne déborde pas de la table
+fs
+add ebx,[ad_ficho]
+
+gs
+mov esi,[ebx]
+gs
+mov edi,[ebx+4]
+fs
+mov [at_fichier],esi
+fs
+mov [at_fichier+4],edi
+
+gs
+mov esi,[ebx+8]
+gs
+mov edi,[ebx+12]
+fs
+mov [at_fichier+8],esi
+fs
+mov [at_fichier+12],edi
+
+gs
+mov esi,[ebx+16]
+gs
+mov edi,[ebx+20]
+fs
+mov [at_fichier+16],esi
+fs
+mov [at_fichier+20],edi
+
+gs
+mov esi,[ebx+24]
+gs
+mov edi,[ebx+28]
+fs
+mov [at_fichier+24],esi
+fs
+mov [at_fichier+28],edi
+
+fs
+mov al,[at_fichier]  
+and al,00111100b
+cmp al,00000100b
+je idfdc_cd       ;si c'est un cd il n'y as pas besoin de recopier le descripteur de partition
+
+call chardescp
+
+idfdc_cd:
+clc
+popad
+ret
+
+
+erinitdescrfdcourant:
+stc
+popad
+ret
+
+sauvdescp:                 ;sauvegarde du descripteur de partition
+pushad
+xor ebx,ebx
+fs
+mov bl,[no_part]
+shl ebx,5   ;mul par 32
+add ebx,ad_descp           ;ebx=adresse descripteur de la partition
+
+fs
+mov esi,[at_partition]
+fs
+mov edi,[at_partition+4]
+fs
+mov [ebx],esi
+fs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_partition+8]
+fs
+mov edi,[at_partition+12]
+fs
+mov [ebx+8],esi
+fs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_partition+16]
+fs
+mov edi,[at_partition+20]
+fs
+mov [ebx+16],esi
+fs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_partition+24]
+fs
+mov edi,[at_partition+28]
+fs
+mov [ebx+24],esi
+fs
+mov [ebx+28],edi
+
+clc
+popad
+ret
+
+chardescp:      ;charge le descriteur de partition
+pushad
+xor ebx,ebx  
+fs
+mov bl,[no_part]
+cmp bl,32
+ja erscdescp
+shl ebx,5   ;mul par 32
+add ebx,ad_descp           ;ebx=descripteur de la partition
+
+fs
+mov esi,[ebx]
+fs
+mov edi,[ebx+4]
+fs
+mov [at_partition],esi
+fs
+mov [at_partition+4],edi
+
+fs
+mov esi,[ebx+8]
+fs
+mov edi,[ebx+12]
+fs
+mov [at_partition+8],esi
+fs
+mov [at_partition+12],edi
+
+fs
+mov esi,[ebx+16]
+fs
+mov edi,[ebx+20]
+fs
+mov [at_partition+16],esi
+fs
+mov [at_partition+20],edi
+
+fs
+mov esi,[ebx+24]
+fs
+mov edi,[ebx+28]
+fs
+mov [at_partition+24],esi
+fs
+mov [at_partition+28],edi
+
+
+;verifie que la zone tampon de lecture de cluster est de taille suffisante
+fs
+mov ebx,[ad_zt_lecluster]
+sub ebx,10h-4
+gs
+mov eax,[ebx]
+fs
+cmp eax,[to_1cluster]
+jae finok_chardescp 
+
+;sinon modifie la taille de la zone
+fs
+mov ebx,[ad_zt_lecluster]
+sub ebx,10h
+fs
+mov ecx,[to_1cluster]
+call modtm
+jc erscdescp 
+add ebx,10h
+fs
+mov [ad_zt_lecluster],ebx
+
+finok_chardescp:  
+clc
+popad
+ret
+
+erscdescp:
+stc
+popad
+ret
+
+;*******************************************************************************
+;                                                   ****************************
+fermerfichier:
+
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+cmp ebx,[max_ficho]
+ja errprmsf              ;test si le descripteur ne déborde pas de la table
+fs
+add ebx,[ad_ficho]
+
+;verifie que le programme qui veut le fermer est bien celui qui l'as ouvert
+mov ax,[id_tache_fichier]
+gs
+cmp ax,[ebx+2]
+jne errinterdit
+gs
+mov dword[ebx],0
+gs
+mov dword[ebx+4],0
+gs
+mov dword[ebx+8],0
+gs
+mov dword[ebx+12],0
+gs
+mov dword[ebx+16],0
+gs
+mov dword[ebx+20],0
+gs
+mov dword[ebx+24],0
+gs
+mov dword[ebx+28],0
+
+jmp finfonctionfichier
+
+;*******************************************************************************
+;                                                   ****************************
+creerfichier:
+fs
+mov byte[option_ouverture],1
+jmp ouvrir_creer_fichier
+
+
+sf_cree_fichier:  ;créer un fichier suivant le nom contenue dans ad_nomfichier1
+pushad
+mov edx,ad_nomfichier1
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+popad 
+ret
+
+sf_cree_dossier:  ;créer un fichier suivant le nom contenue dans ad_nomfichier1
+pushad
+mov edx,ad_nomfichier1
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+popad 
+ret
+
+
+conv_date_fat: ;convertit la date et l'heure au format FAT
+;entrée:
+;al=heure ah=minute bx=seconde (en millième)
+;dl=jour dh=mois cx=année
+;sortie:
+;ax=heure dx=date
+
+push eax
+sub cx,1980
+shl cx,9
+mov al,dh
+and ax,0Fh
+and dx,1Fh
+shl ax,5
+or cx,ax
+or cx,dx
+pop eax
+push ecx
+mov dl,ah
+and dx,3Fh
+shl dx,5
+and ax,1Fh
+shl ax,11
+or dx,ax
+push edx
+xor edx,edx
+mov eax,ebx
+mov ecx,2000
+div ecx
+and ax,1Fh
+pop ebx
+or ax,bx 
+pop edx
+ret
+
+
+
+
+
+
+
+;****************************************************************************
+cree_descripteur_fichier_fat:
+mov esi,edx  ;esi=adresse du nom
+
+pushad
+
+;verifie que les caractère non autorisé soit absent
+mov ecx,edx
+mov ebx,edx
+add ecx,512
+boucle_verif_cree_descr_fichier: 
+mov al,[ebx]
+cmp al,0
+je fin_verif_cree_descr_fichier
+cmp al,022h   ;"
+je erreur_nom_cree_descr_fichier
+cmp al,02Fh   ;/
+je erreur_nom_cree_descr_fichier
+cmp al,05Ch   ;\
+je erreur_nom_cree_descr_fichier
+cmp al,02Ah   ;*
+je erreur_nom_cree_descr_fichier
+cmp al,03Fh   ;?
+je erreur_nom_cree_descr_fichier
+cmp al,03Ch   ;<
+je erreur_nom_cree_descr_fichier
+cmp al,03Eh   ;>
+je erreur_nom_cree_descr_fichier
+cmp al,06Ch   ;|
+je erreur_nom_cree_descr_fichier
+cmp al,03Ah   ;:
+je erreur_nom_cree_descr_fichier
+
+test al,0E0h   ;inferieur a 20h
+jz erreur_nom_cree_descr_fichier
+cmp al,07Fh   ;DEL
+je erreur_nom_cree_descr_fichier
+
+cmp ebx,ecx
+jne boucle_verif_cree_descr_fichier
+
+
+
+fin_verif_cree_descr_fichier:
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je cree_descr_fichier_fat1       ;on teste si le fichier est fat12,
+cmp al,010100b
+je cree_descr_fichier_fat1       ;ou fat16
+cmp al,011000b
+je cree_descr_fichier_fat1       ;ou fat32
+popad
+mov eax,cer_cfi   ;création de fichier impossible
+ret
+
+
+cree_descr_fichier_fat1:
+
+;compte le nombre de carac du nom et le nombre de point
+mov ebx,edx
+xor ecx,ecx ;nombre de lettre
+xor eax,eax ;nombre de point
+
+boucle_comptage_lettre:
+mov al,[ebx]
+cmp al,0
+je fin_comptage_lettre
+cmp al,"/"
+je fin_comptage_lettre
+cmp al,"\"
+je fin_comptage_lettre
+cmp al,"."
+je point_comptage_lettre
+inc ebx
+inc ecx
+jmp boucle_comptage_lettre
+
+point_comptage_lettre:
+inc edx
+inc ebx
+jmp boucle_comptage_lettre
+
+
+
+fin_comptage_lettre:
+cmp ecx,0  ;verifie qu'il y ait au moins une lettre
+je erreur_verif_lettre
+
+cmp ecx,11 ;verifie qu'il n'y ait que 11 lettre au maximum
+ja cree_descr_fichier_fat_long
+
+cmp edx,1  ;verifie qu'il n'y ait qu'un seul point
+ja cree_descr_fichier_fat_long
+
+
+;verifie qu'il n'y as que A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
+
+mov ebx,esi
+
+
+boucle_verif_lettre:
+mov al,[ebx]
+cmp al,0
+je fin_verif_lettre
+cmp al,"/"
+je fin_verif_lettre
+cmp al,"\"
+je fin_verif_lettre
+
+cmp al,21h   ;!
+je ok_verif_lettre
+
+cmp al,23h  ;#
+jb erreur_verif_lettre
+cmp al,29h  ;)
+jbe ok_verif_lettre
+
+cmp al,2Dh   ;-
+je ok_verif_lettre
+
+cmp al,2Eh   ;.
+je ok_verif_lettre
+
+cmp al,30h  ;0
+jb erreur_verif_lettre
+cmp al,39h  ;9
+jbe ok_verif_lettre
+
+cmp al,40h  ;@
+jb erreur_verif_lettre
+cmp al,5Ah  ;Z
+jbe ok_verif_lettre
+
+cmp al,5Eh  ;^
+jb erreur_verif_lettre
+cmp al,60h  ;' (accent grave)
+jbe ok_verif_lettre
+
+cmp al,7Bh   ;{
+je ok_verif_lettre
+
+cmp al,7Dh   ;}
+je ok_verif_lettre
+
+cmp al,7Eh   ;~
+je ok_verif_lettre
+
+jmp erreur_verif_lettre
+
+ok_verif_lettre:
+inc ebx
+jmp boucle_verif_lettre
+
+
+
+erreur_verif_lettre:
+popad
+mov eax,cer_parami
+ret
+
+
+
+fin_verif_lettre:
+
+;£
+
+
+;*****************************************************************************
+cree_descr_fichier_fat_long:    
+;d'abord transformation du nom de fichier au format UCS-2
+
+mov edx,esi               ;edx pointe sur le nom a convertir
+mov ebx,zt_conversion_ucs ;ebx pointe sur le nom convertit
+
+boucle_ucs:
+call lireutf8
+
+cmp eax,0
+je fin_ucs
+cmp eax,02Fh   ;/
+je fin_ucs
+cmp eax,05Ch   ;\
+je fin_ucs
+cmp eax,0FFFFh
+jbe carac_ucs_ok
+
+mov eax,0FFFDh   ;si le caractère dépasse les capacité de UCS-2 on le remplace par le caractère de remplacement en unicode
+
+carac_ucs_ok:
+mov [ebx],ax
+add ebx,2
+jmp boucle_ucs
+
+fin_ucs:
+mov word[ebx],0
+
+;rajouter des codes FFFF pour completer le nom
+mov dword[ebx+4],0FFFFFFFFh
+mov dword[ebx+8],0FFFFFFFFh
+mov dword[ebx+12],0FFFFFFFFh
+mov dword[ebx+16],0FFFFFFFFh
+mov dword[ebx+20],0FFFFFFFFh
+mov dword[ebx+24],0FFFFFFFFh
+mov dword[ebx+28],0FFFFFFFFh
+
+;calcul le nombre de bloc qui devront être employé dans le descripteur de nom long
+xor edx,edx
+mov eax,ebx
+mov ecx,26
+div ecx
+cmp edx,0
+je calcul_nombre_bloc
+inc eax
+calcul_nombre_bloc:
+mov edi,eax
+shl edi,5
+
+
+
+;*************************************
+;création d'un descripteur de nom long
+mov ebx,zt_conversion_ucs
+
+boucle_creation_descripteur_nom_long_fat:
+sub edi,32
+
+mov [zt_nouveau_descripteur+edi],al
+
+mov edx,[ebx]
+mov [zt_nouveau_descripteur+edi+01h],edx
+
+mov edx,[ebx+4]
+mov [zt_nouveau_descripteur+edi+05h],edx
+
+mov edx,[ebx+8]
+mov [zt_nouveau_descripteur+edi+09h],dx
+
+mov byte[zt_nouveau_descripteur+0Bh],0Fh ;marque que le descripteur est celui d'un nom long
+mov word[zt_nouveau_descripteur+0Ch],0
+
+mov edx,[ebx+10]
+mov [zt_nouveau_descripteur+edi+0Eh],edx
+
+mov edx,[ebx+14]
+mov [zt_nouveau_descripteur+edi+12h],edx
+
+mov edx,[ebx+18]
+mov [zt_nouveau_descripteur+edi+16h],edx
+
+mov word[zt_nouveau_descripteur+1Ah],0  
+
+mov edx,[ebx+22]
+mov [zt_nouveau_descripteur+edi+1Ch],edx
+
+cmp word[ebx+26],0FFFFh
+je fin_creation_descripteur_nom_long_fat
+
+sub ebx,26
+dec al
+jnz boucle_creation_descripteur_nom_long_fat
+
+
+fin_creation_descripteur_nom_long_fat:
+or byte[zt_nouveau_descripteur],40h
+
+
+;*************************************************
+;adaptation du nom long
+
+mov ebx,zt_conversion_ucs
+mov edi,ebx
+boucle_adaptation_nom_long:
+mov ax,[ebx]
+cmp ax,07Fh
+jae ignore_adaptation_nom_long
+
+
+
+;verifie qu'il n'y as que A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
+
+
+cmp al,0
+je fin_verif_lettre
+cmp al,"/"
+je fin_verif_lettre
+cmp al,"\"
+je fin_verif_lettre
+
+cmp al,21h   ;!
+je ok_verif_lettre
+
+cmp al,23h  ;#
+jb erreur_verif_lettre
+cmp al,29h  ;)
+jbe ok_verif_lettre
+
+cmp al,2Dh   ;-
+je ok_verif_lettre
+
+cmp al,2Eh   ;.
+je ok_verif_lettre
+
+cmp al,30h  ;0
+jb erreur_verif_lettre
+cmp al,39h  ;9
+jbe ok_verif_lettre
+
+cmp al,40h  ;@
+jb erreur_verif_lettre
+cmp al,5Ah  ;Z
+jbe ok_verif_lettre
+
+cmp al,5Eh  ;^
+jb erreur_verif_lettre
+cmp al,60h  ;' (accent grave)
+jbe ok_verif_lettre
+
+cmp al,7Bh   ;{
+je ok_verif_lettre
+
+cmp al,7Dh   ;}
+je ok_verif_lettre
+
+cmp al,7Eh   ;~
+je ok_verif_lettre
+
+
+
+
+
+
+
+
+
+
+
+
+minuscule_adaptation_nom_long:
+sub al,20h
+ok_adaptation_nom_long:
+mov [edi],al
+inc edi
+ignore_adaptation_nom_long:
+add bx,2
+jmp boucle_adaptation_nom_long
+
+fin_adaptation_nom_long:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;************************************************
+;création d'un descripteur de nom court
+
+
+
+
+mov dword[edi],20202020h    ;remplissage par du vide
+mov dword[edi+4],20202020h
+mov dword[edi+8],202020h
+
+
+boucle_creation_nom_court:
+mov al,[ebx]
+cmp al,0
+;je
+cmp al,02Fh   ;/
+;je 
+cmp al,05Ch   ;\
+;je 
+cmp al,2Eh     ;.
+je point
+mov al,[edi]
+inc ebx
+jmp boucle_creation_nom_court
+
+
+
+point:
+inc ebx
+
+
+
+;initalise les date de création et de dernière modification du fichier
+
+
+
+
+
+
+
+
+
+popad
+ret
+
+
+
+
+erreur_nom_cree_descr_fichier:
+popad
+mov eax,cer_cin ;carac interdit dans le nom de fichier
+ret
+
+
+;*************************************************************
+calcmaj_checksum_fat:     ;calcul et met a jour la valeur du checksum du descripteur créer
+pushad
+
+fs
+mov al,[zt_nouveau_descripteur]
+test al,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
+je fin_calcmaj_checksum_fat
+
+fs
+mov esi,[zt_nouveau_descripteur]
+and esi,3Fh
+shl esi,5
+add esi,zt_nouveau_descripteur
+mov ebx,esi
+
+;calcul du checksum  
+mov cx,11  ;ch=sum cl=i
+boucle1_calcmaj_checksum_fat:
+mov al,ch
+shl ch,7
+shr al,1
+add ch,al
+fs
+add ch,[esi]
+inc esi
+dec cl
+jnz boucle1_calcmaj_checksum_fat
+
+
+boucle2_calcmaj_checksum_fat:
+fs 
+mov [ebx+0Dh],ch 
+sub ebx,32
+cmp ebx,zt_nouveau_descripteur
+jne boucle2_calcmaj_checksum_fat
+
+fin_calcmaj_checksum_fat:
+popad
+ret
+
+
+
+;*******************************************************************************
+;                                                   ****************************
+supprimerfichier:
+call initdescrfdcourant
+jc errprmsf
+
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je supprime_fichier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je supprime_fichier_fat       ;ou fat16
+cmp al,011000b
+je supprime_fichier_fat       ;ou fat32
+jmp errprmsf
+
+supprime_fichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+pushad
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne supprime_fichier_nvfat
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+supprime_fichier_nvfat:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je pas32_supprime_fichier_fat
+and eax,0FFFFh
+pas32_supprime_fichier_fat:
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+je ok_supprime_fichier_fat
+popad
+jmp errsysf
+ok_supprime_fichier_fat:
+
+;si c'est un dossier verifie qu'il est bien vide
+pushad
+fs
+test word[ebx+zt_lminfo+0Bh],10h
+jz pas_supprime_dossier_fat
+xor edx,edx
+
+boucle1_testdossiervide:
+push ebx
+push edx
+push es
+mov ax,seldat
+mov es,ax
+mov ecx,512
+mov edi,zt_lminfo+512
+call sflirefichier
+pop es
+pop edx
+pop ebx
+mov ebx,zt_lminfo+512
+
+boucle2_testdossiervide:
+fs
+mov al,[ebx]
+cmp al,02Eh
+je suite_testdossiervide
+cmp al,005h
+je suite_testdossiervide
+cmp al,0E5h
+je suite_testdossiervide
+cmp al,000h
+je pas_supprime_dossier_fat
+popad
+jmp errdnv_supprime_fichier
+
+suite_testdossiervide:
+add ebx,32
+cmp ebx,zt_lminfo+1024
+jne boucle2_testdossiervide
+add edx,512
+jmp boucle1_testdossiervide
+
+pas_supprime_dossier_fat:
+popad
+
+push ebx
+fs   ;supprime les cluster reservé
+mov ebx,[ad_fichier]
+cmp ebx,0
+je fin_boucle_supprime_cluster_fichier_fat
+
+boucle_supprime_cluster_fichier_fat:
+cmp ebx,0
+je fin_boucle_supprime_cluster_fichier_fat
+cmp ebx,1
+je fin_boucle_supprime_cluster_fichier_fat
+mov eax,ebx
+and eax,0FFFFFFF0h
+cmp eax,0FFFFFFF0h
+je fin_boucle_supprime_cluster_fichier_fat
+mov ecx,ebx
+call lireindexfat
+cmp eax,0
+jne fin_boucle_supprime_cluster_fichier_fat
+xchg ebx,ecx
+mov eax,0
+call ecrireindexfat   ;ebx = index fat a ecrire eax = valeur de l'index fat
+mov ebx,ecx
+cmp eax,0
+je boucle_supprime_cluster_fichier_fat
+
+fin_boucle_supprime_cluster_fichier_fat:
+pop ebx
+
+;supprime le descripteur sur le disque
+fs
+mov word[ebx+zt_lminfo+14h],0
+fs
+mov word[ebx+zt_lminfo+1Ah],0
+boucle_supprime_entree_fichier_fat:
+fs
+mov byte[ebx+zt_lminfo],0E5h
+cmp ebx,0
+je fin_supprime_entree_fichier_fat
+sub ebx,32
+jmp boucle_supprime_entree_fichier_fat
+fin_supprime_entree_fichier_fat:
+
+popad
+call minfo_sauvegarde_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+jmp fermerfichier
+
+errdnv_supprime_fichier:
+popad
+mov eax,cer_dnv      ;code d'erreur: dossier non vide
+jmp finfonctionfichiererr
+
+
+;*******************************************************************************
+;                                                   ****************************
+lirefichier:
+;es:edi=zone ou copier les données
+;ebx=numéros du fichier ouvert
+;edx=offset dans le fichier
+;ecx=quantité a lire
+call initdescrfdcourant
+jc errprmsf
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,100b
+je ignore_lire_meta_fichier       ;si c'est iso9660 on n'a pas besoin de modifier les métadonnées
+fs
+mov al,[at_fichier]
+and al,011b
+cmp al,011b
+je ignore_lire_meta_fichier       ;si c'est un dossier racine on ne peut pas modifier les métadonné
+
+
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je lire_meta_fichier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je lire_meta_fichier_fat       ;ou fat16
+cmp al,011000b
+je lire_meta_fichier_fat       ;ou fat32
+jmp errprmsf
+
+lire_meta_fichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+pushad
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne lire_meta_fichier_nvfat
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+lire_meta_fichier_nvfat:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+push ecx
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je pas32_lire_meta_fichier_fat
+and eax,0FFFFh
+pas32_lire_meta_fichier_fat:
+pop ecx
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+je ok_lire_meta_fichier_fat
+popad
+jmp errsysf
+ok_lire_meta_fichier_fat:
+
+;mettre a jour la date de dernier acces
+push ebx
+call lire_date_heure  
+call conv_date_fat
+pop ebx
+fs
+mov [ebx+zt_lminfo+12h],dx
+popad
+
+call minfo_sauvegarde_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+ignore_lire_meta_fichier:
+call sflirefichier
+jmp finfonctionfichiererr
+
+
+;**********************************************************************************
+sflirefichier:
+fs                   ;verifie que l'adresse demandé ne dépasse pas du fichier
+cmp edx,[to_fichier]
+jae erplirefichier
+mov eax,edx          ;calcule l'adresse max des données lu dans le fichier
+add eax,ecx
+fs                   ;tronque les données a lire si ça dépasse de la taille du fichier
+cmp eax,[to_fichier]
+jb pastronquelirefichier
+fs
+mov ecx,[to_fichier]
+sub ecx,edx
+pastronquelirefichier:
+
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,100b ;on test si le lecteur est un lecteur de cdrom
+je lirefichiercdrom
+cmp al,010000b 
+je lireracinefat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je lireracinefat       ;ou fat16
+cmp al,011000b
+je lirefichierfat      ;ou bien fat32
+erplirefichier: ;erreur de parametre
+mov eax,cer_parami
+ret
+
+finlirefichier:  ;fin de lecture du fichier, tout vas bien
+xor eax,eax
+
+erllirefichier: ;erreur de lecture,conserve le code d'erreur
+ret
+
+
+
+
+lirefichiercdrom:
+;determiner l'adresse du premier secteur a lire
+mov ebx,edx
+and edx,07FFh        ;edx est l'offset dans le premier secteur
+shr ebx,11           ;ebx est le numéros du secteur
+fs
+add ebx,[ad_fichier]   ;ebx contient l'adresse absolue du secteur
+
+cmp edx,0
+jne sectcd_sincomplet   ;offset dans le secteur non null
+
+cmp ecx,2048
+ja sectcd_scomplet
+jmp sectcd_sdebut
+
+sectcd_sincomplet:
+mov eax,ecx
+add eax,edx   ;calcul si les données a lire sont contenue dans un seul secteur
+cmp eax,2048
+ja sectcd_sfin
+
+;*************************lecture partielle millieu
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_part]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push esi
+push ds
+mov si,seldat
+mov ds,si
+mov esi,secteurcd
+add esi,edx
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+;*********************lecture partielle fin 
+sectcd_sfin:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_part]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push ecx
+push esi
+push ds
+mov ax,seldat
+mov ds,ax
+mov esi,secteurcd
+add esi,edx
+mov ecx,2048
+sub ecx,edx
+mov eax,ecx
+cld
+rep movsb  ;ds:esi es:edi
+pop ds
+pop esi
+pop ecx
+sub ecx,eax
+jmp sectcd_determination
+
+
+;******************************secteur complet
+sectcd_scomplet:
+
+;charge le secteur directement a l'endroit souhaité
+push ecx
+mov cl,1
+fs
+mov ch,[no_part]
+call lsct
+pop ecx
+cmp eax,0
+jne erllirefichier
+sub ecx,2048
+add edi,2048
+
+
+
+;******************************determination des secteurs suivant a lire
+sectcd_determination:
+cmp ecx,0
+je finlirefichier
+
+inc ebx  ;secteur suivant
+
+cmp ecx,2048
+ja sectcd_scomplet
+
+;************************lecture partielle debut
+sectcd_sdebut:
+
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_part]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+
+;transferer les seuls données utile
+push esi
+push ds
+mov ax,seldat
+mov ds,ax
+mov esi,secteurcd
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+
+
+
+
+lireracinefat:
+fs
+mov al,[at_fichier]
+and al,0011b
+cmp al,3
+jne lirefichierfat   ;si ce n'est pas le dossier racine alors ça se lit comme un fichier
+
+;***********************************************lecture dossier racine fat
+;determiner l'adresse du premier secteur a lire
+mov ebx,edx
+and edx,01FFh        ;edx est l'offset dans le premier secteur
+shr ebx,9            ;ebx est le numéros du secteur
+fs
+add ebx,[ad_fichier]   ;ebx contient l'adresse absolue du secteur
+
+cmp edx,0
+jne sectds_sincomplet   ;offset dans le secteur non null
+
+cmp ecx,512
+ja sectds_scomplet
+jmp sectds_sdebut
+
+sectds_sincomplet:
+mov eax,ecx
+add eax,edx   ;calcul si les données a lire sont contenue dans un seul secteur
+cmp eax,512
+ja sectds_sfin
+
+;*************************lecture partielle millieu
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push esi
+push ds
+mov si,seldat
+mov ds,si
+mov esi,secteurcd
+add esi,edx
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+;*********************lecture partielle fin 
+sectds_sfin:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push ecx
+push esi
+push ds
+mov ax,seldat
+mov ds,ax
+mov esi,secteurcd
+add esi,edx
+mov ecx,512
+sub ecx,edx
+mov eax,ecx
+cld
+rep movsb  ;ds:esi es:edi
+pop ds
+pop esi
+pop ecx
+sub ecx,eax
+jmp sectds_determination
+
+
+;******************************secteur complet
+sectds_scomplet:
+
+;charge le secteur directement a l'endroit souhaité
+push ecx
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct
+pop ecx
+cmp eax,0
+jne erllirefichier
+sub ecx,512
+add edi,512
+
+
+
+;******************************determination des secteurs suivant a lire
+sectds_determination:
+cmp ecx,0
+je finlirefichier
+
+inc ebx  ;secteur suivant
+
+cmp ecx,512
+ja sectds_scomplet
+
+;************************lecture partielle debut
+sectds_sdebut:
+
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+
+;transferer les seuls données utile
+push esi
+push ds
+mov ax,seldat
+mov ds,ax
+mov esi,secteurcd
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+lirefichierfat: ;***********************************************lecture fichier FAT 12,16,et 32
+
+;determiner l'adresse du premier cluster a lire
+fs
+mov ebx,[ad_fichier]   ;ebx contient le numéros de cluster
+
+boucle_deter_1ercluster:
+fs
+cmp edx,[to_1cluster]
+jb num_1er_cluster
+call lireindexfat
+cmp ebx,0FFFFFFF0h ;réservé
+je errlirefichier_sysf
+cmp ebx,0FFFFFFF7h ;défaillant
+je errlirefichier_lec
+cmp ebx,0FFFFFFF8h ;fin de fichier
+je finlirefichier
+fs
+sub edx,[to_1cluster]
+jmp boucle_deter_1ercluster
+
+num_1er_cluster:
+cmp edx,0
+jne cluster_sincomplet   ;offset dans le secteur non null
+
+fs
+cmp ecx,[to_1cluster]
+ja cluster_scomplet
+jmp cluster_sdebut
+
+cluster_sincomplet:
+mov eax,ecx
+add eax,edx   ;calcul si les données a lire sont contenue dans un seul cluster
+fs
+cmp eax,[to_1cluster]
+ja cluster_sfin
+
+;*************************lecture partielle millieu
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,selramh
+mov es,di
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push esi
+push ds
+mov si,selramh
+mov ds,si
+fs
+mov esi,[ad_zt_lecluster]
+add esi,edx
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+;*********************lecture partielle fin 
+cluster_sfin:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,selramh
+mov es,di
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+;transferer les seuls données utile
+push ecx
+push esi
+push ds
+mov ax,selramh
+mov ds,ax
+fs
+mov esi,[ad_zt_lecluster]
+add esi,edx
+fs
+mov ecx,[to_1cluster]
+sub ecx,edx
+mov eax,ecx
+cld
+rep movsb  ;ds:esi es:edi
+pop ds
+pop esi
+pop ecx
+sub ecx,eax
+jmp cluster_determination
+
+
+;******************************secteur complet
+cluster_scomplet:
+
+;charge le secteur directement a l'endroit souhaité
+call lire_cluster_fat
+cmp eax,0
+jne erllirefichier
+fs
+sub ecx,[to_1cluster]
+fs
+add edi,[to_1cluster]
+
+
+
+;******************************determination des secteurs suivant a lire
+cluster_determination:
+cmp ecx,0
+je finlirefichier
+
+call lireindexfat  ;secteur suivant
+cmp ebx,0FFFFFFF0h ;réservé
+je errlirefichier_sysf
+cmp ebx,0FFFFFFF7h ;défaillant
+je errlirefichier_lec
+cmp ebx,0FFFFFFF8h ;fin de fichier
+je finlirefichier
+
+fs
+cmp ecx,[to_1cluster]
+ja cluster_scomplet
+
+;************************lecture partielle debut
+cluster_sdebut:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,selramh
+mov es,di
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne erllirefichier
+
+
+;transferer les seuls données utile
+push esi
+push ds
+mov ax,selramh
+mov ds,ax
+fs
+mov esi,[ad_zt_lecluster]
+cld
+rep movsb
+pop ds
+pop esi
+jmp finlirefichier
+
+errlirefichier_lec:
+mov eax,cer_lec
+jmp erllirefichier
+
+errlirefichier_sysf:
+mov eax,cer_sysf
+jmp erllirefichier
+
+
+
+;******************************************************************************************
+lire_cluster_fat:        ;lire un cluster
+push ebx
+push ecx
+xor ah,ah
+fs
+mov al,[nb_sec_cluster]
+bsf cx,ax                 ;extrait le numéros du premier bit a 1 dans l'octet
+shl ebx,cl
+fs
+add ebx,[ad_cluster0]
+fs
+mov cl,[nb_sec_cluster]
+fs
+mov ch,[no_disquepart]
+call lsct
+pop ecx
+pop ebx
+ret
+
+
+;******************************************************************************************
+ecrire_cluster_fat:        ;ecrire un cluster
+push ebx
+push ecx
+xor ah,ah
+fs
+mov al,[nb_sec_cluster]
+bsf cx,ax                 ;extrait le numéros du premier bit a 1 dans l'octet
+shl ebx,cl
+fs
+add ebx,[ad_cluster0]
+fs
+mov cl,[nb_sec_cluster]
+fs
+mov ch,[no_disquepart]
+call esct
+pop ecx
+pop ebx
+ret
+
+
+;*******************************************************************************************
+;travail sur la table FAT
+
+
+lireindexfat:
+;ebx = index fat a lire
+;renvoie l'index fat lue dans ebx
+;eax=code d'erreur
+
+push ecx
+push edx
+push esi
+push edi
+push ebp
+push es
+
+mov ax,selramh
+mov es,ax
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00010000b
+je fat12
+cmp al,00010100b
+je fat16
+cmp al,00011000b
+je fat32
+jmp erparamfat
+
+fat12:
+shr ebx,1
+jc fatimpaire
+
+mov ax,bx   ;fat paire
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+mov ch,01h
+call liredwordfat
+cmp eax,0
+jne finlireifat
+jmp kirk
+
+fatimpaire:
+mov ax,bx
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+mov ch,01h
+call liredwordfat
+cmp eax,0
+jne finlireifat
+shr ebx,12
+
+kirk:
+and ebx,0FFFh
+mov eax,ebx
+and eax,0FF0h
+cmp eax,0FF0h
+je revcluster
+xor eax,eax
+jmp finlireifat
+
+fat16:
+cmp ebx,0FFF0h
+ja erparamfat
+shl ebx,1
+call liredwordfat
+cmp eax,0
+jne finlireifat
+and ebx,0FFFFh
+
+mov eax,ebx
+and eax,0FFF0h
+cmp eax,0FFF0h
+je revcluster
+xor eax,eax
+jmp finlireifat
+
+
+fat32:
+cmp ebx,0FFFFFF0h
+ja erparamfat
+shl ebx,2
+call liredwordfat
+cmp eax,0
+jne finlireifat
+
+mov eax,ebx
+and eax,0FFFFFF0h
+cmp eax,0FFFFFF0h
+je revcluster
+xor eax,eax
+jmp finlireifat
+
+revcluster:
+and ebx,0Fh
+testcluster:
+cmp bl,7
+je badcluster
+test bl,08h
+jnz fincluster
+
+mov ebx,0FFFFFFF0h    ;réservé
+xor eax,eax
+jmp finlireifat
+
+badcluster:
+mov ebx,0FFFFFFF7h     ;cluster defaillant
+xor eax,eax
+jmp finlireifat
+
+fincluster:               ;cluster de fin de fichier
+mov ebx,0FFFFFFF8h
+xor eax,eax
+jmp finlireifat
+
+erparamfat:
+mov eax,cer_parami
+xor ebx,ebx
+
+finlireifat:
+pop es
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+ret
+
+
+
+liredwordfat:
+;ebx=adresse dword a lire
+;ebx=octet en sortie
+;eax=code d'erreur
+
+fs
+mov eax,[to_fat]
+shl eax,9    ;mul par 512
+cmp ebx,eax
+jae errliredwordfat
+
+fs
+mov al,[no_part]
+fs
+cmp al,[dsq_fat1]
+je utfat1
+fs
+cmp al,[dsq_fat2]
+je utfat2
+;le disque n'est pas en mémoire
+fs
+bt word[at_fat],0   ;quel est la dernière zone mise a jour
+jc chargefat2
+jmp chargefat1
+
+
+utfat1:
+;test si le dword voulue est en mémoire
+fs
+mov eax,[index_fat1]
+cmp ebx,eax
+jb chargefat1       ;si l'adresse est inferieur a l'index on met a jour la zt
+fs
+add eax,[max_fat1]
+cmp ebx,eax          ;si l'adresse est bien en mémoire on la lit 
+jb lirezt1
+
+chargefat1:
+fs
+btc word[at_fat],0   ;la zone 1 est la dernière mise a jour
+fs
+mov ch,[no_part]
+fs
+mov [dsq_fat1],ch
+
+;determine le nouvel index
+push ebx
+and ebx,0FFFFFE00h   
+fs
+mov [index_fat1],ebx
+
+;determine le secteur asscocié a cet index
+shr ebx,9
+fs
+add ebx,[ad_fat]
+
+;determine le nombre de secteur a charger et charge la zt fat
+fs
+mov edx,[max_fat1]
+shr edx,9
+mov cl,dl
+fs 
+mov edi,[ad_fat1]
+fs
+mov ch,[no_disquepart]
+call lsct
+pop ebx       
+cmp eax,0
+jne err1liredwordfat  
+
+lirezt1:
+fs
+sub ebx,[index_fat1]
+fs
+add ebx,[ad_fat1]
+es
+mov eax,[ebx]
+mov ebx,eax
+xor eax,eax
+ret
+
+err1liredwordfat:
+fs
+mov byte[dsq_fat1],0
+xor ebx,ebx
+ret
+
+errliredwordfat:
+mov eax,cer_parami
+xor ebx,ebx
+ret
+
+
+utfat2:
+;test si le dword voulue est en mémoire
+fs
+mov eax,[index_fat2]
+cmp ebx,eax
+jb chargefat2       ;si l'adresse est inferieur a l'index on met a jour la zt
+fs
+add eax,[max_fat2]
+cmp ebx,eax          ;si l'adresse est bien en mémoire on la lit 
+jb lirezt2
+
+chargefat2:
+fs
+btc word[at_fat],0   ;la zone 1 est la dernière mise a jour
+fs
+mov ch,[no_part]
+fs
+mov [dsq_fat2],ch
+
+;determine le nouvel index
+push ebx
+and ebx,0FFFFFE00h   
+fs
+mov [index_fat2],ebx
+
+;determine le secteur asscocié a cet index
+shr ebx,9
+fs
+add ebx,[ad_fat]
+
+;determine le nombre de secteur a charger et charge la zt fat
+mov edx,[max_fat2]
+shr edx,9
+mov cl,dl
+fs 
+mov edi,[ad_fat2]
+fs
+mov ch,[no_disquepart]
+call lsct
+pop ebx       
+cmp eax,0
+jne err1liredwordfat  
+
+lirezt2:
+fs
+sub ebx,[index_fat2]
+fs
+add ebx,[ad_fat2]
+es
+mov eax,[ebx]
+mov ebx,eax
+xor eax,eax
+ret
+
+err2liredwordfat:
+fs
+mov byte[dsq_fat2],0
+xor ebx,ebx
+ret
+
+
+
+
+;*****************************************************
+ecrireindexfat:
+;ebx = index fat a ecrire
+;eax = valeur de l'index fat
+
+push ecx
+push edx
+push esi
+push edi
+push ebp
+push es
+
+mov dx,selramh
+mov es,dx
+
+fs
+mov dl,[at_fichier]
+and dl,00111100b
+cmp dl,00010000b
+je ecr_fat12
+cmp dl,00010100b
+je ecr_fat16
+cmp dl,00011000b
+je ecr_fat32
+jne erparamfat
+
+
+
+;***********************
+ecr_fat12:
+mov edx,eax
+and edx,0FFFFFFF0h
+cmp edx,0FFFFFFF0h
+je okecr_fat12
+and edx,0FFFFF000h
+cmp edx,0
+jne erparamfat
+
+okecr_fat12:
+and eax,0FFFh
+shr ebx,1
+jc ecr_fat12_impaire
+
+push eax
+mov ax,bx   ;fat paire
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+pop eax
+
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+and edx,0FFFFF000h
+or eax,edx
+call ecrdwordfat
+jmp finlireifat
+
+ecr_fat12_impaire:
+push eax
+mov ax,bx
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+pop eax
+
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+shl eax,12
+and edx,0FF000FFFh
+or eax,edx
+call ecrdwordfat
+jmp finlireifat
+
+
+;***********************
+ecr_fat16:
+mov edx,eax
+and edx,0FFFFFFF0h
+cmp edx,0FFFFFFF0h
+je okecr_fat16
+test eax,0FFFF0000h
+jnz erparamfat
+
+okecr_fat16:
+and eax,0FFFFh
+shl ebx,1
+
+;lire le dword précédent
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+and edx,0FFFF0000h
+or eax,edx
+call ecrdwordfat
+jmp finlireifat
+
+;***********************
+ecr_fat32: 
+mov edx,eax
+and edx,0F0000000h
+cmp edx,0F0000000h
+je okecr_fat32
+test eax,0F0000000h
+jnz erparamfat
+
+okecr_fat32:
+and eax,0FFFFFFFh
+shl ebx,2
+call ecrdwordfat
+jmp finlireifat
+
+
+
+ecrdwordfat:
+;ebx =adresse dans la fat
+;eax=valeur a ecrire
+;sortie eax=0
+
+
+;lit la valeur pour mettre a jour les ZT
+mov edx,eax
+push ebx
+call liredwordfat
+pop ebx
+cmp eax,0
+jne errecrdwordfat
+
+;determine laquel des zones tampon est utilisé
+fs
+mov al,[no_part]
+fs
+cmp al,[dsq_fat1]
+je mdfat1
+fs
+cmp al,[dsq_fat2]
+je mdfat2
+;jmp erreur
+
+mdfat1:      ;modifie la valeur dans la zt1
+push ebx
+fs
+sub ebx,[index_fat1]
+fs
+add ebx,[ad_fat1]
+es
+mov [ebx],edx
+
+fs
+sub ebx,[ad_fat1] 
+and ebx,0FFFFFE00h   
+fs
+add ebx,[ad_fat1]
+mov esi,ebx 
+jmp ecr_secfat
+
+mdfat2:      ;modifie la valeur dans la zt2
+push ebx
+fs
+sub ebx,[index_fat2]
+fs
+add ebx,[ad_fat2]
+es
+mov [ebx],edx
+
+fs
+sub ebx,[ad_fat2] 
+and ebx,0FFFFFE00h   
+fs
+add ebx,[ad_fat2] 
+mov esi,ebx
+
+
+ecr_secfat:
+;determine le numéros du secteur de fat a modifier
+pop ebx
+shr ebx,9
+fs
+add ebx,[ad_fat]
+
+
+;charge le secteur modifié dans les fat de la partition
+
+fs
+mov dl,[nb_fat]
+modifie1fat:
+push dx	    
+mov cl,1
+fs	    
+mov ch,[no_disquepart]	 
+fs
+mov dl,[at_fichier]
+and dl,00111100b
+cmp dl,00010000b
+jne ecr_fat_ok
+inc cl    ;si le disque est en FAT12 on ecrit sur deux secteur car le contenue a modifier du dword peut être a cheval entres deux secteur
+ecr_fat_ok:     
+call esct
+pop dx
+cmp eax,0
+jne errecrdwordfat
+fs
+add ebx,[to_fat]
+dec dl
+jnz modifie1fat
+ret
+
+errecrdwordfat:
+xor ebx,ebx
+ret
+
+;*********************************************************
+ajn_cluster:               ;ajoute un nouveau cluster 
+;entrée: edx=dernier cluster du fichier
+;sortie: edx=nouveau cluster final
+
+push ebx                      ;on verifie d'abord si le cluster suivant est disponible 
+push edi
+mov edi,edx     ;edi=sauvegarde du précédent cluster
+inc edx
+mov ebx,edx
+call lireindexfat
+cmp eax,0
+jne fin_ajn_cluster
+cmp ebx,0
+je trouve_rech_nouv_cluster 
+
+mov edx,2                      ;sinon on recommence depuis le début
+boucle1_rech_nouv_cluster:
+mov ebx,edx
+call lireindexfat
+cmp eax,0
+jne fin_ajn_cluster
+cmp ebx,0
+je trouve_rech_nouv_cluster 
+inc edx
+jmp boucle1_rech_nouv_cluster  
+
+trouve_rech_nouv_cluster: 
+mov ebx,edx
+mov eax,0FFFFFFF8h
+call ecrireindexfat
+cmp eax,0
+jne fin_ajn_cluster
+
+cmp edi,0
+je fin_ajn_cluster  ;si le précédent cluster n'existait pas on ignore cette étape
+mov eax,edx
+mov ebx,edi
+call ecrireindexfat
+
+fin_ajn_cluster:
+pop edi
+pop ebx
+ret
+
+;*******************************************************************************
+;                                                   ****************************
+ecrirefichier:
+;es:esi=adresse des données a copier
+;ebx=numéros du fichier ouvert
+;edx=offset dans le fichier
+;ecx=quantité a ecrire
+call initdescrfdcourant
+jc errprmsf
+fs
+cmp edx,[to_fichier]
+ja errprmsf            ;on ne peut écrire au dela de la taille existante du fichier
+
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je ecrire_meta_fichier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je ecrire_meta_fichier_fat       ;ou fat16
+cmp al,011000b
+je ecrire_meta_fichier_fat       ;ou fat32
+jmp errprmsf
+
+ecrire_meta_fichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+pushad
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne ecrire_meta_fichier_nvfat
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+ecrire_meta_fichier_nvfat:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+push ecx
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je pas32_ecrire_meta_fichier_fat
+and eax,0FFFFh
+pas32_ecrire_meta_fichier_fat:
+pop ecx
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+je ok_ecrire_meta_fichier_fat
+popad
+jmp errsysf
+ok_ecrire_meta_fichier_fat:
+
+mov eax,edx
+add eax,ecx
+fs
+cmp [to_fichier],eax
+jae pasajt_ecrire_meta_fichier_fat
+fs
+mov [to_fichier],eax           
+fs
+mov [ebx+zt_lminfo+01Ch],eax   ;modifie le descripteur du disque
+pasajt_ecrire_meta_fichier_fat:
+
+;verifie que le premier cluster existe bien
+fs
+cmp dword[ad_fichier],0
+jne okcluster0_ecrire_meta_fichier_fat
+push edx
+xor edx,edx
+call ajn_cluster   ;sinon on le créer
+cmp eax,0
+jne err_ecrire_meta_fichier_fat 
+
+fs
+mov [ad_fichier],edx
+fs
+mov [ebx+zt_lminfo+01Ah],dx
+shr edx,16
+fs
+mov [ebx+zt_lminfo+014h],dx
+pop edx
+okcluster0_ecrire_meta_fichier_fat:
+
+
+;mettre a jour la date de dernère modif
+push ebx
+call lire_date_heure  
+call conv_date_fat
+pop ebx
+fs
+mov [ebx+zt_lminfo+16h],ax
+fs
+mov [ebx+zt_lminfo+18h],dx
+
+
+popad
+
+fin_ecrire_meta_fichier:
+call minfo_sauvegarde_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+call sfecrirefichier
+jmp finfonctionfichiererr
+
+
+err_ecrire_meta_fichier_fat:
+pop edx
+popad
+jmp finfonctionfichiererr
+
+;*******************************************
+
+sfecrirefichier:
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je ecrireracinefat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je ecrireracinefat       ;ou fat16
+cmp al,011000b
+je ecrirefichierfat       ;ou bien fat32
+jmp fin_sfecrirefichier_erprm
+
+ecrireracinefat:
+fs
+mov al,[at_fichier]
+and al,0011b
+cmp al,3
+jne ecrirefichierfat   ;si ce n'est pas le dossier racine alors ça s'écrit comme un fichier
+
+
+;***********************************************ecriture dossier racine fat
+;determiner l'adresse du premier secteur a ecrire
+mov ebx,edx
+and edx,01FFh        ;edx est l'offset dans le premier secteur
+shr ebx,9            ;ebx est le numéros du secteur
+fs
+add ebx,[ad_fichier]   ;ebx contient l'adresse absolue du secteur
+
+cmp edx,0
+jne sectds_ecr_sincomplet   ;offset dans le secteur non null
+
+cmp ecx,512
+ja sectds_ecr_scomplet
+jmp sectds_ecr_sdebut
+
+sectds_ecr_sincomplet:
+mov eax,ecx
+add eax,edx   ;calcul si les données a ecrire sont contenue dans un seul secteur
+cmp eax,512
+ja sectds_ecr_sfin
+
+;*************************ecriture partielle millieu
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erlec
+
+;transferer les seuls données utile
+mov edi,secteurcd
+add edi,edx
+cld
+rep movsb
+
+;écrit le secteur
+push ecx
+push esi
+push es
+mov si,seldat
+mov es,si
+mov esi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call esct                  
+pop es
+pop esi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erecr
+
+jmp fin_sfecrirefichier_ok
+
+;*********************lecture partielle fin 
+sectds_ecr_sfin:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erlec
+
+;transferer les seuls données utile
+push ecx
+mov edi,secteurcd
+add edi,edx
+mov ecx,512
+sub ecx,edx
+mov edx,ecx
+cld
+rep movsb
+pop ecx
+
+;ecrit le secteur
+push ecx
+push edx
+push esi
+push es
+mov si,seldat
+mov es,si
+mov esi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call esct                  
+pop es
+pop esi
+pop edx
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erecr
+
+sub ecx,edx
+add esi,edx
+jmp sectds_ecr_determination
+
+
+;******************************secteur complet
+sectds_ecr_scomplet:
+
+;charge le secteur directement a l'endroit souhaité
+push ecx
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call esct
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erecr
+sub ecx,512
+add esi,512
+
+
+
+;******************************determination des secteurs suivant a ecrire
+sectds_ecr_determination:
+cmp ecx,0
+je fin_sfecrirefichier_ok
+
+inc ebx  ;secteur suivant
+
+cmp ecx,512
+ja sectds_ecr_scomplet
+
+;************************lecture partielle debut
+sectds_ecr_sdebut:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call lsct                  
+pop es
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erlec
+
+
+;transferer les seuls données utile
+mov edi,secteurcd
+cld
+rep movsb
+
+;ecrit le secteur
+push ecx
+push esi
+push es
+mov si,seldat
+mov es,si
+mov esi,secteurcd
+mov cl,1
+fs
+mov ch,[no_disquepart]
+call esct                  
+pop es
+pop esi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_erecr
+
+jmp fin_sfecrirefichier_ok
+
+
+
+
+
+ecrirefichierfat: ;***********************************************ecriture fichier FAT 12,16,et 32
+mov ax,es
+mov ds,ax
+mov ax,selramh
+mov es,ax
+
+
+;determiner l'adresse du premier cluster ou ecrire
+fs
+mov ebx,[ad_fichier]   ;ebx contient le numéros de cluster
+
+boucle_deter_1ercluster_ecr:
+fs
+cmp edx,[to_1cluster]
+jb num_1er_cluster_ecr
+call lireindexfat
+cmp ebx,0FFFFFFF0h ;réservé
+je fin_sfecrirefichier_ersyf
+cmp ebx,0FFFFFFF7h ;défaillant
+je fin_sfecrirefichier_erecr
+cmp ebx,0FFFFFFF8h ;fin de fichier
+je fin_sfecrirefichier_ersyf   
+
+fs
+sub edx,[to_1cluster]
+jmp boucle_deter_1ercluster_ecr
+
+num_1er_cluster_ecr:
+cmp edx,0
+jne cluster_ecr_sincomplet   ;offset dans le secteur non null
+
+fs
+cmp ecx,[to_1cluster]
+ja cluster_ecr_scomplet
+jmp cluster_ecr_sdebut
+
+cluster_ecr_sincomplet:
+mov eax,ecx
+add eax,edx   ;calcul si les données a ecrire sont contenue dans un seul cluster
+fs
+cmp eax,[to_1cluster]
+ja cluster_ecr_sfin
+
+;*************************lecture partielle millieu
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_err   ;conservation du code d'erreur
+
+;transferer les seuls données utile
+fs
+mov edi,[ad_zt_lecluster]
+add edi,edx
+cld
+rep movsb
+
+;ecrit dans le cluster
+push ecx
+push esi
+fs
+mov esi,[ad_zt_lecluster]
+call ecrire_cluster_fat                 
+pop esi
+pop ecx
+jmp fin_sfecrirefichier_err   ;conservation du code d'erreur
+
+;*********************lecture partielle fin 
+cluster_ecr_sfin:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_err   ;conservation du code d'erreur
+
+;transferer les seules données utile
+push ecx
+fs
+mov edi,[ad_zt_lecluster]
+add edi,edx
+fs
+mov ecx,[to_1cluster]
+sub ecx,edx
+mov eax,ecx
+cld
+rep movsb
+pop ecx
+sub ecx,eax
+
+
+;ecrit dans le cluster
+push ecx
+push esi
+fs
+mov esi,[ad_zt_lecluster]
+call ecrire_cluster_fat                 
+pop esi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_err   ;conservation du code d'erreur
+jmp cluster_ecr_determination
+
+
+;******************************secteur complet
+cluster_ecr_scomplet:
+
+;charge le secteur directement a l'endroit souhaité
+push es
+mov ax,ds
+mov es,ax
+call ecrire_cluster_fat
+pop es
+cmp eax,0
+jne fin_sfecrirefichier_err   ;conservation du code d'erreur
+fs
+sub ecx,[to_1cluster]
+fs
+add esi,[to_1cluster]
+
+
+
+;******************************determination des secteurs suivant a ecrire
+cluster_ecr_determination:
+cmp ecx,0
+je fin_sfecrirefichier_ok
+mov edx,ebx
+call lireindexfat  ;secteur suivant
+cmp ebx,0FFFFFFF0h ;réservé
+je fin_sfecrirefichier_ersyf   
+cmp ebx,0FFFFFFF7h ;défaillant
+je fin_sfecrirefichier_erecr   
+cmp ebx,0FFFFFFF8h ;fin de fichier
+jne cluster_ecr_najcluster   
+
+
+call ajn_cluster 
+cmp eax,0
+jne fin_sfecrirefichier_err
+mov ebx,edx
+cluster_ecr_najcluster:
+
+fs
+cmp ecx,[to_1cluster]
+ja cluster_ecr_scomplet
+
+;************************ecriture partielle debut
+cluster_ecr_sdebut:
+;charge le secteur dans une zone tampon
+push ecx
+push edi
+fs
+mov edi,[ad_zt_lecluster]
+call lire_cluster_fat                 
+pop edi
+pop ecx
+cmp eax,0
+jne fin_sfecrirefichier_err   ;conservation du code d'erreur
+
+;transferer les seuls données utile
+fs
+mov edi,[ad_zt_lecluster]
+cld
+rep movsb
+
+;ecrit dans le cluster
+push ecx
+push esi
+fs
+mov esi,[ad_zt_lecluster]
+call ecrire_cluster_fat                 
+pop esi
+pop ecx
+jmp fin_sfecrirefichier_err   ;conservation du code d'erreur
+
+
+;*************************************************************
+fin_sfecrirefichier_ermem:
+mov eax,cer_pasm
+fin_sfecrirefichier_ernum:
+ret
+
+fin_sfecrirefichier_erprm:
+mov eax,cer_parami   ;erreur de parametre
+ret
+
+;fin_sfecrirefichier_erlecp:
+fs
+mov ebx,[ad_zt_lecluster]
+sub ebx,10h
+call libmem
+
+fin_sfecrirefichier_erlec:
+mov eax,cer_lec 
+ret
+
+;fin_sfecrirefichier_erecrp:
+fs
+mov ebx,[ad_zt_lecluster]
+sub ebx,10h
+call libmem
+
+fin_sfecrirefichier_erecr:
+mov eax,cer_ecr 
+ret
+
+fin_sfecrirefichier_ersyf:
+mov eax,cer_sysf
+ret
+
+fin_sfecrirefichier_ok:
+xor eax,eax
+fin_sfecrirefichier_err:
+ret
+
+
+;*******************************************************************************
+;                                                   ****************************
+infofichier:      ;lire les métadonnée du fichier
+                  ;ah=numéros                        0=nom 1=taille fichier 2=attributs
+		  ;ebx=numéros du fichier
+		  ;ds:edx=destination des données demandé
+call initdescrfdcourant
+jc errprmsf
+
+cmp ah,1
+je infofichier_taille
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je infofichier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je infofichier_fat       ;ou fat16
+cmp al,011000b
+je infofichier_fat       ;ou fat32
+cmp al,000100b
+je infofichier_iso9660   ;ou iso9660
+jmp errprmsf
+
+infofichier_taille:
+fs
+mov eax,[to_fichier]
+mov [edx],eax
+jmp finfonctionfichier
+
+
+infofichier_fat:
+;????????????????????????????????????
+jmp errprmsf
+
+
+infofichier_iso9660:
+;?????????????????????????????????????
+jmp errprmsf
+
+
+;*******************************************************************************
+;                                                   ****************************
+minfofichier:     ;modifie les métadonnée du fichier
+                  ;ah=numéros       (voir "lire les info fichier")
+		  ;ebx=numéros du fichier
+		  ;ds:edx=source des données
+mov cl,ah
+call initdescrfdcourant
+jc errprmsf
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je minfofichier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je minfofichier_fat       ;ou fat16
+cmp al,011000b
+je minfofichier_fat       ;ou fat32
+jmp errprmsf
+
+minfofichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+push ebx
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne minfofichier_nvfat
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+minfofichier_nvfat:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je pas32_minfofichier_fat
+and eax,0FFFFh
+pas32_minfofichier_fat:
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+je ok_minfofichier_fat
+pop ebx
+jmp errsysf
+
+ok_minfofichier_fat:  ;quel est l'info a modifier?
+cmp cl,0
+je minfofichier_fat_nom
+cmp cl,1
+je minfofichier_fat_taille
+pop ebx
+jmp errprmsf
+
+
+
+minfofichier_fat_taille:
+mov eax,[edx]
+fs
+cmp eax,[to_fichier]
+je fin_minfofichier_fat_taille
+
+fs
+mov [to_fichier],eax           ;
+fs
+mov [ebx+zt_lminfo+01Ch],eax   ;modifie le descripteur du disque
+
+fs
+mov ebx,[ad_fichier]
+cmp ebx,0
+je fin_minfofichier_fat_taille
+
+mov ecx,eax
+boucle1_minfofichier_fat_taille:   ;recherche le dernier cluster a uttiliser
+call lireindexfat
+cmp eax,0
+jne fin_minfofichier_fat_taille
+mov eax,ebx
+and eax,0FFFFFFF0h
+cmp eax,0FFFFFFF0h
+je fin_minfofichier_fat_taille
+fs
+cmp ecx,[to_1cluster]
+jb boucle2_minfofichier_fat_taille
+fs
+sub ecx,[to_1cluster]
+jmp boucle1_minfofichier_fat_taille
+
+boucle2_minfofichier_fat_taille:  ;supprime ceux qui ne servent plus
+mov ecx,ebx
+call lireindexfat
+cmp eax,0
+jne fin_minfofichier_fat_taille
+mov eax,ebx
+and eax,0FFFFFFF0h
+cmp eax,0FFFFFFF0h
+je fin_minfofichier_fat_taille
+
+push ebx
+mov ebx,ecx
+xor eax,eax
+call ecrireindexfat
+pop ebx
+jmp boucle2_minfofichier_fat_taille
+
+fin_minfofichier_fat_taille:
+pop ebx
+;jmp fin_minfofichier
+
+fin_minfofichier:
+call minfo_sauvegarde_descripteur
+jmp finfonctionfichiererr
+
+
+
+
+minfofichier_fat_nom:
+
+;crée un decripteur le nom 
+call cree_descripteur_fichier_fat
+
+
+;transfert les info du fichier dans le nouveau descripteur
+fs
+mov al,[zt_lminfo+11+ebx]
+fs
+mov [zt_nouveau_descripteur+11+edx],al
+fs
+mov eax,[zt_lminfo+12+ebx]
+fs
+mov [zt_nouveau_descripteur+12+edx],eax
+fs
+mov eax,[zt_lminfo+16+ebx]
+fs
+mov [zt_nouveau_descripteur+16+edx],eax
+fs
+mov eax,[zt_lminfo+20+ebx]
+fs
+mov [zt_nouveau_descripteur+20+edx],eax
+fs
+mov eax,[zt_lminfo+24+ebx]
+fs
+mov [zt_nouveau_descripteur+24+edx],eax
+fs
+mov eax,[zt_lminfo+28+ebx]
+fs
+mov [zt_nouveau_descripteur+28+edx],eax
+
+
+
+;calcul et met a jour le checksum
+call calcmaj_checksum_fat
+
+minfo_fat_nom_rech_vide:     ;recherche une place dans le dossier et verifie que le nom n'est pas déja utilisé
+
+;reserve un zt dans la memoire
+mov ecx,8192
+call resmem
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§erreur d'allocation de mémoire
+add ebx,10h
+mov edi,ebx ;edi=pointeur sur zt utilisable
+xor ebp,ebp ;ebp=pointeur dans le dossier représente le début de la zt
+xor ebx,ebx ;ebx=pointeur dans la zt 
+xor esi,esi ;esi=adresse dispo trouvé
+
+
+regen:
+;charge la partie du dossier
+add ebp,ebx
+push ecx
+push edx
+push es
+mov ax, selramh
+mov es,ax
+fs
+mov ecx,8192
+fs
+mov edx,ebp
+call sflirefichier
+pop es
+pop edx
+pop ecx
+cmp eax,0
+jne errouvfichier
+xor ebx,ebx
+
+
+
+boucle:
+gs
+mov al,[edi+ebx]
+cmp al,0E5h
+je vide
+fs
+cmp al,[zt_nouveau_descripteur]
+je nom_long 
+fs
+cmp al,[zt_nouveau_descripteur+edx]
+je nom_court
+cmp al,0
+je fin
+xor ecx,ecx
+jmp suite
+
+
+vide:
+cmp ecx,0
+jne paspremiervide
+mov esi,ebp
+add esi,ebx
+paspremiervide:
+add ecx,32
+jmp suite
+
+
+nom_court:
+gs
+mov eax,[ebx]
+fs
+cmp eax,[zt_nouveau_descripteur+edx]
+jne suite
+gs
+mov eax,[ebx+4]
+fs
+cmp eax,[zt_nouveau_descripteur+4+edx]
+jne suite
+gs
+mov eax,[ebx+8]
+fs
+cmp eax,[zt_nouveau_descripteur+8+edx]
+jne suite
+
+or ah,1
+jmp suite
+
+
+nom_long:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+suite:
+add ebx,32
+cmp ebx,8192-512
+jne boucle
+jmp regen
+
+fin:
+
+cmp ah,0
+je minfo_fat_position_trouve
+cmp ah,1
+je minfo_fat_nom_court_ident
+nom_identique_trouve:
+mov eax,cer_nfr            ;si un descripteur de nom long a été 
+jmp finfonctionfichiererr
+
+
+
+minfo_fat_nom_court_ident:    ;si le nom court est identique a un autre, modifie en ~1 ou incrémente le numéro
+cmp edx,0
+je nom_identique_trouve ;si il n'y as pas de nom long alors on ne peut pas modifier le nom
+call ajuste_nom_court
+call calcmaj_checksum_fat
+jmp minfo_fat_nom_rech_vide
+
+
+
+;supprime l'ancien descripteur
+minfo_fat_position_trouve: 
+push ebx
+fs
+mov word[ebx+zt_lminfo+14h],0
+fs
+mov word[ebx+zt_lminfo+1Ah],0
+
+boucle_libere_entree_fichier_fat:
+fs
+mov byte[ebx+zt_lminfo],0E5h
+cmp ebx,0
+je fin_libere_entree_fichier_fat
+sub ebx,32
+jmp boucle_libere_entree_fichier_fat
+
+fin_libere_entree_fichier_fat:
+pop ebx
+call minfo_sauvegarde_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+
+
+;enregistre le nouveau descripteur
+fs
+mov [ad_dansdossier],esi
+
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+push ds
+push es
+mov esi,zt_nouveau_descripteur
+mov edi,zt_lminfo
+mov ecx,edx
+add ecx,20h
+rep movsb
+pop es
+pop ds
+
+call minfo_sauvegarde_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+jmp finfonctionfichiererr
+
+
+;**********************ajoute un ~1 ou incrémente le numéro
+ajuste_nom_court:
+;lit le ~nombre a la fin du nom
+
+
+
+
+;Si il n'y en as pas met un simple ~1
+mov word[zt_nouveau_descripteur+6+edx],'~1'
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+;******************************
+minfo_charge_descripteur:
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je minfo_charge_descripteur_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je minfo_charge_descripteur_fat       ;ou fat16
+cmp al,011000b
+je minfo_charge_descripteur_fat       ;ou fat32
+mov eax,cer_parami
+ret
+
+minfo_charge_descripteur_fat:
+fs                      
+mov al,[at_fichier]
+and al,0011b
+cmp al,0011b    ;si c'est un dossier racine, on ne peut modifier les métadonnées
+jne ok_minfo_charge_descripteur_fat
+mov eax,cer_parami
+ret
+
+ok_minfo_charge_descripteur_fat:
+
+;corrige le descripteur de fichier pour le transformer en descripteur du dossier qui contient le fichier 
+fs
+mov eax,[ad_dossierfichier]
+fs
+xchg [ad_fichier],eax
+fs
+mov [ad_dossierfichier],eax
+fs
+mov eax,[to_dossierfichier]
+fs
+xchg [to_fichier],eax
+fs
+mov [to_dossierfichier],eax
+
+fs                       
+mov al,[at_fichier]
+fs
+mov [sauv_at_fichier],al
+mov ah,al
+and al,00111100b
+shr ah,6
+or al,10b
+and ah,01b
+or al,ah
+fs
+mov [at_fichier],al
+
+
+;charge dans la zt le descripteur
+push ebx
+push ecx
+push edx
+push edi
+push es
+mov ax,seldat
+mov es,ax
+fs
+mov edx,[ad_dansdossier]
+mov ecx,512
+mov edi,zt_lminfo
+call sflirefichier
+pop es
+pop edi
+pop edx
+pop ecx
+pop ebx
+
+push eax
+fs
+mov eax,[ad_dossierfichier]
+fs
+xchg [ad_fichier],eax
+fs
+mov [ad_dossierfichier],eax
+fs
+mov eax,[to_dossierfichier]
+fs
+xchg [to_fichier],eax
+fs
+mov [to_dossierfichier],eax
+fs                       
+mov al,[sauv_at_fichier]
+fs
+mov [at_fichier],al
+pop eax
+ret
+
+
+;******************************
+minfo_sauvegarde_descripteur:
+
+;sauvegarde le descripteur dans la table en ram
+push ebx
+push esi
+push edi
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+add ebx,[ad_ficho]
+
+fs
+mov esi,[at_fichier]
+fs
+mov edi,[at_fichier+4]
+gs
+mov [ebx],esi
+gs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_fichier+8]
+fs
+mov edi,[at_fichier+12]
+gs
+mov [ebx+8],esi
+gs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_fichier+16]
+fs
+mov edi,[at_fichier+20]
+gs
+mov [ebx+16],esi
+gs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_fichier+24]
+fs
+mov edi,[at_fichier+28]
+gs
+mov [ebx+24],esi
+gs
+mov [ebx+28],edi
+pop edi
+pop esi
+pop ebx
+
+;corrige le descripteur de fichier pour le transformer en descripteur du dossier qui contient le fichier 
+fs
+mov eax,[ad_dossierfichier]
+fs
+xchg [ad_fichier],eax
+fs
+mov [ad_dossierfichier],eax
+fs
+mov eax,[to_dossierfichier]
+fs
+xchg [to_fichier],eax
+fs
+mov [to_dossierfichier],eax
+
+fs                       
+mov al,[at_fichier]
+fs
+mov [sauv_at_fichier],al
+mov ah,al
+and al,00111100b
+shr ah,6
+or al,10b
+and ah,01b
+or al,ah
+fs
+mov [at_fichier],al
+
+
+;enregistre le descripteur
+push ebx
+push ecx
+push edx
+push esi
+push edi
+push es
+mov ax,seldat
+mov es,ax
+fs
+mov edx,[ad_dansdossier]
+mov ecx,512
+mov esi,zt_lminfo
+call sfecrirefichier
+pop es
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+
+push eax
+fs
+mov eax,[ad_dossierfichier]
+fs
+xchg [ad_fichier],eax
+fs
+mov [ad_dossierfichier],eax
+fs
+mov eax,[to_dossierfichier]
+fs
+xchg [to_fichier],eax
+fs
+mov [to_dossierfichier],eax
+fs                       
+mov al,[sauv_at_fichier]
+fs
+mov [at_fichier],al
+pop eax
+
+ret
