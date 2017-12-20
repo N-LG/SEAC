@@ -22,6 +22,14 @@
 ;al=104 convertir entier 16bits en chaine hexadecimale asciiz
 ;al=105 convertir entier 8bits en chaine hexadecimale asciiz
 
+;al=106 convertir chaine asciiz en adresse ethernet 
+;al=107 convertir chaine asciiz en adresse ipv4 
+;al=108 convertir chaine asciiz en adresse ipv6 
+;al=109 convertir adresse ethernet en chaine asciiz
+;al=110 convertir adresse ipv4 en chaine asciiz
+;al=111 convertir adresse ipv6 en chaine asciiz
+
+
 
 cmp al,0
 je sfs_envoie_cmd
@@ -48,7 +56,6 @@ je sfs_set_service
 cmp al,11
 je sfs_rech_service
 
-
 cmp al,100
 je conv_cdeci_reg
 cmp al,101
@@ -61,6 +68,19 @@ cmp al,104
 je conv_reg_hexa16
 cmp al,105
 je conv_reg_hexa8
+
+cmp al,106
+je conv_asciiz_ethernet
+cmp al,107
+je conv_asciiz_ipv4
+cmp al,108
+je conv_asciiz_ipv6
+cmp al,109
+je conv_ethernet_asciiz
+cmp al,110
+je conv_ipv4_asciiz
+cmp al,111
+je conv_ipv6_asciiz
 
 mov eax,cer_parami
 iret
@@ -923,5 +943,142 @@ mov byte[edx+2],0
 pop ecx
 xor eax,eax
 ret
+
+
+
+
+
+conv_asciiz_ethernet:   ;ds:ebx vers ds:edx
+
+
+
+
+
+
+
+conv_asciiz_ipv4:
+
+
+
+conv_asciiz_ipv6:
+
+
+
+conv_ethernet_asciiz:
+pushad
+mov cl,[ebx]
+call reg_hexa
+mov byte[edx+2],"-"
+add edx,3
+mov cl,[ebx+1]
+call reg_hexa
+mov byte[edx+2],"-"
+add edx,3
+mov cl,[ebx+2]
+call reg_hexa
+mov byte[edx+2],"-"
+add edx,3
+mov cl,[ebx+3]
+call reg_hexa
+mov byte[edx+2],"-"
+add edx,3
+mov cl,[ebx+4]
+call reg_hexa
+mov byte[edx+2],"-"
+add edx,3
+mov cl,[ebx+5]
+call reg_hexa
+popad
+iret
+
+
+
+conv_ipv4_asciiz:
+
+
+
+
+
+
+conv_ipv6_asciiz:
+pushad
+mov cl,[ebx]
+call reg_hexa
+add edx,2
+mov cl,[ebx+1]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+2]
+call reg_hexa
+add edx,2
+mov cl,[ebx+3]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+4]
+call reg_hexa
+add edx,2
+mov cl,[ebx+5]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+6]
+call reg_hexa
+add edx,2
+mov cl,[ebx+7]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+8]
+call reg_hexa
+add edx,2
+mov cl,[ebx+9]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+10]
+call reg_hexa
+add edx,2
+mov cl,[ebx+11]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+12]
+call reg_hexa
+add edx,2
+mov cl,[ebx+13]
+call reg_hexa
+mov byte[edx+2],":"
+add edx,3
+mov cl,[ebx+14]
+call reg_hexa
+add edx,2
+mov cl,[ebx+15]
+call reg_hexa
+popad
+iret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
