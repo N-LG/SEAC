@@ -945,10 +945,51 @@ xor eax,eax
 ret
 
 
+;******************************************
+erreur_conv_adresse:
+popad
+mov eax,1
+iret
+
+
+;********************************************
+conv_asciiz_ethernet:   ;ds:ecx vers ds:edx
+pushad
+mov esi,ecx
+mov edi,edx
+
+mov edx,esi
+;call convhex
+mov [edi],cx
+add edi,2
+
+boucle1_conv_asciiz_ethernet:
+cmp byte[esi],":"
+je point1_conv_asciiz_ethernet
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle1_conv_asciiz_ethernet
+
+point1_conv_asciiz_ethernet:
+inc esi
+mov edx,esi
+;call convhex
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle2_conv_asciiz_ethernet:
 
 
 
-conv_asciiz_ethernet:   ;ds:ebx vers ds:edx
+
+
+
+
+
+
 
 
 
@@ -957,8 +998,6 @@ conv_asciiz_ethernet:   ;ds:ebx vers ds:edx
 
 
 conv_asciiz_ipv4:
-
-
 
 conv_asciiz_ipv6:
 
@@ -994,6 +1033,65 @@ iret
 
 
 conv_ipv4_asciiz:
+pushad
+mov esi,ecx
+mov edi,edx
+
+xor ecx,ecx
+mov cl,[esi]
+mov edx,edi
+;call convdec
+
+boucle1_conv_ipv4_asciiz:
+cmp byte[edi],"."
+je point1_conv_ipv4_asciiz
+cmp byte[edi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle1_conv_ipv4_asciiz
+
+point1_conv_ipv4_asciiz:
+inc edi
+xor ecx,ecx
+mov cl,[esi]
+mov edx,edi
+;call convdec
+
+boucle2_conv_ipv4_asciiz:
+cmp byte[edi],"."
+je point2_conv_ipv4_asciiz
+cmp byte[edi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle2_conv_ipv4_asciiz
+
+point2_conv_ipv4_asciiz:
+inc edi
+xor ecx,ecx
+mov cl,[esi]
+mov edx,edi
+;call convdec
+
+boucle3_conv_ipv4_asciiz:
+cmp byte[edi],"."
+je point3_conv_ipv4_asciiz
+cmp byte[edi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle3_conv_ipv4_asciiz
+
+point3_conv_ipv4_asciiz:
+inc edi
+xor ecx,ecx
+mov cl,[esi]
+mov edx,edi
+;call convdec
+
+popad
+xor eax,eax
+iret
+
+
 
 
 
