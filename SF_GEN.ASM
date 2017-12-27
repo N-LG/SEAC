@@ -776,6 +776,10 @@ iret
 
 ;*******************************************************************************************
 conv_cdeci_reg:    ;convertit la chaine décimal pointé par DS:EDX en nombre dans ECX
+call sf_conv_cdeci_reg
+iret
+
+sf_conv_cdeci_reg:
 push ebx
 push edx
 push esi
@@ -802,12 +806,16 @@ pop esi
 pop edx
 pop ebx
 xor eax,eax
-iret
+ret
 
 
 
 ;*******************************************************************************************
 conv_chex_reg:    ;convertit la chaine hexadécimal pointé par DS:EDX en nombre dans ECX
+call sf_conv_chex_reg
+iret
+
+sf_conv_chex_reg:
 push edx
 xor ecx,ecx
 
@@ -848,9 +856,9 @@ jmp boucle_conv_chex_reg
 fin_conv_chex_reg:
 pop edx
 xor eax,eax
-iret
+ret
 
-
+;***************************************************************************
 conv_reg_deci32: ;convertit le nombre dans ecx en chaine décimal en ds:edx
 push ecx
 push edx
@@ -959,12 +967,12 @@ mov esi,ecx
 mov edi,edx
 
 mov edx,esi
-;call convhex
-mov [edi],cx
-add edi,2
+call sf_conv_chex_reg
+mov [edi],cl
+inc edi
 
 boucle1_conv_asciiz_ethernet:
-cmp byte[esi],":"
+cmp byte[esi],"-"
 je point1_conv_asciiz_ethernet
 cmp byte[esi],0
 je erreur_conv_adresse
@@ -974,35 +982,289 @@ jmp boucle1_conv_asciiz_ethernet
 point1_conv_asciiz_ethernet:
 inc esi
 mov edx,esi
-;call convhex
+call sf_conv_chex_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle2_conv_asciiz_ethernet:
+cmp byte[esi],"-"
+je point2_conv_asciiz_ethernet
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle2_conv_asciiz_ethernet
+
+point2_conv_asciiz_ethernet:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle3_conv_asciiz_ethernet:
+cmp byte[esi],"-"
+je point3_conv_asciiz_ethernet
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle3_conv_asciiz_ethernet
+
+point3_conv_asciiz_ethernet:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle4_conv_asciiz_ethernet:
+cmp byte[esi],"-"
+je point4_conv_asciiz_ethernet
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle4_conv_asciiz_ethernet
+
+point4_conv_asciiz_ethernet:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle5_conv_asciiz_ethernet:
+cmp byte[esi],"-"
+je point5_conv_asciiz_ethernet
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle5_conv_asciiz_ethernet
+
+point5_conv_asciiz_ethernet:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+
+
+popad
+xor eax,eax
+iret
+
+
+
+
+
+;******************************************
+conv_asciiz_ipv4:
+pushad
+mov esi,ecx
+mov edi,edx
+
+mov edx,esi
+call sf_conv_cdeci_reg
+mov [edi],cl
+inc edi
+
+boucle1_conv_asciiz_ipv4:
+cmp byte[esi],"."
+je point1_conv_asciiz_ipv4
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle1_conv_asciiz_ipv4
+
+point1_conv_asciiz_ipv4:
+inc esi
+mov edx,esi
+call sf_conv_cdeci_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle2_conv_asciiz_ipv4:
+cmp byte[esi],"."
+je point2_conv_asciiz_ipv4
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle2_conv_asciiz_ipv4
+
+point2_conv_asciiz_ipv4:
+inc esi
+mov edx,esi
+call sf_conv_cdeci_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+mov [edi],cl
+inc edi
+
+boucle3_conv_asciiz_ipv4:
+cmp byte[esi],"."
+je point3_conv_asciiz_ipv4
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle3_conv_asciiz_ipv4
+
+point3_conv_asciiz_ipv4:
+inc esi
+mov edx,esi
+call sf_conv_cdeci_reg
+test ecx,0FFFFFF00h
+jnz erreur_conv_adresse
+
+popad
+xor eax,eax
+iret
+
+
+
+;******************************************
+conv_asciiz_ipv6:
+pushad
+mov esi,ecx
+mov edi,edx
+
+mov edx,esi
+call sf_conv_chex_reg
+mov [edi],cx
+add edi,2
+
+boucle1_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point1_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle1_conv_asciiz_ipv6
+
+point1_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
 test ecx,0FFFF0000h
 jnz erreur_conv_adresse
 mov [edi],cx
 add edi,2
 
-boucle2_conv_asciiz_ethernet:
+boucle2_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point2_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle2_conv_asciiz_ipv6
+
+point2_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle3_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point3_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle3_conv_asciiz_ipv6
+
+point3_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle4_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point4_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle4_conv_asciiz_ipv6
+
+point4_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle5_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point5_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle5_conv_asciiz_ipv6
+
+point5_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle6_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point6_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle6_conv_asciiz_ipv6
+
+point6_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
+mov [edi],cx
+add edi,2
+
+boucle7_conv_asciiz_ipv6:
+cmp byte[esi],":"
+je point7_conv_asciiz_ipv6
+cmp byte[esi],0
+je erreur_conv_adresse
+inc esi
+jmp boucle7_conv_asciiz_ipv6
+
+point7_conv_asciiz_ipv6:
+inc esi
+mov edx,esi
+call sf_conv_chex_reg
+test ecx,0FFFF0000h
+jnz erreur_conv_adresse
 
 
+popad
+xor eax,eax
+iret
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-conv_asciiz_ipv4:
-
-conv_asciiz_ipv6:
-
-
-
+;******************************************
 conv_ethernet_asciiz:
 pushad
 mov cl,[ebx]
@@ -1031,7 +1293,7 @@ popad
 iret
 
 
-
+;***************************************
 conv_ipv4_asciiz:
 pushad
 mov esi,ecx
@@ -1097,7 +1359,7 @@ iret
 
 
 
-
+;**********************************************
 conv_ipv6_asciiz:
 pushad
 mov cl,[ebx]
