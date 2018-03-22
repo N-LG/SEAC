@@ -1,3 +1,4 @@
+﻿sf_mem:
 ;sous fonctions de manipulation de la mémoire
 ;la mémoire allouable est répartie a partir de l'adresse 100000h celle ci correspond a la valeur zéro de la mémoire uttilisable
 ;chaque espace mémoire de X*16 octet occupe une taille de (X+1)*16 octet, ces 16 octets supplémentaires correspondent a un descripteur comme suit:
@@ -64,6 +65,22 @@ sub ecx,[edi+4]       ;on calcule la taille de l'espace non uttilis
 xor eax,eax
 mov [edi+8],eax 
 mov [edi+0Ch],eax
+
+
+push ecx     ;vide l'espace mémoire nouvellement créer
+push edi		
+mov ecx,[edi+4]
+add edi,10h
+sub ecx,10h
+xor eax,eax
+shr ecx,2
+boucle_efface_resmem:
+mov[edi],eax
+add edi,4
+dec ecx
+jnz boucle_efface_resmem
+pop edi
+pop ecx
 
 
 mov ebx,edi           ;on cre une zone vide avec l'espace non uttilis en deux
@@ -410,12 +427,17 @@ jb passuivievide
 ;si la zone suivante est vide on redimensionne les deux zone
 sub eax,ecx     ;eax=taille de la zone vide
 
-xor edx,edx      ;supprime l'ancien descripteur
+push ecx        ;on efface la zone mémoire que l'on vas occuper
+push esi
+shr ecx,2
+xor edx,edx 
+efface_modtm:
 mov [esi],edx
-mov [esi+4],edx
-mov [esi+8],edx
-mov [esi+0Ch],edx
-
+add esi,4
+dec ecx
+jnz efface_modtm
+pop esi
+pop ecx
 
 cmp eax,0           ;test si le nouveau descripeur est de taille 0
 je pasdescnouv      ;si oui pas besoin d'en recreer un
