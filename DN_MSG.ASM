@@ -1,5 +1,5 @@
 ﻿bidon:
-;message systeme uttilisé par SeaC 💩
+;message systeme uttilisé par SeLG 💩
 ;doit faire 2048 octet minimum une fois compilé
 ;doit être entregistré au format utf8
 ;
@@ -11,7 +11,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 
-db 1Ah,0C2h,08Eh,0C2h,08Fh,"SeLG V0.5 Décembre 2017",13 
+db 1Ah,0C2h,08Eh,0C2h,08Fh,"SeLG V0.5 Mars 2018",13 
 db "version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1

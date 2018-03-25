@@ -2,10 +2,12 @@
 ;****************************************************************************
 ;lire et ecrire un secteur                       ****************************
 liresecteur:
+call aj_acces_disque
 call lsct
 jmp finfonctionfichiererr
 
 ecriresecteur:
+call aj_acces_disque
 call esct
 jmp finfonctionfichiererr
 
@@ -14,8 +16,60 @@ jmp finfonctionfichiererr
 ;01h disquette
 ;10h à 17h disque ATA
 ;18h à 1Fh cdrom
-;20h à 3Fh disque USB   ;projet
-;40h à 7Fh disque ahci  ;projet 
+;20h à 3Fh disque ahci (projet) 
+;40h à 5Fh disque USB  (projet)
+;6Fh à 7Fh reserve (inutilisé)
+;80h à DFh partition 
+
+
+
+
+;***********************************************************************
+aj_acces_disque:   ;ajuste les valeur en cas de lecture de partition
+push ecx
+and ch,0F0h
+cmp ch,080h
+je modif_partition 
+cmp ch,090h
+je modif_partition 
+cmp ch,0A0h
+je modif_partition 
+cmp ch,0B0h
+je modif_partition 
+pop ecx
+ret
+
+
+modif_partition:
+push ebx
+mov al,ch
+sub al,7Fh   ;sub 80h add 1
+and eax,03Fh
+shl eax,5   ;mul par 32
+fs
+cmp [ad_descp+eax+8],ebx
+jb erreur_acces_partition
+and ecx,0FFh
+add ebx,ecx
+fs
+cmp [ad_descp+eax+8],ebx
+jb erreur_acces_partition
+pop ebx
+pop ecx
+fs
+add ebx,[ad_descp+eax+4]; ajoute l'adresse de début de partition au numéros de secteur
+fs
+mov ch,[ad_descp+eax+1]  ;change le code
+ret
+
+
+erreur_acces_partition:
+pop ebx
+pop ecx
+mov ch,0
+ret
+
+
 
 
 ;******************************************************************************************
@@ -39,6 +93,10 @@ cmp al,10h
 je lecata
 cmp al,18h
 je lecatapi
+mov al,ch
+
+
+
 pop gs
 pop fs
 pop es
@@ -46,6 +104,7 @@ pop ds
 popad
 mov eax,cer_parami
 ret
+
 
 
 
@@ -74,7 +133,7 @@ push cx
 push ebx
 push edi
 push ebx
-mov ebx,30000h+zt_disquette     ;configuration dma 2 pour trnsferer les données
+mov ebx,30000h+zt_disquette     ;configuration dma 2 pour transferer les données
 mov cx,511
 mov ah,044h     ;ecriture par le périphérique   en single mode
 call inidma2
@@ -953,7 +1012,7 @@ jnz erecrsecteurata
 xor eax,eax
 ret
 
-
+;*************************************************************************
 infodisqueata:
 mov esi,edi
 xor ebx,ebx
@@ -993,6 +1052,8 @@ jnz erlecsecteurata
 xor eax,eax
 ret
 
+
+;*****************************************************
 infodisqueatapi:
 mov esi,edi
 xor ebx,ebx
@@ -1220,6 +1281,8 @@ cmp al,10h
 je info_ata
 cmp al,18h
 je info_atapi
+cmp ch,80h
+jae info_partition
 mov eax,cer_parami
 jmp finfonctionfichiererr
 
@@ -1231,7 +1294,19 @@ call infodisqueatapi
 jmp finfonctionfichiererr
 
 
-
+info_partition:
+mov al,ch
+sub al,7Fh  ;-80h +1
+and eax,03Fh
+shl eax,5
+mov esi,eax
+add esi,ad_descp
+mov ax,seldat
+mov ds,ax
+mov ecx,20h
+rep movsb
+xor eax,eax
+jmp finfonctionfichiererr
 
 
 
