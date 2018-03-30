@@ -41,6 +41,7 @@ ret
 
 
 modif_partition:
+pop ecx
 push ebx
 mov al,ch
 sub al,7Fh   ;sub 80h add 1
@@ -55,7 +56,6 @@ fs
 cmp [ad_descp+eax+8],ebx
 jb erreur_acces_partition
 pop ebx
-pop ecx
 fs
 add ebx,[ad_descp+eax+4]; ajoute l'adresse de début de partition au numéros de secteur
 fs
@@ -1330,13 +1330,13 @@ cmp al,16h
 je part_F16
 cmp al,1Eh
 je part_F16
-cmp al,0Ch
+cmp al,0Bh
 je part_F32                          ;al=0C 0B 1C 1B si fat32
 cmp al,0Ch
 je part_F32
-cmp al,0Ch
+cmp al,1Ch
 je part_F32
-cmp al,0Ch
+cmp al,1Eh
 je part_F32
 mov ah,al
 mov al,2 ;partition inconnue
