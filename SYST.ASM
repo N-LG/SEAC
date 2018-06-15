@@ -19,18 +19,54 @@ sub ebp,enregistre_ip     ;ebp pointe désormais sur le premier octet du programm
 cmp ebp,50000h
 je position_code_ok
 
-mov eax,ebp    ;déplace le code au bon endroit
+mov eax,ebp    ;déplace le code au bon endroit 
 mov esi,ebp
 shr eax,4
-and esi,0Fh
+and esi,0Fh    
 mov ds,ax
 xor di,di
 mov ax,5000h
 mov es,ax
-mov cx,8000h
-rep movsb
-mov cx,8000h
-rep movsb
+
+mov ecx,20000h
+
+boucle_recopie_code:
+mov al,[si]
+es
+mov [di],al
+inc si
+inc di
+cmp si,0
+jne pas_change_ds
+mov ax,ds
+add ax,1000h
+mov ds,ax
+pas_change_ds:
+cmp di,0
+jne pas_change_es
+mov ax,es
+add ax,1000h
+mov es,ax
+pas_change_es:
+
+dec ecx
+jne boucle_recopie_code 
+
+
+;mov cx,8000h
+;rep movsb
+;mov cx,8000h
+;rep movsb
+
+;mov ax,ds
+;add ax,1000h
+;mov ds,ax
+;mov ax,6000h
+;mov es,ax
+;mov cx,8000h
+;rep movsb
+;mov cx,8000h
+;rep movsb
 jmp 5000h:position_code_ok
 
 
@@ -86,7 +122,7 @@ mov al,0FFh          ;envoie une commande d'impulsion sur aucune des sorties
 out 64h,al            
 call attporok        
 
-;autre méthode pour activer la ligne A20 (si l'autre ne fonctionne pas)
+;autre méthode pour activer la ligne A20 (si l'autre ne fonctionne pas!!!)
 ;in al, 0x92
 ;or al, 2
 ;out 0x92, al
@@ -129,10 +165,40 @@ mov dword[10000Ch],"????"
 
 
 ;**********************************************************************
-;
+;ajoute les fichier RAM
+
+mov ebx,50000h+start+finsegcod
+boucle_ajoute_fichier_ram:
+cmp byte[ebx+2],"F"
+je suite_ajoute_fichier_ram
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle_ajoute_fichier_ram
+
+suite_ajoute_fichier_ram:
+sub ebx,50000h+start+finsegcod
+jz fin_ajoute_fichier_ram 
+
+mov edx,[100004h]
+sub edx,ebx
+mov dword[ebx+100000h],"DMV?"
+mov dword[ebx+100004h],edx
+mov dword[ebx+100008h],"????"  
+mov dword[ebx+10000Ch],"????"
+
+shr ebx,2
+mov esi,50000h+start+finsegcod
+mov edi,100000h
+boucle_ajoute_fichier_ram2:
+mov eax,[esi]
+mov[edi],eax
+add esi,4
+add edi,4
+dec ebx
+jnz boucle_ajoute_fichier_ram2
 
 
-
+fin_ajoute_fichier_ram:
 
 ;**********************************************************************
 ;initiallise les données syst?mes
@@ -238,6 +304,18 @@ mov di,ad_tabclav
 cld
 rep movsb      ;ds:si vers es:di
 
+
+mov cx,1024    ;copie la table des accents
+mov ax,cs
+mov ds,ax
+mov si,tabacc
+mov ax,segdat
+mov es,ax
+mov di,ad_tabaccent
+cld
+rep movsb      ;ds:si vers es:di
+
+
 mov cx,2048    ;copie la table des messages
 mov ax,cs
 mov ds,ax
@@ -246,7 +324,10 @@ mov ax,segdat
 mov es,ax
 mov di,ad_msg
 cld
-rep movsb     
+rep movsb    
+
+
+ 
 
 ;**********************************************
 ;**** charge le code 
@@ -577,6 +658,18 @@ int 10h
 
 
 
+;*************************************************
+;désactive le clignotement en mode texte (marche pas)
+;mov dx,3B8h
+;in al,dx
+;and al,0DFh
+;out dx,al
+
+;mov dx,3D8h
+;in al,dx
+;and al,0DFh
+;out dx,al
+
 
 ;**********************************************************************
 ;programme temporisateur, buzzer, & pic 
@@ -769,6 +862,11 @@ include "DN_PALG.ASM"
 
 tabclv:
 include "DN_CLAV.ASM"
+
+tabacc:
+include "DN_ACC.ASM"
+
+fintab:
 
 ;******************************************************************************
 ;segment de code recopi? dans le segment             **************************
@@ -1138,7 +1236,7 @@ out dx,al
 ;**********************************************************************
 ;lit les info disque ata et met a jour les info de partitions
 mov ch,10h
-jmp init_infopart
+mov esi,ad_descd
 
 boucle_init_infopart:
 mov al,10
@@ -1147,7 +1245,62 @@ push cx
 int 64h          ;charge les info disque
 pop cx
 cmp eax,0
-jne pasinfopart
+je init_infodisque_ata
+
+
+;mov al,10
+;mov edi,bootsecteur
+;push cx
+;add ch,8
+;int 64h          ;si ça ne fonctionne pas on réessaye en ATAPI
+;pop cx
+;cmp eax,0
+;jne pasinfopart
+
+
+;mov byte[esi],1
+jmp pasinfopart
+
+
+init_infodisque_ata:
+
+mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
+mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
+cmp edx,0
+je init_infodisque_lba28
+test eax,0C0000000h
+jz init_infodisque_lba28
+mov byte[esi],4
+mov [esi+8],eax
+mov [esi+12],edx
+jmp init_infopart
+
+init_infodisque_lba28:
+mov eax,[bootsecteur+78h]   ;nombre de secteur en LBA28
+cmp eax,0
+je init_infodisque_chs
+mov byte[esi],3
+mov [esi+8],eax
+mov dword[esi+12],0
+jmp init_infopart
+ 
+
+
+init_infodisque_chs:
+mov eax,[bootsecteur+72h]   ;nombre de secteur en CHS
+mov byte[esi],2
+mov [esi+8],eax
+mov dword[esi+12],0
+push ecx
+xor eax,eax
+xor ecx,ecx
+mov ax,[bootsecteur+70h]   ;secteur par piste
+mov cx,[bootsecteur+6Eh]   ;nombre de tête
+mov [esi+2],ax
+mul ecx
+mov [esi+4],eax       ;nombre de secteur par cylindre
+pop ecx
+
 
 init_infopart:
 mov al,8
@@ -1167,10 +1320,11 @@ call exbasepart    ;2eme partition
 add esi,10h
 call exbasepart    ;3eme partition
 add esi,10h
-call exbasepart    ;4eme partition  (fonction dans sf_fich.asm)
+call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
 
 pasinfopart:
 inc ch
+add esi,32
 cmp ch,18h
 jne boucle_init_infopart
 
@@ -2257,27 +2411,33 @@ cmp byte[edx+1]," "
 je boucle1_cmdren          
 
 inc edx
-xor eax,eax         ;ouvre le fichier
-xor ebx,ebx
-int 64h
-cmp eax,0       
-je boucle2_cmdren
-cmp eax,12       
-je boucle2_cmdren
-jmp err3cmdsup
+mov esi,edx
 
 boucle2_cmdren:     ;trouve le debut du nouveau nom du fichier
 cmp byte[edx],0
 je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
-cmp byte[edx]," "
-jne boucle2_cmdren          
-cmp byte[edx+1]," "
-je boucle2_cmdren    
+cmp byte[edx],":"
+jne boucle2_cmdren   
 
+mov byte[edx],0
+inc edx
+mov edi,edx
+
+xor eax,eax         ;ouvre le fichier
+xor ebx,ebx
+mov edx,esi
+int 64h
+cmp eax,0       
+je suite_cmdren
+cmp eax,12       
+je suite_cmdren
+jmp err3cmdsup
+
+suite_cmdren:
 mov al,7   ;modifie les données du nom de fichier
 mov ah,0
-inc edx
+mov edx,edi
 int 64h
 cmp eax,0       
 je pascommande
@@ -3247,15 +3407,19 @@ mov [atbp+bx],ah
 mov cl,ch
 xor ch,ch
 
-cmp cx,57           ;touche maj g    (num?ros de touche -1)
-je touche_maj_stop
-cmp cx,69           ;touche maj d
-je touche_maj_stop
+cmp cx,71           ;touche alt g    (num?ros de touche -1)
+je depressalt
+cmp cx,73           ;touche alt d    
+je depressalt
 jmp finircl
 
-touche_maj_stop:
-and byte[attcl],0FBh  
-jmp bougled
+
+depressalt:
+cmp dword[sv_alt],0  ;on verifie si il y as un caractère qui as été 
+je finircl
+mov eax,[sv_alt]
+mov dword[sv_alt],0
+jmp ajoute_carac_zt
 
 press:
 mov bx,cx
@@ -3270,41 +3434,63 @@ mov [atbp+bx],ah
 mov cl,ch
 xor ch,ch
 
-cmp cx,85     ;touche spéciale verr num    (num?ros de touche -1)
+cmp cx,85     ;touche spéciale verr num    (numéros de touche -1)
 je touche_num
-
 cmp cx,44     ;touche spéciale verr maj
 je touche_maj
-
 cmp cx,14     ;touche spéciale arret defil
 je touche_scroll
-
 cmp cx,15     ;touche spéciale pause
 je touche_pause
-
 cmp cx,10
 je touche_retour_console ;f10
-
 cmp cx,11
 je touche_ecran_moins   ;f11
-
 cmp cx,12
 je touche_ecran_plus    ;f12
+cmp cx,104
+je touche_retour_console ;list d
+cmp cx,102
+je touche_ecran_moins   ;win G
+cmp cx,103
+je touche_ecran_plus    ;win D
 
+cmp cx,89    ;touche 7 pave numerique
+je touche7_pavenum
+cmp cx,90    ;touche 8 pave numerique
+je touche8_pavenum
+cmp cx,91    ;touche 9 pave numerique
+je touche9_pavenum
+cmp cx,93    ;touche 4 pave numerique
+je touche4_pavenum
+cmp cx,94    ;touche 5 pave numerique
+je touche5_pavenum
+cmp cx,95    ;touche 6 pave numerique
+je touche6_pavenum
+cmp cx,96    ;touche 1 pave numerique
+je touche1_pavenum
+cmp cx,97    ;touche 2 pave numerique
+je touche2_pavenum
+cmp cx,98    ;touche 3 pave numerique
+je touche3_pavenum
+cmp cx,100   ;touche 0 pave numerique
+je touche0_pavenum
 
 cmp cx,78     ;touche suppr
-jne pas_touche_suppr
+jne pas_touche_sp
 mov ax,[atbp+8h]
 test ax,0440h
-jz pas_touche_suppr 
+jz pas_touche_sp 
 test ax,0280h
-jz pas_touche_suppr 
+jz pas_touche_sp 
 jmp selcod16:reboot ;rebouter via le mode réel
 
-pas_touche_suppr:
 
+
+pas_touche_sp:
+xor ebx,ebx
 mov bx,cx
-shl bx,4
+shl ebx,4
 test byte[atbp+8h],80h  ;alt
 jnz tkalt
 test byte[atbp+9h],02h  ;alt gr
@@ -3316,17 +3502,22 @@ jnz tkmaj
 test byte[atbp+8h],20h
 jnz tkmaj
 test byte[attcl],04h
-jnz tkmaj
+jnz tkvmaj
 
-mov eax,[ad_tabclav+bx+4]
+tknorm:
+mov eax,[ad_tabclav+ebx+4]
 jmp fintk
 
 tkmaj:
-mov eax,[ad_tabclav+bx+8]
+test byte[attcl],04h
+jnz tknorm
+
+tkvmaj:
+mov eax,[ad_tabclav+ebx+8]
 jmp fintk
 
 tkalt:
-mov eax,[ad_tabclav+bx+12]
+mov eax,[ad_tabclav+ebx+12]
 
 fintk:
 inc cx            ;cl= numéros de touche eax=caractère
@@ -3364,8 +3555,66 @@ or ch,bl
 
 ;ch=touches spéciale pressé   0=majG 1=majD 2=CtrlG 3=CtrlD 4=Alt 5=AltGr
 
+cmp eax,0
+je ajoute_carac_zt
+cmp dword[sv_chas],0
+je verifie_chasse
+
+mov ebx,ad_tabaccent                            ;comme il y as un caractère de chasse enregistré, on verifie si il n'y as pas une correspondance
+mov edx,[sv_chas]
+boucle_recherche_correspondance_chasse:
+cmp [ebx],edx
+jne chasse_suivante
+cmp [ebx+4],eax
+je correspondance_chasse_trouve
+chasse_suivante:
+cmp dword[ebx],0
+je correspondance_chasse_pastrouve
+add ebx,12
+cmp ebx,ad_tabaccent+1020
+jne boucle_recherche_correspondance_chasse
+
+correspondance_chasse_pastrouve:
+push eax
+mov eax,[sv_chas]
+mov dword[sv_chas],0 
+xor ebx,ebx              ;ajoute le caractère de casse dans la ZT clavier
+cmp byte[nb_zrc],42
+je ignore_aj_chasse
+mov bl,[nb_zrc]
+inc byte[nb_zrc]
+mov edx,ebx      ;mul ebx par 6
+shl ebx,2
+shl edx,1
+add ebx,edx
+mov [ebx+zt_rcl],cx
+mov [ebx+zt_rcl+2],eax
+ignore_aj_chasse:
+pop eax
+jmp ajoute_carac_zt
+
+correspondance_chasse_trouve:
+mov dword[sv_chas],0 
+mov eax,[ebx+8]
+jmp ajoute_carac_zt
 
 
+
+verifie_chasse:     ;verifie que le caractère correspond a un caractère de chasse qui est présent dans la liste
+mov ebx,ad_tabaccent
+boucle_recherche_chasse:
+cmp dword[ebx],0
+je ajoute_carac_zt 
+cmp [ebx],eax
+jne pas_chasse_trouve
+mov [sv_chas],eax
+jmp bougled
+pas_chasse_trouve:
+add ebx,12
+cmp ebx,ad_tabaccent+1020
+jne boucle_recherche_chasse
+
+ajoute_carac_zt:
 xor ebx,ebx              ;ajoute le caractère dans la ZT clavier
 cmp byte[nb_zrc],42
 je bougled
@@ -3390,7 +3639,7 @@ xor byte[attcl],02h
 jmp bougled
 
 touche_maj:
-or byte[attcl],04h
+xor byte[attcl],04h
 jmp bougled
 
 touche_scroll:
@@ -3400,6 +3649,50 @@ jmp bougled
 touche_pause:
 xor byte[attcl],10h
 jmp bougled
+
+touche0_pavenum:
+xor ebx,ebx
+jmp touche_pavenum
+touche1_pavenum:
+mov ebx,1
+jmp touche_pavenum
+touche2_pavenum:
+mov ebx,2
+jmp touche_pavenum
+touche3_pavenum:
+mov ebx,3
+jmp touche_pavenum
+touche4_pavenum:
+mov ebx,4
+jmp touche_pavenum
+touche5_pavenum:
+mov ebx,5
+jmp touche_pavenum
+touche6_pavenum:
+mov ebx,6
+jmp touche_pavenum
+touche7_pavenum:
+mov ebx,7
+jmp touche_pavenum
+touche8_pavenum:
+mov ebx,8
+jmp touche_pavenum
+touche9_pavenum:
+mov ebx,9
+
+touche_pavenum:
+mov ax,[atbp+8h]
+test ax,0280h
+jz pas_touche_sp 
+
+xor edx,edx
+mov eax,[sv_alt]
+mov ecx,10
+mul ecx
+add eax,ebx
+mov [sv_alt],eax
+jmp finircl 
+
 
 
 touche_retour_console: ;f10
@@ -3655,6 +3948,9 @@ int_6E:
 int_6F:
 iret
 
+
+
+
 include "SF_RM.ASM"   ;appel fonctions bios avec retour en mode réel
 
 ;***************************************************************************
@@ -3670,5 +3966,5 @@ dw 0FFFFh
 dd seggdt*16
 
 finsegcod:
-
-
+db "DMF?"
+dd 0,0,0

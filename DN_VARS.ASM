@@ -9,7 +9,7 @@ segdat equ 3000h
 
 
 selpil equ 18h     ;3
-segpil equ 9000h
+segpil equ 8000h
 
 
 selgdt equ 20h     ;4
@@ -36,21 +36,21 @@ selecran equ 78h  ;15
 ;tables système
 
 
-ad_cce equ 500h
-ad_zdc equ 600h
-ad_msg equ 800h    
+  
 ad_tabclav equ 1000h
-ad_descp equ 01800h
+ad_tabaccent equ 1800h
 
 
 ad_repertoire equ 1C00h  ;adresse du repertoire courant
 ad_repsys equ 1E00h      ;adresse du repertoire système
 
+ad_chaine_travail equ 2000h ;zt de travail des commandes cd et dir et de la création de tache
+
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
 
 
-ad_chaine_travail equ 2000h ;zt de travail des commandes cd et dir et de la création de tache
+
 
 zt_rcl equ 2800h  ;zone de réception touche
 
@@ -67,6 +67,16 @@ bootsecteur equ 4600h           ;zone tampon de lecture du MBR, du premier secte
 zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées
 secteurcd equ 4600h             ;zt pour la lecture partielle de secteur CD
 
+
+
+
+ad_descp equ 05000h ;4kibi
+
+ad_descd equ 6000h  ;256 octets
+
+ad_cce equ 6500h
+ad_zdc equ 6600h
+ad_msg equ 6800h  
 
 ad_tabcar equ 8000h      ;definition des caractère graphiques
 
@@ -92,20 +102,20 @@ cpttc equ 14h  ;compteur de la tache courante
 
 nb_ram equ 18h ;taille de la ram sur le système
 
-
-;pgdc equ 20h   ;pages de code
-attcl equ 30h  ;attribut clavier
-ztcl equ 32h   ;zone tampon clavier
-nlafj equ 36h  ;pointeur sur la fin du journal
-pfinj equ 38h  ;pointeur sur la fin du journal
-nb_zrc equ 3Ah ;nombre de touche dans la zone de reception clavier
-atbp equ 40h   ;attribut bouton press‚
+atbp equ 20h    ;attribut bouton pressé
+attcl equ 30h   ;attribut clavier
+ztcl equ 32h    ;zone tampon clavier
+nlafj equ 36h   ;pointeur sur la fin du journal
+pfinj equ 38h   ;pointeur sur la fin du journal
+nb_zrc equ 3Ah  ;nombre de touche dans la zone de reception clavier
+sv_chas equ 3Ch ;sauvegarde de l'eventuelle dernier caractère de chasse rentrée
+sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par
 
 
 xs1 equ 50h      ;position de la souris 1 en X
 ys1 equ 52h      ;position de la souris 1 en Y
 nbzt1 equ 54h    ;nombre d'octet dans la trame a d‚coder
-nbts1 equ 55h    ;nombre d'octet de la trame a attedre avant de la d‚doder
+nbts1 equ 55h    ;nombre d'octet de la trame a attendre avant de la dédoder
 atts1 equ 56h    ;attribut souris 1
 zts1 equ 58h     ;zone tampon de la souris 1
 axs1 equ 5Ch     ;position d'affichage actuel en x de la souris 1
@@ -114,7 +124,7 @@ ays1 equ 5Eh     ;position d'affichage actuel en y de la souris 1
 xs2 equ 60h      ;position de la souris 2 en X
 ys2 equ 62h      ;position de la souris 2 en Y
 nbzt2 equ 64h    ;nombre d'octet dans la trame a d‚coder
-nbts2 equ 65h    ;nombre d'octet de la trame a attedre avant de la d‚doder
+nbts2 equ 65h    ;nombre d'octet de la trame a attendre avant de la dédoder
 atts2 equ 66h    ;attribut souris 2
 zts2 equ 68h     ;zone tampon de la souris 2
 axs2 equ 6Ch     ;position d'affichage actuel en x de la souris 2
@@ -150,6 +160,8 @@ sauv_esp_vesa equ 9Ch ;sauvegarde de esp lors de l'appel de int 10h en mode prot
 ;***************************************************************************
 
 at_fc_fichier equ 0C0h ;attribut des fonctions fichier
+
+essai_dsq equ 0C1h
 sec_piste_disq equ 0C2h ;secteur par piste sur la disquette
 nb_piste_disq equ 0C4h ;nombre de piste par face
 sec_cyl_disq equ 0C6h ;nombre de secteur par cylindre
@@ -187,25 +199,6 @@ ad_tache_af equ 104h ;adresse de la tache affiché
 cmd_bios equ 108h ;sauvegarde provisoire de eax lors d'un appel au bios en mode réel
 
 
-;*************************************************************************
-;zone tampon travail sur FAT et fichier
-
-ad_fat1 equ 110h
-max_fat1 equ 114h
-index_fat1 equ 118h
-dsq_fat1 equ 11Ch
-
-dsq_fat2 equ 11Dh
-
-at_fat equ 11Eh   ;b0=0 zone1 dernière mis a jour  b0=1 zone2 dernière mis a jour
-sauv_at_fichier equ 11Fh 
-
-ad_fat2 equ 120h
-max_fat2 equ 124h
-index_fat2 equ 128h
-
-
-ad_zt_lecluster equ 12Ch   ;adresse de la zone tampon de lecture cluster
 
 
 
@@ -213,21 +206,21 @@ ad_zt_lecluster equ 12Ch   ;adresse de la zone tampon de lecture cluster
 ;*************************************************************************
 ;registre de travail du systeme d'exploration des fichiers
 
-at_partition equ 140h     ;attribut partition
-no_disquepart equ 141h  ;numéros de disque physique correspondant a la partition
-nb_fat equ 142h         ;nombre de fat
-nb_sec_cluster equ 143h ;nombre de secteur par cluster
-ad_partition equ 144h   ;adresse premier secteur de la partition 
-to_partition equ 148h   ;nombre de secteur de la partition
-ad_fat equ 14Ch         ;adresse des fat 
-to_fat equ 150h         ;taille des fat
-ad_cluster0 equ 154h    ;adresse du cluster 0  
-to_1cluster equ 158h    ;taille d'un cluster
+at_partition equ 120h   ;attribut partition
+no_disquepart equ 121h  ;numéros de disque physique correspondant a la partition
+nb_fat equ 122h         ;nombre de fat
+nb_sec_cluster equ 123h ;nombre de secteur par cluster
+ad_partition equ 124h   ;adresse premier secteur de la partition 
+to_partition equ 128h   ;nombre de secteur de la partition
+ad_fat equ 12Ch         ;adresse des fat 
+to_fat equ 130h         ;taille des fat
+ad_cluster0 equ 134h    ;adresse du cluster 0  
+to_1cluster equ 138h    ;taille d'un cluster
 
 at_fichier equ 160h   ;attribut fichier
 no_part equ 161h   ;numéros de disque/partition du fichier
 id_ouvf equ 162h    ;id de la tache qui a ouvert le fichier
-ad_fichier equ 164h  ;numéros du premier secteur/cluster du fichier
+ad_fichier equ 164h  ;numéros du premier secteur/cluster du fichier/adresse de la zone fichier en ram
 to_fichier equ 168h  ;taille du fichier
 ad_dossierfichier equ 16Ch ;adresse du dossier qui dans lequel le dossier est rangé
 to_dossierfichier equ 170h ;taille du dossier dans lequel le dossier est rangé
@@ -268,6 +261,26 @@ sauv_esp0 equ 1F0h    ;sauvegarde de la pile de la tache 0
 id_tache_fichier equ 1F4h ;ID de la tache qui utillise la fonction fichier
 
 
+;*************************************************************************
+;zone tampon travail sur FAT et fichier
+
+ad_fat1 equ 200h
+max_fat1 equ 204h
+index_fat1 equ 208h
+dsq_fat1 equ 20Ch
+
+dsq_fat2 equ 20Dh
+
+at_fat equ 20Eh   ;b0=0 zone1 dernière mis a jour  b0=1 zone2 dernière mis a jour
+sauv_at_fichier equ 20Fh 
+
+ad_fat2 equ 210h
+max_fat2 equ 214h
+index_fat2 equ 218h
+
+
+ad_zt_lecluster equ 21Ch   ;adresse de la zone tampon de lecture cluster
+
 
 ;*************************************************************************
 ;gestion des port com et lpt    (sf_port.asm)
@@ -285,20 +298,20 @@ port_lpt_to equ 2E0h ;nombre d'octet dans la zone tampon de réception lpt 1 (lpt
 ;*************************************************************************
 ;gestion de l'USB §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§a revoir avec l'ahci
 
-desc_ctrl_usb equ 300h ;8*16 octets(128)
-ad_descusb equ 310h
-ad_ztusb equ 314h
-max_descusb equ 318h
-max_ztusb equ 31Ch
+desc_ctrl_usb equ 500h ;8*16 octets(128)
+ad_descusb equ 510h
+ad_ztusb equ 514h
+max_descusb equ 518h
+max_ztusb equ 51Ch
 
 
 ;*****************************************************************
 ;variable utillisé pendant la mise a jour de l'écran
 
-num_ligne_majv equ 340h   ;word
-couleur_fond equ 344h
-couleur_carac equ 348h
-ad_console0 equ 34Ch       
+num_ligne_majv equ 540h   ;word
+couleur_fond equ 544h
+couleur_carac equ 548h
+ad_console0 equ 54Ch       
 
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 ;descripteur d'un espace mémoire réservé a une tache
@@ -383,6 +396,7 @@ id_emetteur  equ 08h  ;ID de la tache
 id_recepteur equ 0Ah ;ID de la tache receptrice
 to_descr_com equ 0Ch ;taille du descripteur de canal
 at_canal     equ 10h ;attribut du canal de communication 
+com_tempo    equ 14h ;dword temporaire
 
 to_zter      equ 20h ;taille de la zone emeteur vers recepteur
 ad_zter      equ 24h ;adresse de la zone emeteur vers recepteur   
@@ -395,6 +409,14 @@ po_ztre_lec  equ 38h ;pointeur de lecture dans la zt
 po_ztre_ecr  equ 3Ch ;pointeur d'ecriture dans la zt
 
 ad_descr_com equ 40h 
+
+
+to_ztcom      equ 00h ;taille de la zone com
+ad_ztcom      equ 04h ;adresse de la zone com   
+po_ztcom_lec  equ 08h ;pointeur de lecture dans la zt
+po_ztcom_ecr  equ 0Ch ;pointeur d'ecriture dans la zt
+
+
 
 ;******************************************************************************
 ;organisation mémoire d'un segment console
@@ -438,7 +460,7 @@ cer_dnv    equ 21 ;dossier non vide (dans le cas d'une suppression)
 cer_cin    equ 22 ;caractère interdit dans le nom de fichier
 cer_cfi    equ 23 ;création de fichier impossible
 cer_nfr    equ 24 ;nom de fichier deja uttilisé
-cer_ztp    equ 25 ;zone de reception pas assez grande pour reçevoir les données
+;cer_ztp    equ 25 ;zone de reception pas assez grande pour reçevoir les données
 cer_anc    equ 26 ;aucune nouvelle connexion
 
 ;**********************************************************

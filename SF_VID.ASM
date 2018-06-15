@@ -1,3 +1,4 @@
+﻿sf_vid_asm:
 ;fonction console 
 ;0=création console
 ;1=suppression console
@@ -11,7 +12,7 @@
 ;10=ecrire une chaine asciiz a une position défini
 ;11=ecrire une chaine a la position du curseur
 ;12=definir la position du curseur
-
+;13=systeme de choix par menu
 
 
 ;21=dessine un pixel a la postion x y avec une couleur prédéterminé
@@ -45,7 +46,8 @@ cmp al,11
 je sfv_chaine_cur
 cmp al,12
 je sfv_place_cur
-
+cmp al,13
+je sfv_menu
 
 
 
@@ -1001,10 +1003,239 @@ iret
 
 err_place_cur:
 pop fs
+pop es
 pop ds
 pop edx
 mov eax,cer_eabs 
 iret
+
+
+
+;*******************************************************************************************
+sfv_menu:       ;met en surbrillance certaine ligne pour faire un choix par menu
+		;entrée cl=première ligne du menu ch=nombre de ligne  bh=couleur de base (3bits) bl=ligne preselectionné 
+                ;retour: bl=ligne selectionné bh=touche qui as validé
+
+push ecx
+push edx
+push ebp
+push esi
+push edi
+push ds
+push fs
+
+mov ax,seldat
+mov fs,ax
+fs
+mov edx,[ad_tache_exec]
+xor edi,edi
+fs
+mov di,[resxt]
+shl edi,2
+mov ax,selramh
+mov ds,ax
+mov ax,[edx+sel_ecranv]
+cmp ax,0
+je sfv_menu_err
+mov ds,ax
+
+cmp ch,0
+je sfv_menu_err
+dec ch
+add ch,cl
+mov al,cl
+add al,bl
+mov ah,bh
+
+sfv_menu_maj:
+push eax
+push ecx
+push edi
+
+push eax
+push ecx
+push ecx
+
+and eax,0FFh
+mov ecx,edi
+xor edx,edx
+mul ecx
+mov esi,eax    ;esi=début ligne
+
+pop ecx
+mov cl,ch
+and ecx,0FFh
+mov eax,edi
+xor edx,edx
+mul ecx
+add eax,edi
+mov ebp,eax   ;ebp=fin
+
+pop ecx
+and ecx,0FFh
+mov eax,edi
+xor edx,edx
+mul ecx
+mov ebx,eax   ;ebx=début 
+
+add edi,esi   ;edi=fin ligne
+mov eax,[ad_texte]
+add eax,3
+add ebx,eax
+add ebp,eax
+add esi,eax
+add edi,eax
+
+pop eax
+and ah,07h
+mov al,ah
+shl ah,4
+
+boucle_menu_maj:
+cmp ebx,esi
+jb sfv_menu_maj_ligne
+cmp ebx,edi
+jae sfv_menu_maj_ligne
+mov [ebx],ah
+jmp sfv_menu_maj_autres 
+
+sfv_menu_maj_ligne:
+mov [ebx],al
+sfv_menu_maj_autres:
+add ebx,4
+cmp ebx,ebp
+jne boucle_menu_maj
+
+fs
+or byte[at_csl],1
+
+pop edi
+pop ecx
+pop eax
+
+
+sfv_menu_clavier:
+push eax
+push ecx
+call fc_obt_clav
+mov dl,al
+pop ecx
+pop eax
+
+cmp dl,82
+je sfv_menu_moins
+cmp dl,84
+je sfv_menu_plus
+cmp dl,44
+je sfv_menu_validation
+cmp dl,100
+je sfv_menu_validation
+cmp dl,78
+je sfv_menu_validation
+cmp dl,81
+je sfv_menu_validation
+cmp dl,01
+je sfv_menu_validation
+jmp sfv_menu_clavier
+
+
+
+sfv_menu_moins:
+cmp al,cl
+je sfv_menu_maj
+dec al
+jmp sfv_menu_maj
+
+sfv_menu_plus:
+cmp al,ch
+je sfv_menu_maj
+inc al
+jmp sfv_menu_maj
+
+
+sfv_menu_validation:
+push eax
+push ecx
+push edx
+
+push eax
+push ecx
+
+mov cl,ch
+and ecx,0FFh
+mov eax,edi
+xor edx,edx
+mul ecx
+add eax,edi
+mov ebp,eax   ;ebp=fin
+
+pop ecx
+and ecx,0FFh
+mov eax,edi
+xor edx,edx
+mul ecx
+mov ebx,eax   ;ebx=début 
+
+add edi,esi   ;edi=fin ligne
+mov eax,[ad_texte]
+add eax,3
+add ebx,eax
+add ebp,eax
+add esi,eax
+add edi,eax
+
+pop eax
+and ah,07h
+mov al,ah
+shl ah,4
+
+
+boucle_menu_entree:
+mov [ebx],al
+add ebx,4
+cmp ebx,ebp
+jne boucle_menu_entree
+
+fs
+or byte[at_csl],1
+
+pop edx
+pop ecx
+pop eax
+
+mov bl,al
+sub bl,cl
+mov bh,dl
+
+
+
+
+
+pop fs
+pop ds
+pop edi
+pop esi
+pop ebp
+pop edx
+pop ecx
+xor eax,eax
+iret
+
+
+sfv_menu_err:
+pop fs
+pop ds
+pop edi
+pop esi
+pop ebp
+pop edx
+pop ecx
+mov eax,cer_eabs
+xor ebx,ebx 
+iret
+
+
+
 
 ;*******************************************************************************************
 sfv_majecr:     ;effectue la mise a jour complete de l'ecran

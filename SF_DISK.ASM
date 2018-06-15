@@ -19,7 +19,7 @@ jmp finfonctionfichiererr
 ;20h à 3Fh disque ahci (projet) 
 ;40h à 5Fh disque USB  (projet)
 ;6Fh à 7Fh reserve (inutilisé)
-;80h à DFh partition 
+;80h à BFh partition 
 
 
 
@@ -46,7 +46,7 @@ push ebx
 mov al,ch
 sub al,7Fh   ;sub 80h add 1
 and eax,03Fh
-shl eax,5   ;mul par 32
+shl eax,6   ;mul par 64
 fs
 cmp [ad_descp+eax+8],ebx
 jb erreur_acces_partition
@@ -127,6 +127,7 @@ pop ecx
 fs
 or byte[at_fc_fichier],04h      ;signale que le moteur est allumé
 motdjal1:
+mov byte[essai_dsq],3
 
 blecdsq:
 push cx
@@ -232,7 +233,15 @@ pop ebx
 pop cx
 fs
 test byte[at_fc_fichier],02h
-jnz erreurdsq
+jz lec_suivant_dsq 
+call razfdc
+fs
+dec byte[essai_dsq]
+jz erreurdsq
+jmp blecdsq
+
+lec_suivant_dsq:
+mov byte[essai_dsq],3
 add edi,200h
 inc ebx
 dec cl
@@ -316,80 +325,24 @@ mov [esp+28],eax
 popad
 ret
 
+
+
 lecatapi:
 mov esi,edi
-sub ch,18h       ;lecteur de 18h a 1Fh
-xchg cl,ch
-mov ax,cx
-and al,1
-shr cl,1
-and cx,3
-mov dx,1F0h
-shl cx,7
-sub dx,cx
-mov cx,ax      ;ch=Nombre cl=maitre/esclave
-mov di,dx      ;di=adresse de base
-
-or cl,0Eh           ;E=1110b
-shl cl,4           ;cl=disque/tÕte
-
+sub ch,8h       ;lecteur de 18h a 1Fh
+push ebx
 push ecx
-mov dx,7            ;teste si le controleur est occupé
-add dx,di
-fs
-mov ecx,[cptsf]
-add ecx,100
-
-testokupi:
-in al,dx
-test al,80h
-jz pasokupi
-fs
-cmp [cptsf],ecx
-jb testokupi
+mov ebx,0C00h  ;donnée pour envooyer une commande packet
+mov cl,0
+call iniata
 pop ecx
-jmp erokupf24
-
-pasokupi:
-call attsl        
-jc erdnt24
-
-pop ecx
-mov dx,6     ;envoye information + disque (important: si on envoie
-add dx,di    ;d'autre paramettre avant il seront envoyé au mauvais disque)
-mov al,cl
-out dx,al
-
-call attsl        
+pop ebx
 jc ernrf24
 
-mov al,2h           ;désactive interruption
-mov dx,206h
-add dx,di
-out dx,al
+
 
 xor al,al         ;OVL
 mov dx,1
-add dx,di
-out dx,al
-
-xor al,al         ;Nombre de secteur a lire/Ècrire (0 ici)
-mov dx,2
-add dx,di
-out dx,al
-
-xor al,al         ;rien (on envoie, au cas ou)
-mov dx,3
-add dx,di
-out dx,al
-
-mov al,12         ;LSB du nombre d'octet (12 donc)
-mov dx,4
-add dx,di
-out dx,al
-
-mov al,0h        ;MSB du nombre d'octet (0 donc) 
-mov dx,5
 add dx,di
 out dx,al
 
@@ -404,7 +357,7 @@ in al,dx     ;lit le alternate status register et ignore le résultat
 call attdok        ;attend pour savoir si c'est bon!
 jc ernrf24
 
-mov dx,di
+mov dx,di           ;envoie commande packet
 mov ax,00A8h
 out dx,ax    ;1
 push bx
@@ -417,13 +370,13 @@ xchg al,ah
 out dx,ax   ;3
 xor ax,ax
 out dx,ax   ;4
-mov ah,ch
+mov ah,cl
 out dx,ax  ;5
 xor ax,ax
 out dx,ax  ;6
 
 xor ebx,ebx
-mov bl,ch
+mov bl,cl
 shl ebx,10    ;ebx=nombre de mot a transferer
 
 tdf24i:
@@ -561,7 +514,7 @@ pop cx
 fs
 or byte[at_fc_fichier],04h
 motdjal2:
-
+mov byte[essai_dsq],3
 
 becrdsq:
 push cx
@@ -671,7 +624,15 @@ pop ebx
 pop cx
 fs
 test byte[at_fc_fichier],02h
-jnz erreurdsq
+jz ecr_suivant_dsq
+call razfdc 
+fs
+dec byte[essai_dsq]
+jz erreurdsq
+jmp becrdsq
+
+ecr_suivant_dsq:
+mov byte[essai_dsq],3
 add esi,200h
 inc ebx
 dec ch
@@ -812,6 +773,7 @@ ret
 
 
 razfdc:
+pushad
 mov dx,3F7h ;mode 500000 bit/s
 mov al,00h
 out dx,al
@@ -864,6 +826,7 @@ fs
 mov byte[pos_cyl_disq],0
 fs
 and byte[at_fc_fichier],0FDh  ;reset le bit "erreur de lecture controleur a raz"
+popad
 ret
 
 placetete:
@@ -938,6 +901,8 @@ ret
 
 
 liresecteurata:
+call ajuste_lba
+jc erparamsecteurata
 mov esi,edi
 call iniata
 jc eroqpsecteurata
@@ -976,6 +941,8 @@ ret
 
 
 ecriresecteurata:
+call ajuste_lba
+jc erparamsecteurata
 call iniata
 jc eroqpsecteurata
 
@@ -1016,7 +983,7 @@ ret
 infodisqueata:
 mov esi,edi
 xor ebx,ebx
-mov cl,1
+mov cl,0
 call iniata
 jc eroqpsecteurata
 
@@ -1025,8 +992,7 @@ mov dx,7
 add dx,di
 out dx,al
 
-xor bx,bx
-mov bh,ch     ;bx=nombre de mot a transferer
+mov bx,256     ;bx=nombre de mot a transferer
 
 tdf26:
 call at1puls
@@ -1057,7 +1023,7 @@ ret
 infodisqueatapi:
 mov esi,edi
 xor ebx,ebx
-mov cl,1
+mov cl,0
 sub ch,8
 call iniata
 jc eroqpsecteurata
@@ -1067,8 +1033,7 @@ mov dx,7
 add dx,di
 out dx,al
 
-xor bx,bx
-mov bh,ch     ;bx=nombre de mot a transferer
+mov bx,256     ;bx=nombre de mot a transferer
 
 tdf27:
 call at1puls
@@ -1092,6 +1057,11 @@ in al,dx
 test al,1
 jnz erlecsecteurata
 xor eax,eax
+ret
+
+
+erparamsecteurata:  ;erreur parametre
+mov eax,cer_parami
 ret
 
 eroqpsecteurata: ;controleur occupé
@@ -1130,25 +1100,37 @@ sub dx,cx
 mov cx,ax      ;ch=Nombre cl=maitre/esclave
 mov di,dx      ;di=adresse de base
 
-and ebx,0FFFFFFFh
+
+and ebx,4FFFFFFFh
 mov eax,ebx
-or cl,0Eh           ;E=1110b
+
+or cl,0Ah           ;A=1010b met a un les bit obsolete
 shl cl,4
+
 shr eax,24
-or cl,al            ;cl=disque/tÍte
+or cl,al            ;cl=disque/tête
 
 
-;call at1puls    ;teste si le controleur est occupé
-call attsl        
-jnc pasokup
-stc
-ret
+;call at1puls    ;teste si le controleur est occupé (etape désativé pour le moment)
+;call attsl        
+;jnc pasokup
+;stc
+;ret
 
 pasokup:
 
 mov dx,6     ;envoye information tête + disque (important: si on envoie  
 add dx,di    ;d'autre paramêttre avant il seront envoyé au mauvais disque)   
 mov al,cl
+out dx,al
+
+call at1puls
+call attsl        
+jnc disc_sel_iniata
+
+mov al,08h        ;envoye la commande device reset si il est occupé???
+mov dx,7
+add dx,di
 out dx,al
 
 call at1puls
@@ -1186,6 +1168,89 @@ out dx,al
 clc
 ret
 
+
+
+
+ajuste_lba:          ;transforme une adresse LBA en adresse CHS au besoin
+push eax
+push ecx
+push edx
+push esi
+mov dl,ch
+mov esi,ad_descd
+and edx,07h
+shl edx,5
+add esi,edx ;esi= adresse du descripteur
+fs
+cmp byte[esi],2
+je ajuste_chs
+fs
+cmp byte[esi],3
+je ajuste_lba28
+
+ajuste_erreur:
+pop esi
+pop edx
+pop ecx
+pop eax
+stc
+ret
+
+
+ajuste_lba28:
+test ebx,0F0000000h
+jnz ajuste_erreur
+or ebx,40000000h
+pop esi
+pop edx
+pop ecx
+pop eax
+clc
+ret
+
+
+ajuste_chs:
+xor edx,edx
+mov eax,ebx
+fs
+mov ecx,[esi+4] ;secteur par cylindre
+div ecx
+mov ebx,eax  ;ebx=piste
+
+mov eax,edx
+xor edx,edx
+xor ecx,ecx
+fs
+mov cx,[esi+2] ;secteur par piste
+div ecx        ;eax=tête
+inc edx        ;edx=secteur
+
+test eax,0FFFFFFF0h
+jnz ajuste_erreur
+test ebx,0FFFF0000h
+jnz ajuste_erreur
+test edx,0FFFFFF00h
+jnz ajuste_erreur
+
+and eax,00Fh
+and ebx,0FFFFh
+and edx,0FFh
+
+shl eax,24
+shl ebx,8
+or ebx,eax
+or ebx,edx
+
+pop esi
+pop edx
+pop ecx
+pop eax
+clc
+ret
+
+
+
+
 attdok:         ;attend que le disque soit pret a envoyer les donnÈes
 push ecx
 mov dx,7
@@ -1201,7 +1266,7 @@ mov dx,7
 add dx,di
 fs
 mov ecx,[cptsf]
-add ecx,2000               ;temp a attendre pour tester
+add ecx,4000               ;temp a attendre pour tester
 jmp bocpre
 
 attdok3:         ;attend que le disque soit pret a envoyer les donnÈes
@@ -1214,7 +1279,8 @@ add ecx,40               ;temp a attendre pour tester
 
 bocpre:
 in al,dx
-test al,08h       ;drq=1  
+and al,89h
+test al,08h       ;drq=1  bsy=0 err=0
 jnz tsfok
 test al,01h        ;err=1
 jnz tsfnok
@@ -1245,6 +1311,8 @@ cmp ecx,[cptsf]
 je bat1puls
 pop ecx
 ret
+
+
 
 attsl:         ;attend que le disque soit selectionné
 push ecx
@@ -1318,6 +1386,9 @@ es
 mov al,[esi+04h]
 cmp al,0
 je part_vide
+
+cmp al,06h
+je part_F16
 cmp al,04h                           ;al=04 06 0E 14 16 1E si fat16  
 je part_F16                          
 cmp al,06h
@@ -1330,14 +1401,35 @@ cmp al,16h
 je part_F16
 cmp al,1Eh
 je part_F16
+
 cmp al,0Bh
 je part_F32                          ;al=0C 0B 1C 1B si fat32
 cmp al,0Ch
 je part_F32
 cmp al,1Ch
 je part_F32
-cmp al,1Eh
+cmp al,1Bh
 je part_F32
+
+je part_exFAT
+
+je part_ext2
+je part_ext3
+
+cmp al,2Eh
+je part_TOD
+
+cmp al,07h                      ;al=07 17 si ntfs
+je part_NTFS
+cmp al,17h
+je part_NTFS
+
+cmp al,42h
+je part_SFS
+
+cmp al,0EEh             ;GPT
+je part_GPT
+
 mov ah,al
 mov al,2 ;partition inconnue
 jmp suiteinfopart
@@ -1369,8 +1461,8 @@ part_ext3:
 mov ax,9 ;partition ext3
 jmp suiteinfopart
 
-part_SfB:
-mov ax,10 ;partition SfB
+part_TOD:
+mov ax,10 ;partition TOD
 jmp suiteinfopart
 
 part_NTFS:
@@ -1379,16 +1471,21 @@ jmp suiteinfopart
 
 part_SFS:
 mov ax,12 ;partition SFS
+jmp suiteinfopart
+
+part_GPT:
+mov ah,al
+mov al,2 ;partition inconnue, comprehension de la GPT a ajouter ici
 
 
 suiteinfopart:  ;al=type de partition ah=0 ou le code trouvé dans le MBR si c'est inconnue
 ;cherche un descripteur de partition vide
-mov ebx,ad_descp+32        ;(+32 car le descripteur zéro est réservé a la disquette)
+mov ebx,ad_descp+64        ;(+64 car le descripteur zéro est réservé a la disquette)
 boucle_infopart:
 cmp byte[ebx],0
 je charge_infopart
-add ebx,32
-cmp ebx,ad_descp+1024
+add ebx,64
+cmp ebx,ad_descp+4096
 jne boucle_infopart
 ret
 
@@ -1410,6 +1507,14 @@ mov [ebx+10h],eax
 mov [ebx+14h],eax
 mov [ebx+18h],eax
 mov [ebx+1Ch],eax
+mov [ebx+20h],eax
+mov [ebx+24h],eax
+mov [ebx+28h],eax
+mov [ebx+2Ch],eax
+mov [ebx+30h],eax
+mov [ebx+34h],eax
+mov [ebx+38h],eax
+mov [ebx+3Ch],eax
 ret
 
 

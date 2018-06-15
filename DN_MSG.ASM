@@ -11,8 +11,8 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 
-db 1Ah,0C2h,08Eh,0C2h,08Fh,"SeLG V0.5 Mars 2018",13 
-db "version de dévellopement",17h,13,0
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.6 Juin 2018",13 
+db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1
 db "Répertoire introuvable: ",0   ;2
@@ -82,7 +82,7 @@ db " partition de type FAT32 de ",0 ;56
 db " partition de type exFAT de ",0 ;57
 db " partition de type Ext2 de ",0 ;58
 db " partition de type Ext3 de ",0 ;59
-db " partition de type SfB de ",0 ;60
+db " partition de type TOD de ",0 ;60
 db " partition de type NTFS de ",0 ;61
 db " partition de type SFS de ",0 ;62
 db 0 ;63

@@ -130,7 +130,7 @@ cmdld:          ;liste les disques et partition ata
 ;affiche les infos
 mov cl,50
 call affmsgsyst
-mov esi,ad_descp+32  ;le descripteur 0 est pour la disquette
+mov esi,ad_descp+64  ;le descripteur 0 est pour la disquette
 
 boucleldp:        ;boucle d'affichage des partitition de disque
 cmp byte[esi],2
@@ -157,7 +157,7 @@ call affcj
 call affcj
 mov eax,esi
 sub eax,ad_descp
-shr eax,5  ;div par 32
+shr eax,6  ;div par 64
 call affnje
 
 pop cx
@@ -179,7 +179,7 @@ call affmsgsyst
 
 paspartldp:
 add esi,20h
-cmp esi,ad_descp+400h
+cmp esi,ad_descp+1000h
 jne boucleldp
 
 

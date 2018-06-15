@@ -1,4 +1,4 @@
-;commande integrÃ© pour visualiser les fichier du dossier courant
+;commande integré pour visualiser les fichier du dossier courant
 
 
 mov cl,70
@@ -23,6 +23,8 @@ cmp al,11000b
 je dirtypefat
 cmp al,100b
 je dirtypeiso9660
+cmp al,1000b
+je dirtypemem
 
 jmp pascommande
 
@@ -33,7 +35,7 @@ mov ax,seldat
 mov es,ax
 mov edi,ad_chaine_travail
 xor ebx,ebx
-mov ecx,255  ;ecx=quantitÃ© a lire
+mov ecx,255  ;ecx=quantité a lire
 mov al,4
 push edx
 int 64h
@@ -186,7 +188,7 @@ jmp boucle_dir_fat
 dir_vfat:                    ;Vfat
 es
 mov cl,[ebx+esi]
-test cl,40h    ;on test si c'est bien le marqueur de dÃ©but de descripteur de nom long
+test cl,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
 je suivant_dir_fat
 and ecx,3Fh
 shl ecx,5
@@ -199,12 +201,12 @@ jz pasdossierdirvfat
 mov al,19h                ;couleur pour un dossier
 call affcj
 pasdossierdirvfat:
-;calcul du checksum  Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
+;calcul du checksum  §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 mov edi,ad_chaine_travail
 boucle_dir_vfat:
 sub esi,32
-;verification du checksumÂ§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
+;verification du checksum§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 xor eax,eax
 es
 mov ax,[ebx+esi+01h]
@@ -276,20 +278,36 @@ mov cl,3
 call affmsgsyst
 jmp pascommande
 
-cmddirerr2:    ;erreur de mÃ©moire
+cmddirerr2:    ;erreur de mémoire
 mov cl,5
 call affmsgsyst
 jmp pascommande
 
 
+dirtypemem:
+mov ax,selramh
+mov ds,ax
 
+xor ebx,ebx
 
+boucle_dirtypemem:
+cmp byte[ebx+2],"F"
+je pascommande
+cmp byte[ebx+2],"X"
+jne ignore__dirtypemem
 
+mov edx,ebx
+add edx,10h
+call affjournal
+mov al,17h
+call affcj
+mov al,13
+call affcj
 
-
-
-
-
+ignore__dirtypemem:
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle_dirtypemem 
 
 
 

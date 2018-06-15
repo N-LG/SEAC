@@ -1,4 +1,4 @@
-;mise a jour totale de l'Ã©cran video
+;mise a jour totale de l'écran video
 
 mov ax,seldat
 mov fs,ax
@@ -6,7 +6,7 @@ mov ax,selramh
 mov gs,ax
 
 
-fs  ;test si on doit mettre a jour l'Ã©cran
+fs  ;test si on doit mettre a jour l'écran
 test byte[at_csl],01h
 jz fin_majv
 fs
@@ -20,7 +20,7 @@ mov ds,dx
 jmp majv_detmod
 
 majv_tache:
-;charge le descripteur du segment affichÃ© dans le descripteur global correspondant
+;charge le descripteur du segment affiché dans le descripteur global correspondant
 
 mov ax,selgdt
 mov ds,ax
@@ -96,7 +96,7 @@ mov ebx,[ad_curseur_texte]
 sub ebx,[ad_texte]
 shr ebx,2
 
-mov dx,3D4h ;envoie les donnÃ©es a la carte
+mov dx,3D4h ;envoie les données a la carte
 mov al,0Eh
 out dx,al
 mov dx,3D5h
@@ -1110,7 +1110,7 @@ jmp fin_majv
 
 
 ;*********************************************************************************
-majv_combi:             ;mise a jour du mode combinÃ©
+majv_combi:             ;mise a jour du mode combiné
 fs
 mov word[num_ligne_majv],0
 
@@ -2054,7 +2054,7 @@ mov dl,[esi]
 mov cl,[ebx+3]
 cmp [ad_curseur_texte],ebx
 jne pascurseur
-cmp eax,12    ;numÃ©ros de la ligne actuellement affichÃ©
+cmp eax,12    ;numéros de la ligne actuellement affiché
 jne pascurseur
 mov cl,0FFh   ;couleur du curseur
 mov dl,0FFh
@@ -2172,8 +2172,8 @@ ret
 
 
 ;****************************************************
-ajuste_carac:                    ;ajuste le numÃ©ros de caractÃ¨re pour ajouter le support de caractÃ¨re supplÃ©mentaire
-test eax,0FFFFFFE0h              ;qui ne sont pas comprit dans les 256 premier catactÃ¨re unicode
+ajuste_carac:                    ;ajuste le numéros de caractère pour ajouter le support de caractère supplémentaire
+test eax,0FFFFFFE0h              ;qui ne sont pas comprit dans les 256 premier catactère unicode
 jz espacevide
 test eax,0FFFF00h
 jz caracok_ajuste_carac
@@ -2181,7 +2181,7 @@ cmp eax,152h           ;e dans l'o majuscule
 je t152
 cmp eax,153h           ;e dans l'o minuscule
 je t153
-cmp eax,178h           ;Å¸ 
+cmp eax,178h           ;Ÿ 
 je t178
 cmp eax,393h
 je t393
@@ -2209,7 +2209,7 @@ cmp eax,3C8h
 je t3C8
 cmp eax,3C9h
 je t3C9
-cmp eax,20ACh     ;â‚¬
+cmp eax,20ACh     ;€
 je t20AC
 cmp eax,221Ah
 je t221A
@@ -2229,7 +2229,14 @@ cmp eax,2610h
 je t2610
 cmp eax,2611h
 je t2611
-
+cmp eax,17fh
+je t17F
+cmp eax,2DAh
+je t2DA
+cmp eax,2C4h
+je t2C4
+cmp eax,2C5h
+je t2C5
 
 
 mov al,1Fh             ;si le symbole est inconnu
@@ -2240,15 +2247,15 @@ mov al," "
 jmp caracok_ajuste_carac
 
 t152:
-mov al,01h        ;remplaÃ§ant du e dans l'o majuscule
+mov al,01h        ;remplaçant du e dans l'o majuscule
 jmp caracok_ajuste_carac
 
 t153:
-mov al,02h        ;remplaÃ§ant du e dans l'o minuscule   
+mov al,02h        ;remplaçant du e dans l'o minuscule   
 jmp caracok_ajuste_carac
 
 t178:
-mov al,03h        ;remplaÃ§ant du Å¸
+mov al,03h        ;remplaçant du Ÿ
 jmp caracok_ajuste_carac 
 
 t393:
@@ -2341,6 +2348,22 @@ jmp caracok_ajuste_carac
 
 t2611:
 mov al,1Ah
+jmp caracok_ajuste_carac 
+
+t17F:
+mov al,1Bh
+jmp caracok_ajuste_carac 
+
+t2DA:
+mov al,1Ch
+jmp caracok_ajuste_carac 
+
+t2C4:
+mov al,1Dh
+jmp caracok_ajuste_carac 
+
+t2C5:
+mov al,1Eh
 
 caracok_ajuste_carac:
 and eax,0FFh
@@ -2424,20 +2447,21 @@ push ecx
 call resmem
 pop ecx
 es
-mov word[ebx+8],czm_etz      ;ecran tache zÃ©ro
+mov word[ebx+8],czm_etz      ;ecran tache zéro
 add ebx,10h
 mov [ad_console0],ebx
 
+add ebx, 100000h   ;parce qu'on est en mémoire haute
 mov eax,selconsole
 mov dx,selgdt
 mov ds,dx     
-mov dl,02h       ;segment de donnÃ©es ring 0
+mov dl,02h       ;segment de données ring 0
 call creeds
 
 mov eax,selecran
 mov dx,selgdt
 mov ds,dx     
-mov dl,02h       ;segment de donnÃ©es ring 0
+mov dl,02h       ;segment de données ring 0
 call creeds
 
 mov dx,selconsole

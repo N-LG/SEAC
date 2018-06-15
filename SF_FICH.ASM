@@ -218,18 +218,22 @@ jmp debutpaslach
 
 nouvlec:
 inc edx
-cmp word [edx],"ds"
+cmp word [edx],"di"
 je lec_disquette
 cmp word [edx],"dd"
 je lec_disquedur
 cmp word [edx],"cd"
 je lec_cdrom
-cmp word [edx],"DS"
+cmp word [edx],"dm"
+je lec_memoire
+cmp word [edx],"DI"
 je lec_disquette
 cmp word [edx],"DD"
 je lec_disquedur
 cmp word [edx],"CD"
 je lec_cdrom
+cmp word [edx],"DM"
+je lec_memoire
 jmp errprmsf
 
 lec_disquette:
@@ -298,7 +302,7 @@ push eax   ;adresse du repertoire racine
 xor ecx,ecx
 fs
 mov cx,[bootsecteur+512+11h]   ;taille du repertoir racine (en nombre d'entrée de 32 octet)
-shr ecx,4    ;mul par 32 et div par 512 (divise par 8)pour avoir la taille du rep racine en secteur
+shr ecx,4    ;mul par 32 et div par 512 (divise par 16)pour avoir la taille du rep racine en secteur
 add eax,ecx  ;eax=adresse du cluster 2
 
 xor ecx,ecx
@@ -470,7 +474,7 @@ add eax,[ad_fat]  ;eax=adresse du repertoire racine
 xor ecx,ecx
 fs
 mov cx,[bootsecteur+512+11h]   ;taille du repertoir racine (en nombre d'entrée de 32 octet)
-shr ecx,4    ;mul par 32 et div par 512 (divise par 8)pour avoir la taille du rep racine en secteur
+shr ecx,4    ;mul par 32 et div par 512 (divise par 16)pour avoir la taille du rep racine en secteur
 add eax,ecx  ;eax=adresse du cluster 2
 
 xor ecx,ecx
@@ -668,6 +672,7 @@ cmp eax,0
 jne finfonctionfichiererr
 
 
+
 exrootcd:  
 fs
 cmp byte[bootsecteur],1   ;on verifie que le secteur est bien le primary volume descriptor
@@ -707,7 +712,15 @@ fs
 mov [id_ouvf],ax
 
 add edx,3               ;edx pointe sur la suite du nom du fichier a lire
+jmp dossiersuivant
 
+
+
+
+lec_memoire:
+fs
+mov byte[at_fichier],1011b       ;dossier racine de fichier mémoire
+add edx,2
 
 
 dossiersuivant:
@@ -737,6 +750,7 @@ mov [edi],al
 inc edi
 cmp edi,ad_nomfichier1+01FFh
 jne bouclerecopienomfichier
+
 finrecopienomfichier:
 fs
 mov byte[edi],0   ;ad_nomfichier1 contient une chaine utf8z 
@@ -763,6 +777,11 @@ mov [ad_ztexpdossier],ebx
 
 
 charge_partie_dossier:              ;charge une partie du dossier
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00001000b
+je bouclerecherche_fichier  ;si le fichier est enregistré en ram pas besoin de mettre a jour 
 
 fs
 mov eax,[po_descripteur_expdossier]
@@ -777,25 +796,8 @@ mov eax,[po_ztexpdossier]
 fs
 cmp eax,[to_fichier]
 jb ok_charge_partie_dossier
+jmp err_fichier_nt
 
-fs
-cmp byte[option_ouverture],0  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
-je err_fichier_nt
-
-
-cmp byte [edx],0
-je cree_fichier_final
-cmp word [edx],002Fh ;/&0 
-je cree_fichier_final
-cmp word [edx],005Ch ;\&0
-je cree_fichier_final
-call sf_cree_dossier     ;si on est pas a la fin de la chaine de caractère on crée un dossier intermédiaire
-;?????????????????????????????????????????????
-jmp ok_charge_partie_dossier
-
-cree_fichier_final:       ;sinon on créer le fichier final voulu
-call sf_cree_fichier
-;?????????????????
 
 
 
@@ -824,6 +826,8 @@ mov al,[at_fichier]
 and al,00111100b
 cmp al,00000100b
 je exnomiso9660
+cmp al,00001000b
+je exnommem
 cmp al,00010000b
 je exnomfat
 cmp al,00010100b
@@ -896,6 +900,63 @@ dossieriso9660:
 fs
 mov byte[at_fichier_expdossier],010b
 jmp comparaisondesdeuxnom
+
+
+;*********************************************************************************************
+exnommem:
+fs
+mov ebx,[po_descripteur_expdossier]
+
+boucle_exnommem:
+gs
+cmp byte[ebx+2],"F"
+je err_fichier_nt
+gs
+cmp byte[ebx+2],"X"
+je suite_exnomem
+gs
+mov eax,[ebx+4] ;si c'est pas un descripteur de zone mémoire fichier on essaye la zone suivante
+add ebx,eax
+fs
+mov [po_descripteur_expdossier],ebx
+jmp boucle_exnommem
+
+suite_exnomem:
+fs
+mov [ad_fichier_expdossier],ebx
+
+gs
+mov eax,[ebx+4]
+fs
+mov [to_descripteur_expdossier],eax
+
+gs
+mov eax,[ebx+8]
+fs
+mov [to_fichier_expdossier],eax
+
+push ds
+push es
+mov cx,selramh
+mov ds,cx
+fs
+mov esi,[po_descripteur_expdossier]
+add esi,10h
+mov cx,seldat
+mov es,cx
+mov edi,ad_nomfichier2
+mov ecx,400
+cld
+rep movsb
+pop es
+pop ds
+
+
+
+fs
+mov byte[at_fichier_expdossier],01b
+jmp comparaisondesdeuxnom
+
 
 
 ;*********************************************************************************************
@@ -1394,6 +1455,20 @@ jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 
 err_fichier_nt:
+fs
+cmp byte[option_ouverture],0  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
+je fin_erreur_fichier_nt
+
+
+
+cmp byte [edx],0          
+je cree_fichier
+cmp word [edx],002Fh ;/&0 
+je cree_fichier
+cmp word [edx],005Ch ;\&0
+je cree_fichier
+
+fin_erreur_fichier_nt:
 mov eax,cer_lecnt
 
 errouvfichier:   ;erreur, désalocation mémoire, préservation de eax et raz de ebx
@@ -1405,6 +1480,20 @@ xor ebx,ebx
 jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 
+cree_fichier:       ;sinon on créer le fichier final voulu
+call sf_cree_fichier
+cmp eax,0
+jne errouvfichier
+
+;remet a 0 les pointeurs de parcours dossier et recommence a essayer de trouver le fichier 
+xor eax,eax
+fs
+mov [po_ztexpdossier],eax
+fs
+mov [po_descripteur_expdossier],eax
+fs
+mov byte[option_ouverture],0      ;et n'essaye plus de créer de fichier
+jmp charge_partie_dossier
 
 
 
@@ -1461,11 +1550,15 @@ fs
 mov al,[at_fichier]  
 and al,00111100b
 cmp al,00000100b
-je idfdc_cd       ;si c'est un cd il n'y as pas besoin de recopier le descripteur de partition
+je idfdc_vide       ;si c'est un descripteur vide il n'y as pas besoin de recopier le descripteur de partition
+cmp al,00000100b
+je idfdc_vide       ;idem si c'est un cd
+cmp al,00001000b
+je idfdc_vide       ;idem si c'est un  fichier mémoire
 
 call chardescp
 
-idfdc_cd:
+idfdc_vide:
 clc
 popad
 ret
@@ -1481,7 +1574,7 @@ pushad
 xor ebx,ebx
 fs
 mov bl,[no_part]
-shl ebx,5   ;mul par 32
+shl ebx,6   ;mul par 64
 add ebx,ad_descp           ;ebx=adresse descripteur de la partition
 
 fs
@@ -1520,18 +1613,55 @@ mov [ebx+24],esi
 fs
 mov [ebx+28],edi
 
-clc
-popad
-ret
+fs
+mov esi,[at_partition+32]
+fs
+mov edi,[at_partition+36]
+fs
+mov [ebx+32],esi
+fs
+mov [ebx+36],edi
+
+fs
+mov esi,[at_partition+40]
+fs
+mov edi,[at_partition+44]
+fs
+mov [ebx+40],esi
+fs
+mov [ebx+44],edi
+
+fs
+mov esi,[at_partition+48]
+fs
+mov edi,[at_partition+52]
+fs
+mov [ebx+48],esi
+fs
+mov [ebx+52],edi
+
+fs
+mov esi,[at_partition+56]
+fs
+mov edi,[at_partition+60]
+fs
+mov [ebx+56],esi
+fs
+mov [ebx+60],edi
+
+jmp verif_zt_cluster
+
+
+
 
 chardescp:      ;charge le descriteur de partition
 pushad
 xor ebx,ebx  
 fs
 mov bl,[no_part]
-cmp bl,32
+cmp bl,64
 ja erscdescp
-shl ebx,5   ;mul par 32
+shl ebx,6   ;mul par 64
 add ebx,ad_descp           ;ebx=descripteur de la partition
 
 fs
@@ -1570,8 +1700,44 @@ mov [at_partition+24],esi
 fs
 mov [at_partition+28],edi
 
+fs
+mov esi,[ebx+32]
+fs
+mov edi,[ebx+36]
+fs
+mov [at_partition+32],esi
+fs
+mov [at_partition+36],edi
 
-;verifie que la zone tampon de lecture de cluster est de taille suffisante
+fs
+mov esi,[ebx+40]
+fs
+mov edi,[ebx+44]
+fs
+mov [at_partition+40],esi
+fs
+mov [at_partition+44],edi
+
+fs
+mov esi,[ebx+48]
+fs
+mov edi,[ebx+52]
+fs
+mov [at_partition+48],esi
+fs
+mov [at_partition+52],edi
+
+fs
+mov esi,[ebx+56]
+fs
+mov edi,[ebx+60]
+fs
+mov [at_partition+56],esi
+fs
+mov [at_partition+60],edi
+
+
+verif_zt_cluster:                ;verifie que la zone tampon de lecture de cluster est de taille suffisante
 fs
 mov ebx,[ad_zt_lecluster]
 sub ebx,10h-4
@@ -1649,16 +1815,59 @@ jmp ouvrir_creer_fichier
 
 sf_cree_fichier:  ;créer un fichier suivant le nom contenue dans ad_nomfichier1
 pushad
-mov edx,ad_nomfichier1
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-popad 
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00001000b
+je cree_fichier_mem       ;on test si c'est un fichier mémoire
+;cmp al,010000b 
+;je cree_fichier_fat       ;on fat12,
+;cmp al,010100b
+;je cree_fichier_fat       ;ou fat16
+;cmp al,011000b
+;je cree_fichier_fat       ;ou fat32
+popad
+mov eax,cer_cfi   ;création de fichier impossible
 ret
 
-sf_cree_dossier:  ;créer un fichier suivant le nom contenue dans ad_nomfichier1
-pushad
-mov edx,ad_nomfichier1
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+cree_fichier_mem:
+mov ecx,432
+call resmem
+jc err_cree_fichier_mem
+gs
+mov byte[ebx+2],"X"
+gs
+mov dword[ebx+8],0
+
+mov esi,ad_nomfichier1
+mov edi,ebx
+add edi,10h
+mov ecx,edi
+add ecx,400
+
+
+boucle_cree_fichier_mem:
+fs
+mov al,[esi]
+gs
+mov [edi],al
+inc edi
+cmp edi,ecx
+je fin_cree_fichier_mem
+cmp al,0
+je boucle_cree_fichier_mem
+inc esi
+jmp boucle_cree_fichier_mem 
+
+fin_cree_fichier_mem:
 popad 
+xor eax,eax
+ret
+
+err_cree_fichier_mem:
+popad 
+mov eax,cer_pasm
 ret
 
 
@@ -1704,10 +1913,10 @@ ret
 
 
 ;****************************************************************************
-cree_descripteur_fichier_fat:
-mov esi,edx  ;esi=adresse du nom
-
+cree_descripteur_fichier: 
 pushad
+
+mov esi,edx  ;esi=adresse du nom
 
 ;verifie que les caractère non autorisé soit absent
 mov ecx,edx
@@ -1751,17 +1960,19 @@ fs
 mov al,[at_fichier]
 and al,00111100b
 cmp al,010000b 
-je cree_descr_fichier_fat1       ;on teste si le fichier est fat12,
+je cree_descr_fichier_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
-je cree_descr_fichier_fat1       ;ou fat16
+je cree_descr_fichier_fat       ;ou fat16
 cmp al,011000b
-je cree_descr_fichier_fat1       ;ou fat32
+je cree_descr_fichier_fat       ;ou fat32
 popad
 mov eax,cer_cfi   ;création de fichier impossible
 ret
 
 
-cree_descr_fichier_fat1:
+
+
+cree_descr_fichier_fat:
 
 ;compte le nombre de carac du nom et le nombre de point
 mov ebx,edx
@@ -1859,7 +2070,6 @@ inc ebx
 jmp boucle_verif_lettre
 
 
-
 erreur_verif_lettre:
 popad
 mov eax,cer_parami
@@ -1869,11 +2079,52 @@ ret
 
 fin_verif_lettre:
 
-;£
+
+mov ebx,esi
+mov edi,zt_nouveau_descripteur
+
+mov dword[edi],20202020h     ;vide ledescripteur
+mov dword[edi+4],20202020h
+mov dword[edi+8],202020h
+mov dword[edi+12],0
+mov dword[edi+16],0
+mov dword[edi+20],0
+mov dword[edi+24],0
+mov dword[edi+28],0
+
+boucle_fat_court:
+mov al,[ebx]
+cmp al,0
+je fin_fat_court
+cmp al,"."
+jne paspoint
+mov edi,zt_nouveau_descripteur+8 
+inc ebx
+jmp boucle_fat_court
+
+paspoint:
+mov [edi],al
+inc ebx
+inc edi
+jmp boucle_fat_court
+
+
+fin_fat_court:
+popad
+xor eax,eax
+ret
+
+
+
+
 
 
 ;*****************************************************************************
-cree_descr_fichier_fat_long:    
+cree_descr_fichier_fat_long:   
+popad
+mov eax,cer_cfi   ;en attendant le test  
+ret
+ 
 ;d'abord transformation du nom de fichier au format UCS-2
 
 mov edx,esi               ;edx pointe sur le nom a convertir
@@ -2169,13 +2420,11 @@ supprimerfichier:
 call initdescrfdcourant
 jc errprmsf
 
-call minfo_charge_descripteur
-cmp eax,0
-jne finfonctionfichiererr
-
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp al,1000b
+je supprime_fichier_mem
 cmp al,010000b 
 je supprime_fichier_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
@@ -2184,8 +2433,12 @@ cmp al,011000b
 je supprime_fichier_fat       ;ou fat32
 jmp errprmsf
 
-supprime_fichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
-pushad
+supprime_fichier_fat:             
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+pushad            ;calcul de l'offset en cas de descripteur de type vfat
 xor ebx,ebx
 fs
 cmp byte[zt_lminfo+0Bh],0Fh
@@ -2314,6 +2567,16 @@ popad
 mov eax,cer_dnv      ;code d'erreur: dossier non vide
 jmp finfonctionfichiererr
 
+supprime_fichier_mem:
+push ebx
+fs
+mov ebx,[ad_fichier]
+call libmem
+pop ebx
+jnc fermerfichier
+mov eax,cer_parami
+jmp finfonctionfichiererr
+
 
 ;*******************************************************************************
 ;                                                   ****************************
@@ -2330,6 +2593,8 @@ mov al,[at_fichier]
 and al,00111100b
 cmp al,100b
 je ignore_lire_meta_fichier       ;si c'est iso9660 on n'a pas besoin de modifier les métadonnées
+cmp al,1000b
+je ignore_lire_meta_fichier       ;si c'est un fichier memoire idem
 fs
 mov al,[at_fichier]
 and al,011b
@@ -2382,6 +2647,9 @@ fs
 cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
 je ok_lire_meta_fichier_fat
 popad
+;mov al,3
+;out 61h,al        ;allume le bipper
+jmp ignore_lire_meta_fichier   ;on evite certaine phase
 jmp errsysf
 ok_lire_meta_fichier_fat:
 
@@ -2393,7 +2661,7 @@ pop ebx
 fs
 mov [ebx+zt_lminfo+12h],dx
 popad
-
+ 
 call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -2401,6 +2669,9 @@ jne finfonctionfichiererr
 ignore_lire_meta_fichier:
 call sflirefichier
 jmp finfonctionfichiererr
+
+
+
 
 
 ;**********************************************************************************
@@ -2424,6 +2695,8 @@ mov al,[at_fichier]
 and al,00111100b
 cmp al,100b ;on test si le lecteur est un lecteur de cdrom
 je lirefichiercdrom
+cmp al,1000b ;on test si c'est un fichier memoire
+je lirefichiermem
 cmp al,010000b 
 je lireracinefat       ;on teste si le fichier est fat12,
 cmp al,010100b
@@ -2595,9 +2868,21 @@ pop esi
 jmp finlirefichier
 
 
+;***********************************************************************
+lirefichiermem:
+push ds
+mov ax,selramh
+mov ds,ax
+fs
+mov esi,[ad_fichier]
+add esi,416
+add esi,edx
+rep movsb
+pop ds
+jmp finlirefichier 
 
 
-
+;****************************************************
 lireracinefat:
 fs
 mov al,[at_fichier]
@@ -3015,7 +3300,6 @@ mov cx,3
 mul cx
 xor ebx,ebx
 mov bx,ax
-mov ch,01h
 call liredwordfat
 cmp eax,0
 jne finlireifat
@@ -3027,7 +3311,6 @@ mov cx,3
 mul cx
 xor ebx,ebx
 mov bx,ax
-mov ch,01h
 call liredwordfat
 cmp eax,0
 jne finlireifat
@@ -3194,7 +3477,7 @@ ret
 
 err1liredwordfat:
 fs
-mov byte[dsq_fat1],0
+mov byte[dsq_fat1],0FFh
 xor ebx,ebx
 ret
 
@@ -3260,7 +3543,7 @@ ret
 
 err2liredwordfat:
 fs
-mov byte[dsq_fat2],0
+mov byte[dsq_fat2],0FFh
 xor ebx,ebx
 ret
 
@@ -3560,13 +3843,12 @@ fs
 cmp edx,[to_fichier]
 ja errprmsf            ;on ne peut écrire au dela de la taille existante du fichier
 
-call minfo_charge_descripteur
-cmp eax,0
-jne finfonctionfichiererr
 
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp  al,1000b
+je  ignore_ecrire_meta_fichier
 cmp al,010000b 
 je ecrire_meta_fichier_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
@@ -3575,7 +3857,13 @@ cmp al,011000b
 je ecrire_meta_fichier_fat       ;ou fat32
 jmp errprmsf
 
+
+
 ecrire_meta_fichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
 pushad
 xor ebx,ebx
 fs
@@ -3658,6 +3946,7 @@ call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr
 
+ignore_ecrire_meta_fichier:
 call sfecrirefichier
 jmp finfonctionfichiererr
 
@@ -3673,7 +3962,9 @@ sfecrirefichier:
 fs
 mov al,[at_fichier]
 and al,00111100b
-cmp al,010000b 
+cmp  al,1000b
+je  ecrirefichiermem
+cmp al,010000b
 je ecrireracinefat       ;on teste si le fichier est fat12,
 cmp al,010100b
 je ecrireracinefat       ;ou fat16
@@ -3681,6 +3972,114 @@ cmp al,011000b
 je ecrirefichierfat       ;ou bien fat32
 jmp fin_sfecrirefichier_erprm
 
+
+;****************************************
+ecrirefichiermem:
+fs
+mov edi,[ad_fichier]
+
+mov eax,edx
+add eax,ecx
+gs
+cmp [edi+8],eax          ;on verifie que on ne déborde pas du fichier
+jae ecrirefichiermem_pasmodif_taillefichier
+gs
+mov [edi+8],eax           ;sinon on modifie la taille du fichier
+fs
+mov [to_fichier],eax
+ecrirefichiermem_pasmodif_taillefichier:
+
+
+fs
+mov eax,[to_fichier]
+add eax,431
+and eax,0FFFFFFF0h
+gs
+cmp [edi+4],eax
+jae ecrirefichiermem_pasmodif_taillebloc 
+push ecx
+push ebx
+mov ebx,edi
+mov ecx,eax
+call modtm
+mov edi,ebx
+pop ebx
+pop ecx
+jc ecrirefichiermem_err
+fs
+mov [ad_fichier],edi
+ecrirefichiermem_pasmodif_taillebloc:
+
+
+
+;mise a jour du descripteur
+pushad
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+add ebx,[ad_ficho]
+
+fs
+mov esi,[at_fichier]
+fs
+mov edi,[at_fichier+4]
+gs
+mov [ebx],esi
+gs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_fichier+8]
+fs
+mov edi,[at_fichier+12]
+gs
+mov [ebx+8],esi
+gs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_fichier+16]
+fs
+mov edi,[at_fichier+20]
+gs
+mov [ebx+16],esi
+gs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_fichier+24]
+fs
+mov edi,[at_fichier+28]
+gs
+mov [ebx+24],esi
+gs
+mov [ebx+28],edi
+popad
+  
+
+
+push ds
+push es
+mov ax,es
+mov ds,ax
+
+mov ax,selramh
+mov es,ax
+
+add edi,edx
+add edi,416
+cld
+rep movsb
+pop es
+pop ds
+jmp fin_sfecrirefichier_ok
+
+ecrirefichiermem_err:
+mov eax,cer_pasm
+jmp fin_sfecrirefichier_err
+
+
+;*************************************
 ecrireracinefat:
 fs
 mov al,[at_fichier]
@@ -4122,14 +4521,16 @@ je infofichier_taille
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp al,000100b
+je infofichier_iso9660   ;ou iso9660
+cmp al,000100b
+je infofichier_mem       ;fichier mémoire
 cmp al,010000b 
 je infofichier_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
 je infofichier_fat       ;ou fat16
 cmp al,011000b
 je infofichier_fat       ;ou fat32
-cmp al,000100b
-je infofichier_iso9660   ;ou iso9660
 jmp errprmsf
 
 infofichier_taille:
@@ -4139,14 +4540,38 @@ mov [edx],eax
 jmp finfonctionfichier
 
 
+infofichier_iso9660:
+;?????????????????????????????????????
+jmp errprmsf
+
+
+infofichier_mem:
+cmp ah,1
+je infofichier_mem_nom
+jmp errprmsf
+
+infofichier_mem_nom:
+fs
+mov edi,[ad_fichier]
+add edi,10h
+
+boucle_infofichier_mem_nom:
+gs
+mov al,[edi]
+mov [edx],al
+inc edi
+inc edx
+cmp al,0
+jne boucle_infofichier_mem_nom
+jmp finfonctionfichier
+
+
+
 infofichier_fat:
 ;????????????????????????????????????
 jmp errprmsf
 
 
-infofichier_iso9660:
-;?????????????????????????????????????
-jmp errprmsf
 
 
 ;*******************************************************************************
@@ -4158,13 +4583,13 @@ minfofichier:     ;modifie les métadonnée du fichier
 mov cl,ah
 call initdescrfdcourant
 jc errprmsf
-call minfo_charge_descripteur
-cmp eax,0
-jne finfonctionfichiererr
+
 
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp al,001000b
+je minfofichier_mem
 cmp al,010000b 
 je minfofichier_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
@@ -4173,7 +4598,107 @@ cmp al,011000b
 je minfofichier_fat       ;ou fat32
 jmp errprmsf
 
+;*********************************
+minfofichier_mem:
+cmp ah,0
+je minfofichier_mem_nom
+cmp ah,1
+je minfofichier_mem_taille
+jmp errprmsf
+
+minfofichier_mem_nom:
+fs
+mov edi,[ad_fichier]
+add edi,10h
+mov esi,edi
+add esi,400
+
+boucle_minfofichier_mem_nom:
+mov al,[edx]
+gs
+mov [edi],al
+inc edi
+inc edx
+cmp edi,esi
+je fin_minfofichier_mem_nom   ;si jamais ça dépasse de la taille maximum on tronque le nom
+cmp al,0
+jne boucle_minfofichier_mem_nom
+
+fin_minfofichier_mem_nom:
+dec edi
+gs
+mov byte[edi],0
+jmp finfonctionfichier
+
+
+minfofichier_mem_taille:
+fs
+mov edi,[ad_fichier]
+cmp dword[edx+4],0
+jne erreur_minfofichier_mem_taille  ;seul 32 bit pour la taille de fichier
+mov eax,[edx]
+gs
+cmp eax,[edi+8]
+ja finfonctionfichier  ;impossible d'augmenter la taille d'un fichier
+gs
+mov [edi+8],eax
+fs
+mov [to_fichier],eax
+
+;mise a jour du descripteur
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+add ebx,[ad_ficho]
+
+fs
+mov esi,[at_fichier]
+fs
+mov edi,[at_fichier+4]
+gs
+mov [ebx],esi
+gs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_fichier+8]
+fs
+mov edi,[at_fichier+12]
+gs
+mov [ebx+8],esi
+gs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_fichier+16]
+fs
+mov edi,[at_fichier+20]
+gs
+mov [ebx+16],esi
+gs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_fichier+24]
+fs
+mov edi,[at_fichier+28]
+gs
+mov [ebx+24],esi
+gs
+mov [ebx+28],edi
+jmp finfonctionfichier
+
+erreur_minfofichier_mem_taille:
+mov eax,cer_parami
+jmp finfonctionfichiererr
+
+;****************************
 minfofichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+
 push ebx
 xor ebx,ebx
 fs
@@ -4264,7 +4789,7 @@ jmp boucle2_minfofichier_fat_taille
 
 fin_minfofichier_fat_taille:
 pop ebx
-;jmp fin_minfofichier
+
 
 fin_minfofichier:
 call minfo_sauvegarde_descripteur
@@ -4276,10 +4801,20 @@ jmp finfonctionfichiererr
 minfofichier_fat_nom:
 
 ;crée un decripteur le nom 
-call cree_descripteur_fichier_fat
+call cree_descripteur_fichier
 
 
 ;transfert les info du fichier dans le nouveau descripteur
+xor edx,edx
+fs
+cmp byte[zt_nouveau_descripteur+0Bh],0Fh
+jne minfofichier_fat_nom_court
+fs
+mov dl,[zt_nouveau_descripteur]
+and edx,3Fh
+shl edx,5
+minfofichier_fat_nom_court:
+
 fs
 mov al,[zt_lminfo+11+ebx]
 fs
@@ -4307,8 +4842,18 @@ mov [zt_nouveau_descripteur+28+edx],eax
 
 
 
-;calcul et met a jour le checksum
+;calcul et met a jour le checksum si besoin
+cmp edx,0
+je minfofichier_fat_nom_ignore_checksum
 call calcmaj_checksum_fat
+
+;????????????????????????????????????
+
+minfofichier_fat_nom_ignore_checksum:
+
+
+
+
 
 minfo_fat_nom_rech_vide:     ;recherche une place dans le dossier et verifie que le nom n'est pas déja utilisé
 

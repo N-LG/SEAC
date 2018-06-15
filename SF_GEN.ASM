@@ -749,7 +749,7 @@ cmp byte [ebx+type_dm],'F'
 je fin_sfs_rech_service
 es
 cmp byte [ebx+type_dm],'T'
-je ignore_sfs_rech_service
+jne ignore_sfs_rech_service
 es
 cmp byte [ebx+code_service],ah
 jne ignore_sfs_rech_service
@@ -777,7 +777,9 @@ iret
 
 
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
 
 ;*******************************************************************************************
 conv_cdeci_reg:    ;convertit la chaine décimal pointé par DS:EDX en nombre dans ECX
@@ -963,11 +965,6 @@ pop ecx
 xor eax,eax
 ret
 
-;*****************************************
-
-
-
-;*****************************************
 
 
 

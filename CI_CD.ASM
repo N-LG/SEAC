@@ -1,4 +1,4 @@
-;sous fonction intÃ©grÃ© de changement de rÃ©pertoire
+;sous fonction intégré de changement de répertoire
 
 mov edx,ad_zdc
 
@@ -7,13 +7,13 @@ cmp byte[edx],0
 je cderr           ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx]," "
-jne bcdeb1cd            ;trouver le dÃ©but du nom du dossier a ouvrir
-bcdeb2cd:               ;d'abord les espaces aprÃ¨s la commande
+jne bcdeb1cd            ;trouver le début du nom du dossier a ouvrir
+bcdeb2cd:               ;d'abord les espaces après la commande
 cmp byte[edx],0
 je cderr
 inc edx
 cmp byte[edx]," "
-je bcdeb2cd             ;ensuite le dÃ©but du nom
+je bcdeb2cd             ;ensuite le début du nom
 
 cmp byte[edx],"#"      ;si c'est un croisillon c'est un nom de disque
 je nvchemin
@@ -39,7 +39,7 @@ cmp byte[edi]," "
 je tcdslash
 inc edi
 
-cmp byte[edx],"/"      ;verifie la prÃ©sence de slash et antislash
+cmp byte[edx],"/"      ;verifie la présence de slash et antislash
 jne passlashcdr
 inc edx                ; et les supprime
 passlashcdr:
@@ -78,7 +78,8 @@ int 64h
 cmp eax,cer_dov       ;si c'est bien un dossier que l'on vient d'ouvrir
 jne cderr
 
-;si le dossier existe, on dÃ©place le descripteur dans le descripeur de fichier zÃ©ro
+
+;si le dossier existe, on déplace le descripteur dans le descripeur de fichier zéro
 shl ebx,5
 mov edi,[ad_ficho]
 add ebx,edi
@@ -90,7 +91,7 @@ mov es,si
 mov esi,ebx
 mov ecx,32
 cld
-rep movsb   ;dÃ©placement
+rep movsb   ;déplacement
 
 mov byte[ebx],0 ;effacement source
 pop es
@@ -136,7 +137,7 @@ inc esi
 inc edi
 cmp al,0
 jne recopiechem
-dec edi         ;edi pointe sur le zÃ©ro de la fin de la chaine
+dec edi         ;edi pointe sur le zéro de la fin de la chaine
 cmp edi,ad_chaine_travail 
 je cderr        ;si edi est vide c'est une erreur
 
@@ -151,7 +152,7 @@ je tcdppslash
 cmp byte[edi],0
 je tcdppslash
 cmp edi,ad_chaine_travail 
-je cderr        ;si on est au dÂ‚but de la chaine c'est une erreur
+je cderr        ;si on est au d?but de la chaine c'est une erreur
 
 bccdpp:     ;supprime le dernier dossier
 dec edi
