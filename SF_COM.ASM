@@ -2,7 +2,7 @@
 
 ;al=0 ouverture canal
 ;al=1 fermeture canal
-;al=2 tester présence nouveau canaux
+;al=2 tester changement descripteur
 ;al=3 tester donnée disponible sur canaux
 ;al=4 lire descripteur
 ;al=5 ecrire descripteur
@@ -12,9 +12,9 @@
 cmp al,0
 je sf_com_ouverture
 cmp al,2
-je sf_com_nouv_cn
+je sf_com_test_cd
 cmp al,3
-je sf_com_test
+je sf_com_test_dd
 
 pushad
 push ds
@@ -43,13 +43,9 @@ cmp [ebx+id_recepteur],dx
 jne sf_com_rc_ok
 
 
-
-
-
 sf_com_rc_ok:
 cmp al,1
 je sf_com_fermeture
-
 cmp al,4
 je sf_com_lecture_descripteur
 cmp al,5
@@ -59,7 +55,6 @@ je sf_com_lecture_rc
 cmp al,7
 je sf_com_ecriture_rc
 jmp sf_com_er_parami
-
 
 
 sf_com_em_ok:
@@ -127,7 +122,6 @@ pop eax
 mov [ebx+id_recepteur],ax
 pop eax
 mov [ebx+to_descr_com],eax
-or dx,4000h
 mov [ebx+at_canal],dx
 mov [ebx+to_zter],esi
 mov [ebx+to_ztre],edi
@@ -168,64 +162,6 @@ iret
 
 
 
-
-
-;**************************************************************************************************
-sf_com_nouv_cn:
-
-push edx
-push ds
-
-mov ax,seldat
-mov ds,ax
-mov dx,[id_tache_exec]
-mov ax,selramh
-mov ds,ax
-
-xor ebx,ebx
-boucle_sf_com_nouv_cn:
-cmp byte[ebx+type_dm],"V"
-je erreur_sf_com_nouv_cn 
-cmp byte[ebx+type_dm],"C"
-jne passe_sf_com_nouv_cn 
-cmp [ebx+id_recepteur],dx
-jne passe_sf_com_nouv_cn 
-test word[ebx+at_canal],8000h
-jz passe_sf_com_nouv_cn 
-
-and word[ebx+at_canal],7FFFh
-pop ds
-pop edx
-xor eax,eax
-iret
-
-passe_sf_com_nouv_cn:
-mov eax,[ebx+4]
-add ebx,eax
-jmp boucle_sf_com_nouv_cn
-
-erreur_sf_com_nouv_cn:
-pop ds
-pop edx
-xor ebx,ebx
-mov eax,cer_anc
-iret
-
-
-
-;**************************************************************************************************
-sf_com_test:
-
-;$$$$$$$$$$$$$$$$$$$$$$$
-
-pop fs
-pop es
-pop ds
-popad
-xor eax,eax
-iret
-
-
 ;**************************************************************************************************
 sf_com_fermeture:
 
@@ -238,6 +174,115 @@ pop ds
 popad
 mov eax,eax
 iret
+
+
+
+
+;**************************************************************************************************
+sf_com_test_cd:  ;test si un descripteur de canal a été modifié
+
+push edx
+push ds
+
+mov ax,seldat
+mov ds,ax
+mov dx,[id_tache_exec]
+mov ax,selramh
+mov ds,ax
+
+xor ebx,ebx
+boucle_sf_com_test_cd:
+cmp byte[ebx+type_dm],"F"
+je stop_sf_com_test_cd
+cmp byte[ebx+type_dm],"C"
+jne passe_sf_com_test_cd 
+
+cmp [ebx+id_recepteur],dx
+jne test2_sf_com_test_cd 
+test word[ebx+at_canal],4000h
+jz passe_sf_com_test_cd
+pop ds
+pop edx
+mov eax,cer_ztp
+iret
+
+test2_sf_com_test_cd:
+cmp [ebx+id_emetteur],dx
+jne passe_sf_com_test_cd 
+test word[ebx+at_canal],8000h
+jz passe_sf_com_test_cd 
+pop ds
+pop edx
+mov eax,cer_ztp
+iret
+
+
+passe_sf_com_test_cd:
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle_sf_com_test_cd
+
+stop_sf_com_test_cd:
+pop ds
+pop edx
+xor ebx,ebx
+xor eax,eax
+iret
+
+
+
+;**************************************************************************************************
+sf_com_test_dd:
+
+push edx
+push ds
+
+mov ax,seldat
+mov ds,ax
+mov dx,[id_tache_exec]
+mov ax,selramh
+mov ds,ax
+
+xor ebx,ebx
+boucle_sf_com_test_dd:
+cmp byte[ebx+type_dm],"F"
+je erreur_sf_com_test_dd
+cmp byte[ebx+type_dm],"C"
+jne passe_sf_com_test_dd
+
+cmp [ebx+id_recepteur],dx
+jne test2_sf_com_test_dd 
+mov eax,[ebx+po_zter_lec]
+cmp eax,[ebx+po_zter_ecr]
+je passe_sf_com_test_dd
+pop ds
+pop edx
+mov eax,cer_ztp
+iret
+
+test2_sf_com_test_dd:
+cmp [ebx+id_emetteur],dx
+jne passe_sf_com_test_dd 
+mov eax,[ebx+po_ztre_lec]
+cmp eax,[ebx+po_ztre_ecr]
+je passe_sf_com_test_dd 
+pop ds
+pop edx
+mov eax,cer_ztp
+iret
+
+passe_sf_com_test_dd:
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle_sf_com_test_dd
+
+erreur_sf_com_test_dd:
+pop ds
+pop edx
+xor ebx,ebx
+xor eax,eax
+iret
+
 
 
 ;**************************************************************************************************
@@ -263,6 +308,23 @@ add esi,ad_descr_com
 add esi,ebx
 cld
 rep movsb ;ds ed
+
+
+mov ax,seldat
+mov fs,ax
+fs
+mov dx,[id_tache_exec]
+
+cmp [ebx+id_recepteur],dx
+je  sf_com_desc_lec_rc
+
+and word[ebx+at_canal],07FFFh
+jmp fin_sf_com_lecture_descripteur 
+
+sf_com_desc_lec_rc:
+and word[ebx+at_canal],0BFFFh
+
+fin_sf_com_lecture_descripteur:
 pop fs
 pop es
 pop ds
@@ -299,13 +361,23 @@ add edi,ebx
 cld
 rep movsb ;ds ed
 
-
-fs
-test word[ebx+at_canal],4000h
-jz fin_sf_com_ecriture_descripteur
-fs
+es
 and word[ebx+at_canal],3FFFh
+mov ax,seldat
+mov fs,ax
 fs
+mov dx,[id_tache_exec]
+
+es
+cmp [ebx+id_recepteur],dx
+je  sf_com_desc_modif_rc
+
+es
+or  word[ebx+at_canal],4000h
+jmp fin_sf_com_ecriture_descripteur 
+
+sf_com_desc_modif_rc:
+es
 or  word[ebx+at_canal],8000h
 
 fin_sf_com_ecriture_descripteur:
@@ -344,10 +416,9 @@ cmp al,1
 je sf_com_lecture_type1 
 jmp sf_com_er_parami 
 
+
 sf_com_lecture_type1:
-
 mov eax,[edx+po_ztcom_lec]
-
 push ecx
 push edi
 push es
@@ -360,21 +431,14 @@ call sf_com_lecture_transfert
 pop es
 pop edi
 pop ecx
-
 cmp ecx,[com_tempo]
 jl sf_com_lecture_type1_err
-
-
-
-
 mov ecx,[com_tempo]
 
 
 sf_com_lecture_type0:
 
 call sf_com_lecture_transfert
-
-
 pop fs
 pop es
 pop ds
@@ -387,6 +451,7 @@ iret
 
 
 sf_com_lecture_type1_err:
+fs
 mov [edx+po_ztcom_lec],eax
 pop fs
 pop es

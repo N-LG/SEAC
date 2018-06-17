@@ -460,8 +460,8 @@ cer_dnv    equ 21 ;dossier non vide (dans le cas d'une suppression)
 cer_cin    equ 22 ;caractère interdit dans le nom de fichier
 cer_cfi    equ 23 ;création de fichier impossible
 cer_nfr    equ 24 ;nom de fichier deja uttilisé
-;cer_ztp    equ 25 ;zone de reception pas assez grande pour reçevoir les données
-cer_anc    equ 26 ;aucune nouvelle connexion
+
+
 
 ;**********************************************************
 ;code des zone de mémoire systeme
