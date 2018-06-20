@@ -417,7 +417,36 @@ je sf_com_lecture_type1
 jmp sf_com_er_parami 
 
 
+
+sf_com_lecture_type0:
+call sf_com_to
+cmp ebp,0
+je sf_com_lecture0
+cmp ecx,ebp
+jbe sf_com_lecture_ok 
+mov ebp,ecx
+
+sf_com_lecture_ok:
+call sf_com_lecture_transfert
+pop fs
+pop es
+pop ds
+ss
+mov [esp+24],ecx    ;met la quantite dans ecx
+popad
+xor eax,eax
+iret
+
+
+
 sf_com_lecture_type1:
+call sf_com_to
+cmp ebp,0
+je sf_com_lecture0
+cmp ebp,4
+jb sf_com_lecture_type1_err1
+
+
 mov eax,[edx+po_ztcom_lec]
 push ecx
 push edi
@@ -432,25 +461,22 @@ pop es
 pop edi
 pop ecx
 cmp ecx,[com_tempo]
-jl sf_com_lecture_type1_err
+jl sf_com_lecture_type1_err2
 mov ecx,[com_tempo]
+jmp sf_com_lecture_ok
 
 
-sf_com_lecture_type0:
-
-call sf_com_lecture_transfert
+sf_com_lecture0:
 pop fs
 pop es
 pop ds
-ss
-mov [esp+24],ebp    ;met la quantite dans ecx
 popad
+xor ecx,ecx
 xor eax,eax
 iret
 
 
-
-sf_com_lecture_type1_err:
+sf_com_lecture_type1_err1:        ;erreur dans la fifo
 fs
 mov [edx+po_ztcom_lec],eax
 pop fs
@@ -458,7 +484,20 @@ pop es
 pop ds
 popad
 xor ecx,ecx
-mov ecx,cer_pasm
+mov eax,cer_pasm         ;$$$$$$$$$$$$$$$$$$$$$!!!!!!!!!!!!!!!!!!!!!!
+iret
+
+
+
+sf_com_lecture_type1_err2:        ;pas assez de mémoire pour reçevoir les données disponible
+fs
+mov [edx+po_ztcom_lec],eax
+pop fs
+pop es
+pop ds
+popad
+xor ecx,ecx
+mov eax,cer_pasm
 iret
 
 
@@ -470,22 +509,91 @@ iret
 
 
 
+
+
+
+;**************************************************************************************************
+sf_com_ecriture_rc:
+mov dx,selramh
+mov es,dx
+mov edx,ebx
+add edx,to_ztre
+jmp sf_com_ecriture
+
+sf_com_ecriture_em:
+mov dx,selramh
+mov ds,dx
+mov edx,ebx
+add edx,to_zter
+
+sf_com_ecriture:
+mov al,[ebx+at_canal]
+and al,07h
+cmp al,0
+je sf_com_ecriture_type0 
+cmp al,1
+je sf_com_ecriture_type1 
+jmp sf_com_er_parami 
+
+
+sf_com_ecriture_type0:
+call sf_com_tl
+cmp ecx,ebp
+ja sf_com_ecriture_err1
+
+sfcom_ecriture_ok:
+call sf_com_ecriture_transfert
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+sf_com_ecriture_type1:
+call sf_com_tl
+mov eax,ecx
+add eax,4
+cmp eax,ebp
+ja sf_com_ecriture_err1
+
+es
+mov [com_tempo],ecx
+push ecx
+push esi
+push ds
+mov si,selramh
+mov ds,si
+mov ecx,4
+mov esi,ebx
+add esi,com_tempo
+call sf_com_ecriture_transfert
+pop ds
+pop esi
+pop ecx
+jmp sfcom_ecriture_ok
+
+sf_com_ecriture_err1:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_ztp
+iret
+
+
+
+
+
+
+
+
+
+
+
 ;*******************************************************************************
 sf_com_lecture_transfert:
 pushad
-mov ebp,[edx+po_ztcom_ecr] 
-cmp ebp,[edx+po_ztcom_lec]
-ja temp1_sf_com_lecture
-add ebp,[edx+to_ztcom]
-temp1_sf_com_lecture:
-sub ebp,[edx+po_ztcom_lec]    ;ebp=taille occupé
-;cmp ebp,0
-;jne sf_com_lecture_test
-
-
-
-
-
 mov eax,[edx+po_ztcom_lec]
 add eax,ecx
 cmp eax,[edx+to_ztcom]
@@ -528,117 +636,9 @@ ret
 
 
 
-
-
-
-
-
-;**************************************************************************************************
-sf_com_ecriture_rc:
-mov dx,selramh
-mov es,dx
-mov edx,ebx
-add edx,to_ztre
-jmp sf_com_ecriture
-
-sf_com_ecriture_em:
-mov dx,selramh
-mov ds,dx
-mov edx,ebx
-add edx,to_zter
-
-sf_com_ecriture:
-mov al,[ebx+at_canal]
-and al,07h
-cmp al,0
-je sf_com_ecriture_type0 
-cmp al,1
-je sf_com_ecriture_type1 
-jmp sf_com_er_parami 
-
-
-
-
-
-
-
-sf_com_ecriture_type1:
-es
-mov ebp,[edx+po_zter_ecr] 
-es
-cmp ebp,[edx+po_zter_lec]
-ja temp1_sf_com_ecriture
-es
-add ebp,[edx+to_zter]
-temp1_sf_com_ecriture:
-es
-sub ebp,[edx+po_zter_ecr]    ;ebp=taille libre
-sub ebp,4
-cmp ecx,ebp
-jl sf_com_ecriture_type1_ok 
-
-pop fs
-pop es
-pop ds
-popad
-mov eax,cer_ztp
-iret
-
-
-
-sf_com_ecriture_type1_ok:
-es
-mov [com_tempo],ecx
-push ecx
-push esi
-push ds
-mov si,selramh
-mov ds,si
-mov ecx,4
-mov esi,ebx
-add esi,com_tempo
-call sf_com_ecriture_transfert
-pop ds
-pop esi
-pop ecx
-
-sf_com_ecriture_type0:
-call sf_com_ecriture_transfert
-
-pop fs
-pop es
-pop ds
-popad
-xor eax,eax
-iret
-
-
-
-
-
 ;******************************************************************************
 sf_com_ecriture_transfert:
 pushad
-es
-mov ebp,[edx+po_zter_lec] 
-es
-cmp ebp,[edx+po_zter_ecr]
-ja temp2_sf_com_ecriture
-es
-add ebp,[edx+to_zter]
-temp2_sf_com_ecriture:
-es
-sub ebp,[edx+po_zter_ecr]    ;ebp=taille libre
-cmp ecx,ebp
-jl sf_com_ecriture_transfert_ok 
-popad
-mov eax,cer_ztp
-iret
-
-
-
-
-sf_com_ecriture_transfert_ok:
 mov eax,[edx+po_zter_ecr]
 add eax,ecx
 cmp eax,[edx+to_zter]
@@ -690,6 +690,32 @@ xor eax,eax
 iret
 
 
+
+;****************************
+sf_com_to:
+fs
+mov ebp,[edx+po_ztcom_ecr] 
+fs
+cmp ebp,[edx+po_ztcom_lec]
+ja sf_com_to_1
+fs
+add ebp,[edx+to_ztcom]
+sf_com_to_1:
+fs
+sub ebp,[edx+po_ztcom_lec]    ;ebp=taille occupé
+ret
+
+;*****************************
+sf_com_tl:
+push eax
+fs
+mov eax,[edx+to_ztcom]
+call sf_com_to 
+sub eax,ebp
+dec ebp
+mov ebp,eax                ;ebp=taille libre
+pop eax
+ret
 
 
 
