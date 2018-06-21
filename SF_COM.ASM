@@ -8,6 +8,8 @@
 ;al=5 ecrire descripteur
 ;al=6 lire donnée sur canal
 ;al=7 envoyer donnée sur canal
+;al=8 attendre changement descripteur sur canal
+;al=9 attendre donnée disponible sur canal
 
 cmp al,0
 je sf_com_ouverture
@@ -54,6 +56,10 @@ cmp al,6
 je sf_com_lecture_rc
 cmp al,7
 je sf_com_ecriture_rc
+cmp al,8
+je sf_com_attente_cd
+cmp al,9
+je sf_com_attente_dd
 jmp sf_com_er_parami
 
 
@@ -68,6 +74,10 @@ cmp al,6
 je sf_com_lecture_em
 cmp al,7
 je sf_com_ecriture_em
+cmp al,8
+je sf_com_attente_cd
+cmp al,9
+je sf_com_attente_dd
 
 sf_com_er_parami:
 pop fs
@@ -484,7 +494,7 @@ pop es
 pop ds
 popad
 xor ecx,ecx
-mov eax,cer_pasm         ;$$$$$$$$$$$$$$$$$$$$$!!!!!!!!!!!!!!!!!!!!!!
+mov eax,cer_ers
 iret
 
 
@@ -721,7 +731,110 @@ ret
 
 
 
+;****************************************************************************************
+sf_com_attente_cd:
+mov ax,seldat
+mov fs,ax
+mov ax,selramh
+mov ds,ax
+fs
+mov dx,[id_tache_exec]
+fs
+add ecx,[cptsf]
 
+
+boucle_sf_com_attente_cd:
+cmp [ebx+id_recepteur],dx
+jne test2_sf_com_attente_cd 
+test word[ebx+at_canal],4000h
+jz passe_sf_com_attente_cd
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+test2_sf_com_attente_cd:
+cmp [ebx+id_emetteur],dx
+jne passe_sf_com_attente_cd
+test word[ebx+at_canal],8000h
+jz passe_sf_com_attente_cd 
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+passe_sf_com_attente_cd:
+int 62h
+fs
+cmp ecx,[cptsf]
+jb boucle_sf_com_attente_cd  
+
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_prt
+iret
+
+
+
+
+
+
+;******************************************************************************************
+sf_com_attente_dd:           ;ecx*2.5ms= temp maximum a attendre
+mov ax,seldat
+mov fs,ax
+mov ax,selramh
+mov ds,ax
+fs
+mov dx,[id_tache_exec]
+fs
+add ecx,[cptsf]
+
+
+boucle_sf_com_attente_dd:
+cmp [ebx+id_recepteur],dx
+jne test2_sf_com_attente_dd 
+mov eax,[ebx+po_zter_lec]
+cmp eax,[ebx+po_zter_ecr]
+je passe_sf_com_attente_dd
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+test2_sf_com_attente_dd:
+cmp [ebx+id_emetteur],dx
+jne passe_sf_com_attente_dd
+mov eax,[ebx+po_ztre_lec]
+cmp eax,[ebx+po_ztre_ecr]
+je passe_sf_com_attente_dd 
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+passe_sf_com_attente_dd:
+int 62h
+fs
+cmp ecx,[cptsf]
+jb boucle_sf_com_attente_dd  
+
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_prt
+iret
 
 
 
