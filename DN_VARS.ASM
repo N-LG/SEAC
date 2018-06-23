@@ -460,7 +460,8 @@ cer_dnv    equ 21 ;dossier non vide (dans le cas d'une suppression)
 cer_cin    equ 22 ;caractère interdit dans le nom de fichier
 cer_cfi    equ 23 ;création de fichier impossible
 cer_nfr    equ 24 ;nom de fichier deja uttilisé
-
+cer_prt    equ 25 ;pas de réponse 
+cer_ers    equ 26 ;erreur dans la structure
 
 
 ;**********************************************************

@@ -213,7 +213,7 @@ test word[ebx+at_canal],4000h
 jz passe_sf_com_test_cd
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ztv
 iret
 
 test2_sf_com_test_cd:
@@ -223,7 +223,7 @@ test word[ebx+at_canal],8000h
 jz passe_sf_com_test_cd 
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ztv
 iret
 
 
@@ -267,7 +267,7 @@ cmp eax,[ebx+po_zter_ecr]
 je passe_sf_com_test_dd
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ztv
 iret
 
 test2_sf_com_test_dd:
@@ -278,7 +278,7 @@ cmp eax,[ebx+po_ztre_ecr]
 je passe_sf_com_test_dd 
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ztv
 iret
 
 passe_sf_com_test_dd:
@@ -770,7 +770,7 @@ iret
 passe_sf_com_attente_cd:
 int 62h
 fs
-cmp ecx,[cptsf]
+cmp [cptsf],ecx 
 jb boucle_sf_com_attente_cd  
 
 pop fs
@@ -826,7 +826,7 @@ iret
 passe_sf_com_attente_dd:
 int 62h
 fs
-cmp ecx,[cptsf]
+cmp [cptsf],ecx 
 jb boucle_sf_com_attente_dd  
 
 pop fs
