@@ -53,7 +53,7 @@ je sf_com_lecture_descripteur
 cmp al,5
 je sf_com_ecriture_descripteur
 cmp al,6
-je sf_com_lecture_rc
+je sf_com_lecture0 ;sf_com_lecture_rc
 cmp al,7
 je sf_com_ecriture_rc
 cmp al,8
@@ -71,7 +71,7 @@ je sf_com_lecture_descripteur
 cmp al,5
 je sf_com_ecriture_descripteur
 cmp al,6
-je sf_com_lecture_em
+je sf_com_lecture0 ;sf_com_lecture_em
 cmp al,7
 je sf_com_ecriture_em
 cmp al,8
@@ -457,6 +457,7 @@ cmp ebp,4
 jb sf_com_lecture_type1_err1
 
 
+
 mov eax,[edx+po_ztcom_lec]
 push ecx
 push edi
@@ -470,9 +471,9 @@ call sf_com_lecture_transfert
 pop es
 pop edi
 pop ecx
-cmp ecx,[com_tempo]
-jl sf_com_lecture_type1_err2
-mov ecx,[com_tempo]
+cmp ecx,[ebx+com_tempo]
+jb sf_com_lecture_type1_err2
+mov ecx,[ebx+com_tempo]
 jmp sf_com_lecture_ok
 
 
@@ -481,14 +482,12 @@ pop fs
 pop es
 pop ds
 popad
-xor ecx,ecx
+;xor ecx,ecx
 xor eax,eax
 iret
 
 
 sf_com_lecture_type1_err1:        ;erreur dans la fifo
-fs
-mov [edx+po_ztcom_lec],eax
 pop fs
 pop es
 pop ds
@@ -510,6 +509,12 @@ xor ecx,ecx
 mov eax,cer_pasm
 iret
 
+
+
+pushad
+mov al,"E"
+call affcj
+popad
 
 
 ;to_ztcom      equ 00h ;taille de la zone com
@@ -537,6 +542,12 @@ mov edx,ebx
 add edx,to_zter
 
 sf_com_ecriture:
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
 mov al,[ebx+at_canal]
 and al,07h
 cmp al,0
@@ -568,7 +579,7 @@ cmp eax,ebp
 ja sf_com_ecriture_err1
 
 es
-mov [com_tempo],ecx
+mov [ebx+com_tempo],ecx
 push ecx
 push esi
 push ds
@@ -696,8 +707,7 @@ es
 mov edi,[edx+po_zter_ecr]
 
 popad
-xor eax,eax
-iret
+ret
 
 
 
@@ -707,7 +717,7 @@ fs
 mov ebp,[edx+po_ztcom_ecr] 
 fs
 cmp ebp,[edx+po_ztcom_lec]
-ja sf_com_to_1
+jae sf_com_to_1
 fs
 add ebp,[edx+to_ztcom]
 sf_com_to_1:

@@ -52,23 +52,7 @@ pas_change_es:
 dec ecx
 jne boucle_recopie_code 
 
-
-;mov cx,8000h
-;rep movsb
-;mov cx,8000h
-;rep movsb
-
-;mov ax,ds
-;add ax,1000h
-;mov ds,ax
-;mov ax,6000h
-;mov es,ax
-;mov cx,8000h
-;rep movsb
-;mov cx,8000h
-;rep movsb
 jmp 5000h:position_code_ok
-
 
 position_code_ok:
 
@@ -167,7 +151,7 @@ mov dword[10000Ch],"????"
 ;**********************************************************************
 ;ajoute les fichier RAM
 
-mov ebx,50000h+start+finsegcod
+mov ebx,50000h+start+finsegcod      ;calcule la taille ocupé par les fichier (dont le fichier syst.baz)
 boucle_ajoute_fichier_ram:
 cmp byte[ebx+2],"F"
 je suite_ajoute_fichier_ram
@@ -176,19 +160,37 @@ add ebx,eax
 jmp boucle_ajoute_fichier_ram
 
 suite_ajoute_fichier_ram:
-sub ebx,50000h+start+finsegcod
-jz fin_ajoute_fichier_ram 
+sub ebx,50000h
+add ebx,416
 
-mov edx,[100004h]
+mov edx,[100004h]                    ;recréer le nouveau descripteur de mémoire libre un peu plus loin
 sub edx,ebx
 mov dword[ebx+100000h],"DMV?"
 mov dword[ebx+100004h],edx
 mov dword[ebx+100008h],"????"  
 mov dword[ebx+10000Ch],"????"
 
-shr ebx,2
-mov esi,50000h+start+finsegcod
-mov edi,100000h
+
+mov dword[100000h],"DMX?"                ;crée le descripteur pour le fichier SYST.BAZ
+mov dword[100004h],416+start+finsegcod 
+mov dword[100008h],"????"  
+mov dword[10000Ch],"????"
+
+mov dword[100010h],"SYST"
+mov dword[100014h],".BAZ"
+mov edi,100018h
+
+boucle_descrsystbaz:
+mov dword[edi],0
+add edi,4
+cmp edi,1001A0h
+jne boucle_descrsystbaz
+
+
+sub ebx,416
+shr ebx,2                              ;recopie les données
+mov esi,50000h
+mov edi,1001A0h
 boucle_ajoute_fichier_ram2:
 mov eax,[esi]
 mov[edi],eax
@@ -867,6 +869,7 @@ tabacc:
 include "DN_ACC.ASM"
 
 fintab:
+ 
 
 ;******************************************************************************
 ;segment de code recopi? dans le segment             **************************
@@ -1331,8 +1334,17 @@ jne boucle_init_infopart
 
 ;*******************************************************************
 ;fin de la séquence d'initialisation
-mov cl,0
-call affmsgsyst
+;mov cl,0
+;call affmsgsyst     ;rapel sur la version installé
+
+mov dword[ad_ztcmd+0],0
+mov dword[ad_ztcmd+2],"ex #"   ;execution du script d'amorçage
+mov dword[ad_ztcmd+6],"dm/C"
+mov dword[ad_ztcmd+10],"FG.T"
+mov word[ad_ztcmd+14],"XT"
+mov byte[ad_ztcmd+16],0
+mov word[to_ztcmd],17
+
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
@@ -2155,7 +2167,8 @@ cmp eax,"ld"
 je cmdld
 cmp eax,"lv"
 je cmdlv
-
+cmp eax,"ex"
+je cmdex
 
 commande_fichier:
 include "SF_TACHE.ASM"
@@ -2506,12 +2519,12 @@ include "CI_CD.ASM"
 cmdaf:
 mov al,1Fh
 call affcj
-mov al,"["
-call affcj
-mov ax,[id_zdc]
-call affh1j
-mov al,"]"
-call affcj   ;affiche l'id de la tache qui a emise cette commande
+;mov al,"["
+;call affcj
+;mov ax,[id_zdc]
+;call affh1j
+;mov al,"]"
+;call affcj   ;affiche l'id de la tache qui a emise cette commande
 
 
 mov edx,ad_zdc
@@ -2530,8 +2543,82 @@ mov al,17h
 call affcj
 mov al,13
 call affcj
-;jmp pascommande
+jmp pascommande
 
+;**************************************************************
+cmdex:
+
+mov edx,ad_zdc
+boucle1_cmpex:     ;trouve le debut du nom du fichier
+cmp byte[edx],0
+je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+inc edx
+cmp byte[edx]," "
+jne boucle1_cmpex           
+cmp byte[edx+1]," "
+je boucle1_cmpex           
+
+inc edx
+xor eax,eax         ;ouvre le fichier
+xor ebx,ebx
+int 64h
+cmp eax,0       
+jne err3cmdsup
+
+;lit la taille du fichier
+mov al,6
+mov ah,1
+mov edx,X
+int 64h
+cmp eax,0
+jne err3cmdsup
+
+;vérifie que le fichier n'est pas trop grand
+mov ecx,[X]
+mov eax,1024
+
+;réserve une zt de taille suffisante
+push ebx
+call resmem
+pop edx
+
+
+;lit le fichier
+
+
+;convertit toute les caractère de fin de ligne en caractère NULL
+mov edi,ebx
+mov esi,ebx
+add edi,16
+add esi,ecx
+boucle2_cmpex:
+test byte[edi],0E0h
+jnz cmdex_flnd
+mov byte[edi],0
+cmdex_flnd:
+inc edi
+cmp edi,esi
+jne boucle2_cmpex
+
+
+;envoie les commandes
+mov edi,ebx
+mov esi,ebx
+add edi,16
+add esi,ecx
+boucle3_cmpex:
+
+
+
+inc edi
+cmp edi,esi
+jne boucle3_cmpex
+
+
+
+
+
+;jmp pascommande
 
 
 ;********************************************************
@@ -3964,6 +4051,11 @@ dd segidt*16
 p_gdt:
 dw 0FFFFh
 dd seggdt*16
+
+rb 16
+
+rb 16 - ($ + start)mod 16   ;pour que le fichier ait une granulométrie de 16 octet
+
 
 finsegcod:
 db "DMF?"
