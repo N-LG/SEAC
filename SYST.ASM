@@ -1334,8 +1334,8 @@ jne boucle_init_infopart
 
 ;*******************************************************************
 ;fin de la séquence d'initialisation
-;mov cl,0
-;call affmsgsyst     ;rapel sur la version installé
+mov cl,0
+call affmsgsyst     ;rapel sur la version installé
 
 mov dword[ad_ztcmd+0],0
 mov dword[ad_ztcmd+2],"ex #"   ;execution du script d'amorçage
@@ -2568,54 +2568,95 @@ jne err3cmdsup
 ;lit la taille du fichier
 mov al,6
 mov ah,1
-mov edx,X
+mov edx,ad_chaine_travail
 int 64h
 cmp eax,0
 jne err3cmdsup
 
 ;vérifie que le fichier n'est pas trop grand
-mov ecx,[X]
-mov eax,1024
+mov ecx,[ad_chaine_travail]
+;mov eax,1024
+;cmp ecx,eax
+;jne err3cmdsup
 
 ;réserve une zt de taille suffisante
 push ebx
+push ecx
+add ecx,0Fh
+and ecx,0FFFFFFF0h
 call resmem
+pop ecx
 pop edx
+jc err3cmdsup
+xchg ebx,edx         ;edx=adresse de base ebx=adresse du fichier
+
+    
 
 
 ;lit le fichier
+push edx
+mov ax,selramh
+mov ds,ax
+mov es,ax
+mov al,4
+mov edi,edx
+xor edx,edx
+add edi,16
+int 64h
+pop edx
+cmp eax,0
+jne err3cmdsup
 
 
-;convertit toute les caractère de fin de ligne en caractère NULL
-mov edi,ebx
-mov esi,ebx
+;convertit toute les caractère <20h en caractère NULL
+add ecx,16
+mov edi,edx
+mov esi,edx
 add edi,16
 add esi,ecx
 boucle2_cmpex:
-test byte[edi],0E0h
-jnz cmdex_flnd
+cmp byte[edi],20h
+jae cmdex_flnd
 mov byte[edi],0
+
 cmdex_flnd:
 inc edi
 cmp edi,esi
 jne boucle2_cmpex
 
-
 ;envoie les commandes
-mov edi,ebx
-mov esi,ebx
+mov edi,edx
+mov esi,edx
 add edi,16
 add esi,ecx
+
+push edx     ;envoie la première ligne
+mov edx,edi
+mov al,0
+int 61h
+pop edx
+
 boucle3_cmpex:
+cmp byte[edi],0
+jne passe_cmdex
+cmp byte[edi+1],0
+je passe_cmdex
+
+push edx          ;envoie les autres
+mov edx,edi
+inc edx
+mov al,0
+int 61h
+pop edx
 
 
-
+passe_cmdex:
 inc edi
 cmp edi,esi
 jne boucle3_cmpex
 
-
-
+mov ebx,edx
+call libmem
 
 
 ;jmp pascommande
