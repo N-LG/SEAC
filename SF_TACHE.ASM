@@ -680,12 +680,14 @@ or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
 jmp tache_suivante 
 
 ;*********************************************************************************************
-ferme_fichier_tache:
+ferme_fichier_tache:          ;ferme les fichier ouvert par la tache et les zone de communication employé (cx=ID de la tache)
 pushad
 push ds
 push es
 
-mov ax,seldat
+
+
+mov ax,seldat              ;ferme les fichier ouvert par la tache
 mov ds,ax
 mov ax,selramh
 mov es,ax
@@ -718,6 +720,29 @@ nok_ferme_fichier_tache:
 add ebx,20h
 cmp ebx,ebp
 jb boucle_ferme_fichier_tache
+
+
+
+mov ax,selramh            ;efface les canaux de communication employé par la tache
+mov ds,ax
+xor ebx,ebx
+boucle_efface_canauxcom:
+cmp byte[ebx+type_dm],"C" 
+jne suite_efface_canauxcom
+cmp [ebx+id_emetteur],cx
+je ok_efface_canauxcom
+cmp [ebx+id_recepteur],cx 
+jne suite_efface_canauxcom
+
+ok_efface_canauxcom:
+call libmem
+
+suite_efface_canauxcom:
+mov eax,[ebx+to_tache]
+add ebx,eax
+cmp byte[ebx+type_dm],"F" 
+jne boucle_efface_canauxcom
+
 
 pop es
 pop ds

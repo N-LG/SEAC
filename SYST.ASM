@@ -161,10 +161,11 @@ jmp boucle_ajoute_fichier_ram
 
 suite_ajoute_fichier_ram:
 sub ebx,50000h
-add ebx,416
+add ebx,432
 
 mov edx,[100004h]                    ;recréer le nouveau descripteur de mémoire libre un peu plus loin
 sub edx,ebx
+
 mov dword[ebx+100000h],"DMV?"
 mov dword[ebx+100004h],edx
 mov dword[ebx+100008h],"????"  
@@ -172,8 +173,8 @@ mov dword[ebx+10000Ch],"????"
 
 
 mov dword[100000h],"DMX?"                ;crée le descripteur pour le fichier SYST.BAZ
-mov dword[100004h],416+start+finsegcod 
-mov dword[100008h],"????"  
+mov dword[100004h],432+start+finsegcod 
+mov dword[100008h],16+start+finsegcod
 mov dword[10000Ch],"????"
 
 mov dword[100010h],"SYST"
@@ -187,8 +188,9 @@ cmp edi,1001A0h
 jne boucle_descrsystbaz
 
 
-sub ebx,416
-shr ebx,2                              ;recopie les données
+sub ebx,432+start+finsegcod
+shr ebx,2                              ;recopie les données du fichier syst.baz
+
 mov esi,50000h
 mov edi,1001A0h
 boucle_ajoute_fichier_ram2:
@@ -196,8 +198,28 @@ mov eax,[esi]
 mov[edi],eax
 add esi,4
 add edi,4
+cmp esi,50000h+start+finsegcod
+jne boucle_ajoute_fichier_ram2
+
+;créer le faux descripteur final qui doit se trouver a la fin de syst.baz
+mov dword[edi+00h],"DMF?"
+mov dword[edi+04h],"????"
+mov dword[edi+08h],"????"  
+mov dword[edi+0Ch],"????"
+add edi,16
+
+cmp ebx,0
+je fin_ajoute_fichier_ram
+
+;recopie les données des autres fichiers
+boucle_ajoute_fichier_ram3:
+mov eax,[esi]
+mov[edi],eax
+add esi,4
+add edi,4
 dec ebx
-jnz boucle_ajoute_fichier_ram2
+jnz boucle_ajoute_fichier_ram3
+
 
 
 fin_ajoute_fichier_ram:

@@ -53,7 +53,7 @@ je sf_com_lecture_descripteur
 cmp al,5
 je sf_com_ecriture_descripteur
 cmp al,6
-je sf_com_lecture0 ;sf_com_lecture_rc
+je sf_com_lecture_rc
 cmp al,7
 je sf_com_ecriture_rc
 cmp al,8
@@ -71,7 +71,7 @@ je sf_com_lecture_descripteur
 cmp al,5
 je sf_com_ecriture_descripteur
 cmp al,6
-je sf_com_lecture0 ;sf_com_lecture_em
+je sf_com_lecture_em
 cmp al,7
 je sf_com_ecriture_em
 cmp al,8
@@ -482,7 +482,7 @@ pop fs
 pop es
 pop ds
 popad
-;xor ecx,ecx
+xor ecx,ecx
 xor eax,eax
 iret
 
@@ -511,10 +511,7 @@ iret
 
 
 
-pushad
-mov al,"E"
-call affcj
-popad
+
 
 
 ;to_ztcom      equ 00h ;taille de la zone com
@@ -713,15 +710,15 @@ ret
 
 ;****************************
 sf_com_to:
-fs
+;fs
 mov ebp,[edx+po_ztcom_ecr] 
-fs
+;fs
 cmp ebp,[edx+po_ztcom_lec]
 jae sf_com_to_1
-fs
+;fs
 add ebp,[edx+to_ztcom]
 sf_com_to_1:
-fs
+;fs
 sub ebp,[edx+po_ztcom_lec]    ;ebp=taille occupé
 ret
 
