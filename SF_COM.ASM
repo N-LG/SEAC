@@ -90,8 +90,6 @@ iret
 
 
 
-
-
 ;**************************************************************************************************
 sf_com_ouverture:
 ;bx=ID de la tache avec qui communiquer
@@ -136,8 +134,8 @@ mov [ebx+at_canal],dx
 mov [ebx+to_zter],esi
 mov [ebx+to_ztre],edi
 
-mov eax,[ebx+to_descr_com]
-add eax,ad_descr_com
+mov eax,ad_descr_com
+add eax,[ebx+to_descr_com]
 mov [ebx+ad_zter],eax
 add eax,[ebx+to_zter]
 mov [ebx+ad_ztre],eax
@@ -267,7 +265,7 @@ cmp eax,[ebx+po_zter_ecr]
 je passe_sf_com_test_dd
 pop ds
 pop edx
-mov eax,cer_ztv
+mov eax,cer_ztp
 iret
 
 test2_sf_com_test_dd:
@@ -278,7 +276,7 @@ cmp eax,[ebx+po_ztre_ecr]
 je passe_sf_com_test_dd 
 pop ds
 pop edx
-mov eax,cer_ztv
+mov eax,cer_ztp
 iret
 
 passe_sf_com_test_dd:
@@ -290,7 +288,7 @@ erreur_sf_com_test_dd:
 pop ds
 pop edx
 xor ebx,ebx
-xor eax,eax
+mov eax,cer_ztv
 iret
 
 
@@ -534,17 +532,12 @@ jmp sf_com_ecriture
 
 sf_com_ecriture_em:
 mov dx,selramh
-mov ds,dx
+mov es,dx
 mov edx,ebx
 add edx,to_zter
 
 sf_com_ecriture:
-pop fs
-pop es
-pop ds
-popad
-xor eax,eax
-iret
+fs
 mov al,[ebx+at_canal]
 and al,07h
 cmp al,0
@@ -575,7 +568,7 @@ add eax,4
 cmp eax,ebp
 ja sf_com_ecriture_err1
 
-es
+fs
 mov [ebx+com_tempo],ecx
 push ecx
 push esi
@@ -647,7 +640,7 @@ rep movsb
 sf_com_lecture_fin:
 sub esi,ebx
 sub esi,[edx+ad_ztcom]
-mov esi,[edx+po_ztcom_lec]
+mov [edx+po_ztcom_lec],esi
 popad
 ret
 
@@ -657,17 +650,20 @@ ret
 ;******************************************************************************
 sf_com_ecriture_transfert:
 pushad
-mov eax,[edx+po_zter_ecr]
+
+es
+mov eax,[edx+po_ztcom_ecr]
 add eax,ecx
-cmp eax,[edx+to_zter]
+es
+cmp eax,[edx+to_ztcom]
 ja sf_com_ecriture_transfert2
 
 
 mov edi,ebx
 es
-add edi,[edx+ad_zter]
+add edi,[edx+ad_ztcom]
 es
-add edi,[edx+po_zter_ecr]
+add edi,[edx+po_ztcom_ecr]
 cld
 rep movsb
 jmp sf_com_ecriture_fin
@@ -675,54 +671,54 @@ jmp sf_com_ecriture_fin
 
 sf_com_ecriture_transfert2:
 es
-mov eax,[edx+to_zter]
+mov eax,[edx+to_ztcom]
 es
-sub eax,[edx+po_zter_ecr]
+sub eax,[edx+po_ztcom_ecr]
 xchg eax,ecx
 sub eax,ecx
 
 mov edi,ebx
 es
-add edi,[edx+ad_zter]
+add edi,[edx+ad_ztcom]
 es
-add edi,[edx+po_zter_ecr]
+add edi,[edx+po_ztcom_ecr]
 cld
 rep movsb
 
 mov ecx,eax
 mov edi,ebx
 es
-add edi,[edx+ad_zter]
+add edi,[edx+ad_ztcom]
 cld
 rep movsb
 
 sf_com_ecriture_fin:
 sub edi,ebx
 es
-sub edi,[edx+ad_zter]
+sub edi,[edx+ad_ztcom]
 es
-mov edi,[edx+po_zter_ecr]
+mov [edx+po_ztcom_ecr],edi
 
 popad
 ret
 
 
 
-;****************************
+;*************************
 sf_com_to:
-;fs
+fs
 mov ebp,[edx+po_ztcom_ecr] 
-;fs
+fs
 cmp ebp,[edx+po_ztcom_lec]
 jae sf_com_to_1
-;fs
+fs
 add ebp,[edx+to_ztcom]
 sf_com_to_1:
-;fs
+fs
 sub ebp,[edx+po_ztcom_lec]    ;ebp=taille occupé
 ret
 
-;*****************************
+;***********************
 sf_com_tl:
 push eax
 fs

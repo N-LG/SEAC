@@ -1351,7 +1351,7 @@ pasinfopart:
 inc ch
 add esi,32
 cmp ch,18h
-jne boucle_init_infopart
+;jne boucle_init_infopart                 §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!!!désactivé temporairement pour rendre la vitesse de démarrage plus rapide
 
 
 ;*******************************************************************
@@ -2191,6 +2191,8 @@ cmp eax,"lv"
 je cmdlv
 cmp eax,"ex"
 je cmdex
+cmp eax,"1s"
+je cmd1s
 
 commande_fichier:
 include "SF_TACHE.ASM"
@@ -2679,6 +2681,20 @@ jne boucle3_cmpex
 
 mov ebx,edx
 call libmem
+jmp pascommande
+
+
+;****************************************
+cmd1s:
+mov ecx,[cptsf]
+add ecx,400
+
+boucle_cmd1s:
+int 62h
+cmp ecx,[cptsf]
+ja boucle_cmd1s
+
+
 
 
 ;jmp pascommande

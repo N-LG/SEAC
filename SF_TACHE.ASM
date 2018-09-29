@@ -722,7 +722,6 @@ cmp ebx,ebp
 jb boucle_ferme_fichier_tache
 
 
-
 mov ax,selramh            ;efface les canaux de communication employé par la tache
 mov ds,ax
 xor ebx,ebx
@@ -796,6 +795,13 @@ mov [ebx+sauv_esp],esp
 tache_suivante:    ;recherche du descripteur de tache suivant
 es
 mov eax,[ebx+4]
+es
+cmp word[ebx],"DM"
+jne erreur_org_mem
+test eax,0Fh
+jnz erreur_org_mem
+cmp eax,0
+je erreur_org_mem
 add ebx,eax
 es
 cmp byte[ebx+2],"F" ;si on arrive a la fin des descripteur mémoire on revient a la tache 0
@@ -825,6 +831,24 @@ mov ax,sel_pilet
 mov ss,ax
 jmp fin_com_tache
 
+
+;*******************************************
+erreur_org_mem:    ;detection d'une erreur dans l'organisation de la mémoire haute lors d'un basculement de tache
+
+mov eax,[nb_ram]
+es
+mov dword[eax],"DMF?"
+es
+mov dword[ebx],"DMV?"
+sub eax,ebx
+es
+mov [ebx+4],eax
+
+mov cl,48
+call affmsgsyst
+
+
+;***************************
 rest_tache_sp:           ;restautation de la tache zéro
 ;maj info de la tache
 mov dword[ad_tache_exec],0

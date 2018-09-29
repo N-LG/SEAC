@@ -11,7 +11,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.6 Aout 2018",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.6 Septembre 2018",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1
@@ -65,7 +65,7 @@ db 13,"la tâche principale a dut être redémarré",17h,13,0  ;44
 db 13,"la tâche fautive a dut être arreté",17h,13,0  ;45
 db "état de la pile:",0  ;46
 db "impossible de r",0E9h,"server de la m",0E9h,"moire",0  ;47 seul texte qui doit être codé en ISO 8859-1 et pas en UTF8
-db 0  ;48
+db 1Ch,"detection d'une erreur dans la mémoire, effacement de la mémoire corrompue",17h,13,0  ;48
 db 0  ;49
 
 
