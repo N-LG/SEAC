@@ -462,6 +462,8 @@ cer_cfi    equ 23 ;création de fichier impossible
 cer_nfr    equ 24 ;nom de fichier deja uttilisé
 cer_prt    equ 25 ;pas de réponse 
 cer_ers    equ 26 ;erreur dans la structure
+cer_ddi    equ 27 ;données disponible
+cer_dnd    equ 28 ;données non disponible
 
 
 ;**********************************************************

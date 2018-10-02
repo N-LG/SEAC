@@ -726,6 +726,7 @@ mov ax,selramh            ;efface les canaux de communication employé par la tac
 mov ds,ax
 xor ebx,ebx
 boucle_efface_canauxcom:
+mov eax,[ebx+to_tache]
 cmp byte[ebx+type_dm],"C" 
 jne suite_efface_canauxcom
 cmp [ebx+id_emetteur],cx
@@ -734,10 +735,11 @@ cmp [ebx+id_recepteur],cx
 jne suite_efface_canauxcom
 
 ok_efface_canauxcom:
-call libmem
+call libmem  ;désactivé parce que cela cause des bugs
+xor ebx,ebx
+jmp boucle_efface_canauxcom
 
 suite_efface_canauxcom:
-mov eax,[ebx+to_tache]
 add ebx,eax
 cmp byte[ebx+type_dm],"F" 
 jne boucle_efface_canauxcom

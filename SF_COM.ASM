@@ -42,7 +42,7 @@ cmp [ebx+id_emetteur],dx
 je sf_com_em_ok
 fs
 cmp [ebx+id_recepteur],dx
-jne sf_com_rc_ok
+jne sf_com_er_parami
 
 
 sf_com_rc_ok:
@@ -211,7 +211,7 @@ test word[ebx+at_canal],4000h
 jz passe_sf_com_test_cd
 pop ds
 pop edx
-mov eax,cer_ztv
+mov eax,cer_ddi
 iret
 
 test2_sf_com_test_cd:
@@ -221,7 +221,7 @@ test word[ebx+at_canal],8000h
 jz passe_sf_com_test_cd 
 pop ds
 pop edx
-mov eax,cer_ztv
+mov eax,cer_ddi
 iret
 
 
@@ -234,7 +234,7 @@ stop_sf_com_test_cd:
 pop ds
 pop edx
 xor ebx,ebx
-xor eax,eax
+mov eax,cer_dnd
 iret
 
 
@@ -265,7 +265,7 @@ cmp eax,[ebx+po_zter_ecr]
 je passe_sf_com_test_dd
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ddi
 iret
 
 test2_sf_com_test_dd:
@@ -276,7 +276,7 @@ cmp eax,[ebx+po_ztre_ecr]
 je passe_sf_com_test_dd 
 pop ds
 pop edx
-mov eax,cer_ztp
+mov eax,cer_ddi
 iret
 
 passe_sf_com_test_dd:
@@ -288,7 +288,7 @@ erreur_sf_com_test_dd:
 pop ds
 pop edx
 xor ebx,ebx
-mov eax,cer_ztv
+mov eax,cer_dnd
 iret
 
 
@@ -755,19 +755,19 @@ pop fs
 pop es
 pop ds
 popad
-xor eax,eax
+mov eax,cer_ddi
 iret
 
 test2_sf_com_attente_cd:
 cmp [ebx+id_emetteur],dx
-jne passe_sf_com_attente_cd
+jne erreur_sf_com_attente_cdd
 test word[ebx+at_canal],8000h
 jz passe_sf_com_attente_cd 
 pop fs
 pop es
 pop ds
 popad
-xor eax,eax
+mov eax,cer_ddi
 iret
 
 passe_sf_com_attente_cd:
@@ -780,10 +780,17 @@ pop fs
 pop es
 pop ds
 popad
-mov eax,cer_prt
+mov eax,cer_dnd
 iret
 
 
+erreur_sf_com_attente_cdd:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_dnd
+iret
 
 
 
@@ -810,12 +817,12 @@ pop fs
 pop es
 pop ds
 popad
-xor eax,eax
+mov eax,cer_ddi
 iret
 
 test2_sf_com_attente_dd:
 cmp [ebx+id_emetteur],dx
-jne passe_sf_com_attente_dd
+jne erreur_sf_com_attente_cdd
 mov eax,[ebx+po_ztre_lec]
 cmp eax,[ebx+po_ztre_ecr]
 je passe_sf_com_attente_dd 
@@ -823,7 +830,7 @@ pop fs
 pop es
 pop ds
 popad
-xor eax,eax
+mov eax,cer_ddi
 iret
 
 passe_sf_com_attente_dd:
@@ -836,7 +843,7 @@ pop fs
 pop es
 pop ds
 popad
-mov eax,cer_prt
+mov eax,cer_dnd
 iret
 
 

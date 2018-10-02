@@ -2606,7 +2606,7 @@ mov ecx,[ad_chaine_travail]
 ;réserve une zt de taille suffisante
 push ebx
 push ecx
-add ecx,0Fh
+add ecx,1Fh
 and ecx,0FFFFFFF0h
 call resmem
 pop ecx
@@ -2630,6 +2630,8 @@ int 64h
 pop edx
 cmp eax,0
 jne err3cmdsup
+
+
 
 
 ;convertit toute les caractère <20h en caractère NULL
