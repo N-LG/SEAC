@@ -735,9 +735,9 @@ cmp [ebx+id_recepteur],cx
 jne suite_efface_canauxcom
 
 ok_efface_canauxcom:
-call libmem  ;désactivé parce que cela cause des bugs
+call libmem  
 xor ebx,ebx
-jmp boucle_efface_canauxcom
+jmp boucle_efface_canauxcom ;on recommence la purge mémoire depuis le début car une libération de mémoire perturbe la continuité de la mémoire
 
 suite_efface_canauxcom:
 add ebx,eax

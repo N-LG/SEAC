@@ -432,7 +432,7 @@ cmp ebp,0
 je sf_com_lecture0
 cmp ecx,ebp
 jbe sf_com_lecture_ok 
-mov ebp,ecx
+mov ecx,ebp
 
 sf_com_lecture_ok:
 call sf_com_lecture_transfert
@@ -590,6 +590,7 @@ pop es
 pop ds
 popad
 mov eax,cer_ztp
+xor ecx,ecx
 iret
 
 
