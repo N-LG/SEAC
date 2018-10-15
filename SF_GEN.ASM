@@ -11,7 +11,7 @@
 ;al=9   lire la date et l'heure actuelle
 ;al=10  déclarer son type de service
 ;al=11  rechercher un service
-
+;al=12  lire compteur temps
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -55,6 +55,8 @@ cmp al,10
 je sfs_set_service
 cmp al,11
 je sfs_rech_service
+cmp al,12
+je sfs_lire_cptsf
 
 cmp al,100
 je conv_cdeci_reg
@@ -774,6 +776,14 @@ iret
 
 
 
+;**************************
+sfs_lire_cptsf:
+push ds
+mov ax,seldat
+mov ds,ax
+mov eax,[cptsf]
+pop ds
+iret
 
 
 
