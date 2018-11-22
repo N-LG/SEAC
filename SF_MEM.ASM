@@ -429,12 +429,12 @@ sub eax,ecx     ;eax=taille de la zone vide
 
 push ecx        ;on efface la zone mémoire que l'on vas occuper
 push esi
-shr ecx,2
-xor edx,edx 
+xor edx,edx
+add ecx,ebx         
 efface_modtm:
 mov [esi],edx
 add esi,4
-dec ecx
+cmp esi,ecx
 jnz efface_modtm
 pop esi
 pop ecx

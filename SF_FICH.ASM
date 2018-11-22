@@ -1782,6 +1782,7 @@ fs
 add ebx,[ad_ficho]
 
 ;verifie que le programme qui veut le fermer est bien celui qui l'as ouvert
+fs
 mov ax,[id_tache_fichier]
 gs
 cmp ax,[ebx+2]
@@ -3975,6 +3976,9 @@ jmp fin_sfecrirefichier_erprm
 
 ;****************************************
 ecrirefichiermem:
+
+
+
 fs
 mov edi,[ad_fichier]
 
@@ -3988,7 +3992,6 @@ mov [edi+8],eax           ;sinon on modifie la taille du fichier
 fs
 mov [to_fichier],eax
 ecrirefichiermem_pasmodif_taillefichier:
-
 
 fs
 mov eax,[to_fichier]

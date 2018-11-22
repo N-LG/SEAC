@@ -855,7 +855,7 @@ rest_tache_sp:           ;restautation de la tache zéro
 ;maj info de la tache
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
-mov byte[cpttc],10
+mov byte[cpttc],10          ;1x2,5ms alloué a la tache principale, oui c'est peu
 
 ;restauration de la pile
 mov ax,selpil

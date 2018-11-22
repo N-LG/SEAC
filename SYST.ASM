@@ -111,6 +111,20 @@ call attporok
 ;or al, 2
 ;out 0x92, al
 
+;**************************************************************
+;vide la ram de 0003 0000h à 0008 0000h
+xor ax,ax           
+mov ds,ax
+mov ebx,30000h
+xor eax,eax
+
+boucleefreg:
+mov [ebx],eax
+add ebx,4
+cmp ebx,80000h
+jne boucleefreg
+
+
 
 ;*******************************************************************************************
 ;test la taille de la ram
@@ -139,7 +153,7 @@ sub ebx,10h
 mov dword[ebx],"DMF?"   ;et le descripteur de fin de m?moire
 
 sub ebx,100000h
-mov [nb_ram+30000h],ebx      ;sauvegarde la quantit? total de ram
+mov [nb_ram+segdat*16],ebx      ;sauvegarde la quantit? total de ram
 
                              ;crée le premier descripteur de m?moire vide
 mov dword[100000h],"DMV?"
@@ -226,18 +240,6 @@ fin_ajoute_fichier_ram:
 
 ;**********************************************************************
 ;initiallise les données syst?mes
-
-xor ax,ax           ;vide la ram de 0003 0000h à 0008 0000h
-mov ds,ax
-mov ebx,30000h
-xor eax,eax
-
-boucleefreg:
-mov [ebx],eax
-add ebx,4
-cmp ebx,80000h
-jne boucleefreg
-
 
 mov ax,segdat    ;charge les info video
 mov ds,ax
@@ -2721,6 +2723,7 @@ pasarretmoteurdisquette:
 
 ;********************************
 hlt
+int 62h
 jmp btacheprincipale
 
 
