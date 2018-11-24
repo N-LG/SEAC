@@ -1316,7 +1316,14 @@ mov ebx,[ad_ficho]
 fs
 mov ebp,[max_ficho]
 add ebp,ebx
-add ebx,64           ;on ignore le descripteur de dossier courant et le descripteur de dossier système
+
+fs
+mov al,[at_fichier]
+and al,011b
+cmp al,10b
+jnz ok_verif_dejaouvert   ;si c'est un dossier on ignore
+cmp al,11b
+jnz ok_verif_dejaouvert   ;si c'est un dossier racine on ignore cette vérif
 
 boucle_verif_dejaouvert:
 fs
@@ -1373,6 +1380,8 @@ nok_verif_dejaouvert:
 add ebx,20h
 cmp ebx,ebp
 jb boucle_verif_dejaouvert
+ok_verif_dejaouvert:
+
 
 ;trouve un emplacement vide dans les descripteur de fichier 
 fs
