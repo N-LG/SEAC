@@ -2055,6 +2055,15 @@ mov edi,ad_zdc
 cld
 rep movsb
 
+boucle_vide_zdc:    ;met tout les octet de la fin de la commande dans la zone de décodage a zéro
+cmp edi,ad_zdc+200h
+je fin_vide_zdc
+es
+mov byte[edi],0
+inc edi
+jmp boucle_vide_zdc
+fin_vide_zdc:
+
 ;décaler le fifo des commandes
 mov edi,ad_ztcmd
 xor ecx,ecx
