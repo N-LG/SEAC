@@ -1142,15 +1142,23 @@ jmp sfv_menu_clavier
 
 sfv_menu_moins:
 cmp al,cl
-je sfv_menu_maj
+je sfv_menu_moinp
 dec al
 jmp sfv_menu_maj
+sfv_menu_moinp:
+mov al,ch
+jmp sfv_menu_maj
+
 
 sfv_menu_plus:
 cmp al,ch
-je sfv_menu_maj
+je sfv_menu_plusm
 inc al
 jmp sfv_menu_maj
+sfv_menu_plusm:
+mov al,cl
+jmp sfv_menu_maj
+
 
 
 sfv_menu_validation:
