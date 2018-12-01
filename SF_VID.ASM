@@ -400,6 +400,8 @@ ja passouris_sfv_aqui_chaine
 jmp boucle_sfv_aqui_chaine
 
 passouris_sfv_aqui_chaine:
+cmp al,01
+je fin0_sfv_aqui_chaine
 cmp al,44
 je fin1_sfv_aqui_chaine
 cmp al,100
@@ -720,7 +722,15 @@ je suppr_sfv_aqui_chaine
 jmp majaf_sfv_aqui_chaine
 
 
-
+fin0_sfv_aqui_chaine:
+pop ecx
+call fin_sfv_aqui_chaine
+pop fs
+pop es
+pop ds
+popad
+mov eax,01
+iret
 
 fin1_sfv_aqui_chaine:
 pop ecx
