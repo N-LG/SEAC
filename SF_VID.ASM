@@ -190,6 +190,8 @@ inc esi
 dec ecx
 jnz boucle_sfv_ouvre_console
 
+
+sti
 es                     ;active l'ecran
 mov ax,[ebx+id_tache]
 fs
@@ -200,7 +202,7 @@ fs
 or byte[at_csl],1      ;met a 1 le bit de mise a jour affichage
 fs
 mov byte[nb_zrc],0    ;efface la zt de reception souris
-
+cli
 
 
 xor eax,eax
@@ -370,6 +372,64 @@ es
 mov ax,[ebx+sel_ecranv]
 mov es,ax
 
+                     ;test si il n'y as pas de débordement
+testdecal_sfv_aqui_chaine:
+pushad 
+es
+mov ebx,[ad_curseur_texte]
+shl ecx,2
+add ebx,ecx
+es
+mov eax,[ad_texte]
+es
+add eax,[to_texte]
+cmp ebx,eax
+jb pasdecal_sfv_aqui_chaine
+
+;décalage de l'écran vers le haut
+push ds
+
+mov cx,es
+mov ds,cx
+xor esi,esi
+fs
+mov si,[resxt]
+shl esi,2
+es
+sub [ad_curseur_texte],esi ;décale le curseur
+es
+mov edi,[ad_texte]
+es
+mov ecx,[to_texte]
+sub ecx,esi
+add esi,edi
+cld
+rep movsb
+
+xor ecx,ecx     ;et efface la dernière ligne
+fs
+mov cx,[resxt]
+es
+mov edi,[ad_texte]
+es
+add edi,[to_texte]
+mov eax,ecx
+shl eax,2
+es
+sub edi,eax
+xor eax,eax
+cld
+rep stosd
+
+pop ds
+popad
+jmp testdecal_sfv_aqui_chaine
+
+
+pasdecal_sfv_aqui_chaine:
+
+popad
+
 es
 mov ebx,[ad_curseur_texte]  ;ebx=position du premier caractère a ecrire
 add ecx,edx  ;edx=adresse min 
@@ -456,7 +516,7 @@ inc ecx
 mov esi,edi
 inc edi
 std
-rep movsb          ;dcale les donnes
+rep movsb          ;décale les donnes
 pop es
 pop edi
 pop esi
@@ -487,7 +547,7 @@ inc ecx
 mov esi,edi
 add edi,2
 std
-rep movsb          ;dcale les donnes
+rep movsb          ;décale les donnes
 pop es
 pop edi
 pop esi
@@ -526,7 +586,7 @@ inc ecx
 mov esi,edi
 add edi,3
 std
-rep movsb          ;dcale les donnes
+rep movsb          ;décale les donnes
 pop es
 pop edi
 pop esi
@@ -879,7 +939,7 @@ es
 mov edi,[ad_texte]
 es
 add edi,[to_texte]   ;edi=adresse max de la zone texte
-sub edi,3
+sub edi,4
 
 boucle_sfv_chaine_cur:
 call lireutf8
@@ -919,7 +979,7 @@ mov [ebx+3],ch
 add ebx,4
 suite_sfv_chaine_cur:
 cmp ebx,edi
-jb boucle_sfv_chaine_cur
+jbe boucle_sfv_chaine_cur
 
 ;décale le texte vers le haut si le curseur déborde en bas de l'écran
 push ecx

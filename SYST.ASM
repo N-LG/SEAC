@@ -165,6 +165,7 @@ mov dword[10000Ch],"????"
 ;**********************************************************************
 ;ajoute les fichier RAM
 
+
 mov ebx,50000h+start+finsegcod      ;calcule la taille ocupé par les fichier (dont le fichier syst.baz)
 boucle_ajoute_fichier_ram:
 cmp byte[ebx+2],"F"
@@ -2202,8 +2203,7 @@ cmp eax,"lv"
 je cmdlv
 cmp eax,"ex"
 je cmdex
-cmp eax,"1s"
-je cmd1s
+
 
 commande_fichier:
 include "SF_TACHE.ASM"
@@ -2694,22 +2694,6 @@ jne boucle3_cmpex
 
 mov ebx,edx
 call libmem
-jmp pascommande
-
-
-;****************************************
-cmd1s:
-mov ecx,[cptsf]
-add ecx,400
-
-boucle_cmd1s:
-int 62h
-cmp ecx,[cptsf]
-ja boucle_cmd1s
-
-
-
-
 ;jmp pascommande
 
 
