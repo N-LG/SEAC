@@ -2019,6 +2019,8 @@ include "SF_MAJV.ASM"
 fin_majv:
 
 
+
+
 ;***************************************************************************
 ;traitement des lignes de commande
 
@@ -2026,6 +2028,10 @@ pasconsole:
 mov dx,seldat  
 mov ds,dx
 mov es,dx
+fs
+and byte[at_csl],0BFh  ;signale que l'écran a finis de se mettre a jour
+
+
 cmp word[to_ztcmd],0   ;la fifo des commandes est elle vide?
 je pascommande
 xor edi,edi

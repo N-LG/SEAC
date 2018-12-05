@@ -419,6 +419,13 @@ mov gs,ax
 mov ax,selramh
 mov ds,ax
 mov es,ax
+
+attent_sfs_mod_seg: ;attent que la tache principale ait finis de mettre a jour l'écran
+int 62h
+fs
+test byte[at_csl],40h
+jnz attent_sfs_mod_seg
+
 fs
 mov ebx,[ad_tache_exec]
 

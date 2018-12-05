@@ -185,7 +185,14 @@ nb_zone_com equ 0E6h
 ;*************************************************************************
 ;gestion de la console systŠme
 
-at_csl equ 0F0h  ;attribut console  b0=l'affichage est a raffraichir b1=le journal a été modifié b2=le dossier courant a été modifié b3=la commande a été modifié b4=utilisation du linear frame buffer b5=on doit afficher la fin du journal
+at_csl equ 0F0h  ;attribut console  
+;b0=l'affichage est a raffraichir 
+;b1=le journal a été modifié
+;b2=le dossier courant a été modifié
+;b3=la commande a été modifié
+;b4=utilisation du linear frame buffer
+;b5=on doit afficher la fin du journal
+;b6=la mise a jour de l'ecran est en court
 no_ligne_jcsl equ 0F2h
 ad_jcsl equ 0F4h ;zone d'enregistrement journal texte
 max_jcsl equ 0F8h
