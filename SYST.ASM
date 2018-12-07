@@ -2165,6 +2165,8 @@ cmp eax,"modv"
 je cmdmodv
 cmp eax,"stop"
 je cmdstop
+cmp eax,"vmem"
+je cmdvmem
 cmp eax,"cd.."
 je cmdcdpp
 
@@ -2217,6 +2219,143 @@ include "SF_TACHE.ASM"
 ;****************************************************************
 ;commande integré de listage
 include "CI_LISTE.ASM"
+
+;****************************************************************
+cmdvmem:
+mov edx,ad_zdc          ;recherche la chaine qui coresspond au numéros de mode
+boucle_vmem1:
+cmp byte[edx]," "
+jne suite_boucle_vmem1
+cmp byte[edx+1]," "
+jne adresse_vmem
+suite_boucle_vmem1:
+inc edx
+cmp edx,ad_zdc+200h
+je erreurcommandeparam
+jmp boucle_vmem1
+
+;convertit l'id en entier 16 bit
+adresse_vmem:
+inc edx
+mov eax,101
+int 61h
+
+mov ebx,ecx
+
+mov ax,selramh
+mov fs,ax
+
+mov ecx,16
+
+boucle_vmem3:
+
+mov al,17h
+test ecx,1
+jnz ignore_couleur_vmem
+mov al,1Fh
+ignore_couleur_vmem:
+call affcj
+
+
+fs
+mov al,[ebx]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+1]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+2]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+3]
+call affh0j
+mov al," "
+call affcj
+mov al," "
+call affcj
+fs
+mov al,[ebx+4]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+5]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+6]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+7]
+call affh0j
+mov al," "
+call affcj
+mov al," "
+call affcj
+fs
+mov al,[ebx+8]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+9]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+10]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+11]
+call affh0j
+mov al," "
+call affcj
+mov al," "
+call affcj
+fs
+mov al,[ebx+12]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+13]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+14]
+call affh0j
+mov al," "
+call affcj
+fs
+mov al,[ebx+15]
+call affh0j
+mov al,13
+call affcj
+
+
+add ebx,16
+dec ecx
+jnz boucle_vmem3
+
+
+jmp pascommande
+
+
+
+
+
 
 ;****************************************************************
 cmdmodv:       ;modification mode video
