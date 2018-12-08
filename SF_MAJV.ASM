@@ -2446,6 +2446,8 @@ mov ecx,eax
 add ecx,ad_res_console
 
 push ecx
+add ecx,15
+and ecx,0FFFFFFF0h
 call resmem
 pop ecx
 es
