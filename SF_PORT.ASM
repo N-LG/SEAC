@@ -1,16 +1,16 @@
 ;gestion de la taille de la zt de reception
-;gestion du blocage de l'accÃ¨s pour les autres tÃ¢ches
-;lecture/ecriture des bits spÃ©ciaux
+;gestion du blocage de l'accès pour les autres tâches
+;lecture/ecriture des bits spéciaux
 
 
 
 
-;fonction pour port parralÃ¨le et sÃ©rie int 66h
+;fonction pour port parralèle et série int 66h
 ;al=0 envoyer octet
 ;al=1 envoyer chaine
-;al=2 reÃ§evoir octet
-;al=3 reÃ§evoir chaine
-;al=4 reserver accÃ¨s port
+;al=2 reçevoir octet
+;al=3 reçevoir chaine
+;al=4 reserver accès port
 ;al=5 configurer port 
 ;al=6 lecture/ecriture des bit de controle des ports 
 ;al=7 changer la taille de la zt de reception
@@ -33,15 +33,15 @@ cmp ah,15
 ja sf_port_fin_parami
  
 xor ebx,ebx  ;charge adresse de base du contoleur port dans di et la base dans ebx
-xor bl,ah
+mov bl,ah
 shl ebx,2
 mov di,[port_com_base+ebx]
 cmp di,0
 je sf_port_fin_parami
 
-;verifie que le port n'est pas reservÃ© et si la tache qui l'as reservÃ© existe bien toujours
-;Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
-;mov eax,cer_ano  ;action non autorisÃ©
+;verifie que le port n'est pas reservé et si la tache qui l'as reservé existe bien toujours
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;mov eax,cer_ano  ;action non autorisé
 ;xor ecx,ecx
 ;jmp sf_port_fin
 
@@ -83,26 +83,21 @@ iret
 
 
 
-xor ecx,ecx
-jmp sf_port_fin
-
-
-
 
 
 ;*****************************************************************
-sf_port_env1:      ;envoie 1 octet sur port sÃ©rie et parallÃ¨le
+sf_port_env1:      ;envoie 1 octet sur port série et parallèle
                    ;cl=octet a envoyer
-                   ;entrÃ©e ah=NÂ° du port 0-7 port COM 8-15 portLPT
+                   ;entrée ah=N° du port 0-7 port COM 8-15 portLPT
                    ;retour eax=erreur
 call sf_port_env
 xor ecx,ecx
 jmp sf_port_fin
 ;*****************************************************************
-sf_port_env2:      ;envoie une chaine d'octet sur port sÃ©rie et parallÃ¨le
+sf_port_env2:      ;envoie une chaine d'octet sur port série et parallèle
                    ;es:esi=adresse de la chaine
 		   ;ecx=nombre d'octet de la chaine
-                   ;entrÃ©e ah=NÂ° du port 0-7 port COM 8-15 portLPT
+                   ;entrée ah=N° du port 0-7 port COM 8-15 portLPT
                    ;retour eax=erreur
 mov edx,ecx
 boucle_sf_port_env2: 
@@ -120,9 +115,9 @@ xor ecx,ecx
 jmp sf_port_fin
 
 ;*****************************************************************
-sf_port_env:       ;envoie 1 octet sur port sÃ©rie et parallÃ¨le
-
-cmp ah,8
+sf_port_env:       ;envoie 1 octet sur port série et parallèle
+pushad
+cmp ah,7
 jae sf_port_env_lpt
 
 mov dx,di
@@ -131,48 +126,56 @@ mov ebx,[cptsf]
 add ebx,40      ;temps d'atente maximum 100ms
 
 boucle_env_com:
+int 62h
 in al,dx
 test al,20h
 jnz ok_env_com    ;si connex ok envoie
 cmp [cptsf],ebx
 jb boucle_env_com
-mov eax,cer_crp   ;controleur ne rÃ©pond pas
+popad
+mov eax,cer_crp   ;controleur ne répond pas
 ret
 
 ok_env_com:
 mov dx,di
 mov al,cl
 out dx,al
+popad
 xor eax,eax
 ret
 
 sf_port_env_lpt:
+mov al,cl
+mov dx,di
+out dx,al ;écrit l'octet sur le port de données
 
-;out dx,al
-;mov ah,al
-;add dx,2
-;mov al,04h
-;out dx,al
-;dec dx
-;add ecx,200
+add dx,2
+mov al,04h
+out dx,al    ;met a 1 le signal de selection d'imprimante
+dec dx
+mov ecx,[cptsf]
+add ecx,40      ;temps d'atente maximum 100ms
 
-;boucle_sf_port_env_lpt:
-;in al,dx
-;test al,80h
-;jnz sf_port_env_lpt_ok
-;cmp [cptsf],ecx
-;jne boucle_sf_port_env_lpt
+boucle_sf_port_env_lpt:   ;atent que le signal busy ne soit plus actif
+int 62h
+in al,dx
+test al,80h
+jnz sf_port_env_lpt_ok
+cmp [cptsf],ecx
+jb boucle_sf_port_env_lpt
+popad
+mov eax,cer_crp   ;controleur ne répond pas
+ret
 
 
-
-;sf_port_env_lpt_ok:
-;inc dx
-;mov al,05h
-;out dx,al
-;mov ecx,1
-;int 8Fh          ;???????????????
-;mov al,04h
-;out dx,al
+sf_port_env_lpt_ok:
+inc dx
+mov al,05h
+out dx,al         ;active le signal output data   
+int 62h
+mov al,04h
+out dx,al
+popad
 xor eax,eax
 ret
 
@@ -182,11 +185,9 @@ ret
 
 
 ;*************************************************************************
-sf_port_rec1:         ;lit octet reÃ§u sur zt du port sÃ©rie et parallÃ¨le
-                      ;entrÃ©e ah=NÂ° du port 0-3 portCOM 4-5 portLPT
+sf_port_rec1:         ;lit octet reçu sur zt du port série et parallèle
+                      ;entrée ah=N° du port 0-3 portCOM 4-5 portLPT
 		      ;octet en retour=cl
-cmp ah,7
-ja sf_port_fin_parami
   
 cli
 cmp dword[port_com_to+ebx],0
@@ -206,6 +207,7 @@ mov esi,edi
 add edi,10h
 add esi,11h
 mov al,[edi]
+cld
 rep movsb
 
 
@@ -216,30 +218,81 @@ jmp sf_port_fin
 
 
 ;*************************************************************************
-sf_port_rec2:         ;lit chaine d'octet reÃ§u sur zt du port sÃ©rie et parallÃ¨le
-                      ;entrÃ©e ah=NÂ° du port 0-3 portCOM 4-5 portLPT
+sf_port_rec2:         ;lit chaine d'octet reçu sur zt du port série et parallèle
+                      ;entrée ah=N° du port 0-3 portCOM 4-5 portLPT
+		      ;es:edi=
 		      ;ecx=taille de la chaine a lire
-;Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§s
-jmp sf_port_fin_parami 
+  
+cli
+mov eax,[port_com_to+ebx]
+cmp eax,0
+jne sf_port_rec2_suite
+xor ecx,ecx
+mov eax,cer_ztv  ;zone tampon vide
+jmp sf_port_fin 
+
+sf_port_rec2_suite:   ;verifie que la zt puisse reçevoir toutes les données
+cmp ecx,eax
+ja sf_port_rec2_partiel
+
+mov ecx,eax
+mov dword[port_com_to+ebx],0
+mov esi,[port_com_zt+ebx]
+add esi,10h
+mov ax,selramh
+mov ds,ax
+cld
+rep movsb
+
+xor ecx,ecx
+xor eax,eax
+jmp sf_port_fin 
+
+
+
+sf_port_rec2_partiel:   ;si la zt ne peut pas lire toutes les donné on en lit qu'une partie
+sub [port_com_to+ebx],ecx
+mov esi,[port_com_zt+ebx]
+add esi,10h
+mov ax,selramh
+mov ds,ax
+cld
+rep movsb
+
+mov ax,seldat           ;et on décale les données
+mov ds,ax
+mov edi,[port_com_zt+ebx]
+add edi,10h
+mov ecx,[port_com_to+ebx]
+mov ax,selramh
+mov ds,ax
+mov es,ax
+cld
+rep movsb
+
+xor ecx,ecx
+xor eax,eax
+jmp sf_port_fin 
+
 
 
 ;************************************************************************
 sf_port_res:                ;reserve le port pour l'usage d'une seule application
-;Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp sf_port_fin_parami 
 
 
 ;************************************************************************
 sf_port_conf:    ;configure le port com
-                 ;ah=nÂ°du port (0 Ã  7)
+                 ;ah=n°du port (0 à 7)
                  ;ecx=vitesse du port (max 115200bit/s)
                  ;bl=config:
 ;4|3|2|1|0|  
-;| | | | `-- 0 = 7 bits par caractÃ¨re 1 = 8bit par caractÃ¨re
-;| | | `---- innutilisÃ©
+;| | | | `-- 0 = 7 bits par caractère 1 = 8bit par caractère
+;| | | `---- innutilisé
 ;| | `------ 0 = 1 bit de stop, 1 =  2 bit de stop 
-;| `-------- 0 = pas de bit de paritÃ©, 1 = prÃ©sence d'un bit de paritÃ©
-;`---------- 0 = paritÃ© impaire(odd), 1 = paritÃ© paire(even)
+;| `-------- 0 = pas de bit de parité, 1 = présence d'un bit de parité
+;`---------- 0 = parité impaire(odd), 1 = parité paire(even)
 
 cmp ah,7
 ja sf_port_fin_parami
@@ -257,7 +310,7 @@ div ecx
 mov ecx,eax      ;ecx=diviseur
 pop eax
 cmp edx,0
-jne sf_port_fin_parami    ;le reste doit Ãªtre 0
+jne sf_port_fin_parami    ;le reste doit être 0
 
 mov dx,di ;dx=base+3
 add dx,3
@@ -275,7 +328,7 @@ mov al,ah     ;line control register
 out dx,al
 mov dx,di ;dx=base+1
 inc dx
-mov al,01h    ;interrupt enable register  (interruption si donnÃ©e reÃ§u)
+mov al,01h    ;interrupt enable register  (interruption si donnée reçu)
 out dx,al
 
 add dx,3    ;dx=base+4
@@ -288,14 +341,14 @@ jmp sf_port_fin
 
 ;************************************************************************
 sf_port_sp:
-;Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp sf_port_fin_parami 
 
 
 
 ;************************************************************************
 sf_port_zt:              ;redimensionne la zt de reception d'un port
-;Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§Â§
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp sf_port_fin_parami 
 
 
@@ -324,7 +377,7 @@ mov dx,[ebx+port_com_base]
 add dx,2    ;adress du Interrupt Identification Register
 in al,dx
 
-and al,07h   ;on test si une interruption donnÃ©es disponible est en cours sur le controleur
+and al,07h   ;on test si une interruption données disponible est en cours sur le controleur
 cmp al,04h 
 ;test al,1
 je trouve_origine_irq_com
@@ -334,7 +387,7 @@ jne cherche_origine_irq_com
 jmp fin_irq_com
 
 trouve_origine_irq_com:
-sub dx,2  ;lit l'octet reÃ§u
+sub dx,2  ;lit l'octet reçu
 in al,dx
 
 ;verifie que la zt n'est pas pleine
@@ -350,9 +403,6 @@ add edi,ecx
 es
 mov [edi],al
 inc dword[ebx+port_com_to]
-
-;mov al,3
-;out 61h,al        ;allume le bipper
 
 
 fin_irq_com:

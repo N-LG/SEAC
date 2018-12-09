@@ -29,6 +29,15 @@
 ;al=112 convertir adresse ipv4 en chaine asciiz
 ;al=113 convertir adresse ipv6 en chaine asciiz
 
+;al=114 convertir chaine asciiz en GUID/UUID
+;al=115 convertir GUID/UUID en chaine asciiz
+;al=116 convertir données base64 en données binaires
+;al=117 convertir données binaires en base64 type 1
+;al=118 convertir données binaires en base64 type 2
+;al=119 calcul de CRC32
+;al=120 calcul de CRC16
+;al=121 calcul de CRCxx
+
 
 
 cmp al,0
@@ -88,6 +97,23 @@ cmp al,112
 je conv_ipv4_asciiz
 cmp al,113
 je conv_ipv6_asciiz
+
+cmp al,114
+je conv_asciiz_guid
+cmp al,115
+je conv_guid_asciiz
+cmp al,116
+je conv_b64_bin
+cmp al,117
+je conv_bin_b64_1
+cmp al,118
+je conv_bin_b64_2
+cmp al,119
+je calc_crc32
+cmp al,120
+je calc_crc16
+cmp al,121
+je calc_crcxx
 
 mov eax,cer_parami
 iret
@@ -1461,9 +1487,6 @@ iret
 
 
 
-
-
-
 ;**********************************************
 conv_ipv6_asciiz:
 pushad
@@ -1534,7 +1557,52 @@ iret
 
 
 
+;***************************************
+conv_asciiz_guid:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
 
+
+;***************************************
+conv_guid_asciiz:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+conv_b64_bin:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+conv_bin_b64_1:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+conv_bin_b64_2:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+calc_crc32:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+calc_crc16:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+;***************************************
+calc_crcxx:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+iret
 
 
 
