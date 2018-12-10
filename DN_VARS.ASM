@@ -292,9 +292,9 @@ ad_zt_lecluster equ 21Ch   ;adresse de la zone tampon de lecture cluster
 ;*************************************************************************
 ;gestion des port com et lpt    (sf_port.asm)
 port_com_base equ 240h ;addresses contoleurs com 1 (com2 =com1+4)
-port_com_att equ 242h  ;attribut com1 (com2 =com1+4)
+port_com_idr equ 242h  ;attribut com1 (com2 =com1+4)
 port_lpt_base equ 260h ;addresses contoleurs lpt 1 (lpt2 =lpt1+4)
-port_lpt_att equ 262h  ;attribut lpt1 (lpt2 =lpt1+4)
+port_lpt_idr equ 262h  ;attribut lpt1 (lpt2 =lpt1+4)
 port_com_zt equ 280h ;adresse la zone tampon de réception com 1 (com2 =com1+4)
 port_lpt_zt equ 2A0h ;adresse la zone tampon de réception lpt 1 (lpt2 =lpt1+4)
 port_com_to equ 2C0h ;nombre d'octet dans la zone tampon de réception com 1 (com2 =com1+4)

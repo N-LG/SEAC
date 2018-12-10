@@ -10,10 +10,11 @@
 ;al=1 envoyer chaine
 ;al=2 reçevoir octet
 ;al=3 reçevoir chaine
-;al=4 reserver accès port
+;al=4 lecture/ecriture des bit de controle des ports 
 ;al=5 configurer port 
-;al=6 lecture/ecriture des bit de controle des ports 
-;al=7 changer la taille de la zt de reception
+;al=6 reserver accès port
+;al=7 liberer accès port
+;al=8 changer la taille de la zt de reception
 
 push ebx
 push edx
@@ -40,11 +41,16 @@ cmp di,0
 je sf_port_fin_parami
 
 ;verifie que le port n'est pas reservé et si la tache qui l'as reservé existe bien toujours
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-;mov eax,cer_ano  ;action non autorisé
-;xor ecx,ecx
-;jmp sf_port_fin
+mov dx,[port_com_idr+ebx]
+cmp dx,0
+je sf_port_okid
+cmp dx,[id_tache_exec]
+je sf_port_okid
+mov eax,cer_ano  ;action non autorisé
+xor ecx,ecx
+jmp sf_port_fin
 
+sf_port_okid:
 cmp al,0
 je sf_port_env1
 cmp al,1
@@ -54,12 +60,14 @@ je sf_port_rec1
 cmp al,3
 je sf_port_rec2
 cmp al,4
-je sf_port_res
+je sf_port_sp
 cmp al,5
 je sf_port_conf
 cmp al,6
-je sf_port_sp
+je sf_port_res
 cmp al,7
+je sf_port_dres
+cmp al,8
 je sf_port_zt
 
 sf_port_fin_parami:
@@ -274,12 +282,11 @@ xor ecx,ecx
 xor eax,eax
 jmp sf_port_fin 
 
-
-
 ;************************************************************************
-sf_port_res:                ;reserve le port pour l'usage d'une seule application
+sf_port_sp:
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp sf_port_fin_parami 
+
 
 
 ;************************************************************************
@@ -339,17 +346,38 @@ jmp sf_port_fin
 
 
 
+
 ;************************************************************************
-sf_port_sp:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp sf_port_fin_parami 
+sf_port_res:                ;reserve le port pour l'usage d'une seule application
+mov ax,[id_tache_exec]
+mov [port_com_idr+ebx],ax
+xor ecx,ecx
+xor eax,eax
+jmp sf_port_fin
 
-
+;************************************************************************
+sf_port_dres:                ;libère le port pour l'usage d'une seule application
+mov dword[port_com_idr+ebx],0
+xor ecx,ecx
+xor eax,eax
+jmp sf_port_fin
 
 ;************************************************************************
 sf_port_zt:              ;redimensionne la zt de reception d'un port
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp sf_port_fin_parami 
+mov edx,ebx
+mov ebx,[port_com_zt+edx]
+call modtm
+jc sf_port_zt_erreur 
+mov [port_com_zt+edx],ebx
+xor ecx,ecx
+xor eax,eax
+jmp sf_port_fin
+
+sf_port_zt_erreur:
+xor ecx,ecx
+mov eax,cer_pasm
+jmp sf_port_fin
+
 
 
 
