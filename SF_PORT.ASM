@@ -71,8 +71,10 @@ cmp al,8
 je sf_port_zt
 
 sf_port_fin_parami:
-xor ecx,ecx
 mov eax,cer_parami
+
+sf_port_fin_erreur:
+xor ecx,ecx
 
 sf_port_fin:
 pop fs
@@ -108,13 +110,14 @@ sf_port_env2:      ;envoie une chaine d'octet sur port série et parallèle
                    ;entrée ah=N° du port 0-7 port COM 8-15 portLPT
                    ;retour eax=erreur
 mov edx,ecx
+mov ch,ah
 boucle_sf_port_env2: 
 es
 mov cl,[esi]
+mov ah,ch
 call sf_port_env
-xor ecx,ecx
 cmp eax,0
-jne sf_port_fin
+jne sf_port_fin_erreur
 inc esi
 dec edx
 jnz boucle_sf_port_env2 
@@ -126,7 +129,7 @@ jmp sf_port_fin
 sf_port_env:       ;envoie 1 octet sur port série et parallèle
 pushad
 cmp ah,7
-jae sf_port_env_lpt
+ja sf_port_env_lpt
 
 mov dx,di
 add dx,5
@@ -153,6 +156,7 @@ xor eax,eax
 ret
 
 sf_port_env_lpt:
+
 mov al,cl
 mov dx,di
 out dx,al ;écrit l'octet sur le port de données
@@ -162,15 +166,15 @@ mov al,04h
 out dx,al    ;met a 1 le signal de selection d'imprimante
 dec dx
 mov ecx,[cptsf]
-add ecx,40      ;temps d'atente maximum 100ms
+add ecx,200      ;temps d'atente maximum 500ms
 
-boucle_sf_port_env_lpt:   ;atent que le signal busy ne soit plus actif
+boucle1_sf_port_env_lpt:   ;atent que le signal busy ne soit plus actif
 int 62h
 in al,dx
 test al,80h
 jnz sf_port_env_lpt_ok
 cmp [cptsf],ecx
-jb boucle_sf_port_env_lpt
+jb boucle1_sf_port_env_lpt
 popad
 mov eax,cer_crp   ;controleur ne répond pas
 ret
@@ -183,6 +187,12 @@ out dx,al         ;active le signal output data
 int 62h
 mov al,04h
 out dx,al
+
+
+
+
+
+sf_port_env_lpt_fin:
 popad
 xor eax,eax
 ret
@@ -196,6 +206,9 @@ ret
 sf_port_rec1:         ;lit octet reçu sur zt du port série et parallèle
                       ;entrée ah=N° du port 0-3 portCOM 4-5 portLPT
 		      ;octet en retour=cl
+
+cmp ah,7
+ja sf_port_fin_parami
   
 cli
 cmp dword[port_com_to+ebx],0
@@ -230,6 +243,8 @@ sf_port_rec2:         ;lit chaine d'octet reçu sur zt du port série et parallèle
                       ;entrée ah=N° du port 0-3 portCOM 4-5 portLPT
 		      ;es:edi=
 		      ;ecx=taille de la chaine a lire
+cmp ah,7
+ja sf_port_fin_parami
   
 cli
 mov eax,[port_com_to+ebx]
@@ -364,6 +379,9 @@ jmp sf_port_fin
 
 ;************************************************************************
 sf_port_zt:              ;redimensionne la zt de reception d'un port
+cmp ah,7
+ja sf_port_fin_parami
+
 mov edx,ebx
 mov ebx,[port_com_zt+edx]
 call modtm
@@ -374,9 +392,8 @@ xor eax,eax
 jmp sf_port_fin
 
 sf_port_zt_erreur:
-xor ecx,ecx
 mov eax,cer_pasm
-jmp sf_port_fin
+jmp sf_port_fin_erreur
 
 
 
