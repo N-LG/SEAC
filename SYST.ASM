@@ -111,18 +111,6 @@ call attporok
 ;or al, 2
 ;out 0x92, al
 
-;**************************************************************
-;vide la ram de 0003 0000h à 0008 0000h
-xor ax,ax           
-mov ds,ax
-mov ebx,30000h
-xor eax,eax
-
-boucleefreg:
-mov [ebx],eax
-add ebx,4
-cmp ebx,80000h
-jne boucleefreg
 
 
 
@@ -238,6 +226,24 @@ jnz boucle_ajoute_fichier_ram3
 
 
 fin_ajoute_fichier_ram:
+
+
+
+
+;**************************************************************
+;vide la ram de 0003 0000h à 0008 0000h
+xor ax,ax           
+mov ds,ax
+mov ebx,30000h
+xor eax,eax
+
+boucleefreg:
+mov [ebx],eax
+add ebx,4
+cmp ebx,80000h
+jne boucleefreg
+
+
 
 ;**********************************************************************
 ;initiallise les données syst?mes
@@ -917,16 +923,6 @@ mov esp,0FFF0h
 
 sti      ;init des valeurs termin?, d?bloquage des irq
 
-
-;*********************************************************************
-;configure le port com1 
-
-;mov ah,0                   
-;mov al,2                                             
-;mov ecx,9600                                         
-;mov bl,8                                             
-;mov bh,0                                             
-;int 66h                                              
 
 
 ;**********************************************************************

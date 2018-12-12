@@ -785,6 +785,18 @@ jne sauv_tache_norm
 
 mov [sauv_esp0],esp  ;sauvegarde de l'offset de la pile de la tache zéro
 xor ebx,ebx
+es
+mov eax,[ebx+4]
+es
+cmp word[ebx],"DM"
+jne erreur_org_mem
+test eax,0Fh
+jnz erreur_org_mem
+cmp eax,0
+je erreur_org_mem
+es
+cmp byte[ebx+2],"T"
+je restauration_tache
 jmp tache_suivante
 
 sauv_tache_norm:      ;sauvegarde de la pile d'une tache normale
@@ -813,6 +825,7 @@ cmp byte[ebx+2],"T"
 jne tache_suivante
 
 ;*********************************restauration d'une tache normale
+restauration_tache:
 ;maj info de la tache
 mov [ad_tache_exec],ebx
 es
