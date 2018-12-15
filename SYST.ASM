@@ -1543,7 +1543,7 @@ cmp ecx,0
 je pas_decal_ins4
 add edi,ad_cce
 mov esi,edi
-sub esi,3
+sub esi,4
 std
 rep movsb          ;décale les données
 pas_decal_ins4:
@@ -1671,13 +1671,12 @@ jmp majafcsl
 avcsl:
 cmp edx,edi
 je pasconsole
-recoavcsl:
 inc edx
+inc word[cu_cce]
 mov ah,[ad_cce+edx]
 and ah,11000000b
 cmp ah,80h
-je recoavcsl
-mov [cu_cce],dx 
+je avcsl
 jmp majafcsl
 
 rccsl:
