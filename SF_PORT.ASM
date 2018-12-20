@@ -10,11 +10,12 @@
 ;al=1 envoyer chaine
 ;al=2 reçevoir octet
 ;al=3 reçevoir chaine
-;al=4 lecture/ecriture des bit de controle des ports 
-;al=5 configurer port 
-;al=6 reserver accès port
-;al=7 liberer accès port
-;al=8 changer la taille de la zt de reception
+;al=4 lecture des bit de controle des ports 
+;al=5 ecriture des bit de controle des ports
+;al=6 configurer port 
+;al=7 reserver accès port
+;al=8 liberer accès port
+;al=9 changer la taille de la zt de reception
 
 push ebx
 push edx
@@ -60,14 +61,16 @@ je sf_port_rec1
 cmp al,3
 je sf_port_rec2
 cmp al,4
-je sf_port_sp
+je sf_port_sp1
 cmp al,5
-je sf_port_conf
+je sf_port_sp2
 cmp al,6
-je sf_port_res
+je sf_port_conf
 cmp al,7
-je sf_port_dres
+je sf_port_res
 cmp al,8
+je sf_port_dres
+cmp al,9
 je sf_port_zt
 
 sf_port_fin_parami:
@@ -161,10 +164,7 @@ mov al,cl
 mov dx,di
 out dx,al ;écrit l'octet sur le port de données
 
-add dx,2
-mov al,04h
-out dx,al    ;met a 1 le signal de selection d'imprimante
-dec dx
+inc dx
 mov ecx,[cptsf]
 add ecx,200      ;temps d'atente maximum 500ms
 
@@ -182,11 +182,13 @@ ret
 
 sf_port_env_lpt_ok:
 inc dx
-mov al,05h
+in al,dx
+mov ah,al
+or al,05h
 out dx,al         ;active le signal output data   
 int 62h
-mov al,04h
-out dx,al
+mov al,ah
+out dx,al    ;puis le désactive
 
 
 
@@ -298,11 +300,82 @@ xor eax,eax
 jmp sf_port_fin 
 
 ;************************************************************************
-sf_port_sp:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp sf_port_fin_parami 
+sf_port_sp1:                 ;lire bit etat    ah=numéros de port ecx=bit spéciaux du port
+;ecx pour port com:
+;b0=DTR b1=RTS b2=CTS b3=DSR b4=RI b5=DCD/RLSD
+;ecx pour port lpt:
+;b0=saut de page
+;b1=reset
+;b2=selection périphérique
+;b3=signal erreur
+;b4=signal périphérique on line
+;b5=signal plus de papier
 
 
+xor ecx,ecx
+cmp ah,7
+ja sf_port_sp1_lpt
+
+xor eax,eax
+mov dx,di
+add dx,4
+in al,dx
+and al,03h
+or ecx,eax
+add dx,2
+xor eax,eax
+in al,dx
+and al,0F0h
+shr eax,2
+or ecx,eax
+xor eax,eax
+jmp sf_port_fin 
+
+
+sf_port_sp1_lpt:
+xor eax,eax
+mov dx,di
+inc dx
+in al,dx
+and al,1Ch
+shr eax,2
+or ecx,eax
+inc dx
+xor eax,eax
+in al,dx
+and al,0Eh
+shl eax,2
+or ecx,eax
+xor eax,eax
+jmp sf_port_fin 
+
+
+
+;************************************************************************
+sf_port_sp2:
+cmp ah,7
+ja sf_port_sp2_lpt
+
+mov dx,di
+add dx,4
+in al,dx
+and al,0FCh
+and cl,003h
+or al,cl
+out dx,al
+xor eax,eax
+jmp sf_port_fin 
+
+sf_port_sp2_lpt:
+mov dx,di
+add dx,2
+in al,dx
+and al,0F8h
+and cl,007h
+or al,cl
+out dx,al
+xor eax,eax
+jmp sf_port_fin 
 
 ;************************************************************************
 sf_port_conf:    ;configure le port com
