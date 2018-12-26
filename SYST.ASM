@@ -338,7 +338,7 @@ cld
 rep movsb      ;ds:si vers es:di
 
 
-mov cx,1024    ;copie la table des accents
+mov cx,fintabacc-tabacc   ;copie la table des accents
 mov ax,cs
 mov ds,ax
 mov si,tabacc
@@ -349,7 +349,7 @@ cld
 rep movsb      ;ds:si vers es:di
 
 
-mov cx,2048    ;copie la table des messages
+mov cx,finmsgsyst-msgsyst    ;copie la table des messages
 mov ax,cs
 mov ds,ax
 mov si,msgsyst
@@ -886,18 +886,23 @@ ret
 
 msgsyst:
 include "DN_MSG.ASM"
+finmsgsyst:
 
 polgraf:
 include "DN_POLG.ASM"
+finpolgraf:
 
 palgraf:
 include "DN_PALG.ASM"
+finpalgraf:
 
 tabclv:
 include "DN_CLAV.ASM"
+fintabclv:
 
 tabacc:
 include "DN_ACC.ASM"
+fintabacc:
 
 fintab:
  
@@ -2583,6 +2588,8 @@ mov ecx,20h
 cld
 rep movsb   ;déplacement
 
+mov cl,94   
+call affmsgsyst
 jmp pascommande
 
 ;********************************************
@@ -2633,6 +2640,19 @@ cmp eax,cer_dnv
 je err2cmdsup
 jmp err1cmdsup
 
+finok_cmdren:
+mov cl,98   
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,97   
+call affmsgsyst
+mov edx,edi
+call affjournal
+mov al,13
+call affcj
+jmp pascommande
+
 
 ;********************************************
 cmdsup:
@@ -2647,7 +2667,9 @@ jne boucle_cmpsup
 cmp byte[edx+1]," "
 je boucle_cmpsup           
 
+
 inc edx
+mov esi,edx
 xor eax,eax         ;ouvre le fichier
 xor ebx,ebx
 int 64h
@@ -2661,7 +2683,7 @@ suite_cmdsup:
 mov eax,3
 int 64h
 cmp eax,0       
-je pascommande
+je finok_cmdsup
 cmp eax,cer_dnv       
 je err2cmdsup
 
@@ -2680,8 +2702,30 @@ mov cl,91   ;fichier non trouvé
 call affmsgsyst
 jmp pascommande
 
+
+finok_cmdsup:
+mov cl,98  
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,96   
+call affmsgsyst
+jmp pascommande
+
+
+
 ;********************************************
 cmdcop:
+mov cl,98   
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,95   
+mov edx,edi
+call affmsgsyst
+call affjournal
+mov al,13
+call affcj
 jmp pascommande
 
 

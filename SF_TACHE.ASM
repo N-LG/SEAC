@@ -312,11 +312,23 @@ int 64h
 cmp eax,0
 jne cretache_erlc
 ignore_data4:
+jmp suite_crea_tache
+
+
+
+;************************************************************************************
+creation_tache_interne:
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;reserve mémoire
 
 
 
 
+
+;*************************************************************************************
 ;recherche emplacement disponible et création d'un segment pour la LDT dans la GDT
+suite_crea_tache:
 mov ax,selgdt
 mov ds,ax
 mov ebx,8        ;on ne remplace pas le descripteur nul
@@ -546,6 +558,7 @@ jmp boucle2_mtt
 
 ;convertit le temps en entier 8 bit
 tt_mtt:
+mov si,cx
 inc edx
 mov eax,100
 int 61h
@@ -556,7 +569,18 @@ je erreurcommandeparam
 
 es
 mov [ebx+temp_exec_tache],cl ;chargement du nouveau temp
+
+push cx              ;signal le changement de temp d'execution
+mov cl,93
+call affmsgsyst
+mov ax,si
+call affh1j
+pop cx
+mov al,13
+call affcj
 jmp pascommande
+
+
 
 
 ;**********************************************************************************************
@@ -629,6 +653,14 @@ call libmem
 
 ;ferme les fichier
 call ferme_fichier_tache
+
+push cx  ;signal l'arret forcée de la tache
+mov cl,92
+call affmsgsyst
+pop ax
+call affh1j
+mov al,13
+call affcj
 jmp pascommande
 
 

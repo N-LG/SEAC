@@ -251,19 +251,23 @@ mov ax,[ebx+id_tache]
 call affh1j
 
 ;affiche le temp d'execution
-mov al,"["
-call affcj
-xor eax,eax
-mov al,[ebx+temp_exec_tache]
-call affnj
-mov al,"]"
-call affcj
+;mov al,"["
+;call affcj
+;xor eax,eax
+;mov al,[ebx+temp_exec_tache]
+;call affnj
+;mov al,"]"
+;call affcj
 
 ;affiche la commande
-mov edx,recop_commande
-add edx,ebx
-call affjournal
-mov al,13
+;mov edx,recop_commande
+;add edx,ebx
+;call affjournal
+;mov al,13
+;call affcj
+
+
+mov al,20h
 call affcj
 
 
@@ -273,8 +277,6 @@ add edx,ebx
 cmp byte[edx],0
 je ignore_affichage_decr_lt
 call affjournal
-mov al,13
-call affcj
 ignore_affichage_decr_lt:
 
 mov al,13

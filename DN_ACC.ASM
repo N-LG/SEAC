@@ -56,6 +56,12 @@ dd 0A8h,075h,0FCh ;ü
 dd 0B4h,079h,0FDh ;ý		
 dd 0A8h,079h,0FFh ;ÿ 
 dd 0A8h,059h,178h ;Ÿ
+
+
+
+;*******************************************************
+;rajout non officiels
+
 dd 0A4h,041h,0C6h ;Æ  ;rajout non officiel avec le caractère monétaire comme chasse
 dd 0A4h,061h,0E6h ;æ
 dd 0A4h,04Fh,152h ;Œ

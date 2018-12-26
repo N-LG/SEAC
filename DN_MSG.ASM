@@ -121,22 +121,19 @@ db 0 ;89
 
 db "le dossier à supprimer n'est pas vide",13,0  ;90
 db "fichier introuvable",13,0 ;91
-db 0  ;92
-db 0  ;93
-db 0  ;94
-db 0  ;95
-db 0  ;96
-db 0  ;97
-db 0  ;98
+db "arret forcé de la tâche ",0  ;92
+db "modification du temp d'execution de la tâche ",0  ;93
+db "le dossier système a été définis",13,0  ;94
+db " a été copié en ",0  ;95
+db " a été supprimé",13,0  ;96
+db " a été rennommé ",0  ;97
+db "le fichier ",0  ;98
 db 0  ;99
 
 db "erreur de paramêtre",0     ;100  (erreur 1)
 
 
-;vide
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
 
 
 
