@@ -2635,7 +2635,7 @@ mov ah,0
 mov edx,edi
 int 64h
 cmp eax,0       
-je pascommande
+je finok_cmdren
 cmp eax,cer_dnv       
 je err2cmdsup
 jmp err1cmdsup
@@ -2675,8 +2675,8 @@ xor ebx,ebx
 int 64h
 cmp eax,0       
 je suite_cmdsup
-cmp eax,12       
-je suite_cmdsup
+;cmp eax,12       
+;je suite_cmdsup    ;ne support pas la suppression de dossier
 jmp err3cmdsup
 
 suite_cmdsup:
@@ -2716,6 +2716,55 @@ jmp pascommande
 
 ;********************************************
 cmdcop:
+mov edx,ad_zdc
+
+boucle1_cmdcop:     ;trouve le debut du nom du fichier
+cmp byte[edx],0
+je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+inc edx
+cmp byte[edx]," "
+jne boucle1_cmdcop
+cmp byte[edx+1]," "
+je boucle1_cmdcop          
+
+inc edx
+mov esi,edx
+
+boucle2_cmdcop:     ;trouve le debut du nouveau nom du fichier
+cmp byte[edx],0
+je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+inc edx
+cmp byte[edx],":"
+jne boucle2_cmdcop   
+
+mov byte[edx],0
+inc edx
+mov edi,edx
+
+xor eax,eax         ;ouvre le fichier
+xor ebx,ebx
+mov edx,esi
+int 64h
+cmp eax,0       
+je suite_cmdcop
+;cmp eax,12       
+;je suite_cmdcop  ;ne support pas la recopie de dossier
+jmp err3cmdsup
+
+
+suite_cmdcop:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;ouvre le fichier
+;créer la destination
+;copie les données dans la destination
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 mov cl,98   
 call affmsgsyst
 mov edx,esi
