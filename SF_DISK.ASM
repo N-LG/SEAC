@@ -127,6 +127,7 @@ pop ecx
 fs
 or byte[at_fc_fichier],04h      ;signale que le moteur est allumé
 motdjal1:
+fs
 mov byte[essai_dsq],3
 
 blecdsq:
@@ -158,14 +159,6 @@ mov bh,al
 shl bh,2      ;bh=lec&tête bl=cylindre/piste
 
 call placetete
-
-fs
-mov ecx,[cptsf]    ;attend 25ms
-add ecx,10
-bclatm1b:
-fs
-cmp [cptsf],ecx
-jb bclatm1b
 
 mov al,66h    ;lecture double densité et sans lire les deleted adress marks 
 call envfdc
@@ -241,6 +234,7 @@ jz erreurdsq
 jmp blecdsq
 
 lec_suivant_dsq:
+fs
 mov byte[essai_dsq],3
 add edi,200h
 inc ebx
@@ -514,6 +508,7 @@ pop cx
 fs
 or byte[at_fc_fichier],04h
 motdjal2:
+fs
 mov byte[essai_dsq],3
 
 becrdsq:
@@ -521,7 +516,7 @@ push cx
 push ebx
 push esi
 push ebx
-;recopie le secteur lu a sa destination
+;ecrit le secteur dans la zone tampon de lecture/ecriture disquette
 push ds
 push es
 mov ax,es
@@ -538,17 +533,17 @@ pop ds
 
 mov ebx,30000h+zt_disquette
 mov cx,511
-mov ah,045h     ;lecture par le périphérique   en single mode
+mov ah,048h     ;lecture par le périphérique   en single mode
 call inidma2
 pop ebx
 
-mov bx,ax
+mov ax,bx
 fs
 mov cx,[sec_cyl_disq]   ;secteur par cylindre
 xor dx,dx
 div cx
 
-mov bx,ax      
+mov bx,ax         
 mov ax,dx
 fs
 mov cx,[sec_piste_disq]   ;secteur par piste
@@ -556,23 +551,10 @@ xor dx,dx
 div cx         
 inc dx        ;bx=piste ax=tête dx=secteur
 mov dh,al     ;dh=tête dl=secteur
-mov bh,dh     
+mov bh,al     
 shl bh,2      ;bh=lec&tête bl=cylindre/piste
 
-mov al,0Fh    ;place la tête 
-call envfdc
-mov al,bh    ;lecteur & tête 
-call envfdc
-mov al,bl     ;cylindre/piste
-call envfdc
-fs
-mov ecx,[cptsf]    ;attend 25ms
-add ecx,10
-bclatm2b:
-fs
-cmp [cptsf],ecx
-jb bclatm2b
-
+call placetete
 
 mov al,65h    ;ecriture double densité et sans lire les deleted adress marks 
 call envfdc
@@ -588,7 +570,7 @@ mov al,02h     ;taille du secteur 02=512
 call envfdc
 mov al,01h     ;nombre de secteur a lire ?
 call envfdc
-mov al,27h     ;GAP3 length ?
+mov al,18h    ;27h     ;GAP3 length ?
 call envfdc
 mov al,0FFh     ;taille des données a lire,  
 call envfdc    ;valide uniquement si la taille du secteur = 0
@@ -632,6 +614,7 @@ jz erreurdsq
 jmp becrdsq
 
 ecr_suivant_dsq:
+fs
 mov byte[essai_dsq],3
 add esi,200h
 inc ebx
@@ -864,7 +847,7 @@ out dx,al
 mov dx,0Bh    ;Spécificer le mode de transfert - registre Mode ;
 mov al,ah
 and al,0FCh
-or al,02h
+or al,02h     ;selectionne canal 2
 out dx,al
 
 mov dx,0Ch    ;Donner l 'adresse du buffer (offset + page) - registre Flip-Flop ;
@@ -1125,7 +1108,7 @@ mov al,cl
 out dx,al
 
 call at1puls
-call attsl        
+call attsl       
 jnc disc_sel_iniata
 
 mov al,08h        ;envoye la commande device reset si il est occupé???
@@ -1320,7 +1303,7 @@ mov dx,7
 add dx,di
 fs
 mov ecx,[cptsf]
-add ecx,100               ;temp a attendre pour tester
+add ecx,8               ;temp a attendre pour tester
 
 bocsl:
 in al,dx

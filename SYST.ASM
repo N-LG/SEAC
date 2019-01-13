@@ -1262,6 +1262,30 @@ mov dx,3F2h ;reinitialisation du controleur disquette
 mov al,00h
 out dx,al
 
+
+;*********************************************************************
+;charge les info du disque BIOS (désactivé parce que trop long)
+;mov al,8
+;mov edi,bootsecteur
+;mov cl,1
+;mov ch,0Fh
+;xor ebx,ebx
+;int 64h           ;charge le mbr disque
+;cmp eax,0
+;jne ignore_disque_bios
+
+;mov esi,bootsecteur+1BEh ;esi=1er octet du descripteur de la partition
+;call exbasepart    ;1er partition
+;add esi,10h
+;call exbasepart    ;2eme partition
+;add esi,10h
+;call exbasepart    ;3eme partition
+;add esi,10h
+;call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
+
+;ignore_disque_bios:
+
+
 ;**********************************************************************
 ;lit les info disque ata et met a jour les info de partitions
 mov ch,10h
@@ -1342,6 +1366,7 @@ pop cx
 cmp eax,0
 jne pasinfopart
 
+push esi
 mov esi,bootsecteur+1BEh ;esi=1er octet du descripteur de la partition
 call exbasepart    ;1er partition
 add esi,10h
@@ -1350,12 +1375,13 @@ add esi,10h
 call exbasepart    ;3eme partition
 add esi,10h
 call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
+pop esi
 
 pasinfopart:
 inc ch
 add esi,32
 cmp ch,18h
-;jne boucle_init_infopart                 §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!!!désactivé temporairement pour rendre la vitesse de démarrage plus rapide
+jne boucle_init_infopart
 
 
 ;*******************************************************************

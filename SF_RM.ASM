@@ -270,7 +270,7 @@ mov gs,bx
 mov bx,segpil
 mov ss,bx
 
-;int 13h           ;on désactive pour le moment ça bug de trop 
+int 13h           ;on désactive pour le moment ça bug de trop 
 xor ax,ax
 jnc errint13
 mov ax,1
