@@ -160,7 +160,10 @@ sauv_esp_vesa equ 9Ch ;sauvegarde de esp lors de l'appel de int 10h en mode prot
 ;***************************************************************************
 
 at_fc_fichier equ 0C0h ;attribut des fonctions fichier
-
+;b0=fonction fichier active
+;b1=dernière opération disquette raté
+;b2=moteur disquette allumé
+;b3=irq6 activé
 essai_dsq equ 0C1h
 sec_piste_disq equ 0C2h ;secteur par piste sur la disquette
 nb_piste_disq equ 0C4h ;nombre de piste par face

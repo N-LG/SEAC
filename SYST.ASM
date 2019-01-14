@@ -4273,7 +4273,7 @@ jmp finirqs
 
 stopbip:
 mov al,0
-out 61h,al        ;?teint le bip
+out 61h,al        ;éteint le bip
 ;**************************************
 
 finirqs:
@@ -4289,12 +4289,8 @@ sti
 iret
 
 
-
-
 ;********************************
 ;irq non gérés, acquitement simple
-
-
 irq8:
 irq9:
 irqA:

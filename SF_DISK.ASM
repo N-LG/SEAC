@@ -120,15 +120,23 @@ fs
 mov ecx,[cptsf]    ;attend 500ms que le moteur soit V correcte
 add ecx,200
 bclatm1:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclatm1
 pop ecx
-fs
-or byte[at_fc_fichier],04h      ;signale que le moteur est allumé
 motdjal1:
 fs
-mov byte[essai_dsq],3
+mov eax,[cptsf]   ;fixe le délais pour l'arret du moteur disquette
+add eax,12000      ;30 secondes
+fs
+mov [temp_moteur_disq],eax
+fs
+or byte[at_fc_fichier],04h
+
+fs
+mov byte[essai_dsq],3   ;3 réessais de lecture
+
 
 blecdsq:
 push cx
@@ -179,37 +187,29 @@ call envfdc
 mov al,0FFh     ;taille des données a lire,  
 call envfdc    ;valide uniquement si la taille du secteur = 0
 
-
-call recfdc  ;octet d'état 0
-mov ah,al
-and ah,0C0h
-cmp ah,0
-je st0ok
-fs
-or byte[at_fc_fichier],02h
+call recfdc                    ;octet d'état 0
 fs
 mov [erreur_disquette+0],al
-st0ok:
-call recfdc  ;octet d'état 1
-cmp al,0
-je st1ok
-fs
-or byte[at_fc_fichier],02h
+call recfdc                    ;octet d'état 1
 fs
 mov [erreur_disquette+1],al
-st1ok:
-call recfdc  ;octet d'état 2
-cmp al,0
-je st2ok
-fs
-or byte[at_fc_fichier],02h
+call recfdc                    ;octet d'état 2
 fs
 mov [erreur_disquette+2],al
-st2ok:
-call recfdc  ;piste/cylindre           on lit les données
-call recfdc  ;tête                     mais on ne vérifie rien
-call recfdc  ;nombre de secteur
-call recfdc  ;nombre d'octet par secteur
+call recfdc                    ;piste/cylindre           on lit les données
+call recfdc                    ;tête                     mais on ne vérifie rien
+call recfdc                    ;nombre de secteur
+call recfdc                    ;nombre d'octet par secteur
+
+fs
+mov al,[erreur_disquette+0]
+and al,0C0h
+cmp al,0
+je octet_etat_ok1
+fs
+or byte[at_fc_fichier],02h
+octet_etat_ok1:
+
 
 ;recopie le secteur lu a sa destination
 push ds
@@ -240,11 +240,7 @@ add edi,200h
 inc ebx
 dec cl
 jnz blecdsq
-fs
-mov ecx,[cptsf]   ;fixe le délais pour l'arret du moteur disquette
-add ecx,2000      ;5 secondes
-fs
-mov [temp_moteur_disq],ecx
+
 pop gs
 pop fs
 pop es
@@ -255,11 +251,6 @@ ret
 
 erreurdsq:
 call razfdc
-fs
-mov ecx,[cptsf]   ;fixe le délais pour l'arret du moteur disquette
-add ecx,2000      ;5 secondes
-fs
-mov [temp_moteur_disq],ecx
 pop gs
 pop fs
 pop es
@@ -501,15 +492,22 @@ fs
 mov ecx,[cptsf]    ;attend 1 seconde que le moteur soit V correcte
 add ecx,400
 bclatm3:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclatm3
 pop cx
-fs
-or byte[at_fc_fichier],04h
 motdjal2:
 fs
-mov byte[essai_dsq],3
+mov eax,[cptsf]   ;fixe le délais pour l'arret du moteur disquette
+add eax,12000      ;30 secondes
+fs
+mov [temp_moteur_disq],eax
+fs
+or byte[at_fc_fichier],04h
+
+fs
+mov byte[essai_dsq],3   ;3 réessais d'écriture
 
 becrdsq:
 push cx
@@ -575,31 +573,28 @@ call envfdc
 mov al,0FFh     ;taille des données a lire,  
 call envfdc    ;valide uniquement si la taille du secteur = 0
 
+call recfdc                    ;octet d'état 0
+fs
+mov [erreur_disquette+0],al
+call recfdc                    ;octet d'état 1
+fs
+mov [erreur_disquette+1],al
+call recfdc                    ;octet d'état 2
+fs
+mov [erreur_disquette+2],al
+call recfdc                    ;piste/cylindre           on lit les données
+call recfdc                    ;tête                     mais on ne vérifie rien
+call recfdc                    ;nombre de secteur
+call recfdc                    ;nombre d'octet par secteur
 
-call recfdc  ;octet d'état 0
-and al,011111011b
+fs
+mov al,[erreur_disquette+0]
+and al,0C0h
 cmp al,0
-je st0ok2
+je octet_etat_ok2
 fs
 or byte[at_fc_fichier],02h
-st0ok2:
-call recfdc  ;octet d'état 1
-cmp al,0
-je st1ok2
-fs
-or byte[at_fc_fichier],02h
-st1ok2:
-call recfdc  ;octet d'état 2
-cmp al,0
-je st2ok2
-fs
-or byte[at_fc_fichier],02h
-st2ok2:
-call recfdc  ;piste/cylindre           on lit les données
-call recfdc  ;tête                     mais on ne vérifie rien
-call recfdc  ;nombre de secteur
-call recfdc  ;nombre d'octet par secteur
-
+octet_etat_ok2:
 
 pop esi
 pop ebx
@@ -620,11 +615,6 @@ add esi,200h
 inc ebx
 dec ch
 jnz becrdsq
-fs
-mov ecx,[cptsf]  ;fixe le délais pour l'arret du moteur disquette
-add ecx,2000     ;5 secondes
-fs
-mov [temp_moteur_disq],ecx
 pop gs
 pop fs
 pop es
@@ -644,33 +634,6 @@ ss
 mov [esp+28],eax
 popad
 ret
-
-erlecf25:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_parami
-ret
-ernrf25:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_parami
-ret
-erokupf25:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_parami
-ret
-
-
 
 
 ecratapi:
@@ -768,19 +731,31 @@ fs
 mov ecx,[cptsf]    ;attend 250ms que le controleur ai fini
 add ecx,100
 bclatraz1:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclatraz1
+
 mov dx,3F2h     ;allume le moteur 
 mov al,1Ch
 out dx,al
 fs
 mov ecx,[cptsf]    ;attend 500ms que le moteur soit V correcte
-add ecx,200
+add ecx,500
 bclatraz2:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclatraz2
+fs
+mov eax,[cptsf]   ;fixe le délais pour l'arret du moteur disquette
+add eax,12000      ;30 secondes
+fs
+mov [temp_moteur_disq],eax
+fs
+or byte[at_fc_fichier],04h
+
+
 mov al,07h    ;recalibrage 
 call envfdc
 mov al,0    ;lecteur & tête 
@@ -789,33 +764,23 @@ fs
 mov ecx,[cptsf]    ;attend 500ms que la recalibration soit terminé
 add ecx,200
 bclatraz3:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclatraz3
-mov al,0Fh    ;place la tête 
-call envfdc
-mov al,0    ;lecteur & tête 
-call envfdc
-mov al,0     ;cylindre/piste
-call envfdc
-fs
-mov ecx,[cptsf]    ;attend 250ms que la tête soit bien placé
-add ecx,100
-bclatraz4:
-fs
-cmp [cptsf],ecx
-jb bclatraz4
-fs
-mov byte[pos_cyl_disq],0
+
 fs
 and byte[at_fc_fichier],0FDh  ;reset le bit "erreur de lecture controleur a raz"
-popad
-ret
+xor ebx,ebx
+jmp pltet
+
 
 placetete:
+pushad
 fs
 cmp bl,[pos_cyl_disq]
 jne pltet
+popad
 ret
 
 pltet:
@@ -829,12 +794,19 @@ fs
 mov ecx,[cptsf]    ;attend 500ms
 add ecx,200
 bclattete:
+int 62h
 fs
 cmp [cptsf],ecx
 jb bclattete
 fs
 mov [pos_cyl_disq],bl
+popad
 ret
+
+
+
+
+
 
 
 inidma2:  ;canal 2 ah=mode de transfert

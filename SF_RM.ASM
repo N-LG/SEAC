@@ -146,7 +146,7 @@ mov al,20h
 out 20h,al
 
 mov dx,21h             ;regle le masquage des irq
-mov al,0F8h            ;masque les irq 3?7
+mov al,0A0h            ;masque les irq 5&7
 out dx,al
 mov dx,0A1h
 mov al,0EFh            ;masque les irq 8?11 et 13?15
