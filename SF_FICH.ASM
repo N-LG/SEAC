@@ -2657,8 +2657,6 @@ fs
 cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
 je ok_lire_meta_fichier_fat
 popad
-;mov al,3
-;out 61h,al        ;allume le bipper
 jmp ignore_lire_meta_fichier   ;on evite certaine phase
 jmp errsysf
 ok_lire_meta_fichier_fat:
@@ -2894,6 +2892,7 @@ jmp finlirefichier
 
 ;****************************************************
 lireracinefat:
+
 fs
 mov al,[at_fichier]
 and al,0011b
@@ -3050,6 +3049,10 @@ rep movsb
 pop ds
 pop esi
 jmp finlirefichier
+
+
+
+
 
 lirefichierfat: ;***********************************************lecture fichier FAT 12,16,et 32
 
@@ -3986,8 +3989,6 @@ jmp fin_sfecrirefichier_erprm
 ;****************************************
 ecrirefichiermem:
 
-
-
 fs
 mov edi,[ad_fichier]
 
@@ -4099,6 +4100,13 @@ and al,0011b
 cmp al,3
 jne ecrirefichierfat   ;si ce n'est pas le dossier racine alors ça s'écrit comme un fichier
 
+mov ax,es
+mov ds,ax
+mov ax,seldat
+mov es,ax
+
+
+
 
 ;***********************************************ecriture dossier racine fat
 ;determiner l'adresse du premier secteur a ecrire
@@ -4125,15 +4133,11 @@ ja sectds_ecr_sfin
 ;charge le secteur dans une zone tampon
 push ecx
 push edi
-push es
-mov di,seldat
-mov es,di
 mov edi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call lsct                  
-pop es
 pop edi
 pop ecx
 cmp eax,0
@@ -4148,15 +4152,11 @@ rep movsb
 ;écrit le secteur
 push ecx
 push esi
-push es
-mov si,seldat
-mov es,si
 mov esi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call esct                  
-pop es
 pop esi
 pop ecx
 cmp eax,0
@@ -4164,20 +4164,16 @@ jne fin_sfecrirefichier_erecr
 
 jmp fin_sfecrirefichier_ok
 
-;*********************lecture partielle fin 
+;*********************ecriture partielle fin 
 sectds_ecr_sfin:
 ;charge le secteur dans une zone tampon
 push ecx
 push edi
-push es
-mov di,seldat
-mov es,di
 mov edi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call lsct                  
-pop es
 pop edi
 pop ecx
 cmp eax,0
@@ -4193,40 +4189,36 @@ mov edx,ecx
 cld
 rep movsb
 pop ecx
+sub ecx,edx
 
 ;ecrit le secteur
 push ecx
-push edx
 push esi
-push es
-mov si,seldat
-mov es,si
 mov esi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call esct                  
-pop es
 pop esi
-pop edx
 pop ecx
 cmp eax,0
 jne fin_sfecrirefichier_erecr
 
-sub ecx,edx
-add esi,edx
 jmp sectds_ecr_determination
 
 
 ;******************************secteur complet
 sectds_ecr_scomplet:
-
 ;charge le secteur directement a l'endroit souhaité
 push ecx
+push es
+mov ax,ds
+mov es,ax
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call esct
+pop es
 pop ecx
 cmp eax,0
 jne fin_sfecrirefichier_erecr
@@ -4245,20 +4237,20 @@ inc ebx  ;secteur suivant
 cmp ecx,512
 ja sectds_ecr_scomplet
 
-;************************lecture partielle debut
+;************************ecriture partielle debut
 sectds_ecr_sdebut:
+
+
+
+
 ;charge le secteur dans une zone tampon
 push ecx
 push edi
-push es
-mov di,seldat
-mov es,di
 mov edi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call lsct                  
-pop es
 pop edi
 pop ecx
 cmp eax,0
@@ -4270,18 +4262,18 @@ mov edi,secteurcd
 cld
 rep movsb
 
+
+
 ;ecrit le secteur
 push ecx
 push esi
-push es
-mov si,seldat
-mov es,si
+
 mov esi,secteurcd
 mov cl,1
 fs
 mov ch,[no_disquepart]
 call esct                  
-pop es
+
 pop esi
 pop ecx
 cmp eax,0
@@ -4298,7 +4290,6 @@ mov ax,es
 mov ds,ax
 mov ax,selramh
 mov es,ax
-
 
 ;determiner l'adresse du premier cluster ou ecrire
 fs

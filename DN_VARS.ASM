@@ -65,7 +65,7 @@ zt_conversion_ucs equ 4400h  ;definition temporaire
 zt_disquette equ 4400h          ;zone tampon pour la lecture de secteur sur la disquette
 bootsecteur equ 4600h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
 zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées
-secteurcd equ 4600h             ;zt pour la lecture partielle de secteur CD
+secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 
 
 
