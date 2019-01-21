@@ -1825,21 +1825,78 @@ jmp ouvrir_creer_fichier
 
 sf_cree_fichier:  ;créer un fichier suivant le nom contenue dans ad_nomfichier1
 pushad
+;verifie que les caractère non autorisé soit absent
+mov ebx,ad_nomfichier1
+boucle_verif_sf_cree_fichier: 
+fs
+mov ax,[ebx]
+cmp al,0
+je fin_verif_sf_cree_fichier
+cmp al,022h   ;"
+je erreur_nom_sf_cree_fichier
+cmp al,02Fh   ;/
+je erreur_nom_sf_cree_fichier
+cmp al,05Ch   ;\
+je erreur_nom_sf_cree_fichier
+cmp al,02Ah   ;*
+je erreur_nom_sf_cree_fichier
+cmp al,03Fh   ;?
+je erreur_nom_sf_cree_fichier
+cmp al,03Ch   ;<
+je erreur_nom_sf_cree_fichier
+cmp al,03Eh   ;>
+je erreur_nom_sf_cree_fichier
+cmp al,06Ch   ;|
+je erreur_nom_sf_cree_fichier
+cmp al,03Ah   ;:
+je erreur_nom_sf_cree_fichier
+
+test al,0E0h   ;inferieur a 20h
+jz erreur_nom_sf_cree_fichier
+cmp al,07Fh   ;DEL
+je erreur_nom_sf_cree_fichier
+cmp al,0C2h
+jne ok_caraczz
+and ah,0E0h
+cmp ah,80h
+je erreur_nom_sf_cree_fichier
+
+
+
+ok_caraczz:
+inc ebx
+cmp ebx,ad_nomfichier1+512
+jne boucle_verif_sf_cree_fichier
+
+
+
+fin_verif_sf_cree_fichier:
+
+
+
+
+
+
 fs
 mov al,[at_fichier]
 and al,00111100b
 cmp al,00001000b
 je cree_fichier_mem       ;on test si c'est un fichier mémoire
-;cmp al,010000b 
-;je cree_fichier_fat       ;on fat12,
-;cmp al,010100b
-;je cree_fichier_fat       ;ou fat16
-;cmp al,011000b
-;je cree_fichier_fat       ;ou fat32
+cmp al,010000b 
+je cree_fichier_fat       ;on fat12,
+cmp al,010100b
+je cree_fichier_fat       ;ou fat16
+cmp al,011000b
+je cree_fichier_fat       ;ou fat32
 popad
 mov eax,cer_cfi   ;création de fichier impossible
 ret
 
+
+erreur_nom_sf_cree_fichier:
+popad
+mov eax,cer_cin ;carac interdit dans le nom de fichier
+ret
 
 cree_fichier_mem:
 mov ecx,432
@@ -1880,7 +1937,7 @@ popad
 mov eax,cer_pasm
 ret
 
-
+;*******************************************************************
 conv_date_fat: ;convertit la date et l'heure au format FAT
 ;entrée:
 ;al=heure ah=minute bx=seconde (en millième)
@@ -1923,66 +1980,13 @@ ret
 
 
 ;****************************************************************************
-cree_descripteur_fichier: 
-pushad
+cree_fichier_fat:
 
-mov esi,edx  ;esi=adresse du nom
-
-;verifie que les caractère non autorisé soit absent
-mov ecx,edx
-mov ebx,edx
-add ecx,512
-boucle_verif_cree_descr_fichier: 
-mov al,[ebx]
-cmp al,0
-je fin_verif_cree_descr_fichier
-cmp al,022h   ;"
-je erreur_nom_cree_descr_fichier
-cmp al,02Fh   ;/
-je erreur_nom_cree_descr_fichier
-cmp al,05Ch   ;\
-je erreur_nom_cree_descr_fichier
-cmp al,02Ah   ;*
-je erreur_nom_cree_descr_fichier
-cmp al,03Fh   ;?
-je erreur_nom_cree_descr_fichier
-cmp al,03Ch   ;<
-je erreur_nom_cree_descr_fichier
-cmp al,03Eh   ;>
-je erreur_nom_cree_descr_fichier
-cmp al,06Ch   ;|
-je erreur_nom_cree_descr_fichier
-cmp al,03Ah   ;:
-je erreur_nom_cree_descr_fichier
-
-test al,0E0h   ;inferieur a 20h
-jz erreur_nom_cree_descr_fichier
-cmp al,07Fh   ;DEL
-je erreur_nom_cree_descr_fichier
-
-cmp ebx,ecx
-jne boucle_verif_cree_descr_fichier
-
-
-
-fin_verif_cree_descr_fichier:
-fs
-mov al,[at_fichier]
-and al,00111100b
-cmp al,010000b 
-je cree_descr_fichier_fat       ;on teste si le fichier est fat12,
-cmp al,010100b
-je cree_descr_fichier_fat       ;ou fat16
-cmp al,011000b
-je cree_descr_fichier_fat       ;ou fat32
 popad
 mov eax,cer_cfi   ;création de fichier impossible
 ret
 
 
-
-
-cree_descr_fichier_fat:
 
 ;compte le nombre de carac du nom et le nombre de point
 mov ebx,edx
@@ -2375,10 +2379,7 @@ ret
 
 
 
-erreur_nom_cree_descr_fichier:
-popad
-mov eax,cer_cin ;carac interdit dans le nom de fichier
-ret
+
 
 
 ;*************************************************************
@@ -4732,8 +4733,8 @@ pop ebx
 jmp errsysf
 
 ok_minfofichier_fat:  ;quel est l'info a modifier?
-cmp cl,0
-je minfofichier_fat_nom
+;cmp cl,0
+;je minfofichier_fat_nom
 cmp cl,1
 je minfofichier_fat_taille
 pop ebx
@@ -4797,244 +4798,6 @@ pop ebx
 fin_minfofichier:
 call minfo_sauvegarde_descripteur
 jmp finfonctionfichiererr
-
-
-
-
-minfofichier_fat_nom:
-
-;crée un decripteur le nom 
-call cree_descripteur_fichier
-
-
-;transfert les info du fichier dans le nouveau descripteur
-xor edx,edx
-fs
-cmp byte[zt_nouveau_descripteur+0Bh],0Fh
-jne minfofichier_fat_nom_court
-fs
-mov dl,[zt_nouveau_descripteur]
-and edx,3Fh
-shl edx,5
-minfofichier_fat_nom_court:
-
-fs
-mov al,[zt_lminfo+11+ebx]
-fs
-mov [zt_nouveau_descripteur+11+edx],al
-fs
-mov eax,[zt_lminfo+12+ebx]
-fs
-mov [zt_nouveau_descripteur+12+edx],eax
-fs
-mov eax,[zt_lminfo+16+ebx]
-fs
-mov [zt_nouveau_descripteur+16+edx],eax
-fs
-mov eax,[zt_lminfo+20+ebx]
-fs
-mov [zt_nouveau_descripteur+20+edx],eax
-fs
-mov eax,[zt_lminfo+24+ebx]
-fs
-mov [zt_nouveau_descripteur+24+edx],eax
-fs
-mov eax,[zt_lminfo+28+ebx]
-fs
-mov [zt_nouveau_descripteur+28+edx],eax
-
-
-
-;calcul et met a jour le checksum si besoin
-cmp edx,0
-je minfofichier_fat_nom_ignore_checksum
-call calcmaj_checksum_fat
-
-;????????????????????????????????????
-
-minfofichier_fat_nom_ignore_checksum:
-
-
-
-
-
-minfo_fat_nom_rech_vide:     ;recherche une place dans le dossier et verifie que le nom n'est pas déja utilisé
-
-;reserve un zt dans la memoire
-mov ecx,8192
-call resmem
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§erreur d'allocation de mémoire
-add ebx,10h
-mov edi,ebx ;edi=pointeur sur zt utilisable
-xor ebp,ebp ;ebp=pointeur dans le dossier représente le début de la zt
-xor ebx,ebx ;ebx=pointeur dans la zt 
-xor esi,esi ;esi=adresse dispo trouvé
-
-
-regen:
-;charge la partie du dossier
-add ebp,ebx
-push ecx
-push edx
-push es
-mov ax, selramh
-mov es,ax
-fs
-mov ecx,8192
-fs
-mov edx,ebp
-call sflirefichier
-pop es
-pop edx
-pop ecx
-cmp eax,0
-jne errouvfichier
-xor ebx,ebx
-
-
-
-boucle:
-gs
-mov al,[edi+ebx]
-cmp al,0E5h
-je vide
-fs
-cmp al,[zt_nouveau_descripteur]
-je nom_long 
-fs
-cmp al,[zt_nouveau_descripteur+edx]
-je nom_court
-cmp al,0
-je fin
-xor ecx,ecx
-jmp suite
-
-
-vide:
-cmp ecx,0
-jne paspremiervide
-mov esi,ebp
-add esi,ebx
-paspremiervide:
-add ecx,32
-jmp suite
-
-
-nom_court:
-gs
-mov eax,[ebx]
-fs
-cmp eax,[zt_nouveau_descripteur+edx]
-jne suite
-gs
-mov eax,[ebx+4]
-fs
-cmp eax,[zt_nouveau_descripteur+4+edx]
-jne suite
-gs
-mov eax,[ebx+8]
-fs
-cmp eax,[zt_nouveau_descripteur+8+edx]
-jne suite
-
-or ah,1
-jmp suite
-
-
-nom_long:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-suite:
-add ebx,32
-cmp ebx,8192-512
-jne boucle
-jmp regen
-
-fin:
-
-cmp ah,0
-je minfo_fat_position_trouve
-cmp ah,1
-je minfo_fat_nom_court_ident
-nom_identique_trouve:
-mov eax,cer_nfr            ;si un descripteur de nom long a été 
-jmp finfonctionfichiererr
-
-
-
-minfo_fat_nom_court_ident:    ;si le nom court est identique a un autre, modifie en ~1 ou incrémente le numéro
-cmp edx,0
-je nom_identique_trouve ;si il n'y as pas de nom long alors on ne peut pas modifier le nom
-call ajuste_nom_court
-call calcmaj_checksum_fat
-jmp minfo_fat_nom_rech_vide
-
-
-
-;supprime l'ancien descripteur
-minfo_fat_position_trouve: 
-push ebx
-fs
-mov word[ebx+zt_lminfo+14h],0
-fs
-mov word[ebx+zt_lminfo+1Ah],0
-
-boucle_libere_entree_fichier_fat:
-fs
-mov byte[ebx+zt_lminfo],0E5h
-cmp ebx,0
-je fin_libere_entree_fichier_fat
-sub ebx,32
-jmp boucle_libere_entree_fichier_fat
-
-fin_libere_entree_fichier_fat:
-pop ebx
-call minfo_sauvegarde_descripteur
-cmp eax,0
-jne finfonctionfichiererr
-
-
-
-;enregistre le nouveau descripteur
-fs
-mov [ad_dansdossier],esi
-
-call minfo_charge_descripteur
-cmp eax,0
-jne finfonctionfichiererr
-
-push ds
-push es
-mov esi,zt_nouveau_descripteur
-mov edi,zt_lminfo
-mov ecx,edx
-add ecx,20h
-rep movsb
-pop es
-pop ds
-
-call minfo_sauvegarde_descripteur
-cmp eax,0
-jne finfonctionfichiererr
-
-jmp finfonctionfichiererr
-
-
-;**********************ajoute un ~1 ou incrémente le numéro
-ajuste_nom_court:
-;lit le ~nombre a la fin du nom
-
-
-
-
-;Si il n'y en as pas met un simple ~1
-mov word[zt_nouveau_descripteur+6+edx],'~1'
-ret
-
-
-
-
 
 
 
