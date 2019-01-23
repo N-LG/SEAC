@@ -1860,21 +1860,12 @@ jne ok_caraczz
 and ah,0E0h
 cmp ah,80h
 je erreur_nom_sf_cree_fichier
-
-
-
 ok_caraczz:
 inc ebx
 cmp ebx,ad_nomfichier1+512
 jne boucle_verif_sf_cree_fichier
 
-
-
 fin_verif_sf_cree_fichier:
-
-
-
-
 
 
 fs
@@ -1898,6 +1889,7 @@ popad
 mov eax,cer_cin ;carac interdit dans le nom de fichier
 ret
 
+;********************
 cree_fichier_mem:
 mov ecx,432
 call resmem
@@ -1912,7 +1904,6 @@ mov edi,ebx
 add edi,10h
 mov ecx,edi
 add ecx,400
-
 
 boucle_cree_fichier_mem:
 fs
@@ -1936,6 +1927,303 @@ err_cree_fichier_mem:
 popad 
 mov eax,cer_pasm
 ret
+
+
+
+
+
+
+
+
+;****************************************************************************
+cree_fichier_fat:
+
+;crer descripteur vide
+fs
+mov dword[ad_nomfichier2+0],020202020h
+fs
+mov dword[ad_nomfichier2+4],020202020h
+fs
+mov dword[ad_nomfichier2+8],000202020h
+fs
+mov dword[ad_nomfichier2+12],0
+fs
+mov dword[ad_nomfichier2+16],0
+fs
+mov dword[ad_nomfichier2+20],0
+fs
+mov dword[ad_nomfichier2+24],0
+fs
+mov dword[ad_nomfichier2+28],0
+
+call lire_date_heure  
+call conv_date_fat ;ax=heure dx=date
+fs
+mov [ad_nomfichier2+14],ax
+fs
+mov [ad_nomfichier2+16],dx
+fs
+mov [ad_nomfichier2+18],dx
+fs
+mov [ad_nomfichier2+22],ax
+fs
+mov [ad_nomfichier2+24],dx
+
+mov ecx,1   ;ecx=nombre de bloc de 32octet utilisé par le descripteur
+
+;ecrit le nom dans le descripteur
+mov ebx,ad_nomfichier1
+mov edx,ad_nomfichier2
+
+cree_fichier_fat_court_bouclenom:
+fs
+mov al,[ebx]
+cmp al,"."
+je cree_fichier_fat_court_point
+
+cmp al,0
+je cree_fichier_fat_suite
+cmp al,"/"
+je cree_fichier_fat_suite
+cmp al,"\"
+je cree_fichier_fat_suite
+
+;test carac autorisé     A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
+cmp al,21h   ;!
+je cree_fichier_fat_court_oknom
+cmp al,23h  ;#
+jb cree_fichier_fat_long
+cmp al,29h  ;)
+jbe cree_fichier_fat_court_oknom
+cmp al,2Dh   ;-
+je cree_fichier_fat_court_oknom
+cmp al,30h  ;0
+jb cree_fichier_fat_long
+cmp al,39h  ;9
+jbe cree_fichier_fat_court_oknom
+cmp al,40h  ;@
+jb cree_fichier_fat_long
+cmp al,5Ah  ;Z
+jbe cree_fichier_fat_court_oknom
+cmp al,5Eh  ;^
+jb cree_fichier_fat_long
+cmp al,60h  ;' (accent grave)
+jbe cree_fichier_fat_court_oknom
+cmp al,7Bh   ;{
+je cree_fichier_fat_court_oknom
+cmp al,7Dh   ;}
+je cree_fichier_fat_court_oknom
+cmp al,7Eh   ;~
+jne cree_fichier_fat_long
+
+cree_fichier_fat_court_oknom:
+fs
+mov [edx],al
+inc edx
+inc ebx
+cmp edx,ad_nomfichier2+8
+jne cree_fichier_fat_court_bouclenom
+
+fs
+cmp byte[ebx],"."
+jne cree_fichier_fat_long
+
+cree_fichier_fat_court_point:
+inc ebx
+mov edx,ad_nomfichier2+8
+
+cree_fichier_fat_court_bouclepoint:
+fs
+mov al,[ebx]
+cmp al,"."
+je cree_fichier_fat_long
+
+cmp al,0
+je cree_fichier_fat_suite
+cmp al,"/"
+je cree_fichier_fat_suite
+cmp al,"\"
+je cree_fichier_fat_suite
+
+;test carac autorisé     A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
+cmp al,21h   ;!
+je cree_fichier_fat_court_okpoint
+cmp al,23h  ;#
+jb cree_fichier_fat_long
+cmp al,29h  ;)
+jbe cree_fichier_fat_court_okpoint
+cmp al,2Dh   ;-
+je cree_fichier_fat_court_okpoint
+cmp al,30h  ;0
+jb cree_fichier_fat_long
+cmp al,39h  ;9
+jbe cree_fichier_fat_court_okpoint
+cmp al,40h  ;@
+jb cree_fichier_fat_long
+cmp al,5Ah  ;Z
+jbe cree_fichier_fat_court_okpoint
+cmp al,5Eh  ;^
+jb cree_fichier_fat_long
+cmp al,60h  ;' (accent grave)
+jbe cree_fichier_fat_court_okpoint
+cmp al,7Bh   ;{
+je cree_fichier_fat_court_okpoint
+cmp al,7Dh   ;}
+je cree_fichier_fat_court_okpoint
+cmp al,7Eh   ;~
+jne cree_fichier_fat_long
+
+cree_fichier_fat_court_okpoint:
+fs
+mov [edx],al
+inc edx
+inc ebx
+cmp edx,ad_nomfichier2+11
+jne cree_fichier_fat_court_bouclepoint
+fs
+cmp byte[ebx],0
+je cree_fichier_fat_suite
+
+;****************************************
+cree_fichier_fat_long:
+jmp erreur_nom_sf_cree_fichier ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§phase3
+
+
+;****************************************
+cree_fichier_fat_suite:          ;cherche emplacement vide et ecrit le descripteur dedans
+;ecx=nombre de bloc descripteur a ecrire
+xor edx,edx ;edx=base de la partie de dossier chargé
+xor eax,eax ;eax taille de l'emplacement trouvé
+
+cree_fichier_fat_suite_lecture:   ;lire partie dossier
+push es
+push ecx
+mov ax,selramh
+mov es,ax
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+call sflirefichier
+pop ecx
+cmp eax,0
+jne cree_fichier_fat_erreur
+
+;chercher descripeur vide
+fs
+mov ebx,[ad_ztexpdossier]
+fs
+mov edi,[to_ztexpdossier]
+add edi,ebx
+
+cree_fichier_fat_suite_boucle:
+es
+cmp byte[ebx],00h
+je cree_fichier_fat_suite_findossier
+es
+cmp byte[ebx],0E5h
+je cree_fichier_fat_suite_vide
+
+xor eax,eax
+add ebx,20h
+cmp ebx,edi
+jne cree_fichier_fat_suite_boucle
+fs
+add edx,[to_ztexpdossier]
+jmp cree_fichier_fat_suite_lecture
+
+cree_fichier_fat_suite_vide:
+inc eax
+cmp eax,ecx
+je cree_fichier_fat_suite_emplacement
+add ebx,20h
+cmp ebx,edi
+jne cree_fichier_fat_suite_boucle
+fs
+add edx,[to_ztexpdossier]
+jmp cree_fichier_fat_suite_lecture
+
+cree_fichier_fat_suite_emplacement:  ;emplacement de taille suffisante trouvé
+fs
+sub ebx,[ad_ztexpdossier]
+add ebx,32
+shl ecx,5  ;x32
+add edx,ebx
+sub edx,ecx
+jmp cree_fichier_fat_suite_ecriture
+
+cree_fichier_fat_suite_findossier:  ;fin de dossier trouvé
+fs
+sub ebx,[ad_ztexpdossier]
+shl ecx,5  ;x32
+add edx,ebx
+
+cree_fichier_fat_suite_ecriture:   ;ecriture descripteur
+mov ax,seldat
+mov es,ax
+mov esi,ad_nomfichier2
+call sfecrirefichier
+cmp eax,0
+jne cree_fichier_fat_erreur
+
+pop es
+popad
+xor eax,eax
+ret
+
+cree_fichier_fat_erreur:
+pop es
+popad
+mov eax,cer_cfi    ;création fichier impossible
+ret
+
+
+
+;*************************************************************
+fcalcmaj_checksum_fat:     ;calcul et met a jour la valeur du checksum du descripteur créer
+pushad
+
+fs
+mov al,[zt_nouveau_descripteur]
+test al,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
+je fin_calcmaj_checksum_fat
+
+fs
+mov esi,[zt_nouveau_descripteur]
+and esi,3Fh
+shl esi,5
+add esi,zt_nouveau_descripteur
+mov ebx,esi
+
+;calcul du checksum  
+mov cx,11  ;ch=sum cl=i
+boucle1_calcmaj_checksum_fat:
+mov al,ch
+shl ch,7
+shr al,1
+add ch,al
+fs
+add ch,[esi]
+inc esi
+dec cl
+jnz boucle1_calcmaj_checksum_fat
+
+
+boucle2_calcmaj_checksum_fat:
+fs 
+mov [ebx+0Dh],ch 
+sub ebx,32
+cmp ebx,zt_nouveau_descripteur
+jne boucle2_calcmaj_checksum_fat
+
+fin_calcmaj_checksum_fat:
+popad
+ret
+
+
+
+
+
 
 ;*******************************************************************
 conv_date_fat: ;convertit la date et l'heure au format FAT
@@ -1975,453 +2263,6 @@ ret
 
 
 
-
-
-
-
-;****************************************************************************
-cree_fichier_fat:
-
-popad
-mov eax,cer_cfi   ;création de fichier impossible
-ret
-
-
-
-;compte le nombre de carac du nom et le nombre de point
-mov ebx,edx
-xor ecx,ecx ;nombre de lettre
-xor eax,eax ;nombre de point
-
-boucle_comptage_lettre:
-mov al,[ebx]
-cmp al,0
-je fin_comptage_lettre
-cmp al,"/"
-je fin_comptage_lettre
-cmp al,"\"
-je fin_comptage_lettre
-cmp al,"."
-je point_comptage_lettre
-inc ebx
-inc ecx
-jmp boucle_comptage_lettre
-
-point_comptage_lettre:
-inc edx
-inc ebx
-jmp boucle_comptage_lettre
-
-
-
-fin_comptage_lettre:
-cmp ecx,0  ;verifie qu'il y ait au moins une lettre
-je erreur_verif_lettre
-
-cmp ecx,11 ;verifie qu'il n'y ait que 11 lettre au maximum
-ja cree_descr_fichier_fat_long
-
-cmp edx,1  ;verifie qu'il n'y ait qu'un seul point
-ja cree_descr_fichier_fat_long
-
-
-;verifie qu'il n'y as que A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
-
-mov ebx,esi
-
-
-boucle_verif_lettre:
-mov al,[ebx]
-cmp al,0
-je fin_verif_lettre
-cmp al,"/"
-je fin_verif_lettre
-cmp al,"\"
-je fin_verif_lettre
-
-cmp al,21h   ;!
-je ok_verif_lettre
-
-cmp al,23h  ;#
-jb erreur_verif_lettre
-cmp al,29h  ;)
-jbe ok_verif_lettre
-
-cmp al,2Dh   ;-
-je ok_verif_lettre
-
-cmp al,2Eh   ;.
-je ok_verif_lettre
-
-cmp al,30h  ;0
-jb erreur_verif_lettre
-cmp al,39h  ;9
-jbe ok_verif_lettre
-
-cmp al,40h  ;@
-jb erreur_verif_lettre
-cmp al,5Ah  ;Z
-jbe ok_verif_lettre
-
-cmp al,5Eh  ;^
-jb erreur_verif_lettre
-cmp al,60h  ;' (accent grave)
-jbe ok_verif_lettre
-
-cmp al,7Bh   ;{
-je ok_verif_lettre
-
-cmp al,7Dh   ;}
-je ok_verif_lettre
-
-cmp al,7Eh   ;~
-je ok_verif_lettre
-
-jmp erreur_verif_lettre
-
-ok_verif_lettre:
-inc ebx
-jmp boucle_verif_lettre
-
-
-erreur_verif_lettre:
-popad
-mov eax,cer_parami
-ret
-
-
-
-fin_verif_lettre:
-
-
-mov ebx,esi
-mov edi,zt_nouveau_descripteur
-
-mov dword[edi],20202020h     ;vide ledescripteur
-mov dword[edi+4],20202020h
-mov dword[edi+8],202020h
-mov dword[edi+12],0
-mov dword[edi+16],0
-mov dword[edi+20],0
-mov dword[edi+24],0
-mov dword[edi+28],0
-
-boucle_fat_court:
-mov al,[ebx]
-cmp al,0
-je fin_fat_court
-cmp al,"."
-jne paspoint
-mov edi,zt_nouveau_descripteur+8 
-inc ebx
-jmp boucle_fat_court
-
-paspoint:
-mov [edi],al
-inc ebx
-inc edi
-jmp boucle_fat_court
-
-
-fin_fat_court:
-popad
-xor eax,eax
-ret
-
-
-
-
-
-
-;*****************************************************************************
-cree_descr_fichier_fat_long:   
-popad
-mov eax,cer_cfi   ;en attendant le test  
-ret
- 
-;d'abord transformation du nom de fichier au format UCS-2
-
-mov edx,esi               ;edx pointe sur le nom a convertir
-mov ebx,zt_conversion_ucs ;ebx pointe sur le nom convertit
-
-boucle_ucs:
-call lireutf8
-
-cmp eax,0
-je fin_ucs
-cmp eax,02Fh   ;/
-je fin_ucs
-cmp eax,05Ch   ;\
-je fin_ucs
-cmp eax,0FFFFh
-jbe carac_ucs_ok
-
-mov eax,0FFFDh   ;si le caractère dépasse les capacité de UCS-2 on le remplace par le caractère de remplacement en unicode
-
-carac_ucs_ok:
-mov [ebx],ax
-add ebx,2
-jmp boucle_ucs
-
-fin_ucs:
-mov word[ebx],0
-
-;rajouter des codes FFFF pour completer le nom
-mov dword[ebx+4],0FFFFFFFFh
-mov dword[ebx+8],0FFFFFFFFh
-mov dword[ebx+12],0FFFFFFFFh
-mov dword[ebx+16],0FFFFFFFFh
-mov dword[ebx+20],0FFFFFFFFh
-mov dword[ebx+24],0FFFFFFFFh
-mov dword[ebx+28],0FFFFFFFFh
-
-;calcul le nombre de bloc qui devront être employé dans le descripteur de nom long
-xor edx,edx
-mov eax,ebx
-mov ecx,26
-div ecx
-cmp edx,0
-je calcul_nombre_bloc
-inc eax
-calcul_nombre_bloc:
-mov edi,eax
-shl edi,5
-
-
-
-;*************************************
-;création d'un descripteur de nom long
-mov ebx,zt_conversion_ucs
-
-boucle_creation_descripteur_nom_long_fat:
-sub edi,32
-
-mov [zt_nouveau_descripteur+edi],al
-
-mov edx,[ebx]
-mov [zt_nouveau_descripteur+edi+01h],edx
-
-mov edx,[ebx+4]
-mov [zt_nouveau_descripteur+edi+05h],edx
-
-mov edx,[ebx+8]
-mov [zt_nouveau_descripteur+edi+09h],dx
-
-mov byte[zt_nouveau_descripteur+0Bh],0Fh ;marque que le descripteur est celui d'un nom long
-mov word[zt_nouveau_descripteur+0Ch],0
-
-mov edx,[ebx+10]
-mov [zt_nouveau_descripteur+edi+0Eh],edx
-
-mov edx,[ebx+14]
-mov [zt_nouveau_descripteur+edi+12h],edx
-
-mov edx,[ebx+18]
-mov [zt_nouveau_descripteur+edi+16h],edx
-
-mov word[zt_nouveau_descripteur+1Ah],0  
-
-mov edx,[ebx+22]
-mov [zt_nouveau_descripteur+edi+1Ch],edx
-
-cmp word[ebx+26],0FFFFh
-je fin_creation_descripteur_nom_long_fat
-
-sub ebx,26
-dec al
-jnz boucle_creation_descripteur_nom_long_fat
-
-
-fin_creation_descripteur_nom_long_fat:
-or byte[zt_nouveau_descripteur],40h
-
-
-;*************************************************
-;adaptation du nom long
-
-mov ebx,zt_conversion_ucs
-mov edi,ebx
-boucle_adaptation_nom_long:
-mov ax,[ebx]
-cmp ax,07Fh
-jae ignore_adaptation_nom_long
-
-
-
-;verifie qu'il n'y as que A-Z et 0-9 ou les lettres spéciales ! #$%&'() - @ ^_'  { } ~
-
-
-cmp al,0
-je fin_verif_lettre
-cmp al,"/"
-je fin_verif_lettre
-cmp al,"\"
-je fin_verif_lettre
-
-cmp al,21h   ;!
-je ok_verif_lettre
-
-cmp al,23h  ;#
-jb erreur_verif_lettre
-cmp al,29h  ;)
-jbe ok_verif_lettre
-
-cmp al,2Dh   ;-
-je ok_verif_lettre
-
-cmp al,2Eh   ;.
-je ok_verif_lettre
-
-cmp al,30h  ;0
-jb erreur_verif_lettre
-cmp al,39h  ;9
-jbe ok_verif_lettre
-
-cmp al,40h  ;@
-jb erreur_verif_lettre
-cmp al,5Ah  ;Z
-jbe ok_verif_lettre
-
-cmp al,5Eh  ;^
-jb erreur_verif_lettre
-cmp al,60h  ;' (accent grave)
-jbe ok_verif_lettre
-
-cmp al,7Bh   ;{
-je ok_verif_lettre
-
-cmp al,7Dh   ;}
-je ok_verif_lettre
-
-cmp al,7Eh   ;~
-je ok_verif_lettre
-
-
-
-
-
-
-
-
-
-
-
-
-minuscule_adaptation_nom_long:
-sub al,20h
-ok_adaptation_nom_long:
-mov [edi],al
-inc edi
-ignore_adaptation_nom_long:
-add bx,2
-jmp boucle_adaptation_nom_long
-
-fin_adaptation_nom_long:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;************************************************
-;création d'un descripteur de nom court
-
-
-
-
-mov dword[edi],20202020h    ;remplissage par du vide
-mov dword[edi+4],20202020h
-mov dword[edi+8],202020h
-
-
-boucle_creation_nom_court:
-mov al,[ebx]
-cmp al,0
-;je
-cmp al,02Fh   ;/
-;je 
-cmp al,05Ch   ;\
-;je 
-cmp al,2Eh     ;.
-je point
-mov al,[edi]
-inc ebx
-jmp boucle_creation_nom_court
-
-
-
-point:
-inc ebx
-
-
-
-;initalise les date de création et de dernière modification du fichier
-
-
-
-
-
-
-
-
-
-popad
-ret
-
-
-
-
-
-
-
-;*************************************************************
-calcmaj_checksum_fat:     ;calcul et met a jour la valeur du checksum du descripteur créer
-pushad
-
-fs
-mov al,[zt_nouveau_descripteur]
-test al,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
-je fin_calcmaj_checksum_fat
-
-fs
-mov esi,[zt_nouveau_descripteur]
-and esi,3Fh
-shl esi,5
-add esi,zt_nouveau_descripteur
-mov ebx,esi
-
-;calcul du checksum  
-mov cx,11  ;ch=sum cl=i
-boucle1_calcmaj_checksum_fat:
-mov al,ch
-shl ch,7
-shr al,1
-add ch,al
-fs
-add ch,[esi]
-inc esi
-dec cl
-jnz boucle1_calcmaj_checksum_fat
-
-
-boucle2_calcmaj_checksum_fat:
-fs 
-mov [ebx+0Dh],ch 
-sub ebx,32
-cmp ebx,zt_nouveau_descripteur
-jne boucle2_calcmaj_checksum_fat
-
-fin_calcmaj_checksum_fat:
-popad
-ret
 
 
 
