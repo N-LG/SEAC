@@ -32,11 +32,9 @@
 ;al=114 convertir chaine asciiz en GUID/UUID
 ;al=115 convertir GUID/UUID en chaine asciiz
 ;al=116 convertir données base64 en données binaires
-;al=117 convertir données binaires en base64 type 1
-;al=118 convertir données binaires en base64 type 2
-;al=119 calcul de CRC32
-;al=120 calcul de CRC16
-;al=121 calcul de CRCxx
+;al=117 convertir données binaires en base64 
+;al=118 convertir données binaires en base64url
+
 
 
 
@@ -105,15 +103,10 @@ je conv_guid_asciiz
 cmp al,116
 je conv_b64_bin
 cmp al,117
-je conv_bin_b64_1
+je conv_bin_b64
 cmp al,118
-je conv_bin_b64_2
+je conv_bin_b64url
 cmp al,119
-je calc_crc32
-cmp al,120
-je calc_crc16
-cmp al,121
-je calc_crcxx
 
 mov eax,cer_parami
 iret
@@ -1569,48 +1562,277 @@ conv_guid_asciiz:
 iret
 
 
+
+
+
+
+
+
 ;***************************************
 conv_b64_bin:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+pushad
+cmp ecx,0
+je erreur_base64_bin
+xor edx,edx
+boucle_base64_bin:
+mov al,[esi]
+cmp al,"+"
+je sp1_base64_bin
+cmp al,"-"
+je sp1_base64_bin
+cmp al,"/"
+je sp2_base64_bin
+cmp al,"0"
+jb erreur_base64_bin
+cmp al,"9"
+jbe num_base64_bin
+cmp al,"="
+je fin_base64_bin
+cmp al,"A"
+jb erreur_base64_bin
+cmp al,"Z"
+jbe maj_base64_bin
+cmp al,"_"
+je sp2_base64_bin
+cmp al,"a"
+jb erreur_base64_bin
+cmp al,"z"
+jbe min_base64_bin
+
+erreur_base64_bin:
+popad
+mov eax,cer_parami
+iret
+
+num_base64_bin:
+add al,4 ;sub al,"0"(48) add al,52
+jmp suite1_base64_bin 
+
+maj_base64_bin:
+sub al,"A" ;65
+jmp suite1_base64_bin 
+
+min_base64_bin:
+sub al,71 ;sub al,"a"(97) add al,26
+jmp suite1_base64_bin 
+
+sp1_base64_bin:
+mov al,62
+jmp suite1_base64_bin 
+
+sp2_base64_bin:
+mov al,63
+
+suite1_base64_bin:
+and eax,3Fh
+cmp dl,0
+je o1_base64_bin
+cmp dl,1
+je o2_base64_bin
+cmp dl,2
+je o3_base64_bin
+
+es  
+or [edi+2],al
+xor dl,dl 
+add edi,3
+jmp suite2_base64_bin
+
+o1_base64_bin:
+shl al,2
+es
+mov [edi],al 
+inc dl
+jmp suite2_base64_bin
+
+o2_base64_bin:
+shl eax,4
+es  
+or [edi],ah
+es
+mov [edi+1],al
+inc dl
+jmp suite2_base64_bin
+
+o3_base64_bin:
+shl eax,6
+es  
+or [edi+1],ah
+es
+mov [edi+2],al
+inc dl 
+
+suite2_base64_bin:
+inc esi
+dec ecx
+jnz boucle_base64_bin 
+
+fin_base64_bin:
+popad
+xor eax,eax
 iret
 
 
 ;***************************************
-conv_bin_b64_1:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-iret
+conv_bin_b64:
+pushad
+mov dl,0
+jmp debut_conv_bin_b64
 
 
 ;***************************************
-conv_bin_b64_2:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+conv_bin_b64url:
+pushad
+mov dl,1
+
+debut_conv_bin_b64:
+cmp ecx,0
+je erreur_base64_bin
+
+boucle_bin_base64:
+shr eax,2
+mov al,[esi]
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi],al
+
+mov ax,[esi]
+xchg al,ah
+shr eax,4
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi+1],al
+
+mov ax,[esi+1]
+xchg al,ah
+shr eax,6
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi+2],al
+
+mov al,[esi+2]
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi+3],al
+
+add esi,3
+add edi,4
+sub ecx,3
+cmp ecx,3
+jae boucle_bin_base64
+
+cmp ecx,1
+je fin1_base64_bin
+cmp ecx,2
+je fin2_base64_bin
+popad
+xor eax,eax
+iret
+
+fin1_base64_bin:
+mov al,[esi]
+shl al,2
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi],al
+
+mov ax,[esi]
+xchg al,ah
+shr eax,4
+and al,03h
+call unite_bin_base64
+es
+mov [edi+1],al
+
+es
+mov byte[edi+2],"="
+es
+mov byte[edi+3],"="
+popad
+xor eax,eax
+iret
+
+fin2_base64_bin:
+mov al,[esi]
+shr al,2
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi],al
+
+mov ax,[esi]
+xchg al,ah
+shr eax,4
+and al,03Fh
+call unite_bin_base64
+es
+mov [edi+1],al
+
+mov al,[esi+1]
+xchg al,ah
+shr eax,6
+and al,0Fh
+call unite_bin_base64
+es
+mov [edi+2],al
+es
+mov byte[edi+3],"="
+
+popad
+xor eax,eax
 iret
 
 
-;***************************************
-calc_crc32:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-iret
 
+;****************************** 
+unite_bin_base64:
+cmp al,26
+jb unite_bin_base64_1
+cmp al,52
+jb unite_bin_base64_2
+cmp al,62
+jb unite_bin_base64_3
+cmp al,62
+je unite_bin_base64_sp1
+cmp al,63
+je unite_bin_base64_sp2
 
-;***************************************
-calc_crc16:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-iret
+unite_bin_base64_1:
+add al,"A"
+ret
 
+unite_bin_base64_2:
+add al,71
+ret
 
-;***************************************
-calc_crcxx:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-iret
+unite_bin_base64_3:
+sub al,4
+ret
 
+unite_bin_base64_sp1:
+cmp dl,0
+jne unite_bin_base64_sp3
+mov al,"+"
+ret
 
+unite_bin_base64_sp2:
+cmp dl,0
+jne unite_bin_base64_sp4
+mov al,"/"
+ret
 
+unite_bin_base64_sp3:
+mov al,"-"
+ret
 
-
-
-
-
+unite_bin_base64_sp4:
+mov al,"_"
+ret
 
 
 
