@@ -13,7 +13,7 @@
 ;11=ecrire une chaine a la position du curseur
 ;12=definir la position du curseur
 ;13=systeme de choix par menu
-
+;barre de progression mode texte
 
 ;21=dessine un pixel a la postion x y avec une couleur prédéterminé
 ;22=dessiner un carré de couleur avec une couleur prédéterminé
@@ -48,7 +48,8 @@ cmp al,12
 je sfv_place_cur
 cmp al,13
 je sfv_menu
-
+cmp al,14
+je sfv_barre
 
 
 cmp al,21
@@ -1314,6 +1315,136 @@ iret
 
 
 
+
+
+;******************************************************************************************
+sfv_barre:
+;esi=progression
+;edi=total
+;ebx=x
+;ecx=y
+;edx=nombre de carac
+
+pushad
+push ds
+
+push edx
+mov ax,seldat
+mov ds,ax
+
+;determination position debut
+xor eax,eax
+xor edx,edx
+mov ax,[resxt]
+shl ebx,2
+shl eax,2
+mul ecx
+add ebx,eax
+
+mov edx,[ad_tache_exec]
+mov ax,selramh
+mov ds,ax
+mov ax,[edx+sel_ecranv]
+pop ecx
+cmp ax,0
+je sfv_barre_err1
+mov ds,ax
+add ebx,[ad_texte]
+
+cmp ecx,4
+jbe sfv_barre_err2
+sub ecx,4
+push edi
+push esi
+
+;calcul intervalles
+push ecx
+xor edx,edx
+mov eax,esi
+mul ecx
+mov ecx,edi
+div ecx
+pop ecx
+mov esi,eax
+mov edi,ecx
+shl esi,2
+shl edi,2
+add esi,ebx
+add edi,ebx
+
+
+;affiche progression
+cmp ebx,esi
+je ignore_boucle1_sfv_barre
+boucle1_sfv_barre:
+mov dword[ebx],070000020h
+add ebx,4
+cmp ebx,esi
+jne boucle1_sfv_barre
+ignore_boucle1_sfv_barre:
+
+cmp ebx,edi
+je ignore_boucle2_sfv_barre
+boucle2_sfv_barre:
+mov dword[ebx],07000020h
+add ebx,4
+cmp ebx,edi
+jne boucle2_sfv_barre
+ignore_boucle2_sfv_barre:
+
+;calcul pourcentage
+pop eax
+xor edx,edx
+mov ecx,100
+mul ecx
+pop ecx
+div ecx
+
+;affiche le pourcentage
+mov dword[ebx],07000020h
+mov dword[ebx+4],07000020h
+mov ecx,10
+xor edx,edx
+div ecx
+add edx,07000030h
+mov [ebx+8],edx
+cmp eax,0
+je fin_sfv_barre
+xor edx,edx
+div ecx
+add edx,07000030h
+mov [ebx+4],edx
+cmp eax,0
+je fin_sfv_barre
+xor edx,edx
+div ecx
+add edx,07000030h
+mov [ebx],edx
+
+fin_sfv_barre:
+mov dword[ebx+12],07000025h
+
+mov ax,seldat
+mov ds,ax
+or byte[at_csl],1
+
+pop ds
+popad
+xor eax,eax
+iret
+
+sfv_barre_err1:
+pop ds
+popad
+mov eax,cer_eabs
+iret
+
+
+sfv_barre_err2:
+pop ds
+popad
+mov eax,cer_parami
+iret
 
 ;*******************************************************************************************
 sfv_majecr:     ;effectue la mise a jour complete de l'ecran
