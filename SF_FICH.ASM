@@ -589,6 +589,7 @@ fs
 mov [nb_fat],cl
 mul ecx
 pop edx
+fs
 add eax,[ad_fat]  ;eax=adresse du cluster 2
 
 xor ecx,ecx
@@ -1253,7 +1254,7 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
-
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 ;met a jour les données du descripteur fichier avec celuis trouvé dans le dossier
 fs
@@ -1296,18 +1297,39 @@ mov eax,[to_fichier_expdossier]
 fs
 mov [to_fichier],eax  ;et nouvelle taille 
 
-
-
-
 cmp byte[edx],0        ;si c'est la fin de la chaine on termine
 je finchainefichier
+cmp word [edx],002Fh ;/&0 
+je finchainefichier
+cmp word [edx],005Ch ;\&0
+je finchainefichier
+
 
 fs
 mov al,[at_fichier]
 and al,03h
 cmp al,010b   
 je debutslash         ;si dossier trouvé et chaine pas terminé -> on recommence
-jmp errprmsf          ;si fichier trouvé et chaine pas terminé -> erreur de paramètre
+
+
+;si pas dossier & si on est en mode création & si taille fichier nulle
+fs
+cmp byte[option_ouverture],2
+jne errprmsf            ;sinon fichier trouvé et chaine pas terminé -> erreur de paramètre
+fs
+cmp dword[to_fichier],0
+jne errprmsf 
+
+call change_en_dossier
+cmp eax,0
+jne finfonctionfichiererr
+fs
+mov byte[option_ouverture],1 ;on reprend la création de dossier
+jmp debutslash 
+
+
+
+
 
 finchainefichier:
 ;verifie que le fichier n'as pas déja été ouvert
@@ -1465,19 +1487,8 @@ jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 err_fichier_nt:
 fs
-cmp byte[option_ouverture],0  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
-je fin_erreur_fichier_nt
-
-
-
-cmp byte [edx],0          
+cmp byte[option_ouverture],1  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
 je cree_fichier
-cmp word [edx],002Fh ;/&0 
-je cree_fichier
-cmp word [edx],005Ch ;\&0
-je cree_fichier
-
-fin_erreur_fichier_nt:
 mov eax,cer_lecnt
 
 errouvfichier:   ;erreur, désalocation mémoire, préservation de eax et raz de ebx
@@ -1485,11 +1496,12 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 xor ebx,ebx
 jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 
-cree_fichier:       ;sinon on créer le fichier final voulu
+cree_fichier:       ;sinon on créer le fichier 
 call sf_cree_fichier
 cmp eax,0
 jne errouvfichier
@@ -1501,7 +1513,7 @@ mov [po_ztexpdossier],eax
 fs
 mov [po_descripteur_expdossier],eax
 fs
-mov byte[option_ouverture],0      ;et n'essaye plus de créer de fichier
+mov byte[option_ouverture],2      ;et n'essaye plus de créer de fichier
 jmp charge_partie_dossier
 
 
@@ -1929,12 +1941,6 @@ mov eax,cer_pasm
 ret
 
 
-
-
-
-
-
-
 ;****************************************************************************
 cree_fichier_fat:
 
@@ -1955,6 +1961,8 @@ fs
 mov dword[ad_nomfichier2+24],0
 fs
 mov dword[ad_nomfichier2+28],0
+fs
+mov dword[ad_nomfichier2+32],0
 
 call lire_date_heure  
 call conv_date_fat ;ax=heure dx=date
@@ -2086,7 +2094,7 @@ je cree_fichier_fat_suite
 
 ;****************************************
 cree_fichier_fat_long:
-jmp erreur_nom_sf_cree_fichier ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§phase3
+jmp erreur_nom_sf_cree_fichier ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§phase4
 
 
 ;****************************************
@@ -2094,9 +2102,9 @@ cree_fichier_fat_suite:          ;cherche emplacement vide et ecrit le descripte
 ;ecx=nombre de bloc descripteur a ecrire
 xor edx,edx ;edx=base de la partie de dossier chargé
 xor eax,eax ;eax taille de l'emplacement trouvé
+push es
 
 cree_fichier_fat_suite_lecture:   ;lire partie dossier
-push es
 push ecx
 mov ax,selramh
 mov es,ax
@@ -2157,6 +2165,7 @@ fs
 sub ebx,[ad_ztexpdossier]
 shl ecx,5  ;x32
 add edx,ebx
+inc ecx
 
 cree_fichier_fat_suite_ecriture:   ;ecriture descripteur
 mov ax,seldat
@@ -2173,55 +2182,157 @@ ret
 
 cree_fichier_fat_erreur:
 pop es
+ss
+mov [esp+28],eax   ;préserve eax
 popad
-mov eax,cer_cfi    ;création fichier impossible
 ret
 
 
 
-;*************************************************************
-fcalcmaj_checksum_fat:     ;calcul et met a jour la valeur du checksum du descripteur créer
+;******************************************************
+change_en_dossier:
 pushad
+push es
 
 fs
-mov al,[zt_nouveau_descripteur]
-test al,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
-je fin_calcmaj_checksum_fat
-
-fs
-mov esi,[zt_nouveau_descripteur]
-and esi,3Fh
-shl esi,5
-add esi,zt_nouveau_descripteur
-mov ebx,esi
-
-;calcul du checksum  
-mov cx,11  ;ch=sum cl=i
-boucle1_calcmaj_checksum_fat:
-mov al,ch
-shl ch,7
-shr al,1
-add ch,al
-fs
-add ch,[esi]
-inc esi
-dec cl
-jnz boucle1_calcmaj_checksum_fat
-
-
-boucle2_calcmaj_checksum_fat:
-fs 
-mov [ebx+0Dh],ch 
-sub ebx,32
-cmp ebx,zt_nouveau_descripteur
-jne boucle2_calcmaj_checksum_fat
-
-fin_calcmaj_checksum_fat:
+mov al,[at_fichier]
+and al,00111100b
+cmp al,010000b 
+je change_en_dossier_fat       ;on fat12,
+cmp al,010100b
+je change_en_dossier_fat       ;ou fat16
+cmp al,011000b
+je change_en_dossier_fat       ;ou fat32
+pop es
 popad
+mov eax,cer_cfi   ;création de fichier impossible
 ret
 
 
+;**********************************************************
+change_en_dossier_fat:
+;marque le descripteur comme étant un dossier
+call minfo_charge_descripteur
+cmp eax,0
+jne fin_change_en_dossier_fat
 
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne change_en_dossier_fat_nvfat
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+change_en_dossier_fat_nvfat:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je change_en_dossier_fat_pas32
+and eax,0FFFFh
+change_en_dossier_fat_pas32:
+
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+je change_en_dossier_fat_ok
+mov eax,cer_sysf
+jmp fin_change_en_dossier_fat
+
+change_en_dossier_fat_ok:
+cmp eax,0
+jne ignore_ajclust_change_en_dossier_fat
+
+xor edx,edx
+call ajn_cluster   ;ajoute nouveau cluster
+cmp eax,0
+jne fin_change_en_dossier_fat
+fs
+mov [ad_fichier],edx
+fs
+mov [ebx+zt_lminfo+1Ah],dx
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+jne ignore_ajclust_change_en_dossier_fat
+
+shr edx,16
+fs
+mov [ebx+zt_lminfo+14h],dx
+
+
+ignore_ajclust_change_en_dossier_fat:
+fs
+or byte[ebx+zt_lminfo+0Bh],10h
+
+call minfo_sauvegarde_descripteur2
+cmp eax,0
+jne fin_change_en_dossier_fat
+
+
+;ecrire les entrées de base de tout nouveau dossier
+fs
+mov dword[ad_nomfichier2+00h],02020202Eh ;autoreference du dossier
+fs
+mov dword[ad_nomfichier2+04h],020202020h
+fs
+mov dword[ad_nomfichier2+08h],000202020h
+fs
+mov dword[ad_nomfichier2+0Ch],0
+fs
+mov dword[ad_nomfichier2+10h],0
+fs
+mov dword[ad_nomfichier2+14h],0
+fs
+mov dword[ad_nomfichier2+18h],0
+fs
+mov dword[ad_nomfichier2+1Ch],0
+fs
+mov dword[ad_nomfichier2+20h],020202E2Eh  ;dossier parent
+fs
+mov dword[ad_nomfichier2+24h],020202020h
+fs
+mov dword[ad_nomfichier2+28h],000202020h
+fs
+mov dword[ad_nomfichier2+2Ch],0
+fs
+mov dword[ad_nomfichier2+30h],0
+fs
+mov dword[ad_nomfichier2+34h],0
+fs
+mov dword[ad_nomfichier2+38h],0
+fs
+mov dword[ad_nomfichier2+3Ch],0
+fs
+mov dword[ad_nomfichier2+40h],0
+
+mov ax,seldat
+mov es,ax
+mov ecx,44h
+xor edx,edx
+mov esi,ad_nomfichier2
+call sfecrirefichier
+
+fs
+and byte[at_fichier],0FCh
+fs
+or  byte[at_fichier],002h
+fs
+mov dword[to_fichier],0FFFFFFFFh
+
+fin_change_en_dossier_fat:
+pop es
+ss
+mov [esp+28],eax   ;préserve eax
+popad
+ret
 
 
 
@@ -3373,6 +3484,7 @@ fs
 add ebx,[ad_fat]
 
 ;determine le nombre de secteur a charger et charge la zt fat
+fs
 mov edx,[max_fat2]
 shr edx,9
 mov cl,dl
@@ -3814,6 +3926,7 @@ jmp finfonctionfichiererr
 ;*******************************************
 
 sfecrirefichier:
+push ds
 fs
 mov al,[at_fichier]
 and al,00111100b
@@ -4315,20 +4428,18 @@ jmp fin_sfecrirefichier_err   ;conservation du code d'erreur
 fin_sfecrirefichier_ermem:
 mov eax,cer_pasm
 fin_sfecrirefichier_ernum:
+pop ds
 ret
 
 fin_sfecrirefichier_erprm:
 mov eax,cer_parami   ;erreur de parametre
+pop ds
 ret
 
-;fin_sfecrirefichier_erlecp:
-fs
-mov ebx,[ad_zt_lecluster]
-sub ebx,10h
-call libmem
 
 fin_sfecrirefichier_erlec:
 mov eax,cer_lec 
+pop ds
 ret
 
 ;fin_sfecrirefichier_erecrp:
@@ -4339,15 +4450,18 @@ call libmem
 
 fin_sfecrirefichier_erecr:
 mov eax,cer_ecr 
+pop ds
 ret
 
 fin_sfecrirefichier_ersyf:
 mov eax,cer_sysf
+pop ds
 ret
 
 fin_sfecrirefichier_ok:
 xor eax,eax
 fin_sfecrirefichier_err:
+pop ds
 ret
 
 
@@ -4791,6 +4905,9 @@ mov [ebx+28],edi
 pop edi
 pop esi
 pop ebx
+
+
+minfo_sauvegarde_descripteur2:
 
 ;corrige le descripteur de fichier pour le transformer en descripteur du dossier qui contient le fichier 
 fs

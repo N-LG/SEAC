@@ -245,7 +245,7 @@ to_fichier_expdossier equ 194h     ;taille du fichier
 ad_fichier_expdossier equ 198h     ;adresse du fichier
 at_fichier_expdossier equ 19Ch     ;type du fichier actuellement analysé (seulement les deux premier bit utilisé)
 
-option_ouverture equ 1A0h     ;option de la fonction d'ouverture fichier
+option_ouverture equ 1A0h     ;option de la fonction d'ouverture fichier 0=on ne créer pas de fichier 1=on créer des fichier 2=on vient de créer un fichier et on peut le transformer en dossier
 
 
 zt_dapbios equ 1C0h                ;Disk Address Packet utilisé lors de l'appel des fonction bios pour lire/ecrire sur un disque
