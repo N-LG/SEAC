@@ -58,9 +58,9 @@ ad_tabcoul equ 3000h ;1024 octets table de correspondance pour les 256 couleurs
 
 infovesa equ 4000h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
 
-zt_nouveau_descripteur equ  4000h  ;???? definition temporaire
 
-zt_conversion_ucs equ 4400h  ;definition temporaire
+
+zt_conversion_ucs equ 4200h  ;definition temporaire
 
 zt_disquette equ 4400h          ;zone tampon pour la lecture de secteur sur la disquette
 bootsecteur equ 4600h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD

@@ -10,6 +10,7 @@
 ;al=8  lire dans un secteur
 ;al=9  ecrire dans un secteur
 ;al=10 lire les information d'un disque
+
 ;************************************
 
 pushad        ;sauvegarde les registres et initialise les segments de données
@@ -1858,7 +1859,7 @@ cmp al,03Ch   ;<
 je erreur_nom_sf_cree_fichier
 cmp al,03Eh   ;>
 je erreur_nom_sf_cree_fichier
-cmp al,06Ch   ;|
+cmp al,07Ch   ;|
 je erreur_nom_sf_cree_fichier
 cmp al,03Ah   ;:
 je erreur_nom_sf_cree_fichier
@@ -1953,8 +1954,6 @@ fs
 mov dword[ad_nomfichier2+8],000202020h
 fs
 mov dword[ad_nomfichier2+12],0
-fs
-mov dword[ad_nomfichier2+16],0
 fs
 mov dword[ad_nomfichier2+20],0
 fs
@@ -2092,9 +2091,346 @@ fs
 cmp byte[ebx],0
 je cree_fichier_fat_suite
 
+
+
 ;****************************************
 cree_fichier_fat_long:
-jmp erreur_nom_sf_cree_fichier ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§phase4
+
+;transformation du nom de fichier au format UCS-2
+mov edx,ad_nomfichier1               ;edx pointe sur le nom a convertir
+mov ebx,zt_conversion_ucs ;ebx pointe sur le nom convertit
+push ds
+mov ax,seldat
+mov ds,ax
+
+
+cree_fichier_fat_long_boucle_ucs:
+call lireutf8
+
+cmp eax,0
+je cree_fichier_fat_long_ucs_fin
+cmp eax,02Fh   ;/
+je cree_fichier_fat_long_ucs_fin
+cmp eax,05Ch   ;\
+je cree_fichier_fat_long_ucs_fin
+mov [ebx],ax
+add ebx,2
+cmp eax,0FFFFh
+jb cree_fichier_fat_long_boucle_ucs
+
+pop ds
+jmp erreur_nom_sf_cree_fichier  ;si le caractère dépasse les capacité de UCS-2,impossible de créer le nom
+
+
+
+cree_fichier_fat_long_ucs_fin:
+pop ds
+fs
+mov dword[ebx],0FFFF0000h
+
+;rajouter des codes FFFF pour completer le nom
+fs
+mov dword[ebx+4],0FFFFFFFFh
+fs
+mov dword[ebx+8],0FFFFFFFFh
+fs
+mov dword[ebx+12],0FFFFFFFFh
+fs
+mov dword[ebx+16],0FFFFFFFFh
+fs
+mov dword[ebx+20],0FFFFFFFFh
+fs
+mov dword[ebx+24],0FFFFFFFFh
+fs
+mov dword[ebx+28],0FFFFFFFFh
+
+;calcul le nombre de bloc qui devront être employé dans le descripteur de nom long
+xor edx,edx
+mov eax,ebx
+sub eax,zt_conversion_ucs
+mov ecx,26
+div ecx
+cmp edx,0
+je cree_fichier_fat_long_calcul_nombre_bloc
+inc eax
+cree_fichier_fat_long_calcul_nombre_bloc:
+mov ecx,eax              ;ecx=nombre de bloc uttilisé
+inc ecx
+
+
+;*************************************
+;création de l'entête descripteur de nom long
+
+mov edi,ad_nomfichier2
+mov esi,zt_conversion_ucs
+dec eax
+shl eax,5
+add edi,eax
+mov eax,1
+push edi
+
+boucle_creation_descripteur_nom_long_fat:
+fs
+mov [edi],al
+fs
+mov edx,[esi]
+fs
+mov [edi+01h],edx
+
+fs
+mov edx,[esi+4]
+fs
+mov [edi+05h],edx
+
+fs
+mov edx,[esi+8]
+fs
+mov [edi+09h],dx
+
+fs
+mov byte[edi+0Bh],0Fh ;marque que le descripteur est celui d'un nom long
+fs
+mov word[edi+0Ch],0
+
+fs
+mov edx,[esi+10]
+fs
+mov [edi+0Eh],edx
+
+fs
+mov edx,[esi+14]
+fs
+mov [edi+12h],edx
+
+fs
+mov edx,[esi+18]
+fs
+mov [edi+16h],edx
+
+fs
+mov word[edi+1Ah],0  
+
+fs
+mov edx,[esi+22]
+fs
+mov [edi+1Ch],edx
+
+add esi,26
+sub edi,32
+inc al
+cmp al,cl
+jne boucle_creation_descripteur_nom_long_fat
+
+pop edi
+add edi,32
+fs
+or byte[ad_nomfichier2],40h
+
+
+;*************************************************
+;création de l'entête de compatibilité nom court
+
+;créer descripteur vide
+fs
+mov dword[edi+0],020202020h
+fs
+mov dword[edi+4],020202020h
+fs
+mov dword[edi+8],000202020h
+fs
+mov dword[edi+12],0
+fs
+mov dword[edi+20],0
+fs
+mov dword[edi+24],0
+fs
+mov dword[edi+28],0
+fs
+mov dword[edi+32],0
+
+call lire_date_heure  
+call conv_date_fat ;ax=heure dx=date
+fs
+mov [edi+14],ax
+fs
+mov [edi+16],dx
+fs
+mov [edi+18],dx
+fs
+mov [edi+22],ax
+fs
+mov [edi+24],dx
+
+
+;remplissage avec un pseudo nom constitué uniquement de majuscules et chiffres
+mov edx,edi
+mov esi,ad_nomfichier1
+add edx,8
+
+cree_fichier_fat_long_boucle_pseudo_nom:
+fs
+mov al,[esi]
+cmp al,0
+je cree_fichier_fat_long_fin_pseudo
+cmp al,"/"
+je cree_fichier_fat_long_fin_pseudo
+cmp al,"\"
+je cree_fichier_fat_long_fin_pseudo
+cmp al,"."
+je cree_fichier_fat_long_pseudo_point
+
+cmp al,"0"
+jb cree_fichier_fat_long_boucle_pseudo_nom_ignore
+cmp al,"9"  
+jbe cree_fichier_fat_long_boucle_pseudo_nom_ok
+cmp al,"A"
+jb cree_fichier_fat_long_boucle_pseudo_nom_ignore
+cmp al,"Z" 
+jbe cree_fichier_fat_long_boucle_pseudo_nom_ok
+cmp al,"a"
+jb cree_fichier_fat_long_boucle_pseudo_nom_ignore
+cmp al,"z" 
+ja cree_fichier_fat_long_boucle_pseudo_nom_ignore
+
+sub al,20h
+cree_fichier_fat_long_boucle_pseudo_nom_ok:
+fs
+mov [edi],al
+inc edi
+cmp edi,edx
+je cree_fichier_fat_long_pseudo_point
+cree_fichier_fat_long_boucle_pseudo_nom_ignore:
+inc esi
+jmp cree_fichier_fat_long_boucle_pseudo_nom
+
+cree_fichier_fat_long_pseudo_point:
+mov edi,edx
+add edx,3
+mov esi,ad_nomfichier1 
+
+;recherche la fin du fichier
+cree_fichier_fat_long_pseudo_cherche_fin:
+fs
+cmp byte[esi],0
+je cree_fichier_fat_long_pseudo_trouve_fin
+fs
+cmp byte[esi],"\"
+je cree_fichier_fat_long_pseudo_trouve_fin
+fs
+cmp byte[esi],"/"
+je cree_fichier_fat_long_pseudo_trouve_fin
+inc esi
+cmp esi,ad_nomfichier1+512 
+je cree_fichier_fat_long_fin_pseudo
+jmp cree_fichier_fat_long_pseudo_cherche_fin
+
+cree_fichier_fat_long_pseudo_trouve_fin:
+dec esi
+
+;remonte debut de l'extension
+cree_fichier_fat_long_pseudo_cherche_point:
+fs
+cmp byte[esi],"."
+je cree_fichier_fat_long_pseudo_trouve_point
+dec esi
+cmp esi,ad_nomfichier1 
+je cree_fichier_fat_long_fin_pseudo
+jmp cree_fichier_fat_long_pseudo_cherche_point
+
+cree_fichier_fat_long_pseudo_trouve_point:
+inc esi
+
+cree_fichier_fat_long_boucle_pseudo_point:
+fs
+mov al,[esi]
+cmp al,0
+je cree_fichier_fat_long_fin_pseudo
+cmp al,"/"
+je cree_fichier_fat_long_fin_pseudo
+cmp al,"\"
+je cree_fichier_fat_long_fin_pseudo
+
+cmp al,"0"
+jb cree_fichier_fat_long_boucle_pseudo_point_ignore
+cmp al,"9" 
+jbe cree_fichier_fat_long_boucle_pseudo_point_ok
+cmp al,"A"
+jb cree_fichier_fat_long_boucle_pseudo_point_ignore
+cmp al,"Z" 
+jbe cree_fichier_fat_long_boucle_pseudo_point_ok
+cmp al,"a"
+jb cree_fichier_fat_long_boucle_pseudo_point_ignore
+cmp al,"z" 
+ja cree_fichier_fat_long_boucle_pseudo_point_ignore
+
+sub al,20h
+cree_fichier_fat_long_boucle_pseudo_point_ok:
+fs
+mov [edi],al
+inc edi
+cmp edi,edx
+je cree_fichier_fat_long_fin_pseudo
+cree_fichier_fat_long_boucle_pseudo_point_ignore:
+inc esi
+jmp cree_fichier_fat_long_boucle_pseudo_point
+
+
+
+cree_fichier_fat_long_fin_pseudo:
+
+
+
+;************************************
+;recherche si un nom court identique existe déja
+
+jmp cree_fichier_fat_long_cheksum
+
+
+;push eax       ;trappe!£££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££
+;mov eax,ecx
+;call affh1j
+;mov al,3
+;out 61h,al       
+;pop eax
+
+
+
+;*************************************
+;adaptation du nom court (au besoin)
+
+
+
+
+;***************************************
+;calcul et maj du checksum
+cree_fichier_fat_long_cheksum:     ;calcul et met a jour la valeur du checksum du descripteur créer
+fs
+mov esi,[ad_nomfichier2]
+and esi,3Fh
+shl esi,5
+add esi,ad_nomfichier2
+mov ebx,esi
+
+;calcul du checksum  
+mov dx,11  ;dh=sum dl=i
+cree_fichier_fat_long_cheksum_boucle1:
+mov al,dh
+shl dh,7
+shr al,1
+add dh,al
+fs
+add dh,[esi]
+inc esi
+dec dl
+jnz cree_fichier_fat_long_cheksum_boucle1
+
+cree_fichier_fat_long_cheksum_boucle2:
+sub ebx,32
+fs 
+mov [ebx+0Dh],dh 
+cmp ebx,ad_nomfichier2
+jne cree_fichier_fat_long_cheksum_boucle2
+
 
 
 ;****************************************
