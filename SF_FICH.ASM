@@ -779,6 +779,8 @@ mov [ad_ztexpdossier],ebx
 
 
 charge_partie_dossier:              ;charge une partie du dossier
+
+
 fs
 mov al,[at_fichier]
 and al,00111100b
@@ -1487,6 +1489,7 @@ jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 
 err_fichier_nt:
+
 fs
 cmp byte[option_ouverture],1  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
 je cree_fichier
@@ -2248,6 +2251,7 @@ mov dword[edi+28],0
 fs
 mov dword[edi+32],0
 
+push ecx
 call lire_date_heure  
 call conv_date_fat ;ax=heure dx=date
 fs
@@ -2260,7 +2264,7 @@ fs
 mov [edi+22],ax
 fs
 mov [edi+24],dx
-
+pop ecx
 
 ;remplissage avec un pseudo nom constitué uniquement de majuscules et chiffres
 mov edx,edi
@@ -2392,6 +2396,8 @@ jmp cree_fichier_fat_long_cheksum
 ;mov al,3
 ;out 61h,al       
 ;pop eax
+
+
 
 
 

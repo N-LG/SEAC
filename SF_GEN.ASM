@@ -803,11 +803,12 @@ iret
 
 
 ;**************************
-sfs_lire_cptsf:
+sfs_lire_cptsf:   ;compteur temps 64 bit (32 effectif pour le moment)
 push ds
 mov ax,seldat
 mov ds,ax
 mov eax,[cptsf]
+xor edx,edx
 pop ds
 iret
 
