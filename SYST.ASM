@@ -2237,6 +2237,8 @@ cmp eax,"lv"
 je cmdlv
 cmp eax,"ex"
 je cmdex
+cmp eax,"nd"
+je cmdnd
 
 
 commande_fichier:
@@ -2701,9 +2703,18 @@ xor ebx,ebx
 int 64h
 cmp eax,0       
 je suite_cmdsup
-;cmp eax,12       
-;je suite_cmdsup    ;ne support pas la suppression de dossier
+cmp eax,12       
+je dossier_cmdsup
 jmp err3cmdsup
+
+dossier_cmdsup:
+jmp err3cmdsup      ;ne support pas la suppression de dossier pour l'instant
+
+;verifie que le dossier est bien vide
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+
+
+
 
 suite_cmdsup:
 mov eax,3
@@ -2727,6 +2738,7 @@ err3cmdsup:
 mov cl,91   ;fichier non trouvé
 call affmsgsyst
 jmp pascommande
+
 
 
 finok_cmdsup:
@@ -2953,7 +2965,55 @@ jne boucle3_cmpex
 
 mov ebx,edx
 call libmem
+jmp pascommande
+
+
+
+
+
+;*****************************************
+cmdnd:
+
+
+mov edx,ad_zdc-1
+boucle1_cmdnd:     
+inc edx
+cmp byte[edx],0
+jne boucle1_cmdnd  
+
+boucle2_cmdnd:  
+dec edx
+cmp byte[edx]," "
+je boucle2_cmdnd
+cmp byte[edx],"\"
+je boucle2_cmdnd
+cmp byte[edx],"/"
+je boucle2_cmdnd
+inc edx
+mov dword[edx],002E2Fh  ;on rajoute une cotice et point a la fin du nom de dossier
+
+mov edx,ad_zdc
+boucle3_cmdnd:     ;trouve le debut du nom du fichier
+cmp byte[edx],0
+je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+inc edx
+cmp byte[edx]," "
+jne boucle3_cmdnd           
+cmp byte[edx+1]," "
+je boucle3_cmdnd           
+
+inc edx
+mov eax,2        ;créer le dossier
+xor ebx,ebx
+int 64h
+cmp eax,12       
+jne err3cmdsup
+
+
+
+
 ;jmp pascommande
+
 
 
 ;********************************************************

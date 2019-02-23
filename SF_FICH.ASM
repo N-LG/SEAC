@@ -1328,9 +1328,13 @@ cmp eax,0
 jne finfonctionfichiererr
 fs
 mov byte[option_ouverture],1 ;on reprend la création de dossier
-jmp debutslash 
 
-
+mov eax,[edx]        ; si le fichier suivant est un . alors on arrete la
+and eax,0FFFFFFh
+cmp eax,002E2Fh
+je finchainefichier
+cmp eax,002E5Ch
+jne debutslash 
 
 
 
@@ -2621,19 +2625,51 @@ jne fin_change_en_dossier_fat
 
 ;ecrire les entrées de base de tout nouveau dossier
 fs
+mov eax,[ad_fichier]
+fs
+mov ecx,[ad_fichier]
+fs
+mov edi,[ad_dossierfichier]
+fs
+mov esi,[ad_dossierfichier]
+shr eax,16
+shr edi,16
+
+fs                       
+mov dl,[at_fichier]
+and dl,0111100b
+cmp dl,011000b   ;FAT32?
+je ignore_raz_change_en_dossier_fat
+xor eax,eax                           ;met a zéro les msb des numéros de cluster si on est pas en FAT32
+xor edi,edi
+
+fs                       
+mov dl,[at_fichier]
+and dl,01000000b
+cmp dl,01000000b   ;dossier racine
+jne ignore_raz_change_en_dossier_fat
+xor esi,esi                           ;met a zéro le numéros de cluster si c'est un dossier racine
+
+ignore_raz_change_en_dossier_fat:
+
+
+
+fs
 mov dword[ad_nomfichier2+00h],02020202Eh ;autoreference du dossier
 fs
 mov dword[ad_nomfichier2+04h],020202020h
 fs
-mov dword[ad_nomfichier2+08h],000202020h
+mov dword[ad_nomfichier2+08h],010202020h
 fs
 mov dword[ad_nomfichier2+0Ch],0
 fs
 mov dword[ad_nomfichier2+10h],0
 fs
-mov dword[ad_nomfichier2+14h],0
+mov word[ad_nomfichier2+14h],ax   ;msb position autoreference du dossier
 fs
-mov dword[ad_nomfichier2+18h],0
+mov dword[ad_nomfichier2+16h],0
+fs 
+mov word[ad_nomfichier2+1Ah],cx    ;lsb position autoreference du dossier
 fs
 mov dword[ad_nomfichier2+1Ch],0
 fs
@@ -2641,15 +2677,17 @@ mov dword[ad_nomfichier2+20h],020202E2Eh  ;dossier parent
 fs
 mov dword[ad_nomfichier2+24h],020202020h
 fs
-mov dword[ad_nomfichier2+28h],000202020h
+mov dword[ad_nomfichier2+28h],010202020h
 fs
 mov dword[ad_nomfichier2+2Ch],0
 fs
 mov dword[ad_nomfichier2+30h],0
 fs
-mov dword[ad_nomfichier2+34h],0
+mov word[ad_nomfichier2+34h],di   ;msb position dossier parent
 fs
-mov dword[ad_nomfichier2+38h],0
+mov dword[ad_nomfichier2+36h],0
+fs 
+mov word[ad_nomfichier2+3Ah],si ;lsb position dossier parent
 fs
 mov dword[ad_nomfichier2+3Ch],0
 fs
