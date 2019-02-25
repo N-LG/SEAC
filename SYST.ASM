@@ -2704,17 +2704,8 @@ int 64h
 cmp eax,0       
 je suite_cmdsup
 cmp eax,12       
-je dossier_cmdsup
+je suite_cmdsup
 jmp err3cmdsup
-
-dossier_cmdsup:
-jmp err3cmdsup      ;ne support pas la suppression de dossier pour l'instant
-
-;verifie que le dossier est bien vide
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
-
-
-
 
 suite_cmdsup:
 mov eax,3
@@ -3009,6 +3000,19 @@ int 64h
 cmp eax,12       
 jne err3cmdsup
 
+mov eax,1
+int 64h
+cmp eax,0
+jne err3cmdsup
+
+mov edx,ad_zdc-1
+boucle4_cmdnd:     
+inc edx
+cmp byte[edx],0
+jne boucle4_cmdnd  
+sub edx,2
+mov byte[edx],0
+jmp cmdcd   ;une fois le dossier créer on l'ouvre
 
 
 

@@ -792,8 +792,20 @@ mov ax,seldat
 mov ds,ax
 inc dword[cptsf]     ;incrémente le compteur global
 dec byte[cpttc]      ;décrémente le compteur de la t?che en cours
-jnz finirqtmp         ;si arrivé a zéro, on commute
+jz commutation         ;si arrivé a zéro, on commute
 
+finirqtmp:
+mov al,20h
+out 20h,al   ;(End Of Interrupt)
+pop ds
+pop eax
+sti
+iret
+
+
+
+
+;*********************
 commutation:    
 push eax         ;sauvegarde complète des registres
 push ebx
@@ -920,13 +932,8 @@ pop ecx
 pop ebx
 pop eax
 
-finirqtmp:
-mov al,20h
-out 20h,al   ;(End Of Interrupt)
-pop ds
-pop eax
-sti
-iret
+jmp finirqtmp 
+
 
 
 ;************************************************************************************************************************************

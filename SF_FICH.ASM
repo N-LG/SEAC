@@ -2776,7 +2776,8 @@ cmp al,011000b
 je supprime_fichier_fat       ;ou fat32
 jmp errprmsf
 
-supprime_fichier_fat:             
+;*******************
+supprime_fichier_fat:  
 call minfo_charge_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -2809,53 +2810,82 @@ cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ra
 je ok_supprime_fichier_fat
 popad
 jmp errsysf
-ok_supprime_fichier_fat:
 
-;si c'est un dossier verifie qu'il est bien vide
-pushad
+ok_supprime_fichier_fat:
 fs
-test word[ebx+zt_lminfo+0Bh],10h
-jz pas_supprime_dossier_fat
+mov al,[at_fichier]
+and al,011b
+cmp al,01b
+je ok_supprime_dossier_fat
+
+
+mov ecx,10000h ;si c'est un dossier on vérifie qu'il est bien vide
+push ebx
+push es
+mov ax,selramh
+mov es,ax
+call resmem
+jc errmem_supprime_dossier_fat 
 xor edx,edx
 
-boucle1_testdossiervide:
-push ebx
-push edx
-push es
-mov ax,seldat
-mov es,ax
-mov ecx,512
-mov edi,zt_lminfo+512
+recharge_verif_supprime_dossier_fat:
+mov ecx,10000h
+mov edi,ebx
+add edi,10h
+pushad
 call sflirefichier
+popad
+add edx,10000h
+
+
+mov esi,ebx
+mov edi,ebx
+sub esi,10h
+add edi,10010h
+
+
+boucle_verif_supprime_dossier_fat:
+add esi,20h
+cmp esi,edi
+je recharge_verif_supprime_dossier_fat
+es
+cmp byte[esi],0E5h
+je boucle_verif_supprime_dossier_fat
+es
+cmp byte[esi],0
+je fin_verif_supprime_dossier_fat 
+es
+cmp word[esi],202Eh
+je boucle_verif_supprime_dossier_fat
+es
+cmp dword[esi],20202E2Eh
+je boucle_verif_supprime_dossier_fat
+
+
+call libmem
 pop es
-pop edx
 pop ebx
-mov ebx,zt_lminfo+512
-
-boucle2_testdossiervide:
-fs
-mov al,[ebx]
-cmp al,02Eh
-je suite_testdossiervide
-cmp al,005h
-je suite_testdossiervide
-cmp al,0E5h
-je suite_testdossiervide
-cmp al,000h
-je pas_supprime_dossier_fat
 popad
-jmp errdnv_supprime_fichier
+mov eax,cer_dnv      ;code d'erreur: dossier non vide
+jmp finfonctionfichiererr
 
-suite_testdossiervide:
-add ebx,32
-cmp ebx,zt_lminfo+1024
-jne boucle2_testdossiervide
-add edx,512
-jmp boucle1_testdossiervide
 
-pas_supprime_dossier_fat:
+errmem_supprime_dossier_fat:
+pop es
+pop ebx
 popad
+mov eax,cer_pasm      ;pas assez de mémoire
+jmp finfonctionfichiererr
 
+
+
+
+fin_verif_supprime_dossier_fat:
+call libmem
+pop es
+pop ebx
+
+ok_supprime_dossier_fat:
 push ebx
 fs   ;supprime les cluster reservé
 mov ebx,[ad_fichier]
@@ -2905,11 +2935,8 @@ cmp eax,0
 jne finfonctionfichiererr
 jmp fermerfichier
 
-errdnv_supprime_fichier:
-popad
-mov eax,cer_dnv      ;code d'erreur: dossier non vide
-jmp finfonctionfichiererr
 
+;********************
 supprime_fichier_mem:
 push ebx
 fs
