@@ -2382,32 +2382,115 @@ cree_fichier_fat_long_boucle_pseudo_point_ignore:
 inc esi
 jmp cree_fichier_fat_long_boucle_pseudo_point
 
-
-
 cree_fichier_fat_long_fin_pseudo:
-
 
 
 ;************************************
 ;recherche si un nom court identique existe déja
+push es
+push ecx 
+mov ax,selramh
+mov es,ax
+mov esi,ad_nomfichier2
+fs
+mov al,[ad_nomfichier2]
+and eax,3Fh
+shl eax,5
+add esi,eax  ;esi=adreese du descripteur8:3
 
-jmp cree_fichier_fat_long_cheksum
 
 
-;push eax       ;trappe!£££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££££
-;mov eax,ecx
-;call affh1j
-;mov al,3
-;out 61h,al       
-;pop eax
+cree_fichier_fat_long_verif_recherche:
+xor edx,edx  
+cree_fichier_fat_long_verif_recharge:       ;lire partie dossier
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+call sflirefichier
+cmp eax,0
+jne cree_fichier_fat_long_verif_erreur_lecture 
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+add ecx,edi
 
 
+cree_fichier_fat_long_verif_boucle:
+es
+cmp byte[edi],0
+je cree_fichier_fat_long_verif_fin
+fs
+mov eax,[esi]
+es
+cmp [edi],eax
+jne cree_fichier_fat_long_verif_suite
+fs
+mov eax,[esi+4]
+es
+cmp [edi+4],eax
+jne cree_fichier_fat_long_verif_suite
+fs
+mov eax,[esi+8]
+es
+mov byte[edi+11],0
+and eax,0FFFFFFh
+es
+cmp [edi+8],eax
+je cree_fichier_fat_long_renomme
 
+cree_fichier_fat_long_verif_suite:
+add edi,20h
+cmp edi,ecx
+jne cree_fichier_fat_long_verif_boucle
+fs
+add edx,[to_ztexpdossier]
+jmp cree_fichier_fat_long_verif_recharge
 
 
 ;*************************************
 ;adaptation du nom court (au besoin)
+cree_fichier_fat_long_renomme:
+mov edi,esi
+add edi,7
 
+cree_fichier_fat_long_renomme_boucle:
+fs
+cmp byte[edi],"0"
+jb cree_fichier_fat_long_renomme_nonchiffre
+fs
+cmp byte[edi],"9"
+ja cree_fichier_fat_long_renomme_nonchiffre
+
+fs
+inc byte[edi]
+fs
+cmp byte[edi],"9"+1
+jne cree_fichier_fat_long_verif_recherche
+fs
+mov byte[edi],"0"
+dec edi
+jmp cree_fichier_fat_long_renomme_boucle
+
+
+cree_fichier_fat_long_renomme_nonchiffre:
+fs
+mov byte[edi],"1"
+dec edi
+fs
+mov byte[edi],23h    ;symbole croisillon(#)
+jmp cree_fichier_fat_long_verif_recherche
+
+
+cree_fichier_fat_long_verif_erreur_lecture:
+pop ecx
+jmp cree_fichier_fat_erreur
+
+
+cree_fichier_fat_long_verif_fin:
+pop ecx
+pop es
 
 
 
