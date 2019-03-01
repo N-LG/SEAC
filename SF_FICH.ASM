@@ -983,8 +983,7 @@ cmp byte[ebx],"."
 je fat_non_valide
 gs
 cmp byte[ebx+0Bh],0Fh
-je fat_vfat
-jmp fat_origine
+jne fat_origine
 
 fat_vfat:
 gs
@@ -2096,7 +2095,71 @@ cmp edx,ad_nomfichier2+11
 jne cree_fichier_fat_court_bouclepoint
 fs
 cmp byte[ebx],0
-je cree_fichier_fat_suite
+jne cree_fichier_fat_long
+
+;********************************
+;recherche si un nom court identique existe déja
+push es
+push ecx 
+mov ax,selramh
+mov es,ax
+mov esi,ad_nomfichier2
+
+cree_fichier_fat_court_verif_recherche:
+xor edx,edx  
+cree_fichier_fat_court_verif_recharge:       ;lire partie dossier
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+call sflirefichier
+cmp eax,0
+jne cree_fichier_fat_long_verif_erreur_lecture 
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+add ecx,edi
+
+
+cree_fichier_fat_court_verif_boucle:
+es
+cmp byte[edi],0
+je cree_fichier_fat_long_verif_fin
+fs
+mov eax,[esi]
+es
+cmp [edi],eax
+jne cree_fichier_fat_court_verif_suite
+fs
+mov eax,[esi+4]
+es
+cmp [edi+4],eax
+jne cree_fichier_fat_court_verif_suite
+fs
+mov eax,[esi+8]
+es
+mov byte[edi+11],0
+and eax,0FFFFFFh
+es
+cmp [edi+8],eax
+je cree_fichier_fat_court_erreur
+
+cree_fichier_fat_court_verif_suite:
+add edi,20h
+cmp edi,ecx
+jne cree_fichier_fat_court_verif_boucle
+fs
+add edx,[to_ztexpdossier]
+jmp cree_fichier_fat_court_verif_recharge
+
+
+cree_fichier_fat_court_erreur:
+pop ecx
+pop es
+popad
+mov eax,cer_cfi   ;création de fichier impossible
+ret
 
 
 
