@@ -2626,7 +2626,7 @@ mov edx,ad_zdc
 
 boucle1_cmdren:     ;trouve le debut du nom du fichier
 cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx]," "
 jne boucle1_cmdren          
@@ -2638,7 +2638,7 @@ mov esi,edx
 
 boucle2_cmdren:     ;trouve le debut du nouveau nom du fichier
 cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx],":"
 jne boucle2_cmdren   
@@ -2655,7 +2655,7 @@ cmp eax,0
 je suite_cmdren
 cmp eax,12       
 je suite_cmdren
-jmp err3cmdsup
+jmp fin_commande_erreur
 
 suite_cmdren:
 mov al,7   ;modifie les données du nom de fichier
@@ -2664,9 +2664,7 @@ mov edx,edi
 int 64h
 cmp eax,0       
 je finok_cmdren
-cmp eax,cer_dnv       
-je err2cmdsup
-jmp err1cmdsup
+jmp fin_commande_erreur
 
 finok_cmdren:
 mov cl,98   
@@ -2688,7 +2686,7 @@ mov edx,ad_zdc
 
 boucle_cmpsup:     ;trouve le debut du nom du fichier
 cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx]," "
 jne boucle_cmpsup           
@@ -2705,34 +2703,16 @@ cmp eax,0
 je suite_cmdsup
 cmp eax,12       
 je suite_cmdsup
-jmp err3cmdsup
+jmp fin_commande_erreur
 
 suite_cmdsup:
 mov eax,3
 int 64h
 cmp eax,0       
-je finok_cmdsup
-cmp eax,cer_dnv       
-je err2cmdsup
-
-err1cmdsup:
-mov cl,3     ;erreur de lecture
-call affmsgsyst
-jmp pascommande
-
-err2cmdsup:
-mov cl,90    ;dossier non vide
-call affmsgsyst
-jmp pascommande
-
-err3cmdsup:
-mov cl,91   ;fichier non trouvé
-call affmsgsyst
-jmp pascommande
+jne fin_commande_erreur
 
 
 
-finok_cmdsup:
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -2745,68 +2725,7 @@ jmp pascommande
 
 ;********************************************
 cmdcop:
-mov edx,ad_zdc
-
-boucle1_cmdcop:     ;trouve le debut du nom du fichier
-cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx]," "
-jne boucle1_cmdcop
-cmp byte[edx+1]," "
-je boucle1_cmdcop          
-
-inc edx
-mov esi,edx
-
-boucle2_cmdcop:     ;trouve le debut du nouveau nom du fichier
-cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx],":"
-jne boucle2_cmdcop   
-
-mov byte[edx],0
-inc edx
-mov edi,edx
-
-xor eax,eax         ;ouvre le fichier
-xor ebx,ebx
-mov edx,esi
-int 64h
-cmp eax,0       
-je suite_cmdcop
-;cmp eax,12       
-;je suite_cmdcop  ;ne support pas la recopie de dossier
-jmp err3cmdsup
-
-
-suite_cmdcop:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-;ouvre le fichier
-;créer la destination
-;copie les données dans la destination
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-
-
-mov cl,98   
-call affmsgsyst
-mov edx,esi
-call affjournal
-mov cl,95   
-mov edx,edi
-call affmsgsyst
-call affjournal
-mov al,13
-call affcj
-jmp pascommande
-
-
+include "CI_COP.ASM"
 
 ;****************************************************************
 cmdcd:          ;change le répertoire courant (inclue la commande cd..)
@@ -2816,13 +2735,6 @@ include "CI_CD.ASM"
 cmdaf:
 mov al,1Fh
 call affcj
-;mov al,"["
-;call affcj
-;mov ax,[id_zdc]
-;call affh1j
-;mov al,"]"
-;call affcj   ;affiche l'id de la tache qui a emise cette commande
-
 
 mov edx,ad_zdc
 boucle_cmdaf:
@@ -2848,7 +2760,7 @@ cmdex:
 mov edx,ad_zdc
 boucle1_cmpex:     ;trouve le debut du nom du fichier
 cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx]," "
 jne boucle1_cmpex           
@@ -2860,7 +2772,7 @@ xor eax,eax         ;ouvre le fichier
 xor ebx,ebx
 int 64h
 cmp eax,0       
-jne err3cmdsup
+jne fin_commande_erreur
 
 ;lit la taille du fichier
 mov al,6
@@ -2868,7 +2780,7 @@ mov ah,1
 mov edx,ad_chaine_travail
 int 64h
 cmp eax,0
-jne err3cmdsup
+jne fin_commande_erreur
 
 ;vérifie que le fichier n'est pas trop grand
 mov ecx,[ad_chaine_travail]
@@ -2884,7 +2796,7 @@ and ecx,0FFFFFFF0h
 call resmem
 pop ecx
 pop edx
-jc err3cmdsup
+jc fin_commande_erreur_mem
 xchg ebx,edx         ;edx=adresse de base ebx=adresse du fichier
 
     
@@ -2902,8 +2814,7 @@ add edi,16
 int 64h
 pop edx
 cmp eax,0
-jne err3cmdsup
-
+jne fin_commande_erreur
 
 
 
@@ -2986,7 +2897,7 @@ mov dword[edx],002E2Fh  ;on rajoute une cotice et point a la fin du nom de dossi
 mov edx,ad_zdc
 boucle3_cmdnd:     ;trouve le debut du nom du fichier
 cmp byte[edx],0
-je err3cmdsup          ;si on arrive a la fin de la chaine c'est une erreur
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
 inc edx
 cmp byte[edx]," "
 jne boucle3_cmdnd           
@@ -2998,12 +2909,12 @@ mov eax,2        ;créer le dossier
 xor ebx,ebx
 int 64h
 cmp eax,12       
-jne err3cmdsup
+jne fin_commande_erreur
 
 mov eax,1
 int 64h
 cmp eax,0
-jne err3cmdsup
+jne fin_commande_erreur
 
 mov edx,ad_zdc-1
 boucle4_cmdnd:     
@@ -3016,7 +2927,22 @@ jmp cmdcd   ;une fois le dossier créer on l'ouvre
 
 
 
-;jmp pascommande
+;************************************************************
+fin_commande_erreur_param:
+mov cl,101
+call affmsgsyst
+jmp pascommande
+
+fin_commande_erreur_mem:
+mov cl,111
+call affmsgsyst
+jmp pascommande
+
+;affichel le message correspondant a l'erreur dans eax
+fin_commande_erreur:
+add eax,100
+mov cl,al   
+call affmsgsyst
 
 
 

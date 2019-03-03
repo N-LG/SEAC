@@ -40,7 +40,7 @@ mov al,4
 push edx
 int 64h
 cmp al,0
-jne cmddirerr1
+jne cmddirerr
 
 test byte[ad_chaine_travail+25],02h
 jz pasdossierdircd
@@ -90,7 +90,7 @@ mov es,ax
 
 mov ecx,20000h
 call resmem
-jc cmddirerr2
+jc fin_commande_erreur_mem
 mov ebp,ebx
 add ebp,10h
 xor edx,edx
@@ -104,7 +104,7 @@ mov ecx,20000h
 mov al,4
 int 64h
 cmp eax,0
-jne cmddirerr1
+jne cmddirerr
 xor ebx,ebx
 
 boucle_dir_fat:
@@ -270,18 +270,13 @@ sub ebx,10h
 call libmem
 jmp pascommande
 
-cmddirerr1:   ;erreur de lecture
+cmddirerr:   ;erreur de lecture
+push eax
 mov ebx,ebp
 sub ebx,10h
 call libmem
-mov cl,3
-call affmsgsyst
-jmp pascommande
-
-cmddirerr2:    ;erreur de mémoire
-mov cl,5
-call affmsgsyst
-jmp pascommande
+pop eax
+jmp fin_commande_erreur_mem
 
 
 dirtypemem:

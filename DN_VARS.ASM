@@ -44,7 +44,7 @@ ad_tabaccent equ 1800h
 ad_repertoire equ 1C00h  ;adresse du repertoire courant
 ad_repsys equ 1E00h      ;adresse du repertoire système
 
-ad_chaine_travail equ 2000h ;zt de travail des commandes cd et dir et de la création de tache
+ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la création de tache
 
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
@@ -474,6 +474,8 @@ cer_prt    equ 25 ;pas de réponse
 cer_ers    equ 26 ;erreur dans la structure
 cer_ddi    equ 27 ;données disponible
 cer_dnd    equ 28 ;données non disponible
+
+;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 
 
 ;**********************************************************
