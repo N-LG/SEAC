@@ -1275,7 +1275,7 @@ mov dx,7
 add dx,di
 fs
 mov ecx,[cptsf]
-add ecx,8               ;temp a attendre pour tester
+add ecx,80               ;temp a attendre pour tester
 
 bocsl:
 in al,dx

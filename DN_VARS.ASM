@@ -32,6 +32,8 @@ sellfb equ 70h    ;14
 
 selecran equ 78h  ;15
 
+seltss equ 80h   ;16
+
 ;*****************************
 ;tables système
 
@@ -50,6 +52,7 @@ ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
 
 
+ad_tss equ 2600h     ;TSS et IO map (512 + 8196)  2200h
 
 
 zt_rcl equ 2800h  ;zone de réception touche

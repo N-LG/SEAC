@@ -43,6 +43,14 @@ cmp eax,0
 jne fin_commande_erreur
 mov edi,ebx
 
+taille_zt_cop equ 40000h ;taille de la zt employé
+;réserve une ZT
+mov ecx,taille_zt_cop
+call resmem
+jc erreur_mem_cmdcop
+add ebx,10h
+mov ebp,ebx
+
 ;lit la taille du fichier
 mov eax,6
 mov ah,1
@@ -52,14 +60,6 @@ int 64h
 cmp eax,0
 jne fin_commande_erreur
 mov ecx,[ad_chaine_travail+8]
-
-taille_zt_cop equ 40000h ;taille de la zt employé
-;réserve une ZT
-mov ecx,taille_zt_cop
-call resmem
-jc erreur_mem_cmdcop
-add ebx,10h
-mov ebp,ebx
 
 ;copie les données dans la destination
 mov ax,selramh
@@ -72,6 +72,7 @@ cmp ecx,taille_zt_cop
 jb suite3_cmdcop 
 
 push ecx
+push esi
 push edi
 mov eax,4         ;lit dans le fichier
 mov ebx,esi
@@ -79,18 +80,20 @@ mov ecx,taille_zt_cop
 mov edi,ebp
 int 64h
 pop edi
+pop esi
 pop ecx
 cmp eax,0
 jne erreur_autres_cmdcop
 
-
 push ecx
 push esi
+push edi
 mov eax,5         ;ecrit dans le fichier
 mov ebx,edi
 mov ecx,taille_zt_cop
 mov esi,ebp
 int 64h
+pop edi
 pop esi
 pop ecx
 cmp eax,0
@@ -105,22 +108,26 @@ cmp ecx,0
 je suite4_cmdcop
 
 push ecx
+push esi
 push edi
 mov eax,4         ;lit dans le fichier
 mov ebx,esi
 mov edi,ebp
 int 64h
 pop edi
+pop esi
 pop ecx
 cmp eax,0
 jne erreur_autres_cmdcop
 
 push ecx
 push esi
+push edi
 mov eax,5         ;ecrit dans le fichier
 mov ebx,edi
 mov esi,ebp
 int 64h
+pop edi
 pop esi
 pop ecx
 cmp eax,0
@@ -131,16 +138,16 @@ mov ebx,ebp ;libère la ZT
 sub ebx,10h
 call libmem
 
-mov eax,1    ;ferme les fichiers
-mov ebx,esi
-int 64h
-cmp eax,0
-jne fin_commande_erreur
-mov eax,1
-mov ebx,edi
-int 64h
-cmp eax,0
-jne fin_commande_erreur
+;mov eax,1    ;ferme les fichiers
+;mov ebx,esi
+;int 64h
+;cmp eax,0
+;jne fin_commande_erreur
+;mov eax,1
+;mov ebx,edi
+;int 64h
+;cmp eax,0
+;jne fin_commande_erreur
 
 mov ax,seldat
 mov ds,ax
@@ -163,7 +170,9 @@ jmp pascommande
 
 
 erreur_autres_cmdcop:
+push eax
 mov ebx,ebp ;libère la ZT
 sub ebx,10h
 call libmem
+pop eax
 jmp fin_commande_erreur

@@ -466,7 +466,13 @@ mov dl,02h ;segment de donn?es en lect/ecr
 call crgdt
 
 
+mov ax,16          ;TSS
+mov ebx,segcod*16+ad_tss
+mov ecx,02200h
+mov dl,09h ;segment de TSS             ;dl=option       type=0123 d/b=7 l=6 dpl=45
+call crgdt
 
+and byte[16*8+5],0EFh   ;met a 0 le bit S du descripteur de TSS (sinon le descripteur n'est pas valide)
 
 ;*******************************************************
 ;chargement des vecteurs d'interruption
@@ -923,7 +929,8 @@ mov dx,selpil
 mov ss,dx
 mov esp,0FFF0h
 
-
+mov ax,seltss    ;définie la TSS global
+ltr ax     
 
 
 sti      ;init des valeurs termin?, d?bloquage des irq

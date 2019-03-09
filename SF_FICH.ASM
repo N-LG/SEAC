@@ -3164,7 +3164,6 @@ cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ra
 je ok_lire_meta_fichier_fat
 popad
 jmp ignore_lire_meta_fichier   ;on evite certaine phase
-jmp errsysf
 ok_lire_meta_fichier_fat:
 
 ;mettre a jour la date de dernier acces
@@ -4413,6 +4412,7 @@ fs
 cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
 je ok_ecrire_meta_fichier_fat
 popad
+
 jmp errsysf
 ok_ecrire_meta_fichier_fat:
 
@@ -4457,8 +4457,6 @@ fs
 mov [ebx+zt_lminfo+16h],ax
 fs
 mov [ebx+zt_lminfo+18h],dx
-
-
 popad
 
 fin_ecrire_meta_fichier:
@@ -4807,17 +4805,29 @@ boucle_deter_1ercluster_ecr:
 fs
 cmp edx,[to_1cluster]
 jb num_1er_cluster_ecr
+mov ebp,ebx
 call lireindexfat
 cmp ebx,0FFFFFFF0h ;réservé
 je fin_sfecrirefichier_ersyf
 cmp ebx,0FFFFFFF7h ;défaillant
 je fin_sfecrirefichier_erecr
 cmp ebx,0FFFFFFF8h ;fin de fichier
-je fin_sfecrirefichier_ersyf   
+je sfecrirefichier_arrivefin   
 
 fs
 sub edx,[to_1cluster]
 jmp boucle_deter_1ercluster_ecr
+
+
+sfecrirefichier_arrivefin:
+push edx
+mov edx,ebp
+call ajn_cluster
+mov ebx,edx 
+pop edx
+cmp eax,0
+jne fin_sfecrirefichier_err
+
 
 num_1er_cluster_ecr:
 cmp edx,0
@@ -4835,8 +4845,9 @@ fs
 cmp eax,[to_1cluster]
 ja cluster_ecr_sfin
 
-;*************************lecture partielle millieu
+;*************************ecriture partielle millieu
 ;charge le secteur dans une zone tampon
+
 push ecx
 push edi
 fs
@@ -4864,7 +4875,7 @@ pop esi
 pop ecx
 jmp fin_sfecrirefichier_err   ;conservation du code d'erreur
 
-;*********************lecture partielle fin 
+;*********************ecriture partielle fin 
 cluster_ecr_sfin:
 ;charge le secteur dans une zone tampon
 push ecx
@@ -4905,9 +4916,8 @@ jne fin_sfecrirefichier_err   ;conservation du code d'erreur
 jmp cluster_ecr_determination
 
 
-;******************************secteur complet
+;******************************ecriture secteur complet
 cluster_ecr_scomplet:
-
 ;charge le secteur directement a l'endroit souhaité
 push es
 mov ax,ds
@@ -4935,14 +4945,12 @@ cmp ebx,0FFFFFFF7h ;défaillant
 je fin_sfecrirefichier_erecr   
 cmp ebx,0FFFFFFF8h ;fin de fichier
 jne cluster_ecr_najcluster   
-
-
 call ajn_cluster 
 cmp eax,0
 jne fin_sfecrirefichier_err
 mov ebx,edx
-cluster_ecr_najcluster:
 
+cluster_ecr_najcluster:
 fs
 cmp ecx,[to_1cluster]
 ja cluster_ecr_scomplet
