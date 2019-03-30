@@ -149,7 +149,19 @@ mov [ebx+tt_data4_dt],ecx
 ;calcul des adresse (relative au debut de la zone mémoire) des différent zone mémoire
 mov eax,data_tache
 es
-mov [ebx+ad_pile_dt],eax
+mov [ebx+ad_pile0_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile1_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile2_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile3_dt],eax
 es
 add eax,[ebx+to_pile_fe]
 es
@@ -354,25 +366,59 @@ mov ds,ax
 mov esi,[ad_tache_cree]             
 mov ax,selramh
 mov ds,ax
-
 call maj_ldtache
 
 
-
-;initialisation de la pile de la tache
-mov ax,seldat
-mov ds,ax
+;initialisation des piles de tache
 es
 lldt [esi+sel_ldt_tache] ;on charge d'abord la bonne LDT
+
+;initialisation de la pile 3 de la tache
 es
 mov edi,[esi+to_pile_fe]
 sub edi,4
-mov ax,sel_pilet
+mov ax,sel_pilet3
+mov ds,ax
+es
+mov [esi+sauv_esp3],edi   ;sauvegarde pointeur de la pile
+
+;initialisation de la pile 2 de la tache
+es
+mov edi,[esi+to_pile_fe]
+sub edi,4
+mov ax,sel_pilet2
+mov ds,ax
+es
+mov [esi+sauv_esp2],edi   ;sauvegarde pointeur de la pile
+
+;initialisation de la pile 1 de la tache
+es
+mov edi,[esi+to_pile_fe]
+sub edi,4
+mov ax,sel_pilet1
+mov ds,ax
+es
+mov [esi+sauv_esp1],edi     ;sauvegarde pointeur de la pile
+
+
+;initialisation de la pile 0 de la tache
+es
+mov edi,[esi+to_pile_fe]
+sub edi,4
+mov ax,sel_pilet0
 mov ds,ax
 
-;sauvegarde sur la pile des instruction de retour (int 61h/int 30h)
 
-mov eax,000000001000000010b     ;IF=1         ;flag=ID:VIP  VIF:AC:VM:RF  0:NT:IOPL  OF:DF:IF:TF  SF:ZF:0:AF  0:PF:1:CF
+;sauvegarde sur la pile des instruction de retour (int 61h/int 30h)
+sub edi,4
+mov dword[edi],sel_pilet3  ;push ss niv 3
+sub edi,4
+es
+mov eax,[esi+sauv_esp3]
+mov dword[edi],eax         ;push esp niv 3
+
+
+mov eax,000011001000000010b     ;   IOPL=3  IF=1     ;flag=0:0:ID:VIP  VIF:AC:VM:RF  0:NT:IOPL:IOPL  OF:DF:IF:TF  SF:ZF:0:AF  0:PF:1:CF
 sub edi,4
 mov [edi],eax        ;pushfd
 sub edi,4
@@ -411,9 +457,10 @@ mov [edi],eax        ;fs
 sub edi,4
 mov [edi],eax        ;gs  
 
-;sauvegarde pointeur de la pile
 es
-mov [esi+sauv_esp],edi
+mov [esi+sauv_esp0],edi  ;sauvegarde pointeur de la pile
+
+
 
 ;initialistaion de l'en tête descripteur espace mémoire
 es
@@ -451,6 +498,8 @@ jne boucle_verif_id
 
 es
 mov [esi+id_tache],ax
+
+
 
 
 ;referme le fichier
@@ -694,13 +743,11 @@ mov dword[si+4],0
 ;libère la mémoire
 call libmem
 
-
 ;ferme les fichier
 mov ax,seldat
 mov ds,ax
 mov cx,[id_tache_exec]
 call ferme_fichier_tache
-
 xor ebx,ebx
 mov cx,[id_tache_af]
 cmp [id_tache_exec],cx
@@ -827,7 +874,7 @@ mov es,ax
 cmp word[id_tache_exec],0
 jne sauv_tache_norm
 
-mov [sauv_esp0],esp  ;sauvegarde de l'offset de la pile de la tache zéro
+mov [sauv_esp_t0],esp  ;sauvegarde de l'offset de la pile de la tache zéro
 xor ebx,ebx
 es
 mov eax,[ebx+4]
@@ -843,12 +890,10 @@ cmp byte[ebx+2],"T"
 je restauration_tache
 jmp tache_suivante
 
-sauv_tache_norm:      ;sauvegarde de la pile d'une tache normale
+sauv_tache_norm:      ;sauvegarde des piles d'une tache normale
 mov ebx,[ad_tache_exec]
 es
-mov [ebx+sauv_esp],esp  
-
-
+mov [ebx+sauv_esp0],esp  
 
 tache_suivante:    ;recherche du descripteur de tache suivant
 es
@@ -876,17 +921,21 @@ es
 mov al,[ebx+temp_exec_tache]
 mov byte[cpttc],al
 es
-mov ax,[ebx+8]
+mov ax,[ebx+id_tache]
 mov [id_tache_exec],ax
 
 ;restauration de la LDT
 es
 lldt [ebx+sel_ldt_tache]
 
-;restauration de la pile
+;restauration des pile
 es
-mov esp,[ebx+sauv_esp]
-mov ax,sel_pilet             
+mov esp,[ebx+sauv_esp0]
+es
+mov eax,[ebx+to_pile_fe]
+sub eax,4
+mov [tss_sauv_esp0],eax
+mov ax,sel_pilet0             
 mov ss,ax
 jmp fin_com_tache
 
@@ -917,7 +966,8 @@ mov byte[cpttc],10          ;1x2,5ms alloué a la tache principale, oui c'est peu
 ;restauration de la pile
 mov ax,selpil
 mov ss,ax
-mov esp,[sauv_esp0]
+mov esp,[sauv_esp_t0]
+
 
 fin_com_tache:   ;restauration complète des registres
 pop gs
@@ -940,15 +990,6 @@ jmp finirqtmp
 maj_ldtache:   ;crée/met a jour les dscripteurs de segment de la LDT pointé par ds:esi
 push ds
 
-mov ebx,[esi+ad_pile_dt]
-add ebx,esi
-add ebx,100000h    ;ajoute 1Mo
-mov ecx,[esi+to_pile_fe]        
-dec ecx
-mov eax,esi
-add eax,ldt_tache+0
-mov dl,002h       ;segment de données en lect/ecr ring 0
-call creeds
 
 mov ebx,[esi+ad_code_dt]
 add ebx,esi
@@ -957,7 +998,47 @@ mov ecx,[esi+to_code_fe]
 dec ecx
 mov eax,esi
 add eax,ldt_tache+8
-mov dl,08Eh       ;segment de code lisible en 32bits ring 0
+mov dl,0BEh       ;segment de code lisible en 32bits ring 3
+call creeds
+
+mov ebx,[esi+ad_pile0_dt]
+add ebx,esi
+add ebx,100000h    ;ajoute 1Mo
+mov ecx,[esi+to_pile_fe]        
+dec ecx
+mov eax,esi
+add eax,ldt_tache+32
+mov dl,002h       ;segment de données en lect/ecr ring 0
+call creeds
+
+mov ebx,[esi+ad_pile1_dt]
+add ebx,esi
+add ebx,100000h    ;ajoute 1Mo
+mov ecx,[esi+to_pile_fe]        
+dec ecx
+mov eax,esi
+add eax,ldt_tache+40
+mov dl,012h       ;segment de données en lect/ecr ring 1
+call creeds
+
+mov ebx,[esi+ad_pile2_dt]
+add ebx,esi
+add ebx,100000h    ;ajoute 1Mo
+mov ecx,[esi+to_pile_fe]        
+dec ecx
+mov eax,esi
+add eax,ldt_tache+48
+mov dl,022h       ;segment de données en lect/ecr ring 2
+call creeds
+
+mov ebx,[esi+ad_pile3_dt]
+add ebx,esi
+add ebx,100000h    ;ajoute 1Mo
+mov ecx,[esi+to_pile_fe]        
+dec ecx
+mov eax,esi
+add eax,ldt_tache+56
+mov dl,032h       ;segment de données en lect/ecr ring 3
 call creeds
 
 mov ebx,[esi+ad_data1_dt]
@@ -968,7 +1049,7 @@ cmp ecx,0
 je ignore_segd1
 dec ecx
 mov eax,esi
-add eax,ldt_tache+16
+add eax,ldt_tache+64
 mov dl,032h       ;segment de données en lect/ecr ring 3
 call creeds
 ignore_segd1:
@@ -981,7 +1062,7 @@ cmp ecx,0
 je ignore_segd2
 dec ecx
 mov eax,esi
-add eax,ldt_tache+24
+add eax,ldt_tache+72
 mov dl,032h       ;segment de données en lect/ecr ring 3
 call creeds
 ignore_segd2:
@@ -994,7 +1075,7 @@ cmp ecx,0
 je ignore_segd3
 dec ecx
 mov eax,esi
-add eax,ldt_tache+32
+add eax,ldt_tache+80
 mov dl,032h       ;segment de données en lect/ecr ring 3
 call creeds
 ignore_segd3:
@@ -1007,7 +1088,7 @@ cmp ecx,0
 je ignore_segd4
 dec ecx        
 mov eax,esi
-add eax,ldt_tache+40
+add eax,ldt_tache+88
 mov dl,032h       ;segment de données en lect/ecr ring 3
 call creeds
 ignore_segd4:

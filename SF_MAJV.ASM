@@ -14,6 +14,7 @@ and byte[at_csl],0FEh
 fs
 or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
 
+
 fs
 cmp word[id_tache_af],0
 jne majv_tache

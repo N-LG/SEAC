@@ -32,7 +32,7 @@ sellfb equ 70h    ;14
 
 selecran equ 78h  ;15
 
-seltss equ 80h   ;16
+seltss equ 83h   ;16
 
 ;*****************************
 ;tables système
@@ -270,7 +270,7 @@ ad_tache_exec equ 1E4h  ;adresse de la tache en cours d'execution
 num_fichier_tache equ 1E8h
 ad_tache_cree equ 1ECH
 
-sauv_esp0 equ 1F0h    ;sauvegarde de la pile de la tache 0
+sauv_esp_t0 equ 1F0h    ;sauvegarde de la pile de la tache 0
 id_tache_fichier equ 1F4h ;ID de la tache qui utillise la fonction fichier
 
 
@@ -326,6 +326,29 @@ couleur_fond equ 544h
 couleur_carac equ 548h
 ad_console0 equ 54Ch       
 
+
+
+
+
+
+
+
+
+
+
+;***********************************************************
+;structure de TSS
+
+tss_sauv_esp0 equ ad_tss + 004
+tss_sauv_ss0  equ ad_tss + 008
+tss_sauv_esp1 equ ad_tss + 012
+tss_sauv_ss1  equ ad_tss + 016
+tss_sauv_esp2 equ ad_tss + 020
+tss_sauv_ss2  equ ad_tss + 024
+tss_iom       equ ad_tss + 102
+offset_iom    equ 512
+
+
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 ;descripteur d'un espace mémoire réservé a une tache
 
@@ -374,28 +397,52 @@ ad_data2_dt equ 0B4h
 ad_data3_dt equ 0B8h
 ad_data4_dt equ 0BCh
 
-ad_pile_dt equ 0C0h
-ad_code_dt equ 0C4h
+ad_pile0_dt equ 0C0h
+ad_pile1_dt equ 0C4h
+ad_pile2_dt equ 0C8h
+ad_pile3_dt equ 0CCh
 
+ad_code_dt equ 0D0h
 
+sauv_esp0 equ 0E0h     ;sauvegarde du pointeur de la pile lors d'une commutation
+sauv_esp1 equ 0E4h
+sauv_esp2 equ 0E8h
+sauv_esp3 equ 0ECh
 
-sauv_esp equ 0C8h     ;sauvegarde du pointeur de la pile lors d'une commutation
-sel_ldt_tache equ 0CCh ;selecteur de segment de la LDT
-temp_exec_tache equ 0CEh   ;temp d'execution de la tache
-cpt_pause equ 0D0h    ;la tache doit être en pause jusqu'a cette valeur du compteur sans fin
-sel_ecranv equ 0D4h   ;selecteur d'ecran virtuel
-code_service equ 0D6h ;code du service proposé par la tache
+sel_ldt_tache equ 0F0h ;selecteur de segment de la LDT
+temp_exec_tache equ 0F2h   ;temp d'execution de la tache
+code_service equ 0F3h ;code du service proposé par la tache
+cpt_pause equ 0F4h    ;la tache doit être en pause jusqu'a cette valeur du compteur sans fin
+sel_ecranv equ 0F8h   ;selecteur d'ecran virtuel
 
 descriptif_tache equ 100h  ;descriptif (texte) de la tache executé
 recop_commande equ 200h ;chaine utf8z de 512o
-ldt_tache equ 400h       ;local descriptor table (8 descripteurs)
+ldt_tache equ 400h       ;local descriptor table (16 descripteurs)
 data_tache equ 500h  
 
 
 ;***************************************************
 ;selecteur de segment de la LDT de la tache
-sel_pilet equ 04h                
-sel_codet equ 0Ch
+
+sel_res1   equ 004h  ;segment LDT 0  DPL0
+sel_codet  equ 00Fh  ;segment LDT 1  DPL3
+sel_res2   equ 014h  ;segment LDT 2  DPL0
+sel_res3   equ 01Ch  ;segment LDT 3  DPL0
+
+sel_pilet0 equ 024h  ;segment LDT 4  DPL0   
+sel_pilet1 equ 02Dh  ;segment LDT 5  DPL1
+sel_pilet2 equ 036h  ;segment LDT 6  DPL2              
+sel_pilet3 equ 03Fh  ;segment LDT 7  DPL3             
+
+sel_dat1 equ 047h  ;segment LDT 8  DPL3
+sel_dat2 equ 04Fh  ;segment LDT 9  DPL3
+sel_dat3 equ 057h  ;segment LDT 10 DPL3
+sel_dat4 equ 05Fh  ;segment LDT 11 DPL3
+
+sel_res4   equ 064h  ;segment LDT 12 DPL0
+sel_res5   equ 06Ch  ;segment LDT 13 DPL0
+sel_res6   equ 074h  ;segment LDT 14 DPL0
+sel_res7   equ 07Ch  ;segment LDT 15 DPL0
 
 
 ;************************************************************************************

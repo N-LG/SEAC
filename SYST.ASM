@@ -389,7 +389,7 @@ mov [4],ebx    ;descripteur nul (obligatoire)
 mov ax,1            ;selecteur 1: code du programme
 mov ebx,segcod*16
 mov ecx,0FFFFh
-mov dl,08Eh       ;segment de code lisible en 32bits
+mov dl,08Ah       ;segment de code lisible en 32bits
 call crgdt
 
 mov ax,2
@@ -465,14 +465,13 @@ mov ecx,01FFFFFh
 mov dl,02h ;segment de donn?es en lect/ecr
 call crgdt
 
-
 mov ax,16          ;TSS
-mov ebx,segcod*16+ad_tss
+mov ebx,segdat*16+ad_tss
 mov ecx,02200h
-mov dl,09h ;segment de TSS             ;dl=option       type=0123 d/b=7 l=6 dpl=45
+mov dl,039h ;segment de TSS  en 32 bits           ;dl=option       type=0123 d/b=7 l=6 dpl=45
 call crgdt
-
 and byte[16*8+5],0EFh   ;met a 0 le bit S du descripteur de TSS (sinon le descripteur n'est pas valide)
+;or byte[16*8+6],10h ;met le bit AVL a 1
 
 ;*******************************************************
 ;chargement des vecteurs d'interruption
@@ -482,7 +481,7 @@ mov dx,segidt      ;modifie l'idt
 mov ds,dx
 mov si,selcod
 mov es,si
-mov dl,0Eh
+mov dl,06Eh
 
 mov al,0          ;d'abord les exeptions
 mov esi,iex0
@@ -931,9 +930,15 @@ mov esp,0FFF0h
 
 mov ax,seltss    ;définie la TSS global
 ltr ax     
-
-
-sti      ;init des valeurs termin?, d?bloquage des irq
+mov ax,sel_pilet0 ;et initialise les valeurs de base
+mov bx,sel_pilet1
+mov cx,sel_pilet2
+mov dx,offset_iom
+mov [tss_sauv_ss0],ax
+mov [tss_sauv_ss1],bx
+mov [tss_sauv_ss2],cx
+mov [tss_iom],dx
+sti      ;init des valeurs terminé, débloquage des irq
 
 
 
@@ -2257,7 +2262,7 @@ include "CI_LISTE.ASM"
 
 ;****************************************************************
 cmdvmem:
-mov edx,ad_zdc          ;recherche la chaine qui coresspond au numéros de mode
+mov edx,ad_zdc          ;recherche la chaine qui coresspond a l'adresse a afficher
 boucle_vmem1:
 cmp byte[edx]," "
 jne suite_boucle_vmem1
@@ -2269,7 +2274,7 @@ cmp edx,ad_zdc+200h
 je erreurcommandeparam
 jmp boucle_vmem1
 
-;convertit l'id en entier 16 bit
+;convertit l'id en entier 32 bit
 adresse_vmem:
 inc edx
 mov eax,101
@@ -2277,7 +2282,7 @@ int 61h
 
 mov ebx,ecx
 
-mov ax,selramh
+mov ax,selramt
 mov fs,ax
 
 mov ecx,16
@@ -4336,7 +4341,6 @@ jmp commutation
 
 int_63:             ;fonction interface
 include "SF_VID.ASM" 
-iret
 
 int_64:
 include "SF_FICH.ASM" ;fonction générales et système de fichier
@@ -4344,7 +4348,6 @@ include "SF_DISK.ASM" ;fonction de lecture disques
 
 int_65: ;communication inter tache 
 include "SF_COM.ASM"
-iret
 
 int_66:
 include "SF_PORT.ASM"

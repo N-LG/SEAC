@@ -35,9 +35,6 @@
 ;al=117 convertir données binaires en base64 
 ;al=118 convertir données binaires en base64url
 
-
-
-
 cmp al,0
 je sfs_envoie_cmd
 cmp al,1
@@ -448,13 +445,13 @@ jnz attent_sfs_mod_seg
 fs
 mov ebx,[ad_tache_exec]
 
-cmp dx,17h
+cmp dx,sel_dat1
 je sfs_mod_seg_dat1
-cmp dx,1Fh
+cmp dx,sel_dat2
 je sfs_mod_seg_dat2
-cmp dx,27h
+cmp dx,sel_dat3
 je sfs_mod_seg_dat3
-cmp dx,2Fh
+cmp dx,sel_dat4
 je sfs_mod_seg_dat4
 jmp sfs_mod_seg_erparami
 
@@ -556,7 +553,7 @@ call maj_ldtache
 
 lldt [esi+sel_ldt_tache] ;on recharge la bonne LDT
 
-mov ax,sel_pilet ;on recharge le segment de la pile pour mettre a jour les données 
+mov ax,sel_pilet0 ;on recharge le segment de la pile pour mettre a jour les données 
 mov ss,ax
 
 
