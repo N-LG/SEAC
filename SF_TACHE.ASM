@@ -329,14 +329,93 @@ jmp suite_crea_tache
 
 
 ;************************************************************************************
-creation_tache_interne:
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-;reserve mémoire
+creation_tache_interne:         ;cs:esi=code de l'application  ecx=nombre d'octet du code
 
 
+push ecx   ;calcul espace nécessaire
+add ecx,16384
+add ecx,data_tache 
+add ecx,15
+and ecx,0FFFFFFF0h            
+call resmem              ;réservation d'un espace mémoire 
+pop ecx
+jc cretache_ermm2
+mov [ad_tache_cree],ebx
+
+;initialisation des variables de la taches
+mov ax,selramh
+mov es,ax
+
+es
+mov dword[ebx+to_pile_fe],4096
+es
+mov [ebx+to_code_fe],ecx
+es
+mov dword[ebx+tt_data1_dt],0
+es
+mov dword[ebx+tt_data2_dt],0
+es
+mov dword[ebx+tt_data3_dt],0
+es
+mov dword[ebx+tt_data4_dt],0
 
 
+mov eax,data_tache
+es
+mov [ebx+ad_pile0_dt],eax
+add eax,4096
+es
+mov [ebx+ad_pile1_dt],eax
+add eax,4096
+es
+mov [ebx+ad_pile2_dt],eax
+add eax,4096
+es
+mov [ebx+ad_pile3_dt],eax
+add eax,4096
+es
+mov [ebx+ad_code_dt],eax
+add eax,ecx
+es
+mov [ebx+ad_data1_dt],eax
+es
+mov [ebx+ad_data2_dt],eax
+es
+mov [ebx+ad_data3_dt],eax
+es
+mov [ebx+ad_data4_dt],eax
+
+
+
+;remplissage de la zones de code
+mov edi,ebx
+es
+add edi,[ebx+ad_code_dt]
+push ds
+push cs
+pop ds
+rep movsb
+pop ds
+
+
+;recopie de la commande dans le descriptif
+mov esi,ad_zdc
+mov edi,descriptif_tache
+add edi,ebx
+mov ecx,256
+cld
+rep movsb
+
+
+;recopie la commande
+mov esi,ad_zdc
+mov edi,recop_commande
+add edi,ebx
+mov ecx,512
+cld
+rep movsb
+
+mov esi,ebx
 
 ;*************************************************************************************
 ;recherche emplacement disponible et création d'un segment pour la LDT dans la GDT

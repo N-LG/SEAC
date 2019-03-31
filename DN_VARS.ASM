@@ -327,15 +327,6 @@ couleur_carac equ 548h
 ad_console0 equ 54Ch       
 
 
-
-
-
-
-
-
-
-
-
 ;***********************************************************
 ;structure de TSS
 

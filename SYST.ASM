@@ -2737,7 +2737,13 @@ jmp pascommande
 
 ;********************************************
 cmdcop:
+mov esi,debut_cmdcop
+mov ecx,fin_cmdcop-debut_cmdcop
+jmp creation_tache_interne
+
+debut_cmdcop:
 include "CI_COP.ASM"
+fin_cmdcop:
 
 ;****************************************************************
 cmdcd:          ;change le répertoire courant (inclue la commande cd..)

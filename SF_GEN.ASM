@@ -12,6 +12,7 @@
 ;al=10  déclarer son type de service
 ;al=11  rechercher un service
 ;al=12  lire compteur temps
+;al=13  obtenir message systeme
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -61,6 +62,8 @@ cmp al,11
 je sfs_rech_service
 cmp al,12
 je sfs_lire_cptsf
+cmp al,13
+je sfs_obt_msg
 
 cmp al,100
 je conv_cdeci_reg
@@ -807,6 +810,31 @@ mov ds,ax
 mov eax,[cptsf]
 xor edx,edx
 pop ds
+iret
+
+
+
+;****************************
+sfs_obt_msg:    ;lire la chaine qui correspond au message   ah=numéros de message  ds:edx=zone ou copier le texte   cl=nombre d'octet max
+
+push es
+mov ax,seldat
+mov es,ax
+
+mov ebx,ad_msg
+
+
+boucle1_sfs_obt_msg:
+cmp ah,0
+je boucle2_sfs_obt_msg
+cmp byte[ebx],0
+
+;£££££££££££££££££££££££££££££££££££££££
+
+boucle2_sfs_obt_msg:
+
+
+pop es
 iret
 
 
