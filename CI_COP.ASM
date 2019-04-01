@@ -116,10 +116,24 @@ cmp eax,0
 jne erreur_autres_cmdcop
 
 
+
 ok_cmdcop:
+mov al,13
+mov ah,98
+mov edx,zone_tampon
+int 61h
+mov al,6
+int 61h
 
 mov al,6
 mov edx,nom_entree
+int 61h
+
+mov al,13
+mov ah,95
+mov edx,zone_tampon
+int 61h
+mov al,6
 int 61h
 
 mov al,6
@@ -130,9 +144,12 @@ int 60h
 
 
 
-
-
 erreur_autres_cmdcop:
-
+mov ah,al
+mov al,13
+mov edx,zone_tampon
+int 61h
+mov al,6
+int 61h
 
 int 60h

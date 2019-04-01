@@ -11,7 +11,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.8 Mars 2019",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.8b Avril 2019",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1

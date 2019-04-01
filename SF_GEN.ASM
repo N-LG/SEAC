@@ -815,26 +815,38 @@ iret
 
 
 ;****************************
-sfs_obt_msg:    ;lire la chaine qui correspond au message   ah=numéros de message  ds:edx=zone ou copier le texte   cl=nombre d'octet max
-
+sfs_obt_msg:    ;lire la chaine qui correspond au message   ah=numéros de message  ds:edx=zone ou copier le texte   cl=nombre d'octet max 0=256
+pushad
 push es
-mov ax,seldat
-mov es,ax
+mov bx,seldat
+mov es,bx
 
 mov ebx,ad_msg
-
-
 boucle1_sfs_obt_msg:
 cmp ah,0
 je boucle2_sfs_obt_msg
+es
 cmp byte[ebx],0
-
-;£££££££££££££££££££££££££££££££££££££££
+jne pazero_sfs_obt_msg
+dec ah
+pazero_sfs_obt_msg:
+inc ebx
+jmp boucle1_sfs_obt_msg
 
 boucle2_sfs_obt_msg:
+es
+mov al,[ebx]
+mov [edx],al
+cmp al,0
+je fin_sfs_obt_msg
+inc ebx
+inc edx
+dec cl
+jnz boucle2_sfs_obt_msg
 
-
+fin_sfs_obt_msg:
 pop es
+popad
 iret
 
 
