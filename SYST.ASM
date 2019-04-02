@@ -3668,8 +3668,8 @@ mov fs,dx
 mov gs,dx
 mov dx,selpil
 mov ss,dx
-mov esp,[sauv_esp0]
-sub esp,10h         ;pour avoir une pile sans ecraser la pile de la tache systême
+mov esp,[sauv_esp_t0]
+sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême
 push cx
 
 mov cl,42
