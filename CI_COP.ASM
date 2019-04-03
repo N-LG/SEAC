@@ -5,7 +5,7 @@ handle_sortie equ 1028
 taille_entree equ 1032
 offset_transfert equ 1036
 zone_tampon equ 1040
-taille_tampon equ 40000h
+taille_tampon equ 100000h
 
 
 ;change la taille de la zt

@@ -4820,11 +4820,14 @@ jmp boucle_deter_1ercluster_ecr
 
 
 sfecrirefichier_arrivefin:
-push edx
+fs
+cmp edx,[to_1cluster]
+jne fin_sfecrirefichier_ersyf
+
 mov edx,ebp
 call ajn_cluster
 mov ebx,edx 
-pop edx
+xor edx,edx
 cmp eax,0
 jne fin_sfecrirefichier_err
 
