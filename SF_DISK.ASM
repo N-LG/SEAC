@@ -871,7 +871,6 @@ xor bx,bx
 mov bh,ch     ;bx=nombre de mot a transferer
 
 tdf24:
-call at1puls
 call attdok
 jc ernrpsecteurata
 
@@ -910,7 +909,6 @@ xor bx,bx
 mov bh,ch     ;bx=nombre de mot a transferer
 
 tdf25:
-call at1puls
 call attdok
 jc ernrpsecteurata
 
@@ -950,7 +948,6 @@ out dx,al
 mov bx,256     ;bx=nombre de mot a transferer
 
 tdf26:
-call at1puls
 call attdok3
 jc ernrpsecteurata
 
@@ -991,7 +988,6 @@ out dx,al
 mov bx,256     ;bx=nombre de mot a transferer
 
 tdf27:
-call at1puls
 call attdok3
 jc ernrpsecteurata
 
@@ -1066,20 +1062,11 @@ shr eax,24
 or cl,al            ;cl=disque/tête
 
 
-;call at1puls    ;teste si le controleur est occupé (etape désativé pour le moment)
-;call attsl        
-;jnc pasokup
-;stc
-;ret
-
-pasokup:
-
 mov dx,6     ;envoye information tête + disque (important: si on envoie  
 add dx,di    ;d'autre paramêttre avant il seront envoyé au mauvais disque)   
 mov al,cl
 out dx,al
 
-call at1puls
 call attsl       
 jnc disc_sel_iniata
 
@@ -1088,7 +1075,6 @@ mov dx,7
 add dx,di
 out dx,al
 
-call at1puls
 call attsl        
 jnc disc_sel_iniata
 stc
@@ -1254,25 +1240,16 @@ pop ecx
 ret
 
 
-
-
-at1puls:
-push ecx
-fs
-mov ecx,[cptsf]
-bat1puls:
-fs
-cmp ecx,[cptsf]
-je bat1puls
-pop ecx
-ret
-
-
-
 attsl:         ;attend que le disque soit selectionné
 push ecx
 mov dx,7
 add dx,di
+in al,dx   ;lit 4 foit le status register pour créer artificiellement un délais de 400ns
+in al,dx
+in al,dx
+in al,dx
+
+
 fs
 mov ecx,[cptsf]
 add ecx,80               ;temp a attendre pour tester
