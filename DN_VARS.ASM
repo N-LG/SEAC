@@ -76,6 +76,8 @@ secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 ad_descp equ 05000h ;4kibi
 
 ad_descd equ 6000h  ;256 octets
+ad_prdt equ 6100h ;256 octets
+
 
 ad_cce equ 6500h
 ad_zdc equ 6600h
@@ -326,6 +328,25 @@ couleur_fond equ 544h
 couleur_carac equ 548h
 ad_console0 equ 54Ch       
 
+
+
+
+;**********************************************************
+;descripteur de disque
+dd_atribut       equ 00h     
+;b0-2 0=absent 1=chs 2=lba28 3=lba48 5=ATAPI
+;b3   0=pio 1=dma
+;b4   0=master 1=slave
+
+dd_sec_par_piste equ 02h
+dd_sec_par_cyl   equ 04h
+dd_taille        equ 08h
+dd_adress_base   equ 10h
+dd_adress_ctrl   equ 12h
+dd_adress_dma    equ 14h
+dd_no_irq        equ 16h
+dd_nb_octet_sec  equ 17h
+dd_offset_num    equ 18h
 
 ;***********************************************************
 ;structure de TSS

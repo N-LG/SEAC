@@ -93,10 +93,6 @@ cmp al,10h
 je lecata
 cmp al,18h
 je lecatapi
-mov al,ch
-
-
-
 pop gs
 pop fs
 pop es
@@ -314,35 +310,67 @@ ret
 
 lecatapi:
 mov esi,edi
-sub ch,8h       ;lecteur de 18h a 1Fh
-push ebx
-push ecx
-mov ebx,0C00h  ;donnée pour envooyer une commande packet
-mov cl,0
-call iniata
-pop ecx
-pop ebx
-jc ernrf24
+
+sub ch,18h
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+
+;fs
+;mov al,[edi]
+;and al,07h
+;cmp al,4
+;je lecatapi_ok
+
+;pop gs
+;pop fs
+;pop es
+;pop ds
+;popad
+;mov eax,cer_parami
+;ret
 
 
 
-xor al,al         ;OVL
-mov dx,1
-add dx,di
+
+lecatapi_ok:
+call selection_ata
+jc erdnt24
+
+xor al,al         ;parametres vides
+fs
+mov dx,[edi+dd_adress_base]
+inc dx
+out dx,al
+inc dx
+out dx,al
+inc dx
+out dx,al
+
+inc dx
+mov al,12     ;taille de la commande packet(LSB)
+out dx,al
+
+xor al,al     ;taille de la commande packet(MSB)
+inc dx
 out dx,al
 
 mov al,0A0h        ;envoye la commande
-mov dx,7
-add dx,di
+add dx,2
 out dx,al
 
-mov dx,206h
-add dx,di
+
+fs
+mov dx,[edi+dd_adress_ctrl]
 in al,dx     ;lit le alternate status register et ignore le résultat
 call attdok        ;attend pour savoir si c'est bon!
 jc ernrf24
 
-mov dx,di           ;envoie commande packet
+
+;envoie commande packet
+fs
+mov dx,[edi+dd_adress_base]
 mov ax,00A8h
 out dx,ax    ;1
 push bx
@@ -365,14 +393,14 @@ mov bl,cl
 shl ebx,10    ;ebx=nombre de mot a transferer
 
 tdf24i:
-mov dx,206h
-add dx,di
+fs
+mov dx,[edi+dd_adress_ctrl]
 in al,dx     ;lit le alternate status register et ignore le résultat
-
-call attdok2      
+call attdok2        ;attend pour savoir si c'est bon!
 jc ernrf24
 
-mov dx,di
+fs
+mov dx,[edi+dd_adress_base]
 add dx,2
 in al,dx
 and al,3
@@ -388,7 +416,8 @@ in al,dx
 mov ch,al
 shr ecx,1  ;nombre de mot a transferer = Nb de d'octet/2
 
-mov dx,di
+fs
+mov dx,[edi+dd_adress_base]
 recomf24i:
 in ax,dx
 es
@@ -402,7 +431,8 @@ cmp ebx,0
 jne tdf24i
 
 
-mov dx,di
+fs
+mov dx,[edi+dd_adress_base]
 add dx,7
 in al,dx
 test al,1
@@ -856,36 +886,52 @@ ret
 
 
 liresecteurata:
-call ajuste_lba
-jc erparamsecteurata
-mov esi,edi
-call iniata
-jc eroqpsecteurata
 
-mov al,020h        ;envoye la commande
-mov dx,7
-add dx,di
+mov esi,edi
+
+sub ch,10h
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+;fs
+;test byte[edi],08h
+;je liresecteurata_dma
+
+
+liresecteurata_pio:
+call envoie_coord_ata
+jc erparamsecteurata
+
+mov al,020h        ;envoye la commande lec
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 out dx,al
 
 xor bx,bx
-mov bh,ch     ;bx=nombre de mot a transferer
+mov bh,cl     ;bx=nombre de mot a transferer
 
-tdf24:
+
+liresecteurata_pio_1secteur:
 call attdok
 jc ernrpsecteurata
 
-mov dx,di
-recomf24:
+fs
+mov dx,[edi+dd_adress_base]
+liresecteurata_pio_1word:
 in ax,dx
 es
 mov [esi],ax
 dec bx
 add esi,2
 cmp bl,0
-jne recomf24
+jne liresecteurata_pio_1word
 cmp bx,0
-jne tdf24
-mov dx,di
+jne liresecteurata_pio_1secteur
+fs
+mov dx,[edi+dd_adress_base]
 add dx,7
 in al,dx
 test al,1
@@ -894,37 +940,86 @@ xor eax,eax
 ret
 
 
+
+
+
+liresecteurata_dma:
+;£££££££££££££££££££££££££££££££££££
+
+
+;préparer la PRDT
+;envoyer la position du PRDT au controleur
+;envoyer le sens du transfert au controleur
+;effacer les bit erreur et interruption sur le controleur?
+;selectionner le disque
+;envoyer l'adresse du secteur au disque
+;envoyer le nombre de secteur au controleur
+;envoyer la commande au controleur
+;mettre a 1 le bit de trabnsfert
+;attendre une interruption?
+;mettre a 0 le bit de transfert
+;lire l'état du controleur
+
+
+;0xC8			Read DMA (28 bit LBA)
+;0x25			Read DMA (48 bit LBA)
+;0xCA			Write DMA (28 bit LBA)
+;0x35			Write DMA (48 bit LBA)
+
+
+ret
+
+
+
+
+
+
+
+
+;*************************************************************************
 ecriresecteurata:
-call ajuste_lba
+sub ch,10h
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+fs
+test byte[edi],08h
+;je ecriresecteurata_dma
+
+ecriresecteurata_pio:
+call envoie_coord_ata
 jc erparamsecteurata
-call iniata
-jc eroqpsecteurata
 
 mov al,030h        ;envoye la commande
-mov dx,7
-add dx,di
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 out dx,al
 
 xor bx,bx
-mov bh,ch     ;bx=nombre de mot a transferer
+mov bh,cl     ;bx=nombre de mot a transferer
 
-tdf25:
+ecriresecteurata_pio_1secteur:
 call attdok
 jc ernrpsecteurata
 
-mov dx,di  
-recomf25:
+fs
+mov dx,[edi+dd_adress_base]
+ecriresecteurata_pio_1word:
 es
 mov ax,[esi]
 out dx,ax
 dec bx
 add esi,2
 cmp bl,0
-jne recomf25
+jne ecriresecteurata_pio_1word
 cmp bx,0
-jne tdf25
+jne ecriresecteurata_pio_1secteur
 
-mov dx,di
+fs
+mov dx,[edi+dd_adress_base]
 add dx,7
 in al,dx
 test al,1
@@ -935,34 +1030,39 @@ ret
 ;*************************************************************************
 infodisqueata:
 mov esi,edi
-xor ebx,ebx
-mov cl,0
-call iniata
+
+sub ch,10h
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+
+call selection_ata
 jc eroqpsecteurata
 
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 mov al,0ECh        ;envoye la commande
-mov dx,7
-add dx,di
 out dx,al
 
 mov bx,256     ;bx=nombre de mot a transferer
 
-tdf26:
 call attdok3
 jc ernrpsecteurata
 
-mov dx,di
-recomf26:
+fs
+mov dx,[edi+dd_adress_base]
+infodisqueata_1word:
 in ax,dx
 es
 mov [esi],ax
-dec bx
 add esi,2
-cmp bl,0
-jne recomf26
-cmp bx,0
-jne tdf26
-mov dx,di
+dec bx
+jnz infodisqueata_1word
+
+fs
+mov dx,[edi+dd_adress_base]
 add dx,7
 in al,dx
 test al,1
@@ -971,45 +1071,48 @@ xor eax,eax
 ret
 
 
-;*****************************************************
+;****************************************************************************
 infodisqueatapi:
 mov esi,edi
-xor ebx,ebx
-mov cl,0
-sub ch,8
-call iniata
+
+sub ch,18h
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+
+call selection_ata
 jc eroqpsecteurata
 
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 mov al,0A1h        ;envoye la commande
-mov dx,7
-add dx,di
 out dx,al
 
 mov bx,256     ;bx=nombre de mot a transferer
 
-tdf27:
 call attdok3
 jc ernrpsecteurata
 
-mov dx,di
-recomf27:
+fs
+mov dx,[edi+dd_adress_base]
+infodisqueatapi_1word:
 in ax,dx
 es
 mov [esi],ax
-dec bx
 add esi,2
-cmp bl,0
-jne recomf27
-cmp bx,0
-jne tdf27
-mov dx,di
+dec bx
+jnz infodisqueatapi_1word
+
+fs
+mov dx,[edi+dd_adress_base]
 add dx,7
 in al,dx
 test al,1
 jnz erlecsecteurata
 xor eax,eax
 ret
-
 
 erparamsecteurata:  ;erreur parametre
 mov eax,cer_parami
@@ -1032,129 +1135,71 @@ mov eax,cer_ecr
 ret
 
 
-;**************************************************
-;initialisatio ATA
-;ebx=adresse LBA cl=Nombre de secteur a transferer
-;ch=numéros du disque(10h à 17h)
-iniata:
-
-sub ch,10h
-xchg cl,ch        ;cl=lecteur ch=nombre
-
-mov ax,cx
-and al,1
-shr cl,1
-and cx,3
-mov dx,1F0h
-shl cx,7
-sub dx,cx
-mov cx,ax      ;ch=Nombre cl=maitre/esclave
-mov di,dx      ;di=adresse de base
 
 
-and ebx,4FFFFFFFh
-mov eax,ebx
-
-or cl,0Ah           ;A=1010b met a un les bit obsolete
-shl cl,4
-
-shr eax,24
-or cl,al            ;cl=disque/tête
 
 
-mov dx,6     ;envoye information tête + disque (important: si on envoie  
-add dx,di    ;d'autre paramêttre avant il seront envoyé au mauvais disque)   
-mov al,cl
+
+;***************************************************
+selection_ata:
+pushad
+mov al,0A0h           ;E=1010b met a un les bit obsolete
+fs
+mov ch,[edi]
+and ch,10h   ;isole le bit maitre/esclave   
+or al,ch
+
+fs
+mov dx,[edi+dd_adress_base]  ;envoye information tête + disque (important: si on envoie d'autre paramêttre avant il seront envoyé au mauvais disque)
+cmp dx,0
+je selection_ata_nok 
+add dx,6
 out dx,al
 
 call attsl       
-jnc disc_sel_iniata
+jnc selection_ata_ok
 
-mov al,08h        ;envoye la commande device reset si il est occupé???
-mov dx,7
-add dx,di
-out dx,al
-
-call attsl        
-jnc disc_sel_iniata
+selection_ata_nok:
+popad
 stc
 ret
 
-disc_sel_iniata:
-mov al,2h           ;désactive interruption
-mov dx,206h
-add dx,di
-out dx,al
-
-mov al,ch         ;Nombre de secteur a lire/écrire
-mov dx,2
-add dx,di
-out dx,al
-
-mov al,bl         ;bit 0-7 de LBA
-mov dx,3
-add dx,di
-out dx,al
-
-mov al,bh        ;bit 8-15 de LBA
-mov dx,4
-add dx,di
-out dx,al
-
-mov eax,ebx          ;bit 16-23   de LBA
-shr eax,16
-mov dx,5
-add dx,di
-out dx,al
+selection_ata_ok:
+popad
 clc
 ret
 
 
 
 
-ajuste_lba:          ;transforme une adresse LBA en adresse CHS au besoin
-push eax
+;********************************************************
+envoie_coord_ata:
+;ebx=adresse LBA cl=Nombre de secteur a transferer edi=adresse du desctipteur de disque
+pushad
+
+fs
+mov al,[edi]
+and al,07h
+cmp al,1
+je envoie_coord_ata_chs
+cmp al,2
+je envoie_coord_ata_lba28
+;cmp al,3
+;je envoie_coord_ata_lba48
+
+popad
+stc
+ret
+
+;*********************************
+envoie_coord_ata_chs:
 push ecx
-push edx
-push esi
-mov dl,ch
-mov esi,ad_descd
-and edx,07h
-shl edx,5
-add esi,edx ;esi= adresse du descripteur
-fs
-cmp byte[esi],2
-je ajuste_chs
-fs
-cmp byte[esi],3
-je ajuste_lba28
-
-ajuste_erreur:
-pop esi
-pop edx
-pop ecx
-pop eax
-stc
-ret
-
-
-ajuste_lba28:
-test ebx,0F0000000h
-jnz ajuste_erreur
-or ebx,40000000h
-pop esi
-pop edx
-pop ecx
-pop eax
-clc
-ret
-
-
-ajuste_chs:
 xor edx,edx
 mov eax,ebx
 fs
-mov ecx,[esi+4] ;secteur par cylindre
+mov ecx,[edi+4] ;secteur par cylindre
+cmp ecx,0
+je ajuste_erreur
 div ecx
 mov ebx,eax  ;ebx=piste
 
@@ -1162,9 +1207,12 @@ mov eax,edx
 xor edx,edx
 xor ecx,ecx
 fs
-mov cx,[esi+2] ;secteur par piste
+mov cx,[edi+2] ;secteur par piste
+cmp cx,0
+je ajuste_erreur
 div ecx        ;eax=tête
 inc edx        ;edx=secteur
+pop ecx
 
 test eax,0FFFFFFF0h
 jnz ajuste_erreur
@@ -1176,26 +1224,100 @@ jnz ajuste_erreur
 and eax,00Fh
 and ebx,0FFFFh
 and edx,0FFh
-
-shl eax,24
 shl ebx,8
-or ebx,eax
 or ebx,edx
 
-pop esi
-pop edx
-pop ecx
-pop eax
+or al,0A0h           ;A=1010b met a un les bit obsolete et a zéro le bit lba
+fs
+mov ch,[edi]
+and ch,10h   ;isole le bit maitre/esclave   
+or al,ch
+
+fs
+mov dx,[edi+dd_adress_base]  ;envoye information tête + disque (important: si on envoie d'autre paramêttre avant il seront envoyé au mauvais disque)
+add dx,6
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba28_ok ;pour la suite ça fonctionne comme le lba28
+
+
+ajuste_erreur:
+popad
+stc
+ret
+
+;*****************************
+envoie_coord_ata_lba28:
+mov ecx,ebx
+shr ecx,24
+test cl,0F0h
+jnz ajuste_erreur
+
+mov al,0E0h           ;E=1110b met a un les bit obsolete et le bit lba
+fs
+mov ch,[edi]
+and ch,10h   ;isole le bit maitre/esclave   
+or al,cl
+or al,ch
+
+fs
+mov dx,[edi+dd_adress_base]  ;envoye information tête + disque (important: si on envoie d'autre paramêttre avant il seront envoyé au mauvais disque)
+add dx,6
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba28_ok
+
+popad
+stc
+ret
+
+;******************************
+envoie_coord_ata_lba28_ok:
+fs
+mov dx,[edi+dd_adress_ctrl]
+mov al,2h           ;désactive interruption
+out dx,al
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,2
+mov al,cl         ;Nombre de secteur a lire/écrire
+out dx,al
+
+inc dx
+mov al,bl         ;bit 0-7 de LBA ou coordonné secteur
+out dx,al
+
+inc dx
+mov al,bh        ;bit 8-15 de LBA ou LSB cylindre
+out dx,al
+
+inc dx
+mov eax,ebx          ;bit 16-23 de LBA ou MSB cylindre
+shr eax,16
+out dx,al
+
+popad
 clc
 ret
 
 
 
 
+
+
+
+
+
+
+
 attdok:         ;attend que le disque soit pret a envoyer les donnÈes
 push ecx
-mov dx,7
-add dx,di
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 fs
 mov ecx,[cptsf]
 add ecx,600               ;temp a attendre pour tester
@@ -1203,8 +1325,9 @@ jmp bocpre
 
 attdok2:         ;attend que le disque soit pret a envoyer les donnÈes
 push ecx
-mov dx,7
-add dx,di
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 fs
 mov ecx,[cptsf]
 add ecx,4000               ;temp a attendre pour tester
@@ -1212,8 +1335,9 @@ jmp bocpre
 
 attdok3:         ;attend que le disque soit pret a envoyer les donnÈes
 push ecx
-mov dx,7
-add dx,di
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 fs
 mov ecx,[cptsf]
 add ecx,40               ;temp a attendre pour tester
@@ -1242,8 +1366,9 @@ ret
 
 attsl:         ;attend que le disque soit selectionné
 push ecx
-mov dx,7
-add dx,di
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
 in al,dx   ;lit 4 foit le status register pour créer artificiellement un délais de 400ns
 in al,dx
 in al,dx

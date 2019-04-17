@@ -10,6 +10,8 @@
 ;al=8  lire dans un secteur
 ;al=9  ecrire dans un secteur
 ;al=10 lire les information d'un disque
+;al=11 définit le msb du numéros de secteur lors des fonction 8 et 9
+;al=12
 
 ;************************************
 

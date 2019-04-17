@@ -1275,6 +1275,153 @@ mov al,00h
 out dx,al
 
 
+
+;*************************************************************************
+;detecte les contolleur ATA sur le bus PCI et enregistre les adresses
+
+mov ebx,80000008h
+mov esi,ad_descd
+boucle_detec_ata:
+mov dx,0CF8h
+mov eax,ebx
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+cmp ax,0FFFFh
+je pasctrlata
+mov edx,eax
+and eax,0FFFF0000h 
+cmp eax,001010000h  ;classe=01h sous-classe=01h
+jne pasctrlata
+
+mov word[esi+dd_atribut],00h
+mov word[esi+dd_atribut+32],10h
+mov word[esi+dd_atribut+64],00h
+mov word[esi+dd_atribut+96],10h
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,24     ;BAR4
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFCh
+cmp eax,0
+je crtl_dma_abs
+or word[esi+dd_atribut],08h
+or word[esi+dd_atribut+32],08h
+or word[esi+dd_atribut+64],08h
+or word[esi+dd_atribut+96],08h
+crtl_dma_abs:
+mov [esi+dd_adress_dma],ax
+mov [esi+dd_adress_dma+32],ax
+add eax,8
+mov [esi+dd_adress_dma+64],ax
+mov [esi+dd_adress_dma+96],ax
+
+
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,8     ;BAR0
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFCh
+cmp eax,0
+jne bar0_ok
+mov eax,1F0h
+bar0_ok:
+mov [esi+dd_adress_base],ax
+mov [esi+dd_adress_base+32],ax
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,12     ;BAR1
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFCh
+cmp eax,0
+jne bar1_ok
+mov eax,3F6h
+bar1_ok:
+mov [esi+dd_adress_ctrl],ax
+mov [esi+dd_adress_ctrl+32],ax
+
+add esi,64
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,16     ;BAR2
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFCh
+cmp eax,0
+jne bar2_ok
+mov eax,170h
+bar2_ok:
+mov [esi+dd_adress_base],ax
+mov [esi+dd_adress_base+32],ax
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,20     ;BAR3
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFCh
+cmp eax,0
+jne bar3_ok
+mov eax,376h
+bar3_ok:
+mov [esi+dd_adress_ctrl],ax
+mov [esi+dd_adress_ctrl+32],ax
+
+add esi,64
+cmp esi,ad_descd+256
+je fin_detec_ata
+
+pasctrlata:
+add ebx,100h
+test ebx,7F000000h
+jz boucle_detec_ata
+
+;***************************************************
+cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur n'as été detecté, on remplit les descripteur avec les adresses standard
+jne fin_detec_ata 
+
+mov ebx,ad_descd
+mov ax,1F0h
+mov dx,3F6h
+
+boucle_remplissage_ctrl_ata:
+mov word[ebx+dd_atribut],0
+mov word[ebx+dd_atribut+32],1
+mov [ebx+dd_adress_base],ax
+mov [ebx+dd_adress_base+32],ax
+mov [ebx+dd_adress_ctrl],dx
+mov [ebx+dd_adress_ctrl+32],dx
+mov word[ebx+dd_adress_dma],0
+mov word[ebx+dd_adress_dma+32],0
+
+sub ax,80h
+sub dx,80h
+add ebx,64
+cmp ebx,ad_descd+256
+jne boucle_remplissage_ctrl_ata
+
+
+fin_detec_ata:
+
+
+
+
+
+
+
+
 ;*********************************************************************
 ;charge les info du disque BIOS (désactivé parce que trop long)
 ;mov al,8
@@ -1313,17 +1460,17 @@ cmp eax,0
 je init_infodisque_ata
 
 
-;mov al,10
-;mov edi,bootsecteur
-;push cx
-;add ch,8
-;int 64h          ;si ça ne fonctionne pas on réessaye en ATAPI
-;pop cx
-;cmp eax,0
-;jne pasinfopart
+mov al,10
+mov edi,bootsecteur
+push cx
+add ch,8
+int 64h          ;si ça ne fonctionne pas on réessaye en ATAPI
+pop cx
+cmp eax,0
+jne pasinfopart
 
 
-;mov byte[esi],1
+or byte[esi],4
 jmp pasinfopart
 
 
@@ -1335,7 +1482,7 @@ cmp edx,0
 je init_infodisque_lba28
 test eax,0C0000000h
 jz init_infodisque_lba28
-mov byte[esi],4
+or byte[esi],3
 mov [esi+8],eax
 mov [esi+12],edx
 jmp init_infopart
@@ -1344,7 +1491,7 @@ init_infodisque_lba28:
 mov eax,[bootsecteur+78h]   ;nombre de secteur en LBA28
 cmp eax,0
 je init_infodisque_chs
-mov byte[esi],3
+or byte[esi],2
 mov [esi+8],eax
 mov dword[esi+12],0
 jmp init_infopart
@@ -1353,7 +1500,7 @@ jmp init_infopart
 
 init_infodisque_chs:
 mov eax,[bootsecteur+72h]   ;nombre de secteur en CHS
-mov byte[esi],2
+or byte[esi],1
 mov [esi+8],eax
 mov dword[esi+12],0
 push ecx
