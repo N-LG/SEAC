@@ -276,7 +276,7 @@ mov ebx,ebp
 sub ebx,10h
 call libmem
 pop eax
-jmp fin_commande_erreur_mem
+jmp fin_commande_erreur
 
 
 dirtypemem:

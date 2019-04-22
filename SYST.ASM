@@ -1319,8 +1319,6 @@ add eax,8
 mov [esi+dd_adress_dma+64],ax
 mov [esi+dd_adress_dma+96],ax
 
-
-
 mov dx,0CF8h
 mov eax,ebx
 add eax,8     ;BAR0
@@ -1387,6 +1385,8 @@ pasctrlata:
 add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ata
+
+
 
 ;***************************************************
 cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur n'as été detecté, on remplit les descripteur avec les adresses standard
@@ -1467,15 +1467,19 @@ add ch,8
 int 64h          ;si ça ne fonctionne pas on réessaye en ATAPI
 pop cx
 cmp eax,0
-jne pasinfopart
+je init_infodisque_atapi
 
 
+or byte[esi],7
+jmp pasinfopart
+
+
+init_infodisque_atapi:
 or byte[esi],4
 jmp pasinfopart
 
 
 init_infodisque_ata:
-
 mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
 mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
 cmp edx,0
@@ -1495,7 +1499,6 @@ or byte[esi],2
 mov [esi+8],eax
 mov dword[esi+12],0
 jmp init_infopart
- 
 
 
 init_infodisque_chs:
@@ -1535,6 +1538,8 @@ call exbasepart    ;3eme partition
 add esi,10h
 call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
 pop esi
+
+
 
 pasinfopart:
 inc ch

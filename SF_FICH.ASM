@@ -3406,6 +3406,11 @@ and al,0011b
 cmp al,3
 jne lirefichierfat   ;si ce n'est pas le dossier racine alors ça se lit comme un fichier
 
+push eax
+mov al,3
+out 61h,al        ;allume le bipper
+pop eax
+
 ;***********************************************lecture dossier racine fat
 ;determiner l'adresse du premier secteur a lire
 mov ebx,edx

@@ -317,21 +317,19 @@ and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
 
-;fs
-;mov al,[edi]
-;and al,07h
-;cmp al,4
-;je lecatapi_ok
+fs
+mov al,[edi]
+and al,07h
+cmp al,4
+je lecatapi_ok
 
-;pop gs
-;pop fs
-;pop es
-;pop ds
-;popad
-;mov eax,cer_parami
-;ret
-
-
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
 
 
 lecatapi_ok:
@@ -360,13 +358,11 @@ mov al,0A0h        ;envoye la commande
 add dx,2
 out dx,al
 
-
-fs
-mov dx,[edi+dd_adress_ctrl]
-in al,dx     ;lit le alternate status register et ignore le résultat
-call attdok        ;attend pour savoir si c'est bon!
+push ecx
+mov ecx,200
+call attdok
+pop ecx        ;attend pour savoir si c'est bon!
 jc ernrf24
-
 
 ;envoie commande packet
 fs
@@ -392,11 +388,12 @@ xor ebx,ebx
 mov bl,cl
 shl ebx,10    ;ebx=nombre de mot a transferer
 
+
 tdf24i:
-fs
-mov dx,[edi+dd_adress_ctrl]
-in al,dx     ;lit le alternate status register et ignore le résultat
-call attdok2        ;attend pour savoir si c'est bon!
+push ecx
+mov ecx,4000
+call attdok
+pop ecx        ;attend pour savoir si c'est bon!
 jc ernrf24
 
 fs
@@ -429,6 +426,8 @@ jnz recomf24i   ;un secteur est passé
 
 cmp ebx,0
 jne tdf24i
+
+
 
 
 fs
@@ -902,9 +901,19 @@ add edi,ad_descd
 liresecteurata_pio:
 call envoie_coord_ata
 jc erparamsecteurata
+cmp al,1
+je liresecteurata_pio_lba48
 
-mov al,020h        ;envoye la commande lec
 
+mov al,020h        ;envoye la commande lec lba28/chs
+jmp liresecteurata_pio_cmdok
+
+
+liresecteurata_pio_lba48:
+mov al,024h        ;envoye la commande lec lba48
+
+
+liresecteurata_pio_cmdok:
 fs
 mov dx,[edi+dd_adress_base]
 add dx,7
@@ -915,7 +924,10 @@ mov bh,cl     ;bx=nombre de mot a transferer
 
 
 liresecteurata_pio_1secteur:
+push ecx
+mov ecx,600
 call attdok
+pop ecx
 jc ernrpsecteurata
 
 fs
@@ -991,8 +1003,17 @@ ecriresecteurata_pio:
 call envoie_coord_ata
 jc erparamsecteurata
 
-mov al,030h        ;envoye la commande
+cmp al,1
+je ecriresecteurata_pio_lba48
 
+
+mov al,030h        ;envoye la commande ecr lba28/chs
+jmp ecriresecteurata_pio_cmdok
+
+ecriresecteurata_pio_lba48:
+mov al,034h        ;envoye la commande ecr lba48
+
+ecriresecteurata_pio_cmdok:
 fs
 mov dx,[edi+dd_adress_base]
 add dx,7
@@ -1002,7 +1023,10 @@ xor bx,bx
 mov bh,cl     ;bx=nombre de mot a transferer
 
 ecriresecteurata_pio_1secteur:
+push ecx
+mov ecx,600
 call attdok
+pop ecx
 jc ernrpsecteurata
 
 fs
@@ -1048,7 +1072,10 @@ out dx,al
 
 mov bx,256     ;bx=nombre de mot a transferer
 
-call attdok3
+push ecx
+mov ecx,100
+call attdok
+pop ecx
 jc ernrpsecteurata
 
 fs
@@ -1092,7 +1119,11 @@ out dx,al
 
 mov bx,256     ;bx=nombre de mot a transferer
 
-call attdok3
+
+push ecx
+mov ecx,100
+call attdok
+pop ecx
 jc ernrpsecteurata
 
 fs
@@ -1159,15 +1190,27 @@ out dx,al
 call attsl       
 jnc selection_ata_ok
 
-selection_ata_nok:
-popad
-stc
-ret
+mov al,08h        ;envoye la commande device reset si il est occupé???
+fs
+mov dx,[edi+dd_adress_ctrl]
+add dx,7
+out dx,al
+
+call attsl       
+jc selection_ata_nok
+
 
 selection_ata_ok:
 popad
 clc
 ret
+
+
+selection_ata_nok:
+popad
+stc
+ret
+
 
 
 
@@ -1184,8 +1227,8 @@ cmp al,1
 je envoie_coord_ata_chs
 cmp al,2
 je envoie_coord_ata_lba28
-;cmp al,3
-;je envoie_coord_ata_lba48
+cmp al,3
+je envoie_coord_ata_lba48
 
 popad
 stc
@@ -1241,6 +1284,15 @@ out dx,al
 call attsl       
 jnc envoie_coord_ata_lba28_ok ;pour la suite ça fonctionne comme le lba28
 
+mov al,08h        ;envoye la commande device reset si il est occupé???
+fs
+mov dx,[edi+dd_adress_ctrl]
+add dx,7
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba28_ok
+
 
 ajuste_erreur:
 popad
@@ -1249,21 +1301,30 @@ ret
 
 ;*****************************
 envoie_coord_ata_lba28:
-mov ecx,ebx
-shr ecx,24
-test cl,0F0h
+mov eax,ebx
+shr eax,24
+test al,0F0h
 jnz ajuste_erreur
 
-mov al,0E0h           ;E=1110b met a un les bit obsolete et le bit lba
+or al,0E0h           ;E=1110b met a un les bit obsolete et le bit lba
 fs
 mov ch,[edi]
 and ch,10h   ;isole le bit maitre/esclave   
-or al,cl
 or al,ch
 
 fs
 mov dx,[edi+dd_adress_base]  ;envoye information tête + disque (important: si on envoie d'autre paramêttre avant il seront envoyé au mauvais disque)
 add dx,6
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba28_ok
+
+
+mov al,08h        ;envoye la commande device reset si il est occupé???
+fs
+mov dx,[edi+dd_adress_ctrl]
+add dx,7
 out dx,al
 
 call attsl       
@@ -1300,8 +1361,131 @@ shr eax,16
 out dx,al
 
 popad
+xor eax,eax
 clc
 ret
+
+
+
+
+
+
+
+;*****************************
+envoie_coord_ata_lba48:
+fs
+cmp word[edi+dd_offset_num],0
+jne envoie_coord_ata_lba48_valide
+test ebx,0F0000000h
+jz envoie_coord_ata_lba28    ;si il n'y as pas besoin d'uttiliser le LBA48 on utilise le LBA28
+
+envoie_coord_ata_lba48_valide:
+mov al,0E0h           ;E=1110b met a un les bit obsolete et le bit lba
+fs
+mov ch,[edi]
+and ch,10h   ;isole le bit maitre/esclave   
+or al,ch
+
+fs
+mov dx,[edi+dd_adress_base]  ;envoye information tête + disque (important: si on envoie d'autre paramêttre avant il seront envoyé au mauvais disque)
+add dx,6
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba48_ok
+
+
+mov al,08h        ;envoye la commande device reset si il est occupé???
+fs
+mov dx,[edi+dd_adress_ctrl]
+add dx,7
+out dx,al
+
+call attsl       
+jnc envoie_coord_ata_lba48_ok
+
+popad
+stc
+ret
+
+;******************************
+envoie_coord_ata_lba48_ok:
+fs
+mov dx,[edi+dd_adress_ctrl]
+mov al,2h           ;désactive interruption
+out dx,al
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,2
+mov al,0         ;MSB du Nombre de secteur a lire/écrire
+out dx,al
+
+inc dx
+mov eax,ebx         ;bit 31-24 de LBA
+shr eax,24
+out dx,al
+
+inc dx
+fs
+mov al,[edi+dd_offset_num]        ;bit 39-32 de LBA
+out dx,al
+
+inc dx
+fs
+mov al,[edi+dd_offset_num+1]         ;bit 47-40 de LBA
+out dx,al
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,2
+mov al,cl         ;LSB du Nombre de secteur a lire/écrire
+out dx,al
+
+inc dx
+mov al,bl         ;bit 0-7 de LBA ou coordonné secteur
+out dx,al
+
+inc dx
+mov al,bh        ;bit 8-15 de LBA
+out dx,al
+
+inc dx
+mov eax,ebx          ;bit 16-23 de LBA
+shr eax,16
+out dx,al
+
+
+fs
+mov dword[edi+dd_offset_num],0    ;efface le MSB du numéros de secteur pour le prochain tour
+popad
+mov eax,1
+clc
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1314,53 +1498,34 @@ ret
 
 
 attdok:         ;attend que le disque soit pret a envoyer les donnÈes
-push ecx
 fs
-mov dx,[edi+dd_adress_base]
-add dx,7
-fs
-mov ecx,[cptsf]
-add ecx,600               ;temp a attendre pour tester
-jmp bocpre
+mov dx,[edi+dd_adress_ctrl]
+in al,dx     ;lit 1 fois le alternate status register et ignore le résultat
 
-attdok2:         ;attend que le disque soit pret a envoyer les donnÈes
-push ecx
 fs
 mov dx,[edi+dd_adress_base]
 add dx,7
-fs
-mov ecx,[cptsf]
-add ecx,4000               ;temp a attendre pour tester
-jmp bocpre
 
-attdok3:         ;attend que le disque soit pret a envoyer les donnÈes
-push ecx
 fs
-mov dx,[edi+dd_adress_base]
-add dx,7
-fs
-mov ecx,[cptsf]
-add ecx,40               ;temp a attendre pour tester
+add ecx,[cptsf]
 
 bocpre:
 in al,dx
 and al,89h
-test al,08h       ;drq=1  bsy=0 err=0
-jnz tsfok
-test al,01h        ;err=1
-jnz tsfnok
+cmp al,08h       ;drq=1  bsy=0 err=0
+je tsfok
+cmp al,01h        ;err=1
+je tsfnok
 fs
 cmp [cptsf],ecx
 jb bocpre
+
 tsfnok:
 stc
-pop ecx
 ret
+
 tsfok:
-test al,01h        ;on vérifie quand même que err=0
-jnz tsfnok
 clc
-pop ecx
 ret
 
 
@@ -1374,10 +1539,9 @@ in al,dx
 in al,dx
 in al,dx
 
-
 fs
 mov ecx,[cptsf]
-add ecx,80               ;temp a attendre pour tester
+add ecx,100               ;temp a attendre pour tester
 
 bocsl:
 in al,dx
