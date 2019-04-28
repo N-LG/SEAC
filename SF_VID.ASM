@@ -341,6 +341,7 @@ nul_obt_clav:
 xor eax,eax
 xor ebx,ebx
 xor ecx,ecx
+int 62h
 
 fin_obt_clav:
 and eax,0FFFFh
