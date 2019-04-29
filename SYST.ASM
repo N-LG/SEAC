@@ -28,7 +28,7 @@ xor di,di
 mov ax,5000h
 mov es,ax
 
-mov ecx,20000h
+mov ecx,40000h
 
 boucle_recopie_code:
 mov al,[si]
@@ -2382,6 +2382,8 @@ cmp eax,"sup"
 je cmdsup
 cmp eax,"ren"
 je cmdren
+cmp eax,"def"
+je cmddef
 jmp commande_fichier
 
 
@@ -2847,7 +2849,6 @@ jmp pascommande
 ;********************************************
 cmdsup:
 mov edx,ad_zdc
-
 boucle_cmpsup:     ;trouve le debut du nom du fichier
 cmp byte[edx],0
 je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
@@ -2896,6 +2897,126 @@ jmp creation_tache_interne
 debut_cmdcop:
 include "CI_COP.ASM"
 fin_cmdcop:
+
+
+
+
+
+
+
+;********************************************
+cmddef:   ;charge des fichier de definition supplémentaire
+mov edx,ad_zdc
+boucle_cmddef:     ;trouve le debut du nom du fichier
+cmp byte[edx],0
+je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
+inc edx
+cmp byte[edx]," "
+jne boucle_cmddef           
+cmp byte[edx+1]," "
+je boucle_cmddef           
+
+
+inc edx
+mov esi,edx
+xor eax,eax         ;ouvre le fichier
+xor ebx,ebx
+int 64h
+cmp eax,0       
+jne fin_commande_erreur
+
+
+;lit l'en tête du fichier
+mov al,4
+mov ecx,16
+xor edx,edx
+mov edi,ad_chaine_travail
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+;lit la taille du fichier
+mov al,6
+mov ah,1
+mov edx,ad_chaine_travail+16
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+;test le type de definition
+cmp dword[ad_chaine_travail],"DEFL"
+je cmddef_lang
+cmp dword[ad_chaine_travail],"DEFC"
+je cmddef_clav
+cmp dword[ad_chaine_travail],"DEFG"
+je cmddef_graph
+mov eax,26
+jmp fin_commande_erreur 
+
+
+
+
+cmddef_lang:   ;charge la nouvelle definition des messages systemes
+mov al,4
+mov ecx,4096
+mov edx,16
+mov edi,ad_msg
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+mov cl,98  
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,87   
+call affmsgsyst
+jmp pascommande
+
+
+cmddef_clav:    ;charge la nouvelle definition de clavier
+mov al,4
+mov ecx,2048
+mov edx,16
+mov edi,ad_tabclav
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+mov cl,98  
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,88   
+call affmsgsyst
+jmp pascommande
+
+
+
+
+
+cmddef_graph:      ;charge la nouvelle definition de caractère graphique
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov eax,26
+jmp fin_commande_erreur 
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+mov cl,98  
+call affmsgsyst
+mov edx,esi
+call affjournal
+mov cl,89   
+call affmsgsyst
+jmp pascommande
+
+
+
+
 
 ;****************************************************************
 cmdcd:          ;change le répertoire courant (inclue la commande cd..)
@@ -3889,6 +4010,9 @@ push ds
 mov ax,seldat
 mov ds,ax
 in al,60h
+;pushad       ;TRAPPE
+;call affh0j
+;popad
 cmp al,0FEh      ;? je ne me souviens plus pourquoi
 je finircl
 cmp al,0FAh

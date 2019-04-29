@@ -115,9 +115,9 @@ db "bits linéaire",13,0 ;83
 db 0 ;84
 db 0 ;85
 db 0 ;86
-db 0 ;87
-db 0 ;88
-db 0 ;89
+db " de definition de langue a été chargé",13,0              ;87
+db " de definition de clavier à été chargé",13,0             ;88
+db " de definition graphique de caractère a été chargé",13,0 ;89
 
 db "le dossier à supprimer n'est pas vide",13,0  ;90
 db "fichier introuvable",13,0 ;91
