@@ -1466,37 +1466,6 @@ ret
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 attdok:         ;attend que le disque soit pret a envoyer les donnÈes
 fs
 mov dx,[edi+dd_adress_ctrl]
@@ -1599,143 +1568,359 @@ jmp finfonctionfichiererr
 
 
 
+
+
+
+
+
+
+;*********************************************************************************************
+definis_msb:
+
+mov eax,cer_parami
+jmp finfonctionfichiererr
+
+
+
+
+;*********************************************************************************************
+maj_partition:
+
+mov ax,seldat
+mov ds,ax
+mov es,ax
+
+mov ebx,zt_temp
+xor eax, eax
+bouclevide_maj_partiton:
+mov [ebx],eax
+add ebx,4
+cmp ebx,zt_temp+2048
+jne bouclevide_maj_partiton
+
+
+
+
+
+mov edi,bootsecteur
+mov al,8
+push cx
+mov cl,1
+xor ebx,ebx
+call lsct
+pop cx
+cmp eax,0
+jne pasinfopart
+
+
+;cmp byte[bootsecteur+1BEh],0EEh  ;on vérifie si la première partition est une partition de protection GPT
+;jne maj_partition_mbr
+;cmp byte[bootsecteur+1CEh],0    ; et si les autres partitions sont bien vide
+;jne maj_partition_mbr
+;cmp byte[bootsecteur+1DEh],0    ;sinon le partitionnement est reconnue comme MBR 
+;jne maj_partition_mbr
+;cmp byte[bootsecteur+1EEh],0
+;jne maj_partition_mbr
+
+;***************************chargement des données de partitionnement de type GPT
+;§§§§§§§§§§§§§§§§§
+;jmp maj_partition_trie
+
+
+;***************************chargement des données de partitionnement de type MBR
+maj_partition_mbr:
+mov esi,bootsecteur+1BEh
+mov edi,zt_temp ;!!!!!!!!!!!!!!!une zt de 4096octet
+call ex_part_mbr
+add esi,10h
+add edi,40h
+call ex_part_mbr
+add esi,10h
+add edi,40h
+call ex_part_mbr
+add esi,10h
+add edi,40h
+call ex_part_mbr
+
+
+;*****************************trie des partition déja enregistré et des nouvelles
+maj_partition_trie:
+mov edi,ad_descp+64
+
+boucle1_maj_partition:  ;balaye le descripteur de partition et vérifie si les partition du disque selectionné existent toujours
+cmp byte[edi+1],ch 
+jne maj_partition_existante_suivante
+
+mov esi,zt_temp ;!!!!!!!!!!!!
+boucle2_maj_partition:  ;on vérifie si le type de disque est identique  
+mov eax,[esi]
+mov edx,[esi+4]
+cmp [edi],eax
+jne maj_partition_tempo_suivante
+cmp [edi+4],edx
+jne maj_partition_tempo_suivante
+
+mov eax,[esi+08h]  ;l'adresse
+mov edx,[esi+0Ch]
+cmp [edi+08h],eax
+jne maj_partition_tempo_suivante
+cmp [edi+0Ch],edx
+jne maj_partition_tempo_suivante
+
+mov eax,[esi+10h]   ;la taille
+mov edx,[esi+14h]
+cmp [edi+10h],eax
+jne maj_partition_tempo_suivante
+cmp [edi+14h],edx
+jne maj_partition_tempo_suivante
+
+
+
+;si le disque existe dans les nouvelle partition on l'efface des nouvelles partitions
+mov dword[esi+00h],0
+mov dword[esi+04h],0
+mov dword[esi+08h],0
+mov dword[esi+0Ch],0
+mov dword[esi+10h],0
+mov dword[esi+14h],0
+mov dword[esi+18h],0
+mov dword[esi+1Ch],0
+mov dword[esi+20h],0
+mov dword[esi+24h],0
+mov dword[esi+28h],0
+mov dword[esi+2Ch],0
+mov dword[esi+30h],0
+mov dword[esi+34h],0
+mov dword[esi+38h],0
+mov dword[esi+3Ch],0
+jmp maj_partition_existante_suivante
+
+
+maj_partition_tempo_suivante:
+add esi,64
+cmp esi,zt_temp+2048 ;!!!!!!!!!!!!
+jne boucle2_maj_partition
+
+;si la partition n'existe plus dans les nouvelles partition on ferme tout les fichier ouverts sur cette partition 
+mov eax,edi
+sub eax,ad_descp
+shr eax,6     ;div par 64
+mov ebx,[ad_ficho]
+mov ecx,[max_ficho]
+add ecx,ebx
+
+boucle3_maj_partition:
+gs
+cmp [ebx+1],al
+jne maj_partition_pasfermer
+gs
+mov dword[ebx],0
+gs
+mov dword[ebx+4],0
+gs
+mov dword[ebx+8],0
+gs
+mov dword[ebx+12],0
+gs
+mov dword[ebx+16],0
+gs
+mov dword[ebx+20],0
+gs
+mov dword[ebx+24],0
+gs
+mov dword[ebx+28],0
+
+maj_partition_pasfermer:
+add ebx,32
+cmp ebx,ecx
+jne boucle3_maj_partition
+
+
+
+;et on efface le descripteur de partition
+mov dword[edi+00h],0
+mov dword[edi+04h],0
+mov dword[edi+08h],0
+mov dword[edi+0Ch],0
+mov dword[edi+10h],0
+mov dword[edi+14h],0
+mov dword[edi+18h],0
+mov dword[edi+1Ch],0
+mov dword[edi+20h],0
+mov dword[edi+24h],0
+mov dword[edi+28h],0
+mov dword[edi+2Ch],0
+mov dword[edi+30h],0
+mov dword[edi+34h],0
+mov dword[edi+38h],0
+mov dword[edi+3Ch],0
+
+
+maj_partition_existante_suivante:
+add edi,64
+cmp edi,ad_descp+4096
+jne boucle1_maj_partition
+
+
+;intègre les descripeur de nouvelles partition dans la table des descripteur de partition
+mov esi,zt_temp ;!!!!!!!!!!!!!!!
+mov edi,ad_descp+64
+
+boucle4_maj_partition:
+cmp dword[esi],0
+je maj_partition_temporaire_vide
+
+cmp dword[edi],0
+jne maj_partition_existante_nonvide
+
+mov ecx,64
+cld
+rep movsb
+jmp boucle4_maj_partition
+
+
+maj_partition_existante_nonvide:
+add edi,64
+cmp edi,ad_descp+4096
+jne boucle4_maj_partition
+xor eax,eax
+jmp finfonctionfichiererr
+
+maj_partition_temporaire_vide:
+add esi,64
+cmp esi,zt_temp+2048 ;!!!!!!!!!!!!!!!!!
+jne boucle4_maj_partition
+xor eax,eax
+jmp finfonctionfichiererr
+
+
+
 ;*************************************************************************************************************************
-exbasepart:    ;extrait les informations type, adresse et taille d'une partition a prtir de la table secteur mbr
-	       ;es:esi=table mbr de la partition 
+ex_part_mbr:  ;extrait les informations type, adresse et taille d'une partition a partir d'une entrée de la table mbr
+	      ;ds:esi=entrée de la table mbr de la partition
+	      ;ds:edi=descripteur		
 	       
-es
+
 mov al,[esi+04h]
 cmp al,0
-je part_vide
+je ex_part_mbr_vide
 
 cmp al,06h
-je part_F16
+je ex_part_mbr_F16
 cmp al,04h                           ;al=04 06 0E 14 16 1E si fat16  
-je part_F16                          
+je ex_part_mbr_F16                          
 cmp al,06h
-je part_F16
+je ex_part_mbr_F16
 cmp al,0Eh
-je part_F16
+je ex_part_mbr_F16
 cmp al,14h
-je part_F16
+je ex_part_mbr_F16
 cmp al,16h
-je part_F16
+je ex_part_mbr_F16
 cmp al,1Eh
-je part_F16
+je ex_part_mbr_F16
 
 cmp al,0Bh
-je part_F32                          ;al=0C 0B 1C 1B si fat32
+je ex_part_mbr_F32                          ;al=0C 0B 1C 1B si fat32
 cmp al,0Ch
-je part_F32
+je ex_part_mbr_F32
 cmp al,1Ch
-je part_F32
+je ex_part_mbr_F32
 cmp al,1Bh
-je part_F32
+je ex_part_mbr_F32
 
-je part_exFAT
-
-je part_ext2
-je part_ext3
+;?????????
+;je ex_part_mbr_exFAT
+;?????????
+;je ex_part_mbr_ext2
+;?????????
+;je part_ext3
 
 cmp al,2Eh
-je part_TOD
+je ex_part_mbr_TOD
 
 cmp al,07h                      ;al=07 17 si ntfs
-je part_NTFS
+je ex_part_mbr_NTFS
 cmp al,17h
-je part_NTFS
+je ex_part_mbr_NTFS
 
 cmp al,42h
-je part_SFS
-
-cmp al,0EEh             ;GPT
-je part_GPT
+je ex_part_mbr_SFS
 
 mov ah,al
 mov al,2 ;partition inconnue
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_vide:
-ret
+ex_part_mbr_vide:
+xor eax,eax
+mov [edi+0h],eax
+mov [edi+4h],eax
+mov [edi+8h],eax
+jmp ex_part_mbr_vide_fin
 
-part_F12:
+ex_part_mbr_F12:
 mov ax,4 ;partition fat12
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_F16:
+ex_part_mbr_F16:
 mov ax,5 ;partition fat16
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_F32:
+ex_part_mbr_F32:
 mov ax,6 ;partition fat32
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_exFAT:
+ex_part_mbr_exFAT:
 mov ax,7 ;partition exFAT
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_ext2:
+ex_part_mbr_ext2:
 mov ax,8 ;partition ext2
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_ext3:
+ex_part_mbr_ext3:
 mov ax,9 ;partition ext3
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_TOD:
+ex_part_mbr_TOD:
 mov ax,10 ;partition TOD
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_NTFS:
+ex_part_mbr_NTFS:
 mov ax,11 ;partition NTFS
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_SFS:
+ex_part_mbr_SFS:
 mov ax,12 ;partition SFS
-jmp suiteinfopart
+jmp ex_part_suite
 
-part_GPT:
-mov ah,al
-mov al,2 ;partition inconnue, comprehension de la GPT a ajouter ici
-
-
-suiteinfopart:  ;al=type de partition ah=0 ou le code trouvé dans le MBR si c'est inconnue
-;cherche un descripteur de partition vide
-mov ebx,ad_descp+64        ;(+64 car le descripteur zéro est réservé a la disquette)
-boucle_infopart:
-cmp byte[ebx],0
-je charge_infopart
-add ebx,64
-cmp ebx,ad_descp+4096
-jne boucle_infopart
-ret
-
-charge_infopart:
-mov [ebx],al      ;type de la partition
-mov [ebx+1],ch    ;lecteur de la partition
-mov [ebx+2],ah    ;code MBR
+ex_part_suite:  ;al=type de partition ah=0 ou le code trouvé dans le MBR si c'est inconnue
+mov [edi],al      ;type de la partition
+mov [edi+1],ch    ;lecteur de la partition
+mov [edi+2],ah    ;code MBR
 
 mov eax,[esi+08h]   ;adresse de base de la partition  
-mov [ebx+4],eax
+mov [edi+4],eax
 
 mov eax,[esi+0Ch]   ;taille de la partition
-mov [ebx+8],eax
+mov [edi+8],eax
 
 xor eax,eax       ;on vide le reste des descripteurs
-mov [ebx+3],al
-mov [ebx+0Ch],eax
-mov [ebx+10h],eax
-mov [ebx+14h],eax
-mov [ebx+18h],eax
-mov [ebx+1Ch],eax
-mov [ebx+20h],eax
-mov [ebx+24h],eax
-mov [ebx+28h],eax
-mov [ebx+2Ch],eax
-mov [ebx+30h],eax
-mov [ebx+34h],eax
-mov [ebx+38h],eax
-mov [ebx+3Ch],eax
+mov [edi+3],al
+ex_part_mbr_vide_fin:
+mov [edi+0Ch],eax
+mov [edi+10h],eax
+mov [edi+14h],eax
+mov [edi+18h],eax
+mov [edi+1Ch],eax
+mov [edi+20h],eax
+mov [edi+24h],eax
+mov [edi+28h],eax
+mov [edi+2Ch],eax
+mov [edi+30h],eax
+mov [edi+34h],eax
+mov [edi+38h],eax
+mov [edi+3Ch],eax
 ret
 
 

@@ -59,6 +59,9 @@ zt_rcl equ 2800h  ;zone de réception touche
 
 ad_tabcoul equ 3000h ;1024 octets table de correspondance pour les 256 couleurs
 
+
+zt_temp equ 3400h  ;2k zone tampon de 2k
+
 infovesa equ 4000h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
 
 
@@ -536,6 +539,8 @@ cer_prt    equ 25 ;pas de réponse
 cer_ers    equ 26 ;erreur dans la structure
 cer_ddi    equ 27 ;données disponible
 cer_dnd    equ 28 ;données non disponible
+cer_znd    equ 29 ;zone de mémoire indisponible
+cer_zhm    equ 30 ;zone de mémoire hors mémoire physique
 
 ;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 
@@ -554,6 +559,7 @@ czm_ztlef equ 13  ;zone tampon lecture/ecriture fichier
 
 czm_com     equ 20  ;zone tampon de reception port com
 czm_pil     equ 21  ;zone tampon utillisé par un pilote 
+czm_tmi     equ 22  ;espace mémoire réservé aux périphériques isa
 
 czm_flu equ 30  ;frame list uhci
 czm_ztu equ 31  ;zone tampon usb

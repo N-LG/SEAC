@@ -1103,7 +1103,7 @@ mov dword[ad_ztusb],ebx
 mov dword[max_ztusb],ecx 
 
 call maj_console0
-jmp detecte_usb_sata
+jmp reserve_mem_isa
 
 
 errallocmem:
@@ -1143,6 +1143,37 @@ sti
 nop
 jmp infini_errallocmem
 
+
+
+
+;******************************************************************
+;reserve le trou de mémoire isa
+reserve_mem_isa:
+;mov edx,1000000h
+;mov ecx,100000h
+;call resmemp
+;cmp eax,0
+;jne pas_reserve_isa
+;mov dword[FFFFF8h],czm_isa
+;pas_reserve_isa:
+
+;push eax
+;mov al,3
+;out 61h,al        ;allume le bipper
+;pop eax
+
+mov edx,300000h
+mov ecx,100000h
+;call resmemp
+;call affh2j
+mov edx,400010h
+mov ecx,100000h
+;call resmemp
+;call affh2j
+mov edx,1FFFF0h
+mov ecx,100000h
+;call resmemp
+;call affh2j
 
 
 ;*********************************************************************
@@ -1273,6 +1304,10 @@ out dx,al
 mov dx,3F2h ;reinitialisation du controleur disquette
 mov al,00h
 out dx,al
+
+
+
+
 
 
 
@@ -1421,30 +1456,6 @@ fin_detec_ata:
 
 
 
-
-;*********************************************************************
-;charge les info du disque BIOS (désactivé parce que trop long)
-;mov al,8
-;mov edi,bootsecteur
-;mov cl,1
-;mov ch,0Fh
-;xor ebx,ebx
-;int 64h           ;charge le mbr disque
-;cmp eax,0
-;jne ignore_disque_bios
-
-;mov esi,bootsecteur+1BEh ;esi=1er octet du descripteur de la partition
-;call exbasepart    ;1er partition
-;add esi,10h
-;call exbasepart    ;2eme partition
-;add esi,10h
-;call exbasepart    ;3eme partition
-;add esi,10h
-;call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
-
-;ignore_disque_bios:
-
-
 ;**********************************************************************
 ;lit les info disque ata et met a jour les info de partitions
 mov ch,10h
@@ -1518,27 +1529,8 @@ pop ecx
 
 
 init_infopart:
-mov al,8
-mov edi,bootsecteur
-push cx
-mov cl,1
-xor ebx,ebx
-int 64h           ;charge le mbr disque
-pop cx
-cmp eax,0
-jne pasinfopart
-
-push esi
-mov esi,bootsecteur+1BEh ;esi=1er octet du descripteur de la partition
-call exbasepart    ;1er partition
-add esi,10h
-call exbasepart    ;2eme partition
-add esi,10h
-call exbasepart    ;3eme partition
-add esi,10h
-call exbasepart    ;4eme partition  (fonction dans sf_disk.asm)
-pop esi
-
+mov al,12
+int 64h
 
 
 pasinfopart:
