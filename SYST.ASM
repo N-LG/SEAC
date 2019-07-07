@@ -1149,31 +1149,17 @@ jmp infini_errallocmem
 ;******************************************************************
 ;reserve le trou de mémoire isa
 reserve_mem_isa:
-;mov edx,1000000h
-;mov ecx,100000h
-;call resmemp
-;cmp eax,0
-;jne pas_reserve_isa
-;mov dword[FFFFF8h],czm_isa
-;pas_reserve_isa:
+mov edx,0F00000h
+mov ecx,0100000h
+call resmemp
+cmp eax,0
+jne pas_reserve_isa
+mov ax,selramh 
+mov ds,ax
+mov dword[0DFFFF8h],czm_tmi
+pas_reserve_isa:
 
-;push eax
-;mov al,3
-;out 61h,al        ;allume le bipper
-;pop eax
 
-mov edx,300000h
-mov ecx,100000h
-;call resmemp
-;call affh2j
-mov edx,400010h
-mov ecx,100000h
-;call resmemp
-;call affh2j
-mov edx,1FFFF0h
-mov ecx,100000h
-;call resmemp
-;call affh2j
 
 
 ;*********************************************************************
@@ -1481,12 +1467,12 @@ cmp eax,0
 je init_infodisque_atapi
 
 
-or byte[esi],7
+or byte[esi+dd_atribut],7
 jmp pasinfopart
 
 
 init_infodisque_atapi:
-or byte[esi],4
+or byte[esi+dd_atribut],4
 jmp pasinfopart
 
 
@@ -1497,34 +1483,34 @@ cmp edx,0
 je init_infodisque_lba28
 test eax,0C0000000h
 jz init_infodisque_lba28
-or byte[esi],3
-mov [esi+8],eax
-mov [esi+12],edx
+or byte[esi+dd_atribut],3
+mov [esi+dd_taille],eax
+mov [esi+dd_taille+4],edx
 jmp init_infopart
 
 init_infodisque_lba28:
 mov eax,[bootsecteur+78h]   ;nombre de secteur en LBA28
 cmp eax,0
 je init_infodisque_chs
-or byte[esi],2
-mov [esi+8],eax
-mov dword[esi+12],0
+or byte[esi+dd_atribut],2
+mov [esi+dd_taille],eax
+mov dword[esi+dd_taille+4],0
 jmp init_infopart
 
 
 init_infodisque_chs:
 mov eax,[bootsecteur+72h]   ;nombre de secteur en CHS
-or byte[esi],1
-mov [esi+8],eax
-mov dword[esi+12],0
+or byte[esi+dd_atribut],1
+mov [esi+dd_taille],eax
+mov dword[esi+dd_taille+4],0
 push ecx
 xor eax,eax
 xor ecx,ecx
 mov ax,[bootsecteur+70h]   ;secteur par piste
 mov cx,[bootsecteur+6Eh]   ;nombre de tête
-mov [esi+2],ax
+mov [esi+dd_sec_par_piste],ax
 mul ecx
-mov [esi+4],eax       ;nombre de secteur par cylindre
+mov [esi+dd_sec_par_cyl],eax       ;nombre de secteur par cylindre
 pop ecx
 
 

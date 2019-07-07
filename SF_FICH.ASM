@@ -11,7 +11,7 @@
 ;al=9  ecrire dans un secteur
 ;al=10 lire les information d'un disque
 ;al=11 définit le msb du numéros de secteur lors des fonction 8 et 9
-;al=12
+;al=12 met a jour la table des partition d'un disque
 
 ;************************************
 
@@ -70,7 +70,10 @@ cmp al,9
 je ecriresecteur
 cmp al,10
 je infodisque_ata_atapi
-
+cmp al,11
+je definis_msb
+cmp al,12
+je maj_partition
 
 errprmsf:   ;erreur de paramètres
 fs

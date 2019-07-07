@@ -51,43 +51,37 @@ ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la créat
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
 
+;???
 
-ad_tss equ 2600h     ;TSS et IO map (512 + 8196)  2200h
-
-
-zt_rcl equ 2800h  ;zone de réception touche
 
 ad_tabcoul equ 3000h ;1024 octets table de correspondance pour les 256 couleurs
+infovesa equ 3400h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
 
+;???
 
-zt_temp equ 3400h  ;2k zone tampon de 2k
+zt_maj_descp equ 3800h  ;zone tampon pour la mise a jour des descripteur des partitions
+zt_conversion_ucs equ 4000h  ;definition temporaire
 
-infovesa equ 4000h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
-
-
-
-zt_conversion_ucs equ 4200h  ;definition temporaire
-
-zt_disquette equ 4400h          ;zone tampon pour la lecture de secteur sur la disquette
-bootsecteur equ 4600h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
+zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette
+bootsecteur equ 4400h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
 zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées
 secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 
 
+;???
 
-
-ad_descp equ 05000h ;4kibi
-
-ad_descd equ 6000h  ;256 octets
-ad_prdt equ 6100h ;256 octets
-
-
-ad_cce equ 6500h
-ad_zdc equ 6600h
-ad_msg equ 6800h  
+ad_msg equ 6000h ;8ko  
 
 ad_tabcar equ 8000h      ;definition des caractère graphiques
 
+;???
+
+zt_rcl   equ 13800h  ;zone de réception touche
+ad_cce   equ 13900h  ;256 octet
+ad_zdc   equ 13A00h  ;512 octet 
+ad_descd equ 13C00h  ;512 octets
+ad_tss   equ 13E00h ;TSS et IO map (512 + 8196)  2200h
+ad_descp equ 16000h ;8kibi 128*64
 ad_ztcmd equ 18000h ;zone tampon reception commande
 
 
@@ -337,7 +331,7 @@ ad_console0 equ 54Ch
 ;**********************************************************
 ;descripteur de disque
 dd_atribut       equ 00h     
-;b0-2 0=absent 1=chs 2=lba28 3=lba48 5=ATAPI
+;b0-2 0=absent 1=chs 2=lba28 3=lba48 4=ATAPI
 ;b3   0=pio 1=dma
 ;b4   0=master 1=slave
 

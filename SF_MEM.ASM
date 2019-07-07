@@ -193,6 +193,149 @@ pop ecx
 pop eax
 ret
 
+
+
+
+;******************************************************************************
+resmemp:            ;réserve une zone de mémoire physique
+                    ;edx=adresse physique souhaité
+                    ;ecx=qt souhaité
+pushad
+push ds
+mov ax,selramh
+mov ds,ax
+
+
+test edx,0Fh
+jnz resmemp_erreur_param
+test ecx,0Fh
+jnz resmemp_erreur_param
+cmp edx,100010h
+jbe resmemp_erreur_param
+
+sub edx,100010h
+add ecx,10h
+add ecx,edx     ;edx=adresse 1er octet a utilliser ecx=adresse octet suivant libre
+
+
+
+xor ebx,ebx
+resmemp_boucle:
+cmp word[ebx],"DM"
+jne resmemp_erreur_structure
+mov eax,[ebx+4]
+add eax,ebx     ;eax=adresse de la zone suivante ebx=adresse de la zone analysé
+
+cmp byte[ebx+2],"F"
+je resmemp_fin_absent
+cmp byte[ebx+2],"V"
+jne resmemp_ignore
+
+cmp edx,ebx
+je resmemp_trouve_debut
+jb resmemp_fin_indisponible
+cmp edx,eax
+ja resmemp_ignore
+cmp ecx,eax
+je resmemp_trouve_fin
+jb resmemp_trouve_centre
+
+resmemp_ignore:
+mov ebx,eax
+jmp resmemp_boucle
+
+
+
+resmemp_trouve_debut:          ;la zone souhaité se trouve au début d'une zone vide
+mov byte[edx+2],"S"
+mov [edx+4],ecx
+sub [edx+4],edx
+mov dword[edx+8],0
+mov dword[edx+12],0
+
+cmp ecx,eax
+je resmemp_fin_ok
+
+mov word[ecx],"DM"
+mov byte[ecx+2],"V"
+mov [ecx+4],eax
+sub [ecx+4],ecx
+mov dword[ecx+8],0
+mov dword[ecx+12],0
+jmp resmemp_fin_ok
+
+
+
+resmemp_trouve_centre:    ;la zone souhaité se trouve au millieux d'une zone vide
+mov [ebx+4],edx
+sub [ebx+4],ebx
+
+mov word[edx],"DM"
+mov byte[edx+2],"S"
+mov [edx+4],ecx
+sub [edx+4],edx
+mov dword[edx+8],0
+mov dword[edx+12],0
+
+mov word[ecx],"DM"
+mov byte[ecx+2],"V"
+mov [ecx+4],eax
+sub [ecx+4],ecx
+mov dword[ecx+8],0
+mov dword[ecx+12],0
+jmp resmemp_fin_ok
+
+
+
+resmemp_trouve_fin:   ;la zone souhaité se trouve a la fin d'une zone vide
+mov [ebx+4],edx
+sub [ebx+4],ebx
+
+mov word[edx],"DM"
+mov byte[edx+2],"S"
+mov [edx+4],ecx
+sub [edx+4],edx
+mov dword[edx+8],0
+mov dword[edx+12],0
+
+
+
+resmemp_fin_ok:
+call majetm   ;met a jour les compteurs
+pop ds
+popad
+xor eax,eax
+ret
+
+resmemp_erreur_param:
+pop ds
+popad
+mov eax,cer_parami ;erreur de parametre
+ret
+
+resmemp_erreur_structure:
+pop ds
+popad
+mov eax,cer_ers ;erreur de structure mémoire
+ret
+
+resmemp_fin_indisponible:
+pop ds
+popad
+mov eax,cer_znd   ;zone non disponible
+ret
+
+resmemp_fin_absent:
+pop ds
+popad
+mov eax,cer_zhm   ;zone hors mémoire
+ret
+
+
+
+
+
+
 ;*********************************************************************************
 libmem:   ;libère de la mémoire
 ;in: ebx=adresse de la mémoire haute a liberer

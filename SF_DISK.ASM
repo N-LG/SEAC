@@ -1590,12 +1590,12 @@ mov ax,seldat
 mov ds,ax
 mov es,ax
 
-mov ebx,zt_temp
+mov ebx,zt_maj_descp 
 xor eax, eax
 bouclevide_maj_partiton:
 mov [ebx],eax
 add ebx,4
-cmp ebx,zt_temp+2048
+cmp ebx,zt_maj_descp+2048
 jne bouclevide_maj_partiton
 
 
@@ -1630,7 +1630,7 @@ jne pasinfopart
 ;***************************chargement des données de partitionnement de type MBR
 maj_partition_mbr:
 mov esi,bootsecteur+1BEh
-mov edi,zt_temp ;!!!!!!!!!!!!!!!une zt de 4096octet
+mov edi,zt_maj_descp  
 call ex_part_mbr
 add esi,10h
 add edi,40h
@@ -1651,7 +1651,7 @@ boucle1_maj_partition:  ;balaye le descripteur de partition et vérifie si les pa
 cmp byte[edi+1],ch 
 jne maj_partition_existante_suivante
 
-mov esi,zt_temp ;!!!!!!!!!!!!
+mov esi,zt_maj_descp  
 boucle2_maj_partition:  ;on vérifie si le type de disque est identique  
 mov eax,[esi]
 mov edx,[esi+4]
@@ -1698,7 +1698,7 @@ jmp maj_partition_existante_suivante
 
 maj_partition_tempo_suivante:
 add esi,64
-cmp esi,zt_temp+2048 ;!!!!!!!!!!!!
+cmp esi,zt_maj_descp +2048 
 jne boucle2_maj_partition
 
 ;si la partition n'existe plus dans les nouvelles partition on ferme tout les fichier ouverts sur cette partition 
@@ -1758,12 +1758,12 @@ mov dword[edi+3Ch],0
 
 maj_partition_existante_suivante:
 add edi,64
-cmp edi,ad_descp+4096
+cmp edi,ad_descp+8192
 jne boucle1_maj_partition
 
 
 ;intègre les descripeur de nouvelles partition dans la table des descripteur de partition
-mov esi,zt_temp ;!!!!!!!!!!!!!!!
+mov esi,zt_maj_descp 
 mov edi,ad_descp+64
 
 boucle4_maj_partition:
@@ -1781,14 +1781,14 @@ jmp boucle4_maj_partition
 
 maj_partition_existante_nonvide:
 add edi,64
-cmp edi,ad_descp+4096
+cmp edi,ad_descp+8192
 jne boucle4_maj_partition
 xor eax,eax
 jmp finfonctionfichiererr
 
 maj_partition_temporaire_vide:
 add esi,64
-cmp esi,zt_temp+2048 ;!!!!!!!!!!!!!!!!!
+cmp esi,zt_maj_descp +2048
 jne boucle4_maj_partition
 xor eax,eax
 jmp finfonctionfichiererr
