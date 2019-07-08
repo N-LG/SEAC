@@ -2882,6 +2882,7 @@ fin_cmdcop:
 
 
 
+
 ;********************************************
 cmddef:   ;charge des fichier de definition supplémentaire
 mov edx,ad_zdc
@@ -2936,15 +2937,22 @@ jmp fin_commande_erreur
 
 
 
-cmddef_lang:   ;charge la nouvelle definition des messages systemes
+cmddef_lang:  
+;efface l'ancienne definition des messages systèmes
+xor eax,eax
+mov edi,ad_msg
+mov ecx,2048
+cld
+rep stosd
+
+;charge la nouvelle definition des messages systemes
 mov al,4
-mov ecx,4096
+mov ecx,8192
 mov edx,16
 mov edi,ad_msg
 int 64h
 cmp eax,0
 jne fin_commande_erreur
-
 
 mov cl,98  
 call affmsgsyst
@@ -2955,9 +2963,22 @@ call affmsgsyst
 jmp pascommande
 
 
-cmddef_clav:    ;charge la nouvelle definition de clavier
+
+cmddef_clav: 
+cmp dword[ad_chaine_travail+16],3088
+jb erreur_cmddef_clav
+
+   
+;efface l'ancienne definition de clavier
+xor eax,eax
+mov edi,ad_tabclav
+mov ecx,1024
+cld
+rep stosd
+
+;charge la nouvelle definition de clavier
 mov al,4
-mov ecx,2048
+mov ecx,4096
 mov edx,16
 mov edi,ad_tabclav
 int 64h
@@ -2973,7 +2994,9 @@ call affmsgsyst
 jmp pascommande
 
 
-
+erreur_cmddef_clav:
+mov eax,26;?????????????????????????????????????
+jmp fin_commande_erreur 
 
 
 cmddef_graph:      ;charge la nouvelle definition de caractère graphique
@@ -2991,6 +3014,11 @@ call affjournal
 mov cl,89   
 call affmsgsyst
 jmp pascommande
+
+
+
+
+
 
 
 
@@ -4173,6 +4201,29 @@ jmp selcod16:reboot ;rebouter via le mode réel
 
 
 pas_touche_sp:
+
+test byte[atbp+8h],40h   ;CtrlG
+jnz tkctrl
+test byte[atbp+9h],04h   ;CtrlD
+jz tknctrl
+
+tkctrl:
+mov bx,cx
+shl ebx,3
+test byte[atbp+8h],80h  ;alt
+jnz tkctrlaltalt
+test byte[atbp+9h],02h  ;alt gr
+jnz tkctrlaltalt
+
+mov eax,[ad_tabclav_ex+ebx]
+jmp fintk
+
+tkctrlaltalt:
+mov eax,[ad_tabclav_ex+4+ebx]
+jmp fintk
+
+
+tknctrl:
 xor ebx,ebx
 mov bx,cx
 shl ebx,4
@@ -4180,7 +4231,6 @@ test byte[atbp+8h],80h  ;alt
 jnz tkalt
 test byte[atbp+9h],02h  ;alt gr
 jnz tkalt
-
 
 test byte[atbp+7h],02h
 jnz tkmaj
@@ -4203,6 +4253,7 @@ jmp fintk
 
 tkalt:
 mov eax,[ad_tabclav+ebx+12]
+
 
 fintk:
 inc cx            ;cl= numéros de touche eax=caractère

@@ -39,12 +39,11 @@ seltss equ 83h   ;16
 
 
   
-ad_tabclav equ 1000h
-ad_tabaccent equ 1800h
+ad_tabclav    equ 1000h
+ad_tabclav_ex equ 1800h
+ad_tabaccent  equ 1C00h
 
 
-ad_repertoire equ 1C00h  ;adresse du repertoire courant
-ad_repsys equ 1E00h      ;adresse du repertoire système
 
 ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la création de tache
 
@@ -76,13 +75,16 @@ ad_tabcar equ 8000h      ;definition des caractère graphiques
 
 ;???
 
-zt_rcl   equ 13800h  ;zone de réception touche
-ad_cce   equ 13900h  ;256 octet
-ad_zdc   equ 13A00h  ;512 octet 
-ad_descd equ 13C00h  ;512 octets
-ad_tss   equ 13E00h ;TSS et IO map (512 + 8196)  2200h
-ad_descp equ 16000h ;8kibi 128*64
-ad_ztcmd equ 18000h ;zone tampon reception commande
+
+ad_repertoire equ 13400h  ;adresse du repertoire courant
+ad_repsys     equ 13600h      ;adresse du repertoire système
+zt_rcl        equ 13800h  ;zone de réception touche
+ad_cce        equ 13900h  ;256 octet
+ad_zdc        equ 13A00h  ;512 octet 
+ad_descd      equ 13C00h  ;512 octets
+ad_tss        equ 13E00h ;TSS et IO map (512 + 8196)  2200h
+ad_descp      equ 16000h ;8kibi 128*64
+ad_ztcmd      equ 18000h ;zone tampon reception commande
 
 
 
