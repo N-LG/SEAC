@@ -1,15 +1,16 @@
 ;fonction pour communication inter/tache int 65h
 
-;al=0 ouverture canal
-;al=1 fermeture canal
-;al=2 tester changement descripteur
-;al=3 tester donnée disponible sur canaux
-;al=4 lire descripteur
-;al=5 ecrire descripteur
-;al=6 lire donnée sur canal
-;al=7 envoyer donnée sur canal
-;al=8 attendre changement descripteur sur canal
-;al=9 attendre donnée disponible sur canal
+;al=0  ouverture canal
+;al=1  fermeture canal
+;al=2  tester changement descripteur
+;al=3  tester donnée disponible sur canaux
+;al=4  lire descripteur
+;al=5  ecrire descripteur
+;al=6  lire donnée sur canal
+;al=7  envoyer donnée sur canal
+;al=8  attendre changement descripteur sur canal
+;al=9  attendre donnée disponible sur canal
+;al=10 lire info sur canal
 
 cmp al,0
 je sf_com_ouverture
@@ -60,6 +61,8 @@ cmp al,8
 je sf_com_attente_cd
 cmp al,9
 je sf_com_attente_dd
+cmp al,10
+je sf_com_info_canal_rc
 jmp sf_com_er_parami
 
 
@@ -78,6 +81,8 @@ cmp al,8
 je sf_com_attente_cd
 cmp al,9
 je sf_com_attente_dd
+cmp al,10
+je sf_com_info_canal_em
 
 sf_com_er_parami:
 pop fs
@@ -845,6 +850,59 @@ pop es
 pop ds
 popad
 mov eax,cer_dnd
+iret
+
+
+
+
+;************************************************************************************
+;bx=ID de la tache avec qui communiquer
+;ecx=taille du descripteur
+;edx=attribut canal
+;esi=taille de la zone tampon d'envoie
+;edi=taille de la zone tampon de reception
+
+
+sf_com_info_canal_rc:
+pop fs
+pop es
+pop ds
+popad
+push ds
+mov ax,selramh
+mov ds,ax
+
+mov ax,[ebx+id_emetteur]
+mov ecx,[ebx+to_descr_com]
+mov edx,[ebx+at_canal]
+and edx,1
+mov esi,[ebx+to_ztre]
+mov edi,[ebx+to_zter]
+mov bx,ax
+pop ds
+xor eax,eax
+iret
+
+
+
+sf_com_info_canal_em:
+pop fs
+pop es
+pop ds
+popad
+push ds
+mov ax,selramh
+mov ds,ax
+
+mov ax,[ebx+id_recepteur]
+mov ecx,[ebx+to_descr_com]
+mov edx,[ebx+at_canal]
+and edx,01
+mov esi,[ebx+to_zter]
+mov edi,[ebx+to_ztre]
+mov bx,ax
+pop ds
+xor eax,eax
 iret
 
 
