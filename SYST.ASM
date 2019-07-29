@@ -4208,6 +4208,7 @@ test byte[atbp+9h],04h   ;CtrlD
 jz tknctrl
 
 tkctrl:
+xor ebx,ebx
 mov bx,cx
 shl ebx,3
 test byte[atbp+8h],80h  ;alt
