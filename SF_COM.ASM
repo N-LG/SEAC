@@ -731,7 +731,7 @@ fs
 mov eax,[edx+to_ztcom]
 call sf_com_to 
 sub eax,ebp
-dec ebp
+dec eax
 mov ebp,eax                ;ebp=taille libre
 pop eax
 ret

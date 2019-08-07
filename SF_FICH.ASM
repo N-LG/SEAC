@@ -1354,9 +1354,9 @@ fs
 mov al,[at_fichier]
 and al,011b
 cmp al,10b
-jnz ok_verif_dejaouvert   ;si c'est un dossier on ignore
+je ok_verif_dejaouvert   ;si c'est un dossier on ignore
 cmp al,11b
-jnz ok_verif_dejaouvert   ;si c'est un dossier racine on ignore cette vérif
+je ok_verif_dejaouvert   ;si c'est un dossier racine on ignore cette vérif
 
 boucle_verif_dejaouvert:
 fs

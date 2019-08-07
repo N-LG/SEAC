@@ -57,7 +57,6 @@ jmp 5000h:position_code_ok
 position_code_ok:
 
 
-
 ;*********************************************************************
 ;passage en flat real mode
 
@@ -304,6 +303,7 @@ mov word[nb_piste_disq],80
 mov word[sec_cyl_disq],36
 
 
+
 ;**********************************************
 ;**** charge les données
 
@@ -359,8 +359,6 @@ mov di,ad_msg
 cld
 rep movsb    
 
-
- 
 
 ;**********************************************
 ;**** charge le code 
@@ -1165,6 +1163,8 @@ pas_reserve_isa:
 ;*********************************************************************
 ;detecte les controleurs USB et SATA
 detecte_usb_sata:
+mov ax,seldat 
+mov ds,ax
 mov ebx,80000008h
 mov esi,desc_ctrl_usb
 boucletcusb:
