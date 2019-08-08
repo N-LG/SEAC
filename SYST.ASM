@@ -1161,119 +1161,7 @@ pas_reserve_isa:
 
 
 ;*********************************************************************
-;detecte les controleurs USB et SATA
-detecte_usb_sata:
-mov ax,seldat 
-mov ds,ax
-mov ebx,80000008h
-mov esi,desc_ctrl_usb
-boucletcusb:
-mov dx,0CF8h
-mov eax,ebx
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-cmp ax,0FFFFh
-je pasctrl
-mov edx,eax
-;and eax,0FFFFFF00h 
-;cmp eax,01060100h  ;classe=01h sous-classe=06h  if=01
-;je ctrl_ahci            ;AHCI
-and eax,0FFFF0000h 
-cmp eax,0C030000h  ;classe=0Ch sous-classe=03h
-jne pasctrl
-
-cmp dh,00h          ;UHCI
-je ctrl_uhci
-cmp dh,10h          ;OHCI
-je ctrl_ohci
-cmp dh,20h          ;EHCI
-je ctrl_ehci
-cmp dh,30h          ;XHCI
-je ctrl_xhci
-jmp pasctrl
-
-ctrl_uhci:
-mov dx,0CF8h
-mov eax,ebx
-add eax,18h ;pour avoir l'adresse de base des ports
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-test eax,1  ;on vérifie que c'est bien un descripteur de port d'e/s
-jz pasctrl
-and eax,0FFE0h
-mov [esi+4],eax  ;adresse de base du controleur
-mov eax,ebx
-and eax,0FFFF00h
-shr eax,8
-mov [esi+2],ax  ;coordonnée PCI
-mov byte[esi],1 ;controleur de type uhci
-mov byte[esi+1],2 ;deux port
-
-push ebx
-mov eax,0FFFh
-mov ecx,1000h   ;4096 octets
-call resmemg   ;réserve une place pour la frame list uhci 
-es
-mov word[ebx+8],czm_flu   ;code pour frame list uhci 
-add ebx,100010h   ;adresse physique
-mov [esi+8],ebx
-pop ebx 
-
-add esi,10h
-jmp pasctrl
-
-ctrl_ohci:
-xor eax,eax
-mov [esi+4],eax  ;adresse de base du controleur
-mov eax,ebx
-and eax,0FFFF00h
-shr eax,8
-mov [esi+2],ax  ;coordonnée PCI
-mov byte[esi],2 ;controleur de type ohci
-add esi,16
-jmp pasctrl
-
-ctrl_ehci:
-mov dx,0CF8h
-mov eax,ebx
-add eax,8 ;pour avoir l'adresse de base des ports
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-test eax,1  ;on vérifie que c'est bien un descripteur de port d'e/s
-;jnz pasctrl
-and eax,0FFFFFFF0h
-mov [esi+4],eax  ;adresse de base du controleur
-mov eax,ebx
-and eax,0FFFF00h
-shr eax,8
-mov [esi+2],ax  ;coordonnée PCI
-mov byte[esi],3 ;controleur de type ehci
-add esi,16
-jmp pasctrl
-
-ctrl_xhci:
-xor eax,eax
-mov [esi+4],eax  ;adresse de base du controleur
-mov eax,ebx
-and eax,0FFFF00h
-shr eax,8
-mov [esi+2],ax  ;coordonnée PCI
-mov byte[esi],4 ;controleur de type xhci
-add esi,16
-jmp pasctrl
-
-
-ctrl_ahci:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-pasctrl:
-add ebx,100h
-test ebx,7F000000h
-jz boucletcusb
+call detection_ctrl_usb     ;detection et d'initialisation des controleur USB, voir dans SF_USB.ASM
 
 
 ;**********************************************************************
@@ -3261,6 +3149,9 @@ and byte[at_fc_fichier],0FBh   ;on signal que le moteur de la disquette est étei
 pasarretmoteurdisquette:
 
 ;********************************
+call verif_periodique_usb     ;fonction de mise a jour des descripteur de périphériques branché a l'USB
+
+
 hlt
 int 62h
 jmp btacheprincipale
