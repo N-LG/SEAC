@@ -106,6 +106,8 @@ cpttc equ 14h  ;compteur de la tache courante
 
 nb_ram equ 18h ;taille de la ram sur le système
 
+ad_copiercoller equ 1Ch  ;adresse de la zone reservé au copié/collé
+
 atbp equ 20h    ;attribut bouton pressé
 attcl equ 30h   ;attribut clavier
 ztcl equ 32h    ;zone tampon clavier
@@ -547,6 +549,7 @@ cer_zhm    equ 30 ;zone de mémoire hors mémoire physique
 czm_zj     equ 1  ;journal du tecop
 czm_hc     equ 2  ;historique des dernière commandes tapé
 czm_etz    equ 3  ;ecran de la tache zéro
+czm_cc     equ 4  ;zone tampon pour le copier/collé
 
 czm_dfo    equ 10  ;descripteur des fichiers ouverts
 czm_ztf1   equ 11  ;zone tampon FAT1

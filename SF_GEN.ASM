@@ -14,6 +14,7 @@
 ;al=12  lire compteur temps
 ;al=13  obtenir message systeme
 
+
 ;*****************************************************************************************
 ;fonctions "pratique"
 ;al=100 convertir chaine decimale asciiz en entier 32bits
@@ -64,6 +65,14 @@ cmp al,12
 je sfs_lire_cptsf
 cmp al,13
 je sfs_obt_msg
+cmp al,14
+je sfs_lire_journal
+cmp al,15
+je sfs_copier
+cmp al,16
+je sfs_coller
+cmp al,17
+je sfs_sup_copiercoller
 
 cmp al,100
 je conv_cdeci_reg
@@ -848,6 +857,209 @@ fin_sfs_obt_msg:
 pop es
 popad
 iret
+
+
+
+;********************************************************
+sfs_lire_journal:    ;es:edx ecx max
+push esi
+push edi
+push ds
+mov ax,seldat
+mov ds,ax
+mov esi,[ad_jcsl]
+mov eax,[to_jcsl]
+
+cmp eax,ecx
+ja erreur_sfs_lire_journal
+
+mov ecx,eax
+mov ax,selramh
+mov ds,ax
+mov edi,edx
+cld
+rep movsb
+
+pop ds
+pop edi
+pop esi
+mov ecx,eax
+xor eax,eax
+iret
+
+erreur_sfs_lire_journal:
+pop ds
+pop edi
+pop esi
+mov ecx,eax
+mov eax,cer_pasm
+iret
+
+
+
+;***************************************************
+;copier    ;es:edx ecx
+sfs_copier:
+pushad
+push ds
+push es
+push fs
+mov ax,es
+mov ds,ax
+mov ax,selramh
+mov es,ax
+mov ax,seldat
+mov fs,ax
+
+fs
+mov ebx,[ad_copiercoller]
+cmp ebx,0
+jne pascreerzone_sfs_copier
+push ecx  ;si la zone de copier coller n'existe pas on la créer
+add ecx,15
+and ecx,0FFFFFFF0h
+call resmem
+pop ecx
+jc erreur_sfs_copier    
+fs
+mov [ad_copiercoller],ebx
+es
+mov dword[ebx+8],czm_cc    ;code zone mémoire copier-coller
+
+pascreerzone_sfs_copier:
+mov eax,[ebx+4]
+sub eax,10h
+cmp eax,ecx
+jae ok_sfs_copier 
+call libmem    ;si la zone est trop petite on la supprime 
+;jc erreur_sfs_copier   
+push ecx
+add ecx,15
+and ecx,0FFFFFFF0h
+call resmem          ;et on en créer une autre
+pop ecx
+jc erreur_sfs_copier  
+fs
+mov [ad_copiercoller],ebx
+
+
+ok_sfs_copier:   
+es
+mov [ebx+12],ecx    ;on enregistre la taille exacte des données
+mov esi,edx
+mov edi,ebx
+add edi,10h
+cld              ;et on copie les données
+rep movsb
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+erreur_sfs_copier:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_pasm
+iret
+
+
+
+
+
+
+;************************************************
+;coller
+sfs_coller:
+push ebx
+push esi
+push edi
+push ds
+push fs
+mov ax,selramh
+mov ds,ax
+mov ax,seldat
+mov fs,ax
+
+fs
+mov ebx,[ad_copiercoller]
+cmp ebx,0
+jne rac_sfs_coller
+cmp [ebx+12],ecx
+ja erreur_sfs_coller
+
+mov ecx,[ebx+12]
+mov esi,ebx
+add esi,10h
+mov edi,edx
+cld              ;et on copie les données
+rep movsb
+mov ecx,[ebx+12]
+
+pop fs
+pop ds
+pop edi
+pop esi
+pop ebx
+xor eax,eax
+iret
+
+rac_sfs_coller: ;rien a coller
+pop fs
+pop ds
+pop edi
+pop esi
+pop ebx
+xor eax,eax
+xor ecx,ecx
+iret
+
+erreur_sfs_coller:
+mov ecx,[ebx+12]
+pop fs
+pop ds
+pop edi
+pop esi
+pop ebx
+mov eax,cer_pasm
+iret
+
+
+
+
+
+;*******************************************
+;suppression données coper coller
+sfs_sup_copiercoller:
+pushad
+push ds
+mov ax,seldat
+mov ds,ax
+mov ebx,[ad_copiercoller]
+cmp ebx,0
+je fin_sfs_sup_copiercoller 
+call libmem
+mov dword[ad_copiercoller],0
+fin_sfs_sup_copiercoller:
+pop ds
+popad
+iret
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
