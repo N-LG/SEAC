@@ -927,6 +927,7 @@ es
 mov dword[ebx+8],czm_cc    ;code zone mémoire copier-coller
 
 pascreerzone_sfs_copier:
+es
 mov eax,[ebx+4]
 sub eax,10h
 cmp eax,ecx
@@ -941,7 +942,8 @@ pop ecx
 jc erreur_sfs_copier  
 fs
 mov [ad_copiercoller],ebx
-
+es
+mov dword[ebx+8],czm_cc    ;code zone mémoire copier-coller
 
 ok_sfs_copier:   
 es
@@ -987,7 +989,7 @@ mov fs,ax
 fs
 mov ebx,[ad_copiercoller]
 cmp ebx,0
-jne rac_sfs_coller
+je rac_sfs_coller
 cmp [ebx+12],ecx
 ja erreur_sfs_coller
 
