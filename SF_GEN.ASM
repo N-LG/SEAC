@@ -13,6 +13,10 @@
 ;al=11  rechercher un service
 ;al=12  lire compteur temps
 ;al=13  obtenir message systeme
+;al=14  lire le journal
+;al=15  copier des données dans la zone de copier/coller
+;al=16  lire les données dans la zone de copier/coller
+;al=17  effacer la zone mémoire
 
 
 ;*****************************************************************************************
@@ -873,9 +877,9 @@ mov eax,[to_jcsl]
 cmp eax,ecx
 ja erreur_sfs_lire_journal
 
+mov cx,selramh
+mov ds,cx
 mov ecx,eax
-mov ax,selramh
-mov ds,ax
 mov edi,edx
 cld
 rep movsb

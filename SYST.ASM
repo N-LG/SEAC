@@ -297,6 +297,12 @@ mov [port_lpt_base+08h],ax
 mov [port_lpt_base+0Ch],dx
 
 
+es
+test byte[417h],20h        ;active verr num si le bios l'as activé
+jz vernumoff
+mov byte[attcl],02h         
+vernumoff:
+
 ;initialise variables de la fonction lecture disquette
 mov word[sec_piste_disq],18
 mov word[nb_piste_disq],80
@@ -3933,10 +3939,23 @@ pop eax
 sti
 iret
 
+;******************************************
 nackcla:
 shr dword[ztcl],8
 mov [ztcl+3],al
 xor cx,cx
+cmp word[ztcl+2],02AE0h  ;ignore la première touche virtuelle généré par "verr num"
+je finircl
+cmp word[ztcl+2],0AAE0h  ;et sont équivalent relachement de touche
+je finircl
+cmp word[ztcl+2],036E0h  ;ignore la seconde touche virtuelle généré par "verr num"
+je finircl
+cmp word[ztcl+2],0B6E0h  ;et sont équivalent relachement de touche
+je finircl
+
+
+;*****************************************
+;cherche a quel touche correspond la séquence de code envoyé par le clavier
 bclintcl1:
 mov bx,cx
 shl bx,4
@@ -3970,12 +3989,13 @@ xor cx,cx
 bclintcl3:
 mov bx,cx
 shl bx,4
-mov ax,[ztcl+2]
-mov dx,[ad_tabclav+bx]
-cmp ax,dx
+mov eax,[ztcl+2]
+and eax,00FFFFh
+mov edx,[ad_tabclav+bx]
+cmp eax,edx
 je press
 or dx,8080h
-cmp ax,dx
+cmp eax,edx
 je depress
 inc cx
 test cx,0FF80h
@@ -3985,19 +4005,23 @@ xor cx,cx
 bclintcl4:
 mov bx,cx
 shl bx,4
-mov ax,[ztcl+3]
-mov dx,[ad_tabclav+bx]
-cmp al,dl
+mov eax,[ztcl+3]
+and eax,00FFh
+mov edx,[ad_tabclav+bx]
+cmp eax,edx
 je press
 or dl,80h
-cmp al,dl
+cmp eax,edx
 je depress
 inc cx
 test cx,0FF80h
 jz bclintcl4
 jmp finircl
 
+;*************************************************
+;gestion lorsque la touche est relaché
 depress:
+mov dword[ztcl],0
 mov bx,cx
 mov ch,cl
 and cl,07h
@@ -4007,7 +4031,7 @@ shr bx,3
 mov ah,[atbp+bx]
 not al
 and ah,al
-mov [atbp+bx],ah
+mov [atbp+bx],ah   ;met a jour la table d'état des touches
 mov cl,ch
 xor ch,ch
 
@@ -4023,9 +4047,12 @@ cmp dword[sv_alt],0  ;on verifie si il y as un caractère qui as été
 je finircl
 mov eax,[sv_alt]
 mov dword[sv_alt],0
-jmp ajoute_carac_zt
+jmp lect_touches_sp
 
+;***************************************************
+;gestion lorsque la touche touche est actionné
 press:
+mov dword[ztcl],0
 mov bx,cx
 mov ch,cl
 and cl,07h
@@ -4034,7 +4061,7 @@ shl al,cl
 shr bx,3
 mov ah,[atbp+bx]
 or ah,al
-mov [atbp+bx],ah
+mov [atbp+bx],ah   ;met a jour la table d'état des touches
 mov cl,ch
 xor ch,ch
 
@@ -4108,11 +4135,11 @@ test byte[atbp+9h],02h  ;alt gr
 jnz tkctrlaltalt
 
 mov eax,[ad_tabclav_ex+ebx]
-jmp fintk
+jmp lect_touches_sp
 
 tkctrlaltalt:
 mov eax,[ad_tabclav_ex+4+ebx]
-jmp fintk
+jmp lect_touches_sp
 
 
 tknctrl:
@@ -4133,7 +4160,7 @@ jnz tkvmaj
 
 tknorm:
 mov eax,[ad_tabclav+ebx+4]
-jmp fintk
+jmp lect_touches_sp
 
 tkmaj:
 test byte[attcl],04h
@@ -4141,13 +4168,15 @@ jnz tknorm
 
 tkvmaj:
 mov eax,[ad_tabclav+ebx+8]
-jmp fintk
+jmp lect_touches_sp
 
 tkalt:
 mov eax,[ad_tabclav+ebx+12]
 
 
-fintk:
+;*******************************************
+;relève l'état des touches spéciales
+lect_touches_sp:
 inc cx            ;cl= numéros de touche eax=caractère
 xor ch,ch
 
@@ -4183,6 +4212,9 @@ or ch,bl
 
 ;ch=touches spéciale pressé   0=majG 1=majD 2=CtrlG 3=CtrlD 4=Alt 5=AltGr
 
+
+
+;**********************************************
 cmp eax,0
 je ajoute_carac_zt
 cmp dword[sv_chas],0
@@ -4206,7 +4238,7 @@ correspondance_chasse_pastrouve:
 push eax
 mov eax,[sv_chas]
 mov dword[sv_chas],0 
-xor ebx,ebx              ;ajoute le caractère de casse dans la ZT clavier
+xor ebx,ebx              ;ajoute le caractère de chasse dans la ZT clavier
 cmp byte[nb_zrc],42
 je ignore_aj_chasse
 mov bl,[nb_zrc]
@@ -4227,7 +4259,7 @@ mov eax,[ebx+8]
 jmp ajoute_carac_zt
 
 
-
+;*******************************************************
 verifie_chasse:     ;verifie que le caractère correspond a un caractère de chasse qui est présent dans la liste
 mov ebx,ad_tabaccent
 boucle_recherche_chasse:
@@ -4262,6 +4294,10 @@ or byte[attcl],40h
 jmp finircl
 
 
+
+
+;****************************************
+;gestion des touches spéciales
 touche_num:
 xor byte[attcl],02h
 jmp bougled
@@ -4398,6 +4434,7 @@ xor edx,edx
 jmp charge_ecran
 
 
+;*****************************************************
 irqsouris:
 push ax
 push bx
