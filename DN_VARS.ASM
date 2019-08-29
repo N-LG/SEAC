@@ -114,8 +114,8 @@ ztcl equ 32h    ;zone tampon clavier
 nlafj equ 36h   ;pointeur sur la fin du journal
 pfinj equ 38h   ;pointeur sur la fin du journal
 nb_zrc equ 3Ah  ;nombre de touche dans la zone de reception clavier
-sv_chas equ 3Ch ;sauvegarde de l'eventuelle dernier caractère de chasse rentrée
-sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par
+sv_chas equ 3Ch ;sauvegarde de l'eventuel dernier caractère de chasse rentrée
+sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par ALT+chiffres
 
 
 xs1 equ 50h      ;position de la souris 1 en X
@@ -232,6 +232,7 @@ ad_fat equ 12Ch         ;adresse des fat
 to_fat equ 130h         ;taille des fat
 ad_cluster0 equ 134h    ;adresse du cluster 0  
 to_1cluster equ 138h    ;taille d'un cluster
+nb_cluster equ 13Ch     ;nombre de cluster de la partition
 
 at_fichier equ 160h   ;attribut fichier
 no_part equ 161h   ;numéros de disque/partition du fichier
@@ -287,7 +288,7 @@ dsq_fat1 equ 20Ch
 
 dsq_fat2 equ 20Dh
 
-at_fat equ 20Eh   ;b0=0 zone1 dernière mis a jour  b0=1 zone2 dernière mis a jour
+at_fat equ 20Eh   ;b0=0 zone1 dernière mis a jour  b0=1 zone2 dernière mis a jour b1=1 si zt fat1 modifié b2=1 si fat2 modifié (par rapport au disque)
 sauv_at_fichier equ 20Fh 
 
 ad_fat2 equ 210h

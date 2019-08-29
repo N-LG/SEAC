@@ -74,7 +74,7 @@ call crgdt
 
 mov ax,5000h
 mov ds,ax
-lgdt[p_gdt+start]  ;charge la gdt
+lgdt[p_gdt]  ;charge la gdt
 
 
 mov cx,8
@@ -90,7 +90,6 @@ mov fs,cx
 mov gs,cx
 mov cr0,eax         ;mode en mode réel flat
 jmp $+2
-
 
 
 ;*********************************************************************
@@ -109,6 +108,7 @@ call attporok
 ;in al, 0x92
 ;or al, 2
 ;out 0x92, al
+
 
 
 
@@ -228,7 +228,6 @@ fin_ajoute_fichier_ram:
 
 
 
-
 ;**************************************************************
 ;vide la ram de 0003 0000h à 0008 0000h
 xor ax,ax           
@@ -309,7 +308,6 @@ mov word[nb_piste_disq],80
 mov word[sec_cyl_disq],36
 
 
-
 ;**********************************************
 ;**** charge les données
 
@@ -378,6 +376,8 @@ mov es,ax
 xor di,di
 cld
 rep movsb      ;ds:si vers es:di
+
+
 
 
 ;**********************************************************************
@@ -773,8 +773,8 @@ out dx,al
 mov ax,cs
 mov ds,ax
 
-lgdt[p_gdt+start]
-lidt[p_idt+start]
+lgdt[p_gdt]
+lidt[p_idt]
                 ;désactive les interruptions
 
 mov eax,cr0
@@ -913,7 +913,19 @@ tabacc:
 include "DN_ACC.ASM"
 fintabacc:
 
-fintab:
+
+
+;***************************************************************************
+;données systèmes figées utilisé uniquement lors de l'init
+r_idt:
+dw 0x3ff		
+dd 0	
+p_idt:
+dw 07FFh
+dd segidt*16
+p_gdt:
+dw 0FFFFh
+dd seggdt*16
  
 
 ;******************************************************************************
@@ -4608,21 +4620,9 @@ int_6F:
 iret
 
 
-
-
+;*****************************************************************
 include "SF_RM.ASM"   ;appel fonctions bios avec retour en mode réel
 
-;***************************************************************************
-;données systèmes figées
-r_idt:
-dw 0x3ff		
-dd 0	
-p_idt:
-dw 07FFh
-dd segidt*16
-p_gdt:
-dw 0FFFFh
-dd seggdt*16
 
 rb 16
 

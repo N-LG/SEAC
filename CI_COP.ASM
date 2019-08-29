@@ -64,6 +64,15 @@ mov ecx,[zone_tampon]
 mov [taille_entree],ecx
 
 
+;réserver un espace pour le nouveau fichier
+mov eax,15       
+mov ebx,[handle_sortie]
+mov ecx,[taille_entree]
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
 ;copie les données dans la destination
 
 boucle_cmd_cop:

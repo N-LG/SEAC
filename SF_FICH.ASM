@@ -12,6 +12,9 @@
 ;al=10 lire les information d'un disque
 ;al=11 définit le msb du numéros de secteur lors des fonction 8 et 9
 ;al=12 met a jour la table des partition d'un disque
+;al=13 definis vitesse disque
+;al=14 définis le msb de l'adresse de lecture/ecriture fichier (fonction 4 et 5)
+;al=15 réserve espace pour fichier
 
 ;************************************
 
@@ -71,9 +74,15 @@ je ecriresecteur
 cmp al,10
 je infodisque_ata_atapi
 cmp al,11
-je definis_msb
+je sff_definis_msb_disque
 cmp al,12
-je maj_partition
+je sff_maj_partition
+;cmp al,13
+;je sff_definis_vitesse_disque
+;cmp al,14
+;je sff_definis_msb_fichier
+cmp al,15
+je sff_reserve_espace_fichier
 
 errprmsf:   ;erreur de paramètres
 fs
@@ -292,6 +301,7 @@ mov ax,[bootsecteur+512+16h]    ;taille d'une fat en secteur
 fs
 mov [to_fat],eax  ;taille d'une fat
 
+
 push edx
 xor ecx,ecx
 xor edx,edx
@@ -361,6 +371,19 @@ fs
 mov ax,[id_tache_exec]
 fs
 mov [id_ouvf],ax
+
+xor edx,edx                ;calcul du nombre de cluster
+fs
+mov eax,[ad_partition]
+fs
+add eax,[to_partition]
+fs
+sub eax,[ad_cluster0]
+fs
+mov ecx,[nb_sec_cluster]
+div ecx
+fs
+mov [nb_cluster],eax
 
 call sauvdescp ;sauve le descripteur car il  a été mis a jour
 
@@ -505,6 +528,19 @@ mul ecx
 fs
 mov [to_1cluster],eax   ;taille d'un cluster en octet
 
+xor edx,edx                ;calcul du nombre de cluster
+fs
+mov eax,[ad_partition]
+fs
+add eax,[to_partition]
+fs
+sub eax,[ad_cluster0]
+fs
+mov ecx,[nb_sec_cluster]
+div ecx
+fs
+mov [nb_cluster],eax
+
 call sauvdescp ;sauve le descripteur car il  a été mis a jour
 pop edx
 
@@ -620,6 +656,19 @@ xor edx,edx
 mul ecx
 fs
 mov [to_1cluster],eax   ;taille d'un cluster en octet
+
+xor edx,edx                ;calcul du nombre de cluster
+fs
+mov eax,[ad_partition]
+fs
+add eax,[to_partition]
+fs
+sub eax,[ad_cluster0]
+fs
+mov ecx,[nb_sec_cluster]
+div ecx
+fs
+mov [nb_cluster],eax
 
 call sauvdescp ;sauve le descripteur car il  a été mis a jour
 pop edx
@@ -3961,6 +4010,14 @@ jb lirezt1
 
 chargefat1:
 fs
+bt word[at_fat],1 ;test si la zt_fat1 as été modifié
+jnc chargefat1_ok
+call sauvegarde_zt_fat_1   ;si oui on sauvegarde
+cmp eax,0
+jne err1liredwordfat
+chargefat1_ok:
+
+fs
 btc word[at_fat],0   ;la zone 1 est la dernière mise a jour
 fs
 mov ch,[no_part]
@@ -4027,6 +4084,15 @@ cmp ebx,eax          ;si l'adresse est bien en mémoire on la lit
 jb lirezt2
 
 chargefat2:
+fs
+bt word[at_fat],2 ;test si la zt_fat1 as été modifié
+jnc chargefat2_ok
+call sauvegarde_zt_fat_2   ;si oui on sauvegarde
+cmp eax,0
+jne err1liredwordfat
+chargefat2_ok:
+
+
 fs
 btc word[at_fat],0   ;la zone 1 est la dernière mise a jour
 fs
@@ -4216,7 +4282,7 @@ call ecrdwordfat
 jmp finlireifat
 
 
-
+;**********************
 ecrdwordfat:
 ;ebx =adresse dans la fat
 ;eax=valeur a ecrire
@@ -4240,7 +4306,7 @@ je mdfat1
 fs
 cmp al,[dsq_fat2]
 je mdfat2
-;jmp erreur
+;jmp erreur ;??????????????????????????????????????????????????????????????????
 
 mdfat1:      ;modifie la valeur dans la zt1
 push ebx
@@ -4313,6 +4379,347 @@ ret
 errecrdwordfat:
 xor ebx,ebx
 ret
+
+;*****************************************************
+ecrireindexfat_sp:
+;ebx = index fat a ecrire
+;eax = valeur de l'index fat
+
+push ecx
+push edx
+push esi
+push edi
+push ebp
+push es
+
+mov dx,selramh
+mov es,dx
+
+fs
+mov dl,[at_fichier]
+and dl,00111100b
+cmp dl,00010000b
+je ecr_fat12_sp
+cmp dl,00010100b
+je ecr_fat16_sp
+cmp dl,00011000b
+je ecr_fat32_sp
+jne erparamfat
+
+
+
+;***********************
+ecr_fat12_sp:
+mov edx,eax
+and edx,0FFFFFFF0h
+cmp edx,0FFFFFFF0h
+je okecr_fat12_sp
+and edx,0FFFFF000h
+cmp edx,0
+jne erparamfat
+
+okecr_fat12_sp:
+and eax,0FFFh
+shr ebx,1
+jc ecr_fat12_impaire_sp
+
+push eax
+mov ax,bx   ;fat paire
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+pop eax
+
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+and edx,0FFFFF000h
+or eax,edx
+call ecrdwordfat_sp
+jmp finlireifat
+
+ecr_fat12_impaire_sp:
+push eax
+mov ax,bx
+mov cx,3
+mul cx
+xor ebx,ebx
+mov bx,ax
+pop eax
+
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+shl eax,12
+and edx,0FF000FFFh
+or eax,edx
+call ecrdwordfat_sp
+jmp finlireifat
+
+
+;***********************
+ecr_fat16_sp:
+mov edx,eax
+and edx,0FFFFFFF0h
+cmp edx,0FFFFFFF0h
+je okecr_fat16_sp
+test eax,0FFFF0000h
+jnz erparamfat
+
+okecr_fat16_sp:
+and eax,0FFFFh
+shl ebx,1
+
+;lire le dword précédent
+push eax
+push ebx
+call liredwordfat
+mov ecx,eax
+mov edx,ebx
+pop ebx
+pop eax
+cmp ecx,0
+jne erparamfat
+
+and edx,0FFFF0000h
+or eax,edx
+call ecrdwordfat_sp
+jmp finlireifat
+
+;***********************
+ecr_fat32_sp: 
+mov edx,eax
+and edx,0F0000000h
+cmp edx,0F0000000h
+je okecr_fat32_sp
+test eax,0F0000000h
+jnz erparamfat
+
+okecr_fat32_sp:
+and eax,0FFFFFFFh
+shl ebx,2
+call ecrdwordfat_sp
+jmp finlireifat
+
+
+;**********************
+ecrdwordfat_sp:
+;ebx =adresse dans la fat
+;eax=valeur a ecrire
+;sortie eax=0
+
+
+;lit la valeur pour mettre a jour les ZT
+mov edx,eax
+push ebx
+call liredwordfat
+pop ebx
+cmp eax,0
+jne errecrdwordfat
+
+;determine laquel des zones tampon est utilisé
+fs
+mov al,[no_part]
+fs
+cmp al,[dsq_fat1]
+je mdfat1_sp
+fs
+cmp al,[dsq_fat2]
+je mdfat2_sp
+;jmp erreur ;?????????????????????????????????????????????????????????
+
+mdfat1_sp:      ;modifie la valeur dans la zt1
+push ebx
+fs
+sub ebx,[index_fat1]
+fs
+add ebx,[ad_fat1]
+es
+mov [ebx],edx
+
+fs
+sub ebx,[ad_fat1] 
+and ebx,0FFFFFE00h   
+fs
+add ebx,[ad_fat1]
+mov esi,ebx 
+
+fs
+bts word[at_fat],1   ;signale que la zone as été modifié
+ret
+
+mdfat2_sp:      ;modifie la valeur dans la zt2
+push ebx
+fs
+sub ebx,[index_fat2]
+fs
+add ebx,[ad_fat2]
+es
+mov [ebx],edx
+
+fs
+sub ebx,[ad_fat2] 
+and ebx,0FFFFFE00h   
+fs
+add ebx,[ad_fat2] 
+mov esi,ebx
+fs
+bts word[at_fat],2   ;signale que la zone as été modifié
+ret
+
+;***************************************************
+sauvegarde_zt_fat:
+fs
+bt word[at_fat],2 ;test si la zt_fat1 as été modifié
+jnc sauvegarde_zt_fat_suite
+
+;si oui on sauvegarde
+call sauvegarde_zt_fat_1
+cmp eax,0
+je sauvegarde_zt_fat_fin
+
+sauvegarde_zt_fat_suite:
+fs
+bt word[at_fat],2 ;test si la zt_fat2 as été modifié
+jnc sauvegarde_zt_fat_fin
+
+;si oui on sauvegarde
+call sauvegarde_zt_fat_2
+sauvegarde_zt_fat_fin:
+ret
+
+
+
+
+;££££££££££££££££££££££££££££££££££££££££££££££££££££££££
+sauvegarde_zt_fat_1:
+
+push ebx
+xor ecx,ecx
+fs
+mov cl,[dsq_fat1]
+shl ecx,6 ;x64
+add ecx,ad_descp
+mov esi,ecx 
+
+fs
+mov ebx,[index_fat1]
+shr ebx,9
+
+fs
+mov ecx,[max_fat1]
+shr ecx,9 ;edx=nb de secteur pour la
+
+mov eax,edx
+add eax,ebx
+fs
+cmp eax,[esi+to_fat-at_partition]
+jbe suite_sauvegarde_zt_fat_1
+fs
+mov ecx,[esi+to_fat-at_partition]
+sub ecx,ebx
+suite_sauvegarde_zt_fat_1:
+add ebx,[esi+ad_fat-at_partition]
+fs
+mov ch,[esi+no_disquepart-at_partition]
+fs 
+mov esi,[ad_fat1]
+fs
+mov dl,[esi+nb_fat-at_partition]
+
+boucle_sauvegarde_zt_fat_1:
+call esct
+cmp eax,0
+jne sauvegarde_zt_fat_1_erreur
+dec dl
+jnz boucle_sauvegarde_zt_fat_1
+
+fs
+btc word[at_fat],1
+sauvegarde_zt_fat_1_erreur:
+pop ebx
+ret
+
+
+;*****************************************************************
+sauvegarde_zt_fat_2:
+
+push ebx
+xor ecx,ecx
+fs
+mov cl,[dsq_fat2]
+shl ecx,6 ;x64
+add ecx,ad_descp
+mov esi,ecx 
+
+fs
+mov ebx,[index_fat2]
+shr ebx,9
+
+fs
+mov ecx,[max_fat2]
+shr ecx,9 ;edx=nb de secteur pour la
+
+mov eax,edx
+add eax,ebx
+fs
+cmp eax,[esi+to_fat-at_partition]
+jbe suite_sauvegarde_zt_fat_2
+fs
+mov ecx,[esi+to_fat-at_partition]
+sub ecx,ebx
+suite_sauvegarde_zt_fat_2:
+add ebx,[esi+ad_fat-at_partition]
+fs
+mov ch,[esi+no_disquepart-at_partition]
+fs 
+mov esi,[ad_fat2]
+fs
+mov dl,[esi+nb_fat-at_partition]
+
+boucle_sauvegarde_zt_fat_2:
+call esct
+cmp eax,0
+jne sauvegarde_zt_fat_1_erreur
+dec dl
+jnz boucle_sauvegarde_zt_fat_2
+
+fs
+btc word[at_fat],2
+sauvegarde_zt_fat_2_erreur:
+pop ebx
+ret
+
+
+
+
+
+
+
+
+;£££££££££££££££££££££££££££££££££££££££££££££££££££££
+
+
+
+
+
+
+
 
 ;*********************************************************
 ajn_cluster:               ;ajoute un nouveau cluster 
@@ -5332,10 +5739,6 @@ jmp finfonctionfichiererr
 
 
 
-
-
-
-
 ;******************************
 minfo_charge_descripteur:
 fs
@@ -5550,5 +5953,174 @@ mov al,[sauv_at_fichier]
 fs
 mov [at_fichier],al
 pop eax
-
 ret
+
+
+
+;************************************
+sff_definis_msb_fichier:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+;*****************************************************************************************
+sff_reserve_espace_fichier:                   ;reserve espace pour fichier ecx=taille de fichier souhaité
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,00001000b
+je res_espace_fichier_mem
+cmp al,00010000b
+je res_espace_fichier_fat
+cmp al,00010100b
+je res_espace_fichier_fat
+cmp al,00011000b
+je res_espace_fichier_fat
+jmp errprmsf
+
+
+;**************************************
+res_espace_fichier_mem:
+fs
+mov ebx,[ad_fichier]
+add ecx,431
+and ecx,0FFFFFFF0h
+call modtm 
+jnc  finfonctionfichier
+mov eax,cer_pasm
+jmp finfonctionfichiererr
+
+;********************************
+res_espace_fichier_fat:
+mov esi,ebx   ;sauvegarde le numero de fichier 
+xor edx,edx
+mov eax,ecx
+fs
+mov ecx,[to_1cluster]
+div ecx
+mov ecx,eax
+cmp edx,0
+je ignor1_res_espace_fichier_fat
+inc ecx      ;ecx=nombre de cluster nécessaire
+ignor1_res_espace_fichier_fat:
+cmp ecx,0 
+je errprmsf
+
+fs
+mov edi,[ad_fichier]
+cmp edi,0
+je res_espace_fichier_fat_ajoute_premier_cluster
+dec ecx
+jz finfonctionfichier
+
+;*****************************************************
+boucle_determination_fin_res_espace_fichier_fat:
+mov ebx,edi
+call lireindexfat   ;ebx=index a lire ebx=valeur
+
+mov eax,ebx
+and eax,0FFFFFFF0h
+cmp eax,0FFFFFFF0h 
+jne ignore2_res_espace_fichier_fat
+test ebx,08h 
+jnz res_espace_fichier_fat_ajoute_autre_cluster
+jmp errsysf
+ignore2_res_espace_fichier_fat:
+mov edi,ebx
+dec ecx
+jnz boucle_determination_fin_res_espace_fichier_fat
+jmp finfonctionfichier
+
+res_espace_fichier_fat_ajoute_premier_cluster:
+;cherche cluster vide
+mov edx,edi
+res_espace_fichier_fat_boucle_cherche_clustervide1:
+mov ebx,edx
+call lireindexfat   ;ebx=index a lire ebx=valeur
+cmp eax,0
+jne finfonctionfichiererr
+cmp ebx,0
+je res_espace_fichier_fat_clustervide_ok1
+inc edx
+fs
+cmp edx,[nb_cluster]   ;???????????????????????
+jne ignore3_res_espace_fichier_fat
+xor edx,edx
+ignore3_res_espace_fichier_fat:
+cmp edx,edi
+jne res_espace_fichier_fat_boucle_cherche_clustervide1
+
+;plus de cluster libre
+mov eax,cer_pasm
+jmp finfonctionfichiererr
+
+
+res_espace_fichier_fat_clustervide_ok1:
+mov edi,edx
+fs
+mov [ad_fichier],edx       ;met a jour l'adresse de base du fichier
+
+;met a jour le descripteur de fichier dans la table
+and esi,0FFFFh
+shl esi,5   ;multiplie par 32
+fs
+add esi,[ad_ficho]
+gs
+mov [esi+ad_fichier-at_fichier],edi
+
+dec ecx
+jz finfonctionfichier
+
+res_espace_fichier_fat_ajoute_autre_cluster:
+;cherche cluster vide
+mov edx,edi
+res_espace_fichier_fat_boucle_cherche_clustervide2:
+mov ebx,edx
+call lireindexfat   ;ebx=index a lire ebx=valeur
+cmp eax,0
+jne finfonctionfichiererr
+cmp ebx,0
+je res_espace_fichier_fat_clustervide_ok2
+inc edx
+fs
+cmp edx,[nb_cluster] ;????????????????????????????
+jne ignore4_res_espace_fichier_fat
+xor edx,edx
+ignore4_res_espace_fichier_fat:
+cmp edx,edi
+jne res_espace_fichier_fat_boucle_cherche_clustervide2
+
+;plus de cluster libre
+mov eax,cer_pasm
+jmp finfonctionfichiererr
+
+res_espace_fichier_fat_clustervide_ok2:
+mov eax,edx   ;edi=dernier cluster du fichier eax=cluster vide
+   
+;remplace le dernier cluster par l'index de cluster vide
+mov edi,eax
+mov ebx,edx
+call ecrireindexfat_sp   ;ebx=index a ecrire eax=valeur de l'index.  écrit l'index fat dans la zt ram mais pas sur le disque
+cmp eax,0
+jne finfonctionfichiererr
+dec ecx
+jnz res_espace_fichier_fat_ajoute_autre_cluster
+
+
+;************************************
+;ecrit le dernier cluster
+mov ebx,edi
+mov eax,0FFFFFFF8h
+call ecrireindexfat_sp   ;ebx=index a ecrire eax=valeur de l'index.  écrit l'index fat dans la zt ram mais pas sur le disque
+cmp eax,0
+jne finfonctionfichiererr
+
+call sauvegarde_zt_fat   ;transfert la zt fat ram sur le disque si celle ci as été modifié
+jmp finfonctionfichiererr
+
+
+

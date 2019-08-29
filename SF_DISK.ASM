@@ -1575,7 +1575,9 @@ jmp finfonctionfichiererr
 
 
 ;*********************************************************************************************
-definis_msb:
+sff_definis_msb_disque:
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 mov eax,cer_parami
 jmp finfonctionfichiererr
@@ -1584,7 +1586,7 @@ jmp finfonctionfichiererr
 
 
 ;*********************************************************************************************
-maj_partition:
+sff_maj_partition:
 
 mov ax,seldat
 mov ds,ax
@@ -1927,6 +1929,9 @@ ret
 
 
 
+;************************************
+sff_definis_vitesse_disque:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
 
