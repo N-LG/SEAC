@@ -74,7 +74,7 @@ call crgdt
 
 mov ax,5000h
 mov ds,ax
-lgdt[p_gdt]  ;charge la gdt
+lgdt[p_gdt+start]  ;charge la gdt
 
 
 mov cx,8
@@ -367,16 +367,24 @@ rep movsb
 ;**********************************************
 ;**** charge le code 
 
-mov cx,finsegcod    ;copie le segment de code a l'endroit pr?vu
+mov ecx,finsegcod    ;copie le segment de code a l'endroit pr?vu
 mov ax,cs
 mov ds,ax
-mov si,start
+mov esi,start
 mov ax,segcod
 mov es,ax
-xor di,di
-cld
-rep movsb      ;ds:si vers es:di
+xor edi,edi
+;cld
+;rep movsb      ;ds:si vers es:di
 
+boucle_copie_code:
+mov al,[esi]
+es
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+jnz boucle_copie_code
 
 
 
@@ -773,8 +781,8 @@ out dx,al
 mov ax,cs
 mov ds,ax
 
-lgdt[p_gdt]
-lidt[p_idt]
+lgdt[p_gdt+start]
+lidt[p_idt+start]
                 ;désactive les interruptions
 
 mov eax,cr0
@@ -915,17 +923,6 @@ fintabacc:
 
 
 
-;***************************************************************************
-;données systèmes figées utilisé uniquement lors de l'init
-r_idt:
-dw 0x3ff		
-dd 0	
-p_idt:
-dw 07FFh
-dd segidt*16
-p_gdt:
-dw 0FFFFh
-dd seggdt*16
  
 
 ;******************************************************************************
@@ -1176,10 +1173,9 @@ mov dword[0DFFFF8h],czm_tmi
 pas_reserve_isa:
 
 
-
-
 ;*********************************************************************
 call detection_ctrl_usb     ;detection et d'initialisation des controleur USB, voir dans SF_USB.ASM
+
 
 
 ;**********************************************************************
@@ -1449,6 +1445,27 @@ mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
 or byte[at_csl],0Fh ;signale que l'affichage complet de la console doit être mis a jour
+jmp btacheprincipale
+
+
+;*****************************************************************
+include "SF_RM.ASM"   ;appel fonctions bios avec retour en mode réel
+
+
+;***************************************************************************
+;données systèmes figées
+r_idt:
+dw 0x3ff		
+dd 0	
+p_idt:
+dw 07FFh
+dd segidt*16
+p_gdt:
+dw 0FFFFh
+dd seggdt*16
+
+ 
+
 
 ;**********************************************************************
 ;tache principale
@@ -3153,6 +3170,7 @@ call affmsgsyst
 ;gestion du moteur de la disquette
 
 pascommande:
+jmp btacheprincipale
 mov ax,seldat
 mov ds,ax
 test byte[at_fc_fichier],04h   ;on test si le moteur disquette est allumé
@@ -4620,8 +4638,6 @@ int_6F:
 iret
 
 
-;*****************************************************************
-include "SF_RM.ASM"   ;appel fonctions bios avec retour en mode réel
 
 
 rb 16

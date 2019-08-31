@@ -72,7 +72,6 @@ int 64h
 cmp eax,0
 jne fin_commande_erreur
 
-
 ;copie les données dans la destination
 
 boucle_cmd_cop:
