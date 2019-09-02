@@ -39,7 +39,7 @@ xor ebx,ebx
 mov edx,nom_entree
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdcop
 mov [handle_entree],ebx
 
 mov eax,2         ;crée le fichier de destination
@@ -47,7 +47,7 @@ xor ebx,ebx
 mov edx,nom_sortie
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdcop
 mov [handle_sortie],ebx
 
 
@@ -59,7 +59,7 @@ mov ebx,[handle_entree]
 mov edx,zone_tampon
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdcop
 mov ecx,[zone_tampon]
 mov [taille_entree],ecx
 
@@ -70,7 +70,7 @@ mov ebx,[handle_sortie]
 mov ecx,[taille_entree]
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdcop
 
 ;copie les données dans la destination
 
@@ -154,6 +154,7 @@ int 60h
 
 erreur_autres_cmdcop:
 mov ah,al
+add ah,100
 mov al,13
 mov edx,zone_tampon
 int 61h
