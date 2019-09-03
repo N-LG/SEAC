@@ -4575,7 +4575,7 @@ ret
 ;***************************************************
 sauvegarde_zt_fat:
 fs
-bt word[at_fat],2 ;test si la zt_fat1 as été modifié
+bt word[at_fat],1 ;test si la zt_fat1 as été modifié
 jnc sauvegarde_zt_fat_suite
 
 ;si oui on sauvegarde
@@ -4617,9 +4617,9 @@ shr ebx,9
 
 fs
 mov ecx,[max_fat1]
-shr ecx,9 ;edx=nb de secteur pour la
+shr ecx,9 ;ecx=nb de secteur pour la zt
 
-mov eax,edx
+mov eax,ecx
 add eax,ebx
 fs
 cmp eax,[esi+to_fat-at_partition]
@@ -4637,7 +4637,7 @@ mov ch,[esi+no_disquepart-at_partition]
 fs
 mov dl,[esi+nb_fat-at_partition]
 fs 
-mov esi,[ad_fat2]
+mov esi,[ad_fat1]
 
 boucle_sauvegarde_zt_fat_1:
 call esct
@@ -4681,7 +4681,7 @@ shr ebx,9
 
 fs
 mov ecx,[max_fat2]
-shr ecx,9 ;edx=nb de secteur pour la
+shr ecx,9 ;ecx=nb de secteur pour la zt
 
 mov eax,ecx
 add eax,ebx
@@ -4707,7 +4707,7 @@ boucle_sauvegarde_zt_fat_2:
 call esct
 add ebx,edi
 cmp eax,0
-jne sauvegarde_zt_fat_1_erreur
+jne sauvegarde_zt_fat_2_erreur
 dec dl
 jnz boucle_sauvegarde_zt_fat_2
 
