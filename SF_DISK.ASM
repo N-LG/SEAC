@@ -1612,7 +1612,7 @@ xor ebx,ebx
 call lsct
 pop cx
 cmp eax,0
-jne pasinfopart
+jne finfonctionfichiererr
 
 
 ;cmp byte[bootsecteur+1BEh],0EEh  ;on vérifie si la première partition est une partition de protection GPT

@@ -71,7 +71,15 @@ secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 
 ad_msg equ 6000h ;8ko  
 
-ad_tabcar equ 8000h      ;definition des caractère graphiques
+ad_tabcar equ 8000h      ;definition des caractère graphiques basique (0 a FFh)
+
+
+ad_desc_ctrl_usb equ 9000h   ;?????????
+dc_desc_ctrl_usb equ 4 ;element de 16 octets
+ad_desc_periph_usb equ 9400h  ;?????????
+dc_desc_periph_usb equ 4 ;element de 16 octets
+
+
 
 ;???
 
@@ -312,14 +320,7 @@ port_lpt_to equ 2E0h ;nombre d'octet dans la zone tampon de réception lpt 1 (lpt
  
 
 
-;*************************************************************************
-;gestion de l'USB §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§a revoir avec l'ahci
 
-desc_ctrl_usb equ 500h ;8*16 octets(128)
-ad_descusb equ 510h
-ad_ztusb equ 514h
-max_descusb equ 518h
-max_ztusb equ 51Ch
 
 
 ;*****************************************************************
@@ -329,6 +330,17 @@ num_ligne_majv equ 540h   ;word
 couleur_fond equ 544h
 couleur_carac equ 548h
 ad_console0 equ 54Ch       
+
+
+
+
+;*************************************************************************
+;gestion de l'USB
+
+dernier_ctrl_test equ 600h
+dernier_port_test equ 601h
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
 
@@ -492,6 +504,29 @@ po_ztcom_ecr  equ 0Ch ;pointeur d'ecriture dans la zt
 
 
 
+;****************************************************************************
+;descripteur de controleur de bus USB
+dcu_type    equ 00h   ;type 1=controleur UHCI 2=OHCI 3=EHCI 4=XHCI FFh=Hub
+dcu_nb_port equ 01h
+dcu_es      equ 02h 
+dcu_pci     equ 04h
+dcu_mem     equ 08h
+dcu_to      equ 0ch
+
+
+
+
+
+;****************************************************************************
+;descripteur de périphérique USB
+dpu_ctrl equ 0 ;controleur auquel est raccordé le périphérique
+dpu_port equ 1 ;numéro du port sur lequel est branché le périphérique
+
+
+
+
+
+
 ;******************************************************************************
 ;organisation mémoire d'un segment console
 
@@ -561,7 +596,12 @@ czm_com     equ 20  ;zone tampon de reception port com
 czm_pil     equ 21  ;zone tampon utillisé par un pilote 
 czm_tmi     equ 22  ;espace mémoire réservé aux périphériques isa
 
-czm_flu equ 30  ;frame list uhci
-czm_ztu equ 31  ;zone tampon usb
-czm_dpu equ 32  ;descripteurs péripherique USB
+
+
+
+czm_uhci equ 35  ;zoné mémoire utillisé par un controleur UHCI
+czm_ohci equ 36  ;zoné mémoire utillisé par un controleur OHCI
+czm_ehci equ 37  ;zoné mémoire utillisé par un controleur EHCI
+czm_xhci equ 38  ;zoné mémoire utillisé par un controleur XHCI
+
 
