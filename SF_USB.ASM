@@ -22,8 +22,8 @@ iret
 
 
 
-
-init_ctrl_usb:     ;initialise le controleur usb dont le descripteur est pointé par ds:esi descripteur dont
+;*****************************************************************************************
+init_ctrl_usb:     ;initialise le controleur usb dont le descripteur est pointé par ds:esi
 cmp byte[esi+dcu_type],01
 je init_uhci
 cmp byte[esi+dcu_type],02
@@ -36,12 +36,59 @@ ret
 
 
 ;************************************************************************
-init_uhci:          
+init_uhci:  
+pushad
+push es
+mov ax,selramh
+mov es,ax        
 mov di,[esi+dcu_es] ;adresse de base du contoleur
 
+;reset le controleur
+mov dx,di
+mov ax,02h
+out dx,ax
+boucle_reset_uhci:
+in ax,dx
+test dx,02h
+jnz boucle_reset_uhci
+
+;configure les interruptions
+mov dx,di
+add dx,ctrl_uhci_usbintr
+mov ax,00h   ;aucune interruption activé
+out dx,ax
+
+;configure l'adresse de la frame listuhci
+mov dx,di
+add dx,ctrl_uhci_frbaseadd
+mov eax,[esi+dcu_mem] 
+add eax,100000h
+out dx,eax
+
+;écrit une entrée de terminaison dans la frame list uhci
+mov ebx,[esi+dcu_mem] 
+mov ecx,1024
+boucle_table_uhci:
+es
+mov dword[ebx],1 ;marqueur d'entrée de table invalide
+add ebx,4
+dec ecx
+jnz boucle_table_uhci
 
 
+;configure le controleur
+mov dx,di
+mov ax,080h ;accepte les grandes trames
+out dx,ax
 
+;démarre le controleur
+mov dx,di
+mov ax,081h
+out dx,ax
+
+
+pop es
+popad
 ret
 
 ;**********************************

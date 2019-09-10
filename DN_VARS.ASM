@@ -74,11 +74,12 @@ ad_msg equ 6000h ;8ko
 ad_tabcar equ 8000h      ;definition des caractère graphiques basique (0 a FFh)
 
 
-ad_desc_ctrl_usb equ 9000h   ;?????????
-dc_desc_ctrl_usb equ 4 ;element de 16 octets
-ad_desc_periph_usb equ 9400h  ;?????????
+ad_desc_ctrl_usb equ 9000h   
+dc_desc_ctrl_usb equ 5 ;element de 32 octets
+nb_desc_ctrl_usb equ 64 ;64 elements
+ad_desc_periph_usb equ 9800h 
 dc_desc_periph_usb equ 4 ;element de 16 octets
-
+nb_desc_periph_usb equ 128 
 
 
 ;???
@@ -337,8 +338,8 @@ ad_console0 equ 54Ch
 ;*************************************************************************
 ;gestion de l'USB
 
-dernier_ctrl_test equ 600h
-dernier_port_test equ 601h
+usb_ctrl_test equ 600h     ;controleur suivant a tester
+usb_port_test equ 601h     ;port suivant a tester
 
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
@@ -523,6 +524,17 @@ dpu_ctrl equ 0 ;controleur auquel est raccordé le périphérique
 dpu_port equ 1 ;numéro du port sur lequel est branché le périphérique
 
 
+
+
+;***********************************************
+;port utillisé par controleur UHCI
+ctrl_uhci_usbcmd    equ 000h
+ctrl_uhci_usbsts    equ 002h
+ctrl_uhci_usbintr   equ 004h
+ctrl_uhci_frnum     equ 006h
+ctrl_uhci_frbaseadd equ 008h
+ctrl_uhci_sofmod    equ 00ch
+ctrl_uhci_portsc1   equ 010h
 
 
 

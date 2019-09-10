@@ -295,6 +295,15 @@ jz pasctrl
 and eax,0FFE0h
 mov [esi+dcu_es],ax  ;adresse de base du controleur
 
+;active controle par e/s
+mov dx,0CF8h
+mov eax,[esi+dcu_pci]
+add eax,4
+out dx,eax
+mov dx,0CFCh
+mov eax,5   ;command + status register
+out dx,eax
+
 mov byte[esi+dcu_nb_port],2 ;deux port
 
 push ebx
@@ -306,6 +315,8 @@ mov word[ebx+8],czm_uhci
 add ebx,100010h   ;adresse physique
 mov [esi+dcu_mem],ebx
 pop ebx 
+
+
 call init_uhci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
 
@@ -338,7 +349,11 @@ in eax,dx
 test eax,1  ;on vérifie que c'est bien un descripteur de port d'e/s
 jnz pasctrl
 and eax,0FFFFFFF0h
-mov [esi+dcu_es],ax  ;adresse de base du controleur
+mov edx,eax
+xor eax,eax
+in al,dx
+add edx,eax
+mov [esi+dcu_es],dx  ;adresse de base du controleur
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 call init_ehci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
@@ -357,9 +372,9 @@ call init_xhci    ;voir SF_USM.ASM
 
 ;*****************************
 fin_init_ctrl:
-add esi,16
+add esi,32
 pasctrl:
-cmp esi,ad_desc_ctrl_usb+200h
+cmp esi,ad_desc_ctrl_usb+800h
 je fin_detection_ctrl_usb
 
 add ebx,100h
