@@ -65,11 +65,8 @@ zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la d
 bootsecteur equ 4400h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
 zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées
 secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
-
-
-;???
-
-ad_msg equ 6000h ;8ko  
+ad_msg_syst equ 5000h ;4ko
+ad_msg_erreur equ 6000h ;8Ko  
 
 ad_tabcar equ 8000h      ;definition des caractère graphiques basique (0 a FFh)
 
@@ -340,7 +337,10 @@ ad_console0 equ 54Ch
 
 usb_ctrl_test equ 600h     ;controleur suivant a tester
 usb_port_test equ 601h     ;port suivant a tester
-
+usb_action    equ 602h     ;action a effectuer
+usb_adresse   equ 603h     ;adresse du périphérique sur lequel on travail
+usb_tempo     equ 604h     ;temporisation a attendre si action<>0
+usb_commande  equ 608h     ;zt utillisé pour l'envoie d'une commande (32 octets)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
@@ -520,9 +520,10 @@ dcu_to      equ 0ch
 
 ;****************************************************************************
 ;descripteur de périphérique USB
-dpu_ctrl equ 0 ;controleur auquel est raccordé le périphérique
-dpu_port equ 1 ;numéro du port sur lequel est branché le périphérique
-
+dpu_att  equ 0 ;attributs: b0=présent b1=acces réservé
+dpu_ctrl equ 1 ;controleur auquel est raccordé le périphérique
+dpu_port equ 2 ;numéro du port sur lequel est branché le périphérique
+dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
 
 
 
@@ -537,6 +538,17 @@ ctrl_uhci_sofmod    equ 00ch
 ctrl_uhci_portsc1   equ 010h
 
 
+;***********************************************
+;port utillisé par controleur EHCI
+ctrl_ehci_usbcmd           equ 000h
+ctrl_ehci_usbsts           equ 004h
+ctrl_ehci_usbintr          equ 008h
+ctrl_ehci_frindex          equ 00Ch
+ctrl_ehci_ctrldssegment    equ 010h
+ctrl_ehci_periodiclistbase equ 014h
+ctrl_ehci_asynclistaddr    equ 018h
+ctrl_ehci_configflag       equ 040h
+ctrl_ehci_portsc           equ 044h
 
 
 ;******************************************************************************
@@ -587,6 +599,11 @@ cer_ddi    equ 27 ;données disponible
 cer_dnd    equ 28 ;données non disponible
 cer_znd    equ 29 ;zone de mémoire indisponible
 cer_zhm    equ 30 ;zone de mémoire hors mémoire physique
+cer_uhci   equ 31 ;erreur controleur UHCI
+cer_ohci   equ 32 ;erreur controleur OHCI
+cer_ehci   equ 33 ;erreur controleur EHCI
+cer_xhci   equ 34 ;erreur controleur XHCI
+
 
 ;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 

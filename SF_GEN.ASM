@@ -16,7 +16,7 @@
 ;al=14  lire le journal
 ;al=15  copier des données dans la zone de copier/coller
 ;al=16  lire les données dans la zone de copier/coller
-;al=17  effacer la zone mémoire
+;al=17  effacer la zone de copier/coller
 
 
 ;*****************************************************************************************
@@ -658,20 +658,13 @@ mov bh,cl
 push ebx
 
 mov dx,70h
-mov al,00h    ;secondes
+mov al,00h    ;secondes (contrairement a ce que je pensait le registre des seconde n'est pas au format BCD)
 out dx,al
 inc dx
 in al,dx
-mov cl,al
-mov ah,al
-and ecx,0Fh
-and ax,0F0F0h
-shr al,1     ;/16 *8 =/2
-shr ah,3     ;/16 *2 =/8
-add cl,al
-add cl,ah
+and eax,0FFh
 xor edx,edx
-mov eax,1000
+mov ecx,1000
 mul ecx
 push eax
 
@@ -828,20 +821,33 @@ iret
 
 
 ;****************************
-sfs_obt_msg:    ;lire la chaine qui correspond au message   ah=numéros de message  ds:edx=zone ou copier le texte   cl=nombre d'octet max 0=256
+sfs_obt_msg:    ;lire la chaine qui correspond au message ah=type de message (0=systeme 1=erreur)  cl=numéros de message  ds:edx=zone ou copier le texte   ch=nombre d'octet max 0=256
 pushad
 push es
 mov bx,seldat
 mov es,bx
 
-mov ebx,ad_msg
-boucle1_sfs_obt_msg:
 cmp ah,0
+je sfs_obt_msg0
+cmp ah,1
+je sfs_obt_msg1
+jmp sfs_obt_msgparami
+
+sfs_obt_msg0:
+mov ebx,ad_msg_syst
+jmp boucle1_sfs_obt_msg
+
+sfs_obt_msg1:
+mov ebx,ad_msg_erreur
+
+
+boucle1_sfs_obt_msg:
+cmp cl,0
 je boucle2_sfs_obt_msg
 es
 cmp byte[ebx],0
 jne pazero_sfs_obt_msg
-dec ah
+dec cl
 pazero_sfs_obt_msg:
 inc ebx
 jmp boucle1_sfs_obt_msg
@@ -854,15 +860,20 @@ cmp al,0
 je fin_sfs_obt_msg
 inc ebx
 inc edx
-dec cl
+dec ch
 jnz boucle2_sfs_obt_msg
 
 fin_sfs_obt_msg:
 pop es
 popad
+xor eax,eax
 iret
 
-
+sfs_obt_msgparami:
+pop es
+popad
+mov eax,cer_parami
+iret
 
 ;********************************************************
 sfs_lire_journal:    ;es:edx ecx max

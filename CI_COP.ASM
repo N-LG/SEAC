@@ -127,7 +127,9 @@ jne erreur_autres_cmdcop
 
 ok_cmdcop:
 mov al,13
-mov ah,98
+mov ah,0
+mov cl,98
+mov ch,0
 mov edx,zone_tampon
 int 61h
 mov al,6
@@ -138,7 +140,9 @@ mov edx,nom_entree
 int 61h
 
 mov al,13
-mov ah,95
+mov ah,0
+mov cl,95
+mov ch,0
 mov edx,zone_tampon
 int 61h
 mov al,6
@@ -158,9 +162,10 @@ int 60h
 
 
 erreur_autres_cmdcop:
-mov ah,al
-add ah,100
+mov cl,al
 mov al,13
+mov ah,1
+mov ch,0
 mov edx,zone_tampon
 int 61h
 mov al,6

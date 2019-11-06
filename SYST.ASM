@@ -57,6 +57,8 @@ jmp 5000h:position_code_ok
 position_code_ok:
 
 
+
+
 ;*********************************************************************
 ;passage en flat real mode
 
@@ -90,7 +92,16 @@ mov fs,cx
 mov gs,cx
 mov cr0,eax         ;mode en mode réel flat
 jmp $+2
-
+;mov ax,5000h
+;mov ds,ax
+;mov es,ax
+;mov fs,ax
+;mov gs,ax
+;mov ax,9000h
+;mov ss,ax
+;mov sp,0FFF0h
+;lidt[r_idt+start]
+sti
 
 ;*********************************************************************
 ;active la ligne A20 pour pouvoir ?crire dns la zone memoire superieur!!!!!!!!!!!!!!!!!!!!!méthode ne fonctionnant pas a chaque fois m'as t'on dit
@@ -353,15 +364,27 @@ cld
 rep movsb      ;ds:si vers es:di
 
 
-mov cx,finmsgsyst-msgsyst    ;copie la table des messages
+mov cx,msgerreur-msgsyst    ;copie la table des messages systeme
 mov ax,cs
 mov ds,ax
 mov si,msgsyst
 mov ax,segdat
 mov es,ax
-mov di,ad_msg
+mov di,ad_msg_syst
 cld
 rep movsb    
+
+
+mov cx,finmsgsyst-msgerreur    ;copie la table des messages d'erreur
+mov ax,cs
+mov ds,ax
+mov si,msgerreur
+mov ax,segdat
+mov es,ax
+mov di,ad_msg_erreur
+cld
+rep movsb    
+
 
 
 ;**********************************************
@@ -704,7 +727,7 @@ mov ax,5000h
 mov es,ax
 mov bp,polgraf	   ;ES:BP=pointeur sur le début de la nouvelle police de caractère
 mov ax,1110h
-int 10h
+int 10h                                                                ;méthode bios qui fonctionne tres mal apres bootage par grub
 
 
 
@@ -1128,7 +1151,7 @@ mov es,ax
 mov cl,47
 mov ah,07h
 xor ebx,ebx
-mov edx,ad_msg-1
+mov edx,ad_msg_syst-1
 
 boucle1_errallocmem:
 inc edx
@@ -2613,18 +2636,29 @@ jmp fin_commande_erreur
 
 
 cmddef_lang:  
-;efface l'ancienne definition des messages systèmes
+;efface l'ancienne definition des messages systèmes et erreur
 xor eax,eax
-mov edi,ad_msg
-mov ecx,2048
+mov edi,ad_msg_syst
+mov ecx,12288
 cld
 rep stosd
 
 ;charge la nouvelle definition des messages systemes
 mov al,4
-mov ecx,8192
+mov ecx,[ad_chaine_travail+4]
 mov edx,16
-mov edi,ad_msg
+sub ecx,edx
+mov edi,ad_msg_syst
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+;charge la nouvelle definition des messages erreur
+mov al,4
+mov ecx,[ad_chaine_travail+8]
+mov edx,[ad_chaine_travail+4]
+mov edi,ad_msg_erreur
 int 64h
 cmp eax,0
 jne fin_commande_erreur
@@ -2901,20 +2935,20 @@ jmp cmdcd   ;une fois le dossier créer on l'ouvre
 
 ;************************************************************
 fin_commande_erreur_param:
-mov cl,101
-call affmsgsyst
+mov cl,1
+call affmsgerr
 jmp pascommande
 
 fin_commande_erreur_mem:
-mov cl,111
-call affmsgsyst
+mov cl,11
+call affmsgerr
 jmp pascommande
 
 ;affichel le message correspondant a l'erreur dans eax
 fin_commande_erreur:
 add eax,100
 mov cl,al   
-call affmsgsyst
+call affmsgerr
 
 
 
@@ -3028,6 +3062,9 @@ pop esi
 pop ecx
 ret
 
+
+
+;**********************
 affmsgsyst:   ;affiche le message systême nø=cl
 push ecx
 push edx
@@ -3037,18 +3074,44 @@ mov dx,seldat
 mov ds,dx
 mov fs,dx
 
-mov edx,ad_msg
-bclrecmsg:
+mov edx,ad_msg_syst
+bclrecmsgs:
 cmp cl,0
 je suitemsg
 cmp byte[edx],0
-jne paszeromsg
+jne paszeromsgs
 dec cl
-paszeromsg:
+paszeromsgs:
 inc edx
-jmp bclrecmsg
+jmp bclrecmsgs
 
-affjournal:  ;copie chaine asciiz adress? par ds:edx dans le journal console
+
+
+
+;***********************
+affmsgerr:   ;affiche le message erreur nø=cl
+push ecx
+push edx
+push ds
+push fs
+mov dx,seldat
+mov ds,dx
+mov fs,dx
+
+mov edx,ad_msg_erreur
+bclrecmsge:
+cmp cl,0
+je suitemsg
+cmp byte[edx],0
+jne paszeromsge
+dec cl
+paszeromsge:
+inc edx
+jmp bclrecmsge
+
+
+;********************
+affjournal:  ;copie chaine asciiz adressé par ds:edx dans le journal console
 push ecx
 push edx
 push ds

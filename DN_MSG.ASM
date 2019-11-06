@@ -1,6 +1,5 @@
 ﻿bidon:
 ;message systeme uttilisé par SeLG 💩
-;doit faire 2048 octet minimum une fois compilé
 ;doit être entregistré au format utf8
 ;
 ;0 - BLACK    4 - RED       8 - DARKGRAY    C - LIGHTRED
@@ -11,7 +10,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.9 Septembre 2019",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SeLG V0.9 Novembre 2019",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1
@@ -131,34 +130,38 @@ db "le fichier ",0  ;98
 db 0  ;99
 db 0  ;100
 
-db "erreur de paramêtre",13,0                   ;101  (erreur 1)
-db "erreur de lecture",13,0                     ;102  (erreur 2)
-db "lecteur/disque/fichier non trouvé",13,0     ;103  (erreur 3)
-db "erreur du systême de fichier",13,0          ;104  (erreur 4)
-db "erreur d'écriture",13,0                     ;105  (erreur 5)
-db "pas de réponse disque",13,0                 ;106  (erreur 6)
-db "disque occupé",13,0                         ;107  (erreur 7)
-db "fichier deja ouvert",13,0                   ;108  (erreur 8)
-db "interdiction de lecture",13,0               ;109  (erreur 9)
-db "interdicion d'ouverture",13,0               ;110  (erreur 10)
-db "plus assez de mémoire",13,0                 ;111  (erreur 11)
-db "le fichier ouvert est un dossier",13,0      ;112  (erreur 12)
-db "erreur d'origine inconnue",13,0             ;113  (erreur 13)
-db "nombre de couleur non reconnue",13,0        ;114  (erreur 14)
-db "ecran absent",13,0                          ;115  (erreur 15)
-db "action non autorisé",13,0                   ;116  (erreur 16)
-db "zone tampon vide",13,0                      ;117  (erreur 17)
-db "zone tampon pleine",13,0                    ;118  (erreur 18)
-db "controleur ne répond pas",13,0              ;119  (erreur 19)
-db "controleur absent",13,0                     ;120  (erreur 20)
-db "impossible de supprimer le dossier car il n'est pas vide",13,0 ;102  (erreur 21)
-db "caractère interdit dans le nom de fichier",13,0 ;102  (erreur 22)
-db "création de fichier impossible",13,0        ;123  (erreur 23)
-db "nom de fichier deja uttilisé",13,0          ;124  (erreur 24)
-db "pas de réponse",13,0                        ;125  (erreur 25)
-db "erreur dans la structure",13,0              ;126  (erreur 26)
-db "données disponible",13,0                    ;127  (erreur 27)
-db "données non disponible",13,0                ;128  (erreur 28)
+
+
+msgerreur:
+db "action terminé sans problème",0
+db "erreur de paramêtre",13,0                   ;erreur 1
+db "erreur de lecture",13,0                     ;erreur 2
+db "lecteur/disque/fichier non trouvé",13,0     ;erreur 3
+db "erreur du systême de fichier",13,0          ;erreur 4
+db "erreur d'écriture",13,0                     ;erreur 5
+db "pas de réponse disque",13,0                 ;erreur 6
+db "disque occupé",13,0                         ;erreur 7
+db "fichier deja ouvert",13,0                   ;erreur 8
+db "interdiction de lecture",13,0               ;erreur 9
+db "interdicion d'ouverture",13,0               ;erreur 10
+db "plus assez de mémoire",13,0                 ;erreur 11
+db "le fichier ouvert est un dossier",13,0      ;erreur 12
+db "erreur d'origine inconnue",13,0             ;erreur 13
+db "nombre de couleur non reconnue",13,0        ;erreur 14
+db "ecran absent",13,0                          ;erreur 15
+db "action non autorisé",13,0                   ;erreur 16
+db "zone tampon vide",13,0                      ;erreur 17
+db "zone tampon pleine",13,0                    ;erreur 18
+db "controleur ne répond pas",13,0              ;erreur 19
+db "controleur absent",13,0                     ;erreur 20
+db "impossible de supprimer le dossier car il n'est pas vide",13,0 ;erreur 21
+db "caractère interdit dans le nom de fichier",13,0 ;erreur 22
+db "création de fichier impossible",13,0        ;erreur 23
+db "nom de fichier deja uttilisé",13,0          ;erreur 24
+db "pas de réponse",13,0                        ;erreur 25
+db "erreur dans la structure",13,0              ;erreur 26
+db "données disponible",13,0                    ;erreur 27
+db "données non disponible",13,0                ;erreur 28
 
 
 

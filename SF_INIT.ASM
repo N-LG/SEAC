@@ -18,7 +18,6 @@ out dx,al
 
 ;***********************************************************************************************************************************
 ;detecte les contolleur ATA sur le bus PCI et enregistre les adresses
-
 mov ebx,80000008h
 mov esi,ad_descd
 boucle_detec_ata:
@@ -45,6 +44,8 @@ add eax,24     ;BAR4
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,1
+jz crtl_dma_abs
 and eax,0FFFCh
 cmp eax,0
 je crtl_dma_abs
@@ -65,9 +66,12 @@ add eax,8     ;BAR0
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,1
+jz bar0_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar0_ok
+bar0_nok:
 mov eax,1F0h
 bar0_ok:
 mov [esi+dd_adress_base],ax
@@ -79,9 +83,12 @@ add eax,12     ;BAR1
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,1
+jz bar1_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar1_ok
+bar1_nok:
 mov eax,3F6h
 bar1_ok:
 mov [esi+dd_adress_ctrl],ax
@@ -95,9 +102,12 @@ add eax,16     ;BAR2
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,1
+jz bar2_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar2_ok
+bar2_nok:
 mov eax,170h
 bar2_ok:
 mov [esi+dd_adress_base],ax
@@ -109,9 +119,12 @@ add eax,20     ;BAR3
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,1
+jz bar3_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar3_ok
+bar3_nok:
 mov eax,376h
 bar3_ok:
 mov [esi+dd_adress_ctrl],ax
@@ -127,7 +140,6 @@ test ebx,7F000000h
 jz boucle_detec_ata
 
 
-
 ;***************************************************
 cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur n'as été detecté, on remplit les descripteur avec les adresses standard
 jne fin_detec_ata 
@@ -137,8 +149,8 @@ mov ax,1F0h
 mov dx,3F6h
 
 boucle_remplissage_ctrl_ata:
-mov word[ebx+dd_atribut],0
-mov word[ebx+dd_atribut+32],1
+mov word[ebx+dd_atribut],00h
+mov word[ebx+dd_atribut+32],10h
 mov [ebx+dd_adress_base],ax
 mov [ebx+dd_adress_base+32],ax
 mov [ebx+dd_adress_ctrl],dx
@@ -267,14 +279,14 @@ and eax,0FFFF0000h
 cmp eax,0C030000h  ;classe=0Ch sous-classe=03h
 jne pasctrl
 
-cmp dh,00h          ;UHCI
-je ctrl_uhci
-cmp dh,10h          ;OHCI
-je ctrl_ohci
-cmp dh,20h          ;EHCI
-je ctrl_ehci
-cmp dh,30h          ;XHCI
-je ctrl_xhci
+;cmp dh,00h          ;UHCI
+;je ctrl_uhci
+;cmp dh,10h          ;OHCI
+;je ctrl_ohci
+;cmp dh,20h          ;EHCI
+;je ctrl_ehci
+;cmp dh,30h          ;XHCI
+;je ctrl_xhci
 jmp pasctrl
 
 ;*************************************
@@ -283,6 +295,15 @@ mov byte[esi+dcu_type],1 ;controleur de type uhci
 mov eax,ebx
 and eax,0FFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
+
+;active controle par e/s
+mov dx,0CF8h
+mov eax,[esi+dcu_pci]
+add eax,4
+out dx,eax
+mov dx,0CFCh
+mov eax,5   ;command + status register
+out dx,eax
 
 mov dx,0CF8h
 mov eax,ebx
@@ -295,27 +316,19 @@ jz pasctrl
 and eax,0FFE0h
 mov [esi+dcu_es],ax  ;adresse de base du controleur
 
-;active controle par e/s
-mov dx,0CF8h
-mov eax,[esi+dcu_pci]
-add eax,4
-out dx,eax
-mov dx,0CFCh
-mov eax,5   ;command + status register
-out dx,eax
-
 mov byte[esi+dcu_nb_port],2 ;deux port
 
 push ebx
 mov eax,0FFFh
-mov ecx,1000h   ;4096 octets
-call resmemg    
+mov ecx,139264   ;136Koctets
+mov [esi+dcu_to],ecx
+call resmemg 
+;§§§§§§§§§§§§§§§§§§§§§§§§que faire en cas d'imposibilité de réserver de la mémoire   
 es
 mov word[ebx+8],czm_uhci  
 add ebx,100010h   ;adresse physique
 mov [esi+dcu_mem],ebx
 pop ebx 
-
 
 call init_uhci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
@@ -340,6 +353,15 @@ mov eax,ebx
 and eax,0FFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 
+;active controle par e/s
+mov dx,0CF8h
+mov eax,[esi+dcu_pci]
+add eax,4
+out dx,eax
+mov dx,0CFCh
+mov eax,5   ;command + status register
+out dx,eax
+
 mov dx,0CF8h
 mov eax,ebx
 add eax,8 ;pour avoir l'adresse de base des ports (Bar0)
@@ -348,13 +370,28 @@ mov dx,0CFCh
 in eax,dx
 test eax,1  ;on vérifie que c'est bien un descripteur de port d'e/s
 jnz pasctrl
-and eax,0FFFFFFF0h
+and eax,0FF00h
 mov edx,eax
 xor eax,eax
 in al,dx
-add edx,eax
-mov [esi+dcu_es],dx  ;adresse de base du controleur
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+add eax,edx
+mov [esi+dcu_es],ax  ;adresse de base du controleur
+
+add dx,4
+in eax,dx
+and al,0Fh
+mov byte[esi+dcu_nb_port],al ;nobre de port (variable)
+
+push ebx
+mov eax,0FFFh
+mov ecx,1000h   ;4096 octets ;???????????????
+call resmemg    
+es
+mov word[ebx+8],czm_ehci  
+add ebx,100010h   ;adresse physique
+mov [esi+dcu_mem],ebx
+pop ebx 
+
 call init_ehci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
 
