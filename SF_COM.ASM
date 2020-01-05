@@ -411,6 +411,7 @@ mov dx,selramh
 mov ds,dx
 mov edx,ebx
 add edx,to_zter
+
 jmp sf_com_lecture
 
 sf_com_lecture_em:
@@ -421,6 +422,8 @@ add edx,to_ztre
 
 
 sf_com_lecture:
+cmp dword[edx],0
+je sf_com_er_parami
 mov al,[ebx+at_canal]
 and al,07h
 cmp al,0
@@ -517,15 +520,6 @@ iret
 
 
 
-;to_ztcom      equ 00h ;taille de la zone com
-;ad_ztcom      equ 04h ;adresse de la zone com   
-;po_ztcom_lec  equ 08h ;pointeur de lecture dans la zt
-;po_ztcom_ecr  equ 0Ch ;pointeur d'ecriture dans la zt
-
-
-
-
-
 
 ;**************************************************************************************************
 sf_com_ecriture_rc:
@@ -542,7 +536,10 @@ mov edx,ebx
 add edx,to_zter
 
 sf_com_ecriture:
-fs
+es
+cmp dword[edx],0
+je sf_com_er_parami
+es
 mov al,[ebx+at_canal]
 and al,07h
 cmp al,0

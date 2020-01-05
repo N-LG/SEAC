@@ -168,9 +168,30 @@ jne boucle_remplissage_ctrl_ata
 fin_detec_ata:
 
 
+;*****************************************************************************************************************************
+;détecte les controleur ahci
+
+mov ebx,80000008h
+boucle_detec_ahci:
+mov dx,0CF8h
+mov eax,ebx
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFFFF00h 
+cmp eax,01060100h  ;classe=01h sous-classe=06h  if=01 (AHCI)
+jne pas_ctrl_ahci            
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;réserve une zone mémoire
+;configure l'adresse
 
 
-
+pas_ctrl_ahci:
+add ebx,100h
+test ebx,7F000000h
+jz boucle_detec_ahci
 
 
 ;********************************************************************************************************************************
@@ -279,8 +300,8 @@ and eax,0FFFF0000h
 cmp eax,0C030000h  ;classe=0Ch sous-classe=03h
 jne pasctrl
 
-;cmp dh,00h          ;UHCI
-;je ctrl_uhci
+cmp dh,00h          ;UHCI
+je ctrl_uhci
 ;cmp dh,10h          ;OHCI
 ;je ctrl_ohci
 ;cmp dh,20h          ;EHCI

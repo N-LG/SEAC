@@ -925,7 +925,8 @@ ret
 ;donn?es pour le segment de donn?es                      **********************
 
 msgsyst:
-include "DN_MSG.ASM"
+include "DN_MSG_FR.ASM"
+;include "DN_MSG_EN.ASM"
 finmsgsyst:
 
 polgraf:
@@ -937,7 +938,8 @@ include "DN_PALG.ASM"
 finpalgraf:
 
 tabclv:
-include "DN_CLAV.ASM"
+include "DN_CLAV_FR.ASM"
+;include "DN_CLAV_US.ASM"
 fintabclv:
 
 tabacc:
@@ -2639,7 +2641,7 @@ cmddef_lang:
 ;efface l'ancienne definition des messages systèmes et erreur
 xor eax,eax
 mov edi,ad_msg_syst
-mov ecx,12288
+mov ecx,3072
 cld
 rep stosd
 

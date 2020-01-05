@@ -634,3 +634,5 @@ czm_ehci equ 37  ;zoné mémoire utillisé par un controleur EHCI
 czm_xhci equ 38  ;zoné mémoire utillisé par un controleur XHCI
 
 
+czm_ahci equ 40  ;zone mémoire réservé au dialogue avec un contoleur ahci
+czm_sata equ 41  ;zone mémoire réservé au dialogue d'un périphérique sata branché sur un controleur ahci
