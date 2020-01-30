@@ -851,8 +851,8 @@ fs
 mov si,[resxt]
 
 mov ax,selramh
-mov fs,ax
-fs
+mov es,ax
+es
 mov ax,[edx+sel_ecranv]
 mov es,ax
 
