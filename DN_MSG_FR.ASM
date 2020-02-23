@@ -1,0 +1,168 @@
+﻿bidon:
+;message systeme uttilisé par SeLG 💩
+;doit être entregistré au format utf8
+;
+;0 - BLACK    4 - RED       8 - DARKGRAY    C - LIGHTRED
+;1 - BLUE     5 - MAGENTA    9 - LIGHTBLUE   D - LIGHTMAGENTA
+;2 - GREEN    6 - BROWN     A - LIGHTGREEN  E - YELLOW
+;3 - CYAN     7 - LIGHTGRAY  B - LIGHTCYAN   F - WHITE
+;ajoutez 10h au code couleur ci dessus pour pouvoir avoir la couleur souhaité
+;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
+
+
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEaC V0.9 Février 2020",13 
+db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
+
+db "Commande inconnue: ",0 ;1
+db "Répertoire introuvable: ",0   ;2
+db 0     ;3
+db "Tâche non trouvé: ",0 ;4
+db 0  ;5
+db "Format de fichier non reconnue",13,0  ;6
+db "Mode video non supporté",13,0 ;7
+db "Format de commande incorrecte: ",0 ;8
+db "Changement de mode video bloqué",13,0 ;9
+
+
+;message des exceptions
+db "Division par zéro",0                    ;ex0 message 10
+db "Mode debug activé ",0                        ;ex1     
+db "L'interruption non masquable(NMI), panne materiel grave",0      ;ex2
+db "L'instruction int 3 executé",0        ;ex3 
+db "Débordement detecté par INTO",0              ;ex4
+db "Débordement detecté par BOUND",0       ;ex5
+db "Le processeur a rencontré une instruction inconnue",0    ;ex6
+db "Le coprocesseur ne répond pas",0       ;ex7
+db "Double faute",0                 ;ex8
+db "CoProcessor Segment Overrun",0  ;ex9
+db "TSS invalide",13,0                 ;ex10
+db "Segment de mémoire absent",0    ;ex11
+db "Faute de pile",13,0                 ;ex12
+db "Erreur de protection générale",0  ;ex13
+db "Page Fault",0   ;ex14
+db "Exception 15",0   ;ex15
+db "Erreur FPU",0          ;ex16
+db "Erreur d'alignement",0 ;ex17
+db "Machine Check",0       ;ex18
+db "Erreur SMID",0         ;ex19
+db "Exception 20",0    ;ex20
+db "exception 21",0   ;21
+db "exception 22",0   ;22
+db "exception 23",0   ;23
+db "exception 24",0   ;24
+db "exception 25",0   ;25
+db "exception 26",0   ;26
+db "exception 27",0   ;27
+db "exception 28",0   ;28
+db "exception 29",0   ;29
+db "exception 30",0   ;30
+db "exception 31",0   ;ex31 message 41 
+
+db 13,1Ch,"le processus N°",0 ;42
+db " a causé l'exception: ",0 ;43
+db 13,"la tâche principale a dut être redémarré",17h,13,0  ;44
+db 13,"la tâche fautive a dut être arreté",17h,13,0  ;45
+db "état de la pile:",0  ;46
+db "impossible de r",0E9h,"server de la m",0E9h,"moire",0  ;47 seul texte qui doit être codé en ISO 8859-1 et pas en UTF8
+db 1Ch,"detection d'une erreur dans la mémoire, effacement de la mémoire corrompue",17h,13,0  ;48
+db 0  ;49
+
+
+
+
+
+db 13,"Liste des disques amovibles detecté:",13,0  ;50
+db 13,"Liste des partition detecté:",13,0 ;51
+db " partition de type inconnue(",0 ;52
+db " partition endommagé de ",0 ;53
+db " partition de type FAT12 de ",0 ;54
+db " partition de type FAT16 de ",0 ;55
+db " partition de type FAT32 de ",0 ;56   
+db " partition de type exFAT de ",0 ;57
+db " partition de type Ext2 de ",0 ;58
+db " partition de type Ext3 de ",0 ;59
+db " partition de type TOD de ",0 ;60
+db " partition de type NTFS de ",0 ;61
+db " partition de type SFS de ",0 ;62
+db 0 ;63
+db 0 ;64
+db 0 ;65
+db 0 ;66
+db 0 ;67
+db 0 ;68
+db 0 ;69
+
+db 13,"Liste des fichiers du dossier: ",0   ;70
+
+db 13,"Liste des Tâches en cours d'execution:",13,0   ;71
+
+
+db 13,"organisation mémoire:",13,0   ;72 
+db "mémoire libre: ",0   ;73
+db 13,"mémoire utilisé par le systeme: ",0    ;74
+db 13,"mémoire utilisé par les tâches: ",0    ;75
+db 13,"mémoire utilisé par la communication intertâches: ",0 ;76
+db 13,"mémoire Totale: ",0 ;77
+
+db " octets",13,0 ;78
+db 0 ;79
+
+db 13,"Liste des modes vidéo supporté:",13,0   ;80
+db " texte",13,0;81
+db "bits fenêtré",13,0 ;82
+db "bits linéaire",13,0 ;83
+db 0 ;84
+db 0 ;85
+db 0 ;86
+db " de definition de langue a été chargé",13,0              ;87
+db " de definition de clavier à été chargé",13,0             ;88
+db " de definition graphique de caractère a été chargé",13,0 ;89
+
+db "le dossier à supprimer n'est pas vide",13,0  ;90
+db "fichier introuvable",13,0 ;91
+db "arret forcé de la tâche ",0  ;92
+db "modification du temp d'execution de la tâche ",0  ;93
+db "le dossier système a été définis",13,0  ;94
+db " a été copié en ",0  ;95
+db " a été supprimé",13,0  ;96
+db " a été rennommé ",0  ;97
+db "le fichier ",0  ;98
+db 0  ;99
+db 0  ;100
+
+
+
+msgerreur:
+db "action terminé sans problème",0
+db "erreur de paramêtre",13,0                   ;erreur 1
+db "erreur de lecture",13,0                     ;erreur 2
+db "lecteur/disque/fichier non trouvé",13,0     ;erreur 3
+db "erreur du systême de fichier",13,0          ;erreur 4
+db "erreur d'écriture",13,0                     ;erreur 5
+db "pas de réponse disque",13,0                 ;erreur 6
+db "disque occupé",13,0                         ;erreur 7
+db "fichier deja ouvert",13,0                   ;erreur 8
+db "interdiction de lecture",13,0               ;erreur 9
+db "interdicion d'ouverture",13,0               ;erreur 10
+db "plus assez de mémoire",13,0                 ;erreur 11
+db "le fichier ouvert est un dossier",13,0      ;erreur 12
+db "erreur d'origine inconnue",13,0             ;erreur 13
+db "nombre de couleur non reconnue",13,0        ;erreur 14
+db "ecran absent",13,0                          ;erreur 15
+db "action non autorisé",13,0                   ;erreur 16
+db "zone tampon vide",13,0                      ;erreur 17
+db "zone tampon pleine",13,0                    ;erreur 18
+db "controleur ne répond pas",13,0              ;erreur 19
+db "controleur absent",13,0                     ;erreur 20
+db "impossible de supprimer le dossier car il n'est pas vide",13,0 ;erreur 21
+db "caractère interdit dans le nom de fichier",13,0 ;erreur 22
+db "création de fichier impossible",13,0        ;erreur 23
+db "nom de fichier deja uttilisé",13,0          ;erreur 24
+db "pas de réponse",13,0                        ;erreur 25
+db "erreur dans la structure",13,0              ;erreur 26
+db "données disponible",13,0                    ;erreur 27
+db "données non disponible",13,0                ;erreur 28
+
+
+
+

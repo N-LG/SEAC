@@ -171,8 +171,8 @@ call affcj
 mov al," "
 call affcj
 partpasinconnue:
-mov eax,[esi+8]     ;et la taille de la partition
-shl eax,9           ;mul par 512
+mov eax,[esi+16]     ;et la taille de la partition
+shl eax,9            ;mul par 512
 call affnje
 mov cl,78
 call affmsgsyst
@@ -182,7 +182,7 @@ add esi,20h
 cmp esi,ad_descp+1000h
 jne boucleldp
 
-
+;**********
 mov ch,18h
 boucleldc:      ;affichage des lecteurs de cdrom présent
 mov al,10

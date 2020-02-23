@@ -182,10 +182,86 @@ and eax,0FFFFFF00h
 cmp eax,01060100h  ;classe=01h sous-classe=06h  if=01 (AHCI)
 jne pas_ctrl_ahci            
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+ahci_pi equ 00Ch
+ahci_port0 equ 100h
 
-;réserve une zone mémoire
-;configure l'adresse
+ahci_port_commandes equ 00h
+ahci_port_rfis equ 08h
+ahci_port_int equ 14h
+
+ahci_dev_commandes equ 0
+ahci_dev_rfis equ 1024 
+ahci_dev_eshost equ 2048
+ahci_dev_esport equ 2052
+ahci_dev_numport equ 2056
+ahci_dev_pci     equ 2060
+
+pushad
+;création espace mémoire Host
+mov ecx,2000h ;8Ko
+mov eax,0FFFh ;??????????????????
+call resmemg 
+;jc erreur  ;??????????????????
+
+;config Host(pci)
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;test disponibilité port
+mov eax,[ebx+ahci_pi]
+mov esi,ebx
+add esi,ahci_port0
+mov cl,0
+boucle_test_port_ahci:
+test eax,01h
+jz passe_test_port_ahci
+
+;création espace port
+push ebx
+mov ecx,2000h ;8Ko
+mov eax,0FFFh ;??????????????????
+call resmemg  
+mov edi,ebx
+pop ebx
+;jc erreur  ;??????????????????
+
+mov [esi+ahci_port_commandes],edi 
+add dword[esi+ahci_port_rfis],ahci_dev_commandes  ;lsb command list
+mov dword[esi+ahci_port_commandes+4],0            ;msb command list
+mov [esi+ahci_port_rfis],edi
+add dword[esi+ahci_port_rfis],ahci_dev_rfis ;lsb receved FIS
+mov dword[esi+ahci_port_rfis+4],0           ;msb receved FIS
+mov dword[esi+ahci_port_int],0 ;interruptions toutes désactivé
+
+
+;enregistres info dans espace port pour identifier port
+mov [edi+ahci_dev_eshost],ebx ;adresse de base E/S du controleur 
+mov [edi+ahci_dev_esport],esi ;adresse de base E/S du port
+mov [edi+ahci_dev_numport],cl ;numéros de port
+;mov [edi+ahci_dev_pci],0 ;adresse PCI   ;??????????????????
+
+
+;préremplir command list et received FIS
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+;démarrer port
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+passe_test_port_ahci:
+inc cl
+shr eax,1
+add esi,80h
+cmp cl,32
+jne boucle_test_port_ahci
+
+
+;activation host
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+popad
+
+
+
 
 
 pas_ctrl_ahci:

@@ -1902,17 +1902,17 @@ mov [edi+1],ch    ;lecteur de la partition
 mov [edi+2],ah    ;code MBR
 
 mov eax,[esi+08h]   ;adresse de base de la partition  
-mov [edi+4],eax
+mov [edi+08h],eax
+mov dword[edi+0Ch],0
 
 mov eax,[esi+0Ch]   ;taille de la partition
-mov [edi+8],eax
+mov [edi+10h],eax
+mov dword[edi+14h],0
 
 xor eax,eax       ;on vide le reste des descripteurs
 mov [edi+3],al
 ex_part_mbr_vide_fin:
-mov [edi+0Ch],eax
-mov [edi+10h],eax
-mov [edi+14h],eax
+mov [edi+04h],eax
 mov [edi+18h],eax
 mov [edi+1Ch],eax
 mov [edi+20h],eax

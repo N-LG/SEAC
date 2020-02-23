@@ -115,12 +115,33 @@ mov al,0FFh          ;envoie une commande d'impulsion sur aucune des sorties
 out 64h,al            
 call attporok        
 
+;test si la ligne A20 est bien désactivé
+xor eax,eax
+mov ds,ax
+mov eax,[0]
+xor eax,055AA55AAh
+mov [100000h],eax      ;on écrit a 1Mo un truc forcément différent de 0
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+cmp [100000h],eax      ;on vérifie que l'ecriture est bien effective
+je autre_methode_A20
+mov eax,[0]
+cmp [100000h],eax
+jne ignore_2eme_methode_A20
+
+
 ;autre méthode pour activer la ligne A20 (si l'autre ne fonctionne pas!!!)
-;in al, 0x92
-;or al, 2
-;out 0x92, al
-
-
+autre_methode_A20:
+in al, 092h
+or al, 2
+out 92h, al
+ignore_2eme_methode_A20:
 
 
 
@@ -332,15 +353,7 @@ mov di,ad_tabcoul
 cld
 rep movsb      ;ds:si vers es:di
 
-mov cx,4096    ;copie la table de caract?re graphique
-mov ax,cs
-mov ds,ax
-mov si,polgraf
-mov ax,segdat
-mov es,ax
-mov di,ad_tabcar
-cld
-rep movsb      ;ds:si vers es:di
+
 
 mov cx,2048    ;copie la table de correspondance touche
 mov ax,cs
@@ -1046,6 +1059,25 @@ mov ax,seldat
 mov ds,ax
 mov ax,selramh
 mov es,ax
+
+mov ecx,8000h
+call resmem
+jc errallocmem
+es
+mov word[ebx+8],czm_pol      ;code zone police graphique
+add ebx,16
+mov dword[index_tabcar],0
+mov [index_tabcar+4],ebx
+
+push ds
+mov cx,4096    ;copie la table de caractère graphique
+mov ax,selramt
+mov ds,ax
+mov esi,polgraf+50000h
+mov edi,ebx
+cld
+rep movsb      ;ds:esi vers es:edi
+pop ds
 
 
 mov ecx,8000h
@@ -2631,12 +2663,13 @@ cmp dword[ad_chaine_travail],"DEFC"
 je cmddef_clav
 cmp dword[ad_chaine_travail],"DEFG"
 je cmddef_graph
+erreur_cmddef_structure:
 mov eax,26
 jmp fin_commande_erreur 
 
 
 
-
+;***********
 cmddef_lang:  
 ;efface l'ancienne definition des messages systèmes et erreur
 xor eax,eax
@@ -2674,10 +2707,10 @@ call affmsgsyst
 jmp pascommande
 
 
-
+;**********
 cmddef_clav: 
 cmp dword[ad_chaine_travail+16],3088
-jb erreur_cmddef_clav
+jb erreur_cmddef_structure
 
    
 ;efface l'ancienne definition de clavier
@@ -2705,18 +2738,67 @@ call affmsgsyst
 jmp pascommande
 
 
-erreur_cmddef_clav:
-mov eax,26;?????????????????????????????????????
-jmp fin_commande_erreur 
 
-
+;**********
 cmddef_graph:      ;charge la nouvelle definition de caractère graphique
+;vérifie que la taille des caractère de la matrice correspondent bien a la taille actuellement utilisé
+cmp dword[ad_chaine_travail+4],1008h  ;taille 8x16
+jne erreur_cmddef_structure 
+;verifie que l'index des caractère est bien aligné sur 256
+cmp byte[ad_chaine_travail+8],0 
+jne erreur_cmddef_structure
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-mov eax,26
-jmp fin_commande_erreur 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;réserve une zone mémoire pour les données
+mov ecx,4096
+push ebx
+call resmem
+mov edi,ebx
+pop ebx
+jc errallocmem
 
+;marque la zone comme étant un police matricielle
+mov ax,selramh
+mov es,ax
+es
+mov word[edi+8],czm_pol  
+add edi,16
+
+
+;copie les données
+mov al,4
+mov ecx,4096
+mov edx,16
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+;met a jour l'index des tables de caractères
+mov ebx,index_tabcar
+boucle_cmddef_graph:
+cmp dword[ebx],0
+jne boucle_cmddef_graph_suite
+cmp dword[ebx+4],0
+je boucle_cmddef_graph_fin
+
+boucle_cmddef_graph_suite:
+add ebx,8
+cmp ebx,index_tabcar+512
+jne boucle_cmddef_graph 
+
+;si la table est pleine on supprime la dernière entrée de la table
+sub ebx,8
+
+mov eax,[ebx]
+push ebx
+mov ebx,eax
+call libmem
+pop ebx
+
+boucle_cmddef_graph_fin:
+mov eax,[ad_chaine_travail+8]
+mov [ebx],eax
+mov [ebx+4],edi
 
 mov cl,98  
 call affmsgsyst
@@ -2948,7 +3030,6 @@ jmp pascommande
 
 ;affichel le message correspondant a l'erreur dans eax
 fin_commande_erreur:
-add eax,100
 mov cl,al   
 call affmsgerr
 

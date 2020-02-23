@@ -2037,21 +2037,44 @@ ret
 ;***********************************************************
 lire_ligne_carac:     ;lit le carac en ebx et extrait l'octet image du carac correspondant a la ligne dans dl
 push eax
+push ebx
 push ecx
 push esi
+
+;cherche  la table de caractère correspondant a la page
 mov eax,[ebx]
+and eax,0FFFF00h
+mov esi,index_tabcar
+boucle_lire_ligne_carac:
+fs
+cmp eax,[esi]
+je index_tabcar_trouve
+add esi,8
+cmp esi,index_tabcar+512
+jne boucle_lire_ligne_carac
+
+mov eax,[ebx]     ;charge les caractères par défaut si aucune table de carractès correspond a la page
 and eax,0FFFFFFh
 call ajuste_carac
+fs
+mov esi,[index_tabcar+4]
+jmp suite_lire_ligne_carac
 
+index_tabcar_trouve: ;lit la position de la table des caractère correspondant a la page
+fs
+mov eax,[esi+4]
+mov esi,eax
+mov eax,[ebx]
+and eax,0FFh
 
-mov esi,ad_tabcar
+suite_lire_ligne_carac:
 shl eax,4
 add esi,eax
 fs
 mov ax,[num_ligne_majv]
 and eax,0Fh
 add esi,eax    
-fs
+gs
 mov dl,[esi]
 
 mov cl,[ebx+3]
@@ -2096,6 +2119,7 @@ fs
 mov [couleur_fond],eax
 pop esi
 pop ecx
+pop ebx
 pop eax
 ret
 
@@ -2112,6 +2136,7 @@ fs
 mov [couleur_fond],ax
 pop esi
 pop ecx
+pop ebx
 pop eax
 ret
 
@@ -2138,6 +2163,7 @@ fs
 mov [couleur_fond],ax
 pop esi
 pop ecx
+pop ebx
 pop eax
 ret
 
@@ -2169,6 +2195,7 @@ fs
 mov [couleur_fond],eax
 pop esi
 pop ecx
+pop ebx
 pop eax
 ret
 

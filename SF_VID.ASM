@@ -631,7 +631,7 @@ inc ecx
 mov esi,edi
 add edi,4
 std
-rep movsb          ;dcale les donnes
+rep movsb          ;décale les donnes
 pop es
 pop edi
 pop esi
@@ -659,8 +659,6 @@ mov [esi],al
 
 add edi,4  ;maj du dernier octet utilisé
 add esi,4  ;maj de la position curseur
-
-
 
 majaf_sfv_aqui_chaine:
 pop ecx
@@ -2178,11 +2176,35 @@ iret
 
 place_carac:          ;ecrit le caractère en eax a la position de x=ebx y=ecx dl=couleur
 pushad
-;calcul l'adresse
+
+;cherche  la table de caractère correspondant a la page
+push eax
+and eax,0FFFF00h
+mov esi,index_tabcar
+boucle_place_carac:
+fs
+cmp eax,[esi]
+je place_carac_tabcar_trouve
+add esi,8
+cmp esi,index_tabcar+512
+jne boucle_place_carac
+
+pop eax     ;charge les caractères par défaut si aucune table de carractès correspond a la page
+and eax,0FFFFFFh
 call ajuste_carac
+fs
+mov esi,[index_tabcar+4]
+jmp suite_place_carac
+
+place_carac_tabcar_trouve: ;lit la position de la table des caractère correspondant a la page
+fs
+mov eax,[esi+4]
 mov esi,eax
-shl esi,4
-add esi,ad_tabcar
+pop eax
+
+suite_place_carac:
+shl eax,4
+add esi,eax
 
 ;calcul de l'adresse du premier octet de l'image
 push ebx
@@ -2233,49 +2255,49 @@ jmp fin_place_carac
 
 
 boucle_place_carac8:
-fs
+es
 bt word[esi],7
 jnc place_carac8_b0
 es
 mov [edi],dl
 place_carac8_b0:
-fs
+es
 bt word[esi],6
 jnc place_carac8_b1
 es
 mov [edi+1],dl
 place_carac8_b1:
-fs
+es
 bt word[esi],5
 jnc place_carac8_b2
 es
 mov [edi+2],dl
 place_carac8_b2:
-fs
+es
 bt word[esi],4
 jnc place_carac8_b3
 es
 mov [edi+3],dl
 place_carac8_b3:
-fs
+es
 bt word[esi],3
 jnc place_carac8_b4
 es
 mov [edi+4],dl
 place_carac8_b4:
-fs
+es
 bt word[esi],2
 jnc place_carac8_b5
 es
 mov [edi+5],dl
 place_carac8_b5:
-fs
+es
 bt word[esi],1
 jnc place_carac8_b6
 es
 mov [edi+6],dl
 place_carac8_b6:
-fs
+es
 bt word[esi],0
 jnc place_carac8_b7
 es
@@ -2302,49 +2324,49 @@ call conv24_16
 mov edx,eax
 
 boucle_place_carac16:
-fs
+es
 bt word[esi],7
 jnc place_carac16_b0
 es
 mov [edi],dx
 place_carac16_b0:
-fs
+es
 bt word[esi],6
 jnc place_carac16_b1
 es
 mov [edi+2],dx
 place_carac16_b1:
-fs
+es
 bt word[esi],5
 jnc place_carac16_b2
 es
 mov [edi+4],dx
 place_carac16_b2:
-fs
+es
 bt word[esi],4
 jnc place_carac16_b3
 es
 mov [edi+6],dx
 place_carac16_b3:
-fs
+es
 bt word[esi],3
 jnc place_carac16_b4
 es
 mov [edi+8],dx
 place_carac16_b4:
-fs
+es
 bt word[esi],2
 jnc place_carac16_b5
 es
 mov [edi+10],dx
 place_carac16_b5:
-fs
+es
 bt word[esi],1
 jnc place_carac16_b6
 es
 mov [edi+12],dx
 place_carac16_b6:
-fs
+es
 bt word[esi],0
 jnc place_carac16_b7
 es
@@ -2361,49 +2383,49 @@ jnz boucle_place_carac16
 jmp fin_place_carac 
 
 boucle_place_carac24:
-fs
+es
 bt word[esi],7
 jnc place_carac24_b0
 es
 mov [edi],edx
 place_carac24_b0:
-fs
+es
 bt word[esi],6
 jnc place_carac24_b1
 es
 mov [edi+3],edx
 place_carac24_b1:
-fs
+es
 bt word[esi],5
 jnc place_carac24_b2
 es
 mov [edi+6],edx
 place_carac24_b2:
-fs
+es
 bt word[esi],4
 jnc place_carac24_b3
 es
 mov [edi+9],edx
 place_carac24_b3:
-fs
+es
 bt word[esi],3
 jnc place_carac24_b4
 es
 mov [edi+12],edx
 place_carac24_b4:
-fs
+es
 bt word[esi],2
 jnc place_carac24_b5
 es
 mov [edi+15],edx
 place_carac24_b5:
-fs
+es
 bt word[esi],1
 jnc place_carac24_b6
 es
 mov [edi+18],edx
 place_carac24_b6:
-fs
+es
 bt word[esi],0
 jnc place_carac24_b7
 es
@@ -2424,49 +2446,49 @@ jmp fin_place_carac
 
 
 boucle_place_carac32:
-fs
+es
 bt word[esi],7
 jnc place_carac32_b0
 es
 mov [edi],edx
 place_carac32_b0:
-fs
+es
 bt word[esi],6
 jnc place_carac32_b1
 es
 mov [edi+4],edx
 place_carac32_b1:
-fs
+es
 bt word[esi],5
 jnc place_carac32_b2
 es
 mov [edi+8],edx
 place_carac32_b2:
-fs
+es
 bt word[esi],4
 jnc place_carac32_b3
 es
 mov [edi+12],edx
 place_carac32_b3:
-fs
+es
 bt word[esi],3
 jnc place_carac32_b4
 es
 mov [edi+16],edx
 place_carac32_b4:
-fs
+es
 bt word[esi],2
 jnc place_carac32_b5
 es
 mov [edi+20],edx
 place_carac32_b5:
-fs
+es
 bt word[esi],1
 jnc place_carac32_b6
 es
 mov [edi+24],edx
 place_carac32_b6:
-fs
+es
 bt word[esi],0
 jnc place_carac32_b7
 es

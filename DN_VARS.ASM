@@ -50,6 +50,9 @@ ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la créat
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
 
+index_tabcar equ 2600h ;index des 32 tables de caractères
+
+
 ;???
 
 
@@ -68,8 +71,8 @@ secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 ad_msg_syst equ 5000h ;4ko
 ad_msg_erreur equ 6000h ;8Ko  
 
-ad_tabcar equ 8000h      ;definition des caractère graphiques basique (0 a FFh)
 
+;???
 
 ad_desc_ctrl_usb equ 9000h   
 dc_desc_ctrl_usb equ 5 ;element de 32 octets
@@ -228,17 +231,21 @@ cmd_bios equ 108h ;sauvegarde provisoire de eax lors d'un appel au bios en mode 
 ;*************************************************************************
 ;registre de travail du systeme d'exploration des fichiers
 
-at_partition equ 120h   ;attribut partition
+at_partition equ 120h   ;attribut/type partition
 no_disquepart equ 121h  ;numéros de disque physique correspondant a la partition
 nb_fat equ 122h         ;nombre de fat
 nb_sec_cluster equ 123h ;nombre de secteur par cluster
-ad_partition equ 124h   ;adresse premier secteur de la partition 
-to_partition equ 128h   ;nombre de secteur de la partition
-ad_fat equ 12Ch         ;adresse des fat 
-to_fat equ 130h         ;taille des fat
-ad_cluster0 equ 134h    ;adresse du cluster 0  
-to_1cluster equ 138h    ;taille d'un cluster
-nb_cluster equ 13Ch     ;nombre de cluster de la partition
+
+ad_partition equ 128h   ;adresse premier secteur de la partition 
+to_partition equ 130h   ;nombre de secteur de la partition
+
+
+
+ad_fat equ 140h         ;adresse des fat 
+to_fat equ 144h         ;taille des fat
+ad_cluster0 equ 148h    ;adresse du cluster 0  
+to_1cluster equ 14Ch    ;taille d'un cluster
+nb_cluster equ 150h     ;nombre de cluster de la partition
 
 at_fichier equ 160h   ;attribut fichier
 no_part equ 161h   ;numéros de disque/partition du fichier
@@ -615,6 +622,7 @@ czm_zj     equ 1  ;journal du tecop
 czm_hc     equ 2  ;historique des dernière commandes tapé
 czm_etz    equ 3  ;ecran de la tache zéro
 czm_cc     equ 4  ;zone tampon pour le copier/collé
+czm_pol    equ 5  ;police de caractère matricielle
 
 czm_dfo    equ 10  ;descripteur des fichiers ouverts
 czm_ztf1   equ 11  ;zone tampon FAT1
