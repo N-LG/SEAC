@@ -1286,9 +1286,6 @@ sub bl,cl
 mov bh,dl
 
 
-
-
-
 pop fs
 pop ds
 pop edi
@@ -2176,6 +2173,9 @@ iret
 
 place_carac:          ;ecrit le caractère en eax a la position de x=ebx y=ecx dl=couleur
 pushad
+push gs
+mov si,selramh
+mov gs,si
 
 ;cherche  la table de caractère correspondant a la page
 push eax
@@ -2201,6 +2201,7 @@ fs
 mov eax,[esi+4]
 mov esi,eax
 pop eax
+and eax,0FFh
 
 suite_place_carac:
 shl eax,4
@@ -2255,49 +2256,49 @@ jmp fin_place_carac
 
 
 boucle_place_carac8:
-es
+gs
 bt word[esi],7
 jnc place_carac8_b0
 es
 mov [edi],dl
 place_carac8_b0:
-es
+gs
 bt word[esi],6
 jnc place_carac8_b1
 es
 mov [edi+1],dl
 place_carac8_b1:
-es
+gs
 bt word[esi],5
 jnc place_carac8_b2
 es
 mov [edi+2],dl
 place_carac8_b2:
-es
+gs
 bt word[esi],4
 jnc place_carac8_b3
 es
 mov [edi+3],dl
 place_carac8_b3:
-es
+gs
 bt word[esi],3
 jnc place_carac8_b4
 es
 mov [edi+4],dl
 place_carac8_b4:
-es
+gs
 bt word[esi],2
 jnc place_carac8_b5
 es
 mov [edi+5],dl
 place_carac8_b5:
-es
+gs
 bt word[esi],1
 jnc place_carac8_b6
 es
 mov [edi+6],dl
 place_carac8_b6:
-es
+gs
 bt word[esi],0
 jnc place_carac8_b7
 es
@@ -2324,49 +2325,49 @@ call conv24_16
 mov edx,eax
 
 boucle_place_carac16:
-es
+gs
 bt word[esi],7
 jnc place_carac16_b0
 es
 mov [edi],dx
 place_carac16_b0:
-es
+gs
 bt word[esi],6
 jnc place_carac16_b1
 es
 mov [edi+2],dx
 place_carac16_b1:
-es
+gs
 bt word[esi],5
 jnc place_carac16_b2
 es
 mov [edi+4],dx
 place_carac16_b2:
-es
+gs
 bt word[esi],4
 jnc place_carac16_b3
 es
 mov [edi+6],dx
 place_carac16_b3:
-es
+gs
 bt word[esi],3
 jnc place_carac16_b4
 es
 mov [edi+8],dx
 place_carac16_b4:
-es
+gs
 bt word[esi],2
 jnc place_carac16_b5
 es
 mov [edi+10],dx
 place_carac16_b5:
-es
+gs
 bt word[esi],1
 jnc place_carac16_b6
 es
 mov [edi+12],dx
 place_carac16_b6:
-es
+gs
 bt word[esi],0
 jnc place_carac16_b7
 es
@@ -2383,49 +2384,49 @@ jnz boucle_place_carac16
 jmp fin_place_carac 
 
 boucle_place_carac24:
-es
+gs
 bt word[esi],7
 jnc place_carac24_b0
 es
 mov [edi],edx
 place_carac24_b0:
-es
+gs
 bt word[esi],6
 jnc place_carac24_b1
 es
 mov [edi+3],edx
 place_carac24_b1:
-es
+gs
 bt word[esi],5
 jnc place_carac24_b2
 es
 mov [edi+6],edx
 place_carac24_b2:
-es
+gs
 bt word[esi],4
 jnc place_carac24_b3
 es
 mov [edi+9],edx
 place_carac24_b3:
-es
+gs
 bt word[esi],3
 jnc place_carac24_b4
 es
 mov [edi+12],edx
 place_carac24_b4:
-es
+gs
 bt word[esi],2
 jnc place_carac24_b5
 es
 mov [edi+15],edx
 place_carac24_b5:
-es
+gs
 bt word[esi],1
 jnc place_carac24_b6
 es
 mov [edi+18],edx
 place_carac24_b6:
-es
+gs
 bt word[esi],0
 jnc place_carac24_b7
 es
@@ -2446,49 +2447,49 @@ jmp fin_place_carac
 
 
 boucle_place_carac32:
-es
+gs
 bt word[esi],7
 jnc place_carac32_b0
 es
 mov [edi],edx
 place_carac32_b0:
-es
+gs
 bt word[esi],6
 jnc place_carac32_b1
 es
 mov [edi+4],edx
 place_carac32_b1:
-es
+gs
 bt word[esi],5
 jnc place_carac32_b2
 es
 mov [edi+8],edx
 place_carac32_b2:
-es
+gs
 bt word[esi],4
 jnc place_carac32_b3
 es
 mov [edi+12],edx
 place_carac32_b3:
-es
+gs
 bt word[esi],3
 jnc place_carac32_b4
 es
 mov [edi+16],edx
 place_carac32_b4:
-es
+gs
 bt word[esi],2
 jnc place_carac32_b5
 es
 mov [edi+20],edx
 place_carac32_b5:
-es
+gs
 bt word[esi],1
 jnc place_carac32_b6
 es
 mov [edi+24],edx
 place_carac32_b6:
-es
+gs
 bt word[esi],0
 jnc place_carac32_b7
 es
@@ -2504,6 +2505,7 @@ test esi,0Fh
 jnz boucle_place_carac32
 
 fin_place_carac:
+pop gs
 popad
 ret
 

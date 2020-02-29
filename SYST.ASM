@@ -355,13 +355,13 @@ rep movsb      ;ds:si vers es:di
 
 
 
-mov cx,2048    ;copie la table de correspondance touche
+mov cx,2560    ;copie la table de correspondance touche
 mov ax,cs
 mov ds,ax
 mov si,tabclv
 mov ax,segdat
 mov es,ax
-mov di,ad_tabclav
+mov di,ad_tabclav_code
 cld
 rep movsb      ;ds:si vers es:di
 
@@ -938,8 +938,8 @@ ret
 ;donn?es pour le segment de donn?es                      **********************
 
 msgsyst:
-include "DN_MSG_FR.ASM"
-;include "DN_MSG_EN.ASM"
+;include "DN_MSG_FR.ASM"
+include "DN_MSG_EN.ASM"
 finmsgsyst:
 
 polgraf:
@@ -951,8 +951,8 @@ include "DN_PALG.ASM"
 finpalgraf:
 
 tabclv:
-include "DN_CLAV_FR.ASM"
-;include "DN_CLAV_US.ASM"
+include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
+;include "DN_CLAV_USI.ASM"    ;clavier US International
 fintabclv:
 
 tabacc:
@@ -2715,7 +2715,7 @@ jb erreur_cmddef_structure
    
 ;efface l'ancienne definition de clavier
 xor eax,eax
-mov edi,ad_tabclav
+mov edi,ad_tabclav_code
 mov ecx,1024
 cld
 rep stosd
@@ -2724,7 +2724,7 @@ rep stosd
 mov al,4
 mov ecx,4096
 mov edx,16
-mov edi,ad_tabclav
+mov edi,ad_tabclav_code
 int 64h
 cmp eax,0
 jne fin_commande_erreur
@@ -3870,8 +3870,8 @@ je finircl
 ;cherche a quel touche correspond la séquence de code envoyé par le clavier
 bclintcl1:
 mov bx,cx
-shl bx,4
-mov edx,[ad_tabclav+bx]
+shl bx,2
+mov edx,[ad_tabclav_code+bx]
 cmp [ztcl],edx
 je press
 or edx,80808080h
@@ -3884,10 +3884,10 @@ jz bclintcl1
 xor cx,cx
 bclintcl2:
 mov bx,cx
-shl bx,4
+shl bx,2
 mov eax,[ztcl+1]
 and eax,00FFFFFFh
-mov edx,[ad_tabclav+bx]
+mov edx,[ad_tabclav_code+bx]
 cmp eax,edx
 je press
 or edx,808080h
@@ -3900,10 +3900,10 @@ jz bclintcl2
 xor cx,cx
 bclintcl3:
 mov bx,cx
-shl bx,4
+shl bx,2
 mov eax,[ztcl+2]
 and eax,00FFFFh
-mov edx,[ad_tabclav+bx]
+mov edx,[ad_tabclav_code+bx]
 cmp eax,edx
 je press
 or dx,8080h
@@ -3916,10 +3916,10 @@ jz bclintcl3
 xor cx,cx
 bclintcl4:
 mov bx,cx
-shl bx,4
+shl bx,2
 mov eax,[ztcl+3]
 and eax,00FFh
-mov edx,[ad_tabclav+bx]
+mov edx,[ad_tabclav_code+bx]
 cmp eax,edx
 je press
 or dl,80h
@@ -4031,37 +4031,9 @@ jmp selcod16:reboot ;rebouter via le mode réel
 
 
 pas_touche_sp:
-
-test byte[atbp+8h],40h   ;CtrlG
-jnz tkctrl
-test byte[atbp+9h],04h   ;CtrlD
-jz tknctrl
-
-tkctrl:
-xor ebx,ebx
-mov bx,cx
-shl ebx,3
-test byte[atbp+8h],80h  ;alt
-jnz tkctrlaltalt
-test byte[atbp+9h],02h  ;alt gr
-jnz tkctrlaltalt
-
-mov eax,[ad_tabclav_ex+ebx]
-jmp lect_touches_sp
-
-tkctrlaltalt:
-mov eax,[ad_tabclav_ex+4+ebx]
-jmp lect_touches_sp
-
-
-tknctrl:
 xor ebx,ebx
 mov bx,cx
 shl ebx,4
-test byte[atbp+8h],80h  ;alt
-jnz tkalt
-test byte[atbp+9h],02h  ;alt gr
-jnz tkalt
 
 test byte[atbp+7h],02h
 jnz tkmaj
@@ -4071,20 +4043,30 @@ test byte[attcl],04h
 jnz tkvmaj
 
 tknorm:
-mov eax,[ad_tabclav+ebx+4]
+test byte[atbp+8h],80h  ;alt
+jnz tkalt
+test byte[atbp+9h],02h  ;alt gr
+jnz tkalt
+mov eax,[ad_tabclav_carac+ebx]
 jmp lect_touches_sp
 
 tkmaj:
 test byte[attcl],04h
 jnz tknorm
-
 tkvmaj:
-mov eax,[ad_tabclav+ebx+8]
+test byte[atbp+8h],80h  ;alt
+jnz tkmajalt
+test byte[atbp+9h],02h  ;alt gr
+jnz tkmajalt
+mov eax,[ad_tabclav_carac+ebx+4]
 jmp lect_touches_sp
 
 tkalt:
-mov eax,[ad_tabclav+ebx+12]
+mov eax,[ad_tabclav_carac+ebx+8]
+jmp lect_touches_sp
 
+tkmajalt:
+mov eax,[ad_tabclav_carac+ebx+12]
 
 ;*******************************************
 ;relève l'état des touches spéciales

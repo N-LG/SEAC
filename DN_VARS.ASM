@@ -39,8 +39,11 @@ seltss equ 83h   ;16
 
 
   
-ad_tabclav    equ 1000h
-ad_tabclav_ex equ 1800h
+ad_tabclav_code    equ 1000h
+ad_tabclav_carac equ 1200h
+
+
+
 ad_tabaccent  equ 1C00h
 
 
