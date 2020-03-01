@@ -8,7 +8,7 @@
 ;****************************************************************
 ;liste des code touche pour clavier PS2
 
-
+touche_codeps2:
 db 001h,000h,000h,000h  ;esc             #001
 db 03Bh,000h,000h,000h  ;F1              #002
 db 03Ch,000h,000h,000h  ;F2              #003
@@ -149,6 +149,7 @@ db 000h,000h,000h,000h  ;                #128
 ;liste des caractères utilisable par touche
 ; caractère normal, caractère majuscule, caractère Alt, caractère Alt+majuscule
 
+touche_carac:
 dd 0,0,0,0                     ;esc             #001
 dd 0,0,0,0                     ;F1              #002
 dd 0,0,0,0                     ;F2              #003

@@ -39,12 +39,6 @@ seltss equ 83h   ;16
 
 
   
-ad_tabclav_code    equ 1000h
-ad_tabclav_carac equ 1200h
-
-
-
-ad_tabaccent  equ 1C00h
 
 
 
@@ -75,12 +69,17 @@ ad_msg_syst equ 5000h ;4ko
 ad_msg_erreur equ 6000h ;8Ko  
 
 
-;???
+ad_tabclav_code    equ 8000h   ;512 octet
+;ad_tabclav_usb    equ 8200h    ;inconnu (128 estimé)
+ad_tabclav_carac equ 1800h     ;2 fois 2048
+ad_tabclav_chasse equ 9800h    ;2048 max
 
-ad_desc_ctrl_usb equ 9000h   
+
+
+ad_desc_ctrl_usb equ 0A000h   
 dc_desc_ctrl_usb equ 5 ;element de 32 octets
 nb_desc_ctrl_usb equ 64 ;64 elements
-ad_desc_periph_usb equ 9800h 
+ad_desc_periph_usb equ 0A800h 
 dc_desc_periph_usb equ 4 ;element de 16 octets
 nb_desc_periph_usb equ 128 
 

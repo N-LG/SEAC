@@ -355,15 +355,27 @@ rep movsb      ;ds:si vers es:di
 
 
 
-mov cx,2560    ;copie la table de correspondance touche
+mov cx,2048    ;copie la table de correspondance touche/ code PS2
 mov ax,cs
 mov ds,ax
-mov si,tabclv
+mov si,touche_codeps2
 mov ax,segdat
 mov es,ax
 mov di,ad_tabclav_code
 cld
 rep movsb      ;ds:si vers es:di
+
+
+mov cx,2048    ;copie la table de correspondance touche/caravtères
+mov ax,cs
+mov ds,ax
+mov si,touche_carac
+mov ax,segdat
+mov es,ax
+mov di,ad_tabclav_carac
+cld
+rep movsb      ;ds:si vers es:di
+
 
 
 mov cx,fintabacc-tabacc   ;copie la table des accents
@@ -372,15 +384,15 @@ mov ds,ax
 mov si,tabacc
 mov ax,segdat
 mov es,ax
-mov di,ad_tabaccent
+mov di,ad_tabclav_chasse
 cld
 rep movsb      ;ds:si vers es:di
 
 
-mov cx,msgerreur-msgsyst    ;copie la table des messages systeme
+mov cx,messages_erreur-messages_systeme    ;copie la table des messages systeme
 mov ax,cs
 mov ds,ax
-mov si,msgsyst
+mov si,messages_systeme
 mov ax,segdat
 mov es,ax
 mov di,ad_msg_syst
@@ -388,10 +400,10 @@ cld
 rep movsb    
 
 
-mov cx,finmsgsyst-msgerreur    ;copie la table des messages d'erreur
+mov cx,fin_messages-messages_erreur    ;copie la table des messages d'erreur
 mov ax,cs
 mov ds,ax
-mov si,msgerreur
+mov si,messages_erreur
 mov ax,segdat
 mov es,ax
 mov di,ad_msg_erreur
@@ -935,12 +947,11 @@ mov ebx,eax
 ret
 
 ;******************************************************************************
-;donn?es pour le segment de donn?es                      **********************
+;données de base                                         **********************
 
-msgsyst:
-;include "DN_MSG_FR.ASM"
-include "DN_MSG_EN.ASM"
-finmsgsyst:
+
+
+
 
 polgraf:
 include "DN_POLG.ASM"
@@ -950,10 +961,15 @@ palgraf:
 include "DN_PALG.ASM"
 finpalgraf:
 
-tabclv:
+
+
+include "DN_MSG_FR.ASM"    ;messages systeme en français
 include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
+
+
+;include "DN_MSG_EN.ASM"    ;messages systeme en anglais
 ;include "DN_CLAV_USI.ASM"    ;clavier US International
-fintabclv:
+
 
 tabacc:
 include "DN_ACC.ASM"
@@ -2709,25 +2725,82 @@ jmp pascommande
 
 ;**********
 cmddef_clav: 
-cmp dword[ad_chaine_travail+16],3088
-jb erreur_cmddef_structure
 
-   
-;efface l'ancienne definition de clavier
+;charge la nouvelle definition de chasse si existant
+xor edx,edx
+mov dx,[ad_chaine_travail+12]
+cmp edx,0
+je ignore_chasse_cmddef_clav 
+mov ecx,[ad_chaine_travail+16]
+cmp edx,ecx
+ja erreur_cmddef_structure
+sub ecx,edx
+
+
+;efface l'ancienne definition de chasse
+push ecx
+push edx
 xor eax,eax
-mov edi,ad_tabclav_code
+mov edi,ad_tabclav_chasse
 mov ecx,1024
 cld
 rep stosd
+pop edx
+pop ecx
 
-;charge la nouvelle definition de clavier
+;et charge la nouvelle
 mov al,4
-mov ecx,4096
-mov edx,16
+mov edi,ad_tabclav_chasse
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+ignore_chasse_cmddef_clav:
+   
+
+
+;charge la nouvelle definition de touche PS/2 si existant
+xor edx,edx
+mov dx,[ad_chaine_travail+4]
+cmp edx,0
+je ignore_code_cmddef_clav 
+mov al,4
+mov ecx,512
 mov edi,ad_tabclav_code
 int 64h
 cmp eax,0
 jne fin_commande_erreur
+ignore_code_cmddef_clav:
+
+
+
+;charge la nouvelle definition de caractère touche si existant
+xor edx,edx
+mov dx,[ad_chaine_travail+8]
+cmp edx,0
+je ignore_touchesp_cmddef_clav 
+mov al,4
+mov ecx,2048
+mov edi,ad_tabclav_carac
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+
+xor edx,edx
+mov dx,[ad_chaine_travail+10]
+cmp edx,0
+je ignore_touchess_cmddef_clav 
+mov al,4
+mov ecx,2048
+mov edi,ad_tabclav_carac+2048
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+
+ignore_touchess_cmddef_clav:
+;mov dx,[ad_chaine_travail+14]
+;mov [touches_bascules],dx
+ignore_touchesp_cmddef_clav:
 
 mov cl,98  
 call affmsgsyst
@@ -4114,7 +4187,7 @@ je ajoute_carac_zt
 cmp dword[sv_chas],0
 je verifie_chasse
 
-mov ebx,ad_tabaccent                            ;comme il y as un caractère de chasse enregistré, on verifie si il n'y as pas une correspondance
+mov ebx,ad_tabclav_chasse                            ;comme il y as un caractère de chasse enregistré, on verifie si il n'y as pas une correspondance
 mov edx,[sv_chas]
 boucle_recherche_correspondance_chasse:
 cmp [ebx],edx
@@ -4125,7 +4198,7 @@ chasse_suivante:
 cmp dword[ebx],0
 je correspondance_chasse_pastrouve
 add ebx,12
-cmp ebx,ad_tabaccent+1020
+cmp ebx,ad_tabclav_chasse+1020
 jne boucle_recherche_correspondance_chasse
 
 correspondance_chasse_pastrouve:
@@ -4155,7 +4228,7 @@ jmp ajoute_carac_zt
 
 ;*******************************************************
 verifie_chasse:     ;verifie que le caractère correspond a un caractère de chasse qui est présent dans la liste
-mov ebx,ad_tabaccent
+mov ebx,ad_tabclav_chasse
 boucle_recherche_chasse:
 cmp dword[ebx],0
 je ajoute_carac_zt 
@@ -4165,7 +4238,7 @@ mov [sv_chas],eax
 jmp bougled
 pas_chasse_trouve:
 add ebx,12
-cmp ebx,ad_tabaccent+1020
+cmp ebx,ad_tabclav_chasse+1020
 jne boucle_recherche_chasse
 
 ajoute_carac_zt:

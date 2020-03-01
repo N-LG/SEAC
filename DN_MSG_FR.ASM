@@ -1,4 +1,4 @@
-﻿bidon:
+﻿dn_msg_fr:
 ;message systeme uttilisé par SeLG 💩
 ;doit être entregistré au format utf8
 ;
@@ -9,8 +9,8 @@
 ;ajoutez 10h au code couleur ci dessus pour pouvoir avoir la couleur souhaité
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
-
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEaC V0.9 Février 2020",13 
+messages_systeme:
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEaC V0.9 Mars 2020",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
 db "Commande inconnue: ",0 ;1
@@ -132,7 +132,7 @@ db 0  ;100
 
 
 
-msgerreur:
+messages_erreur:
 db "action terminé sans problème",0
 db "erreur de paramêtre",13,0                   ;erreur 1
 db "erreur de lecture",13,0                     ;erreur 2
@@ -164,5 +164,5 @@ db "données disponible",13,0                    ;erreur 27
 db "données non disponible",13,0                ;erreur 28
 
 
-
+fin_messages:
 

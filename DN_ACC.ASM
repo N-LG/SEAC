@@ -1,4 +1,4 @@
-﻿dn_acc:
+﻿dn_acc.asm:
 ;table de combinaison entre les suites d'une chasse et le caractère associé pour produire des caractères accentué
 ;4o=caractère de chasse 4o=lettre simple 4o=caractère resultant
 
