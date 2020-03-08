@@ -2151,7 +2151,7 @@ jne adresse_vmem
 suite_boucle_vmem1:
 inc edx
 cmp edx,ad_zdc+200h
-je erreurcommandeparam
+je fin_commande_erreur_param
 jmp boucle_vmem1
 
 ;convertit l'id en entier 32 bit
@@ -2312,7 +2312,7 @@ jne id_modv
 suite_boucle_modv1:
 inc edx
 cmp edx,ad_zdc+200h
-je erreurcommandeparam
+je fin_commande_erreur_param
 jmp boucle_modv1
 
 ;convertit l'id en entier 16 bit
@@ -2603,7 +2603,6 @@ cmp eax,0
 jne fin_commande_erreur
 
 
-
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -2736,7 +2735,6 @@ cmp edx,ecx
 ja erreur_cmddef_structure
 sub ecx,edx
 
-
 ;efface l'ancienne definition de chasse
 push ecx
 push edx
@@ -2755,8 +2753,6 @@ int 64h
 cmp eax,0
 jne fin_commande_erreur
 ignore_chasse_cmddef_clav:
-   
-
 
 ;charge la nouvelle definition de touche PS/2 si existant
 xor edx,edx
@@ -2771,8 +2767,6 @@ cmp eax,0
 jne fin_commande_erreur
 ignore_code_cmddef_clav:
 
-
-
 ;charge la nouvelle definition de caractère touche si existant
 xor edx,edx
 mov dx,[ad_chaine_travail+8]
@@ -2784,7 +2778,6 @@ mov edi,ad_tabclav_carac
 int 64h
 cmp eax,0
 jne fin_commande_erreur
-
 
 xor edx,edx
 mov dx,[ad_chaine_travail+10]
@@ -2798,8 +2791,10 @@ cmp eax,0
 jne fin_commande_erreur
 
 ignore_touchess_cmddef_clav:
-;mov dx,[ad_chaine_travail+14]
-;mov [touches_bascules],dx
+mov dx,[ad_chaine_travail+14]
+dec dl
+dec dh
+mov [alclat1],dx
 ignore_touchesp_cmddef_clav:
 
 mov cl,98  
@@ -2836,7 +2831,6 @@ es
 mov word[edi+8],czm_pol  
 add edi,16
 
-
 ;copie les données
 mov al,4
 mov ecx,4096
@@ -2844,7 +2838,6 @@ mov edx,16
 int 64h
 cmp eax,0
 jne fin_commande_erreur
-
 
 ;met a jour l'index des tables de caractères
 mov ebx,index_tabcar
@@ -3092,19 +3085,28 @@ jmp cmdcd   ;une fois le dossier créer on l'ouvre
 
 ;************************************************************
 fin_commande_erreur_param:
-mov cl,1
-call affmsgerr
-jmp pascommande
+mov eax,1
+jmp fin_commande_erreur
 
 fin_commande_erreur_mem:
-mov cl,11
-call affmsgerr
-jmp pascommande
+mov eax,11
 
 ;affichel le message correspondant a l'erreur dans eax
 fin_commande_erreur:
-mov cl,al   
+push eax
+
+mov cl,3  
+call affmsgsyst
+mov edx,ad_zdc
+call affjournal
+mov al,34
+call affcj
+mov al,13
+call affcj
+pop ecx   
 call affmsgerr
+mov al,17h
+call affcj
 
 
 
@@ -3367,7 +3369,7 @@ pop ebx
 pop eax
 ret
 
-affh0j:      ;affiche dans le journal la valeur de al en hexad?cimal
+affh0j:      ;affiche dans le journal la valeur de al en hexadécimal
 push ax
 mov ah,al
 shr al,4
@@ -3388,7 +3390,7 @@ call affcj
 pop ax
 ret
 
-affh1j:      ;affiche dans le journal la valeur de ax en hexad?cimal
+affh1j:      ;affiche dans le journal la valeur de ax en hexadécimal
 push eax
 xchg ah,al
 call affh0j
@@ -3397,7 +3399,7 @@ call affh0j
 pop eax
 ret
 
-affh2j:     ;affiche le chiffre eax en hexad?cimal
+affh2j:     ;affiche le chiffre eax en hexadécimal
 push eax
 push edx
 mov dx,ax
@@ -3667,7 +3669,7 @@ test al,2
 jnz at8042ok
 ret
 
-atacks:        ;attend que la souris ait re?u un octet
+atacks:        ;attend que la souris ait reçu un octet
 push ecx
 mov ecx,[cptsf]
 add ecx,400     ;ajoute 1 seconde   ;ecx=temp limite a attendre
@@ -3931,11 +3933,11 @@ mov [ztcl+3],al
 xor cx,cx
 cmp word[ztcl+2],02AE0h  ;ignore la première touche virtuelle généré par "verr num"
 je finircl
-cmp word[ztcl+2],0AAE0h  ;et sont équivalent relachement de touche
+cmp word[ztcl+2],0AAE0h  ;et son équivalent relachement de touche
 je finircl
 cmp word[ztcl+2],036E0h  ;ignore la seconde touche virtuelle généré par "verr num"
 je finircl
-cmp word[ztcl+2],0B6E0h  ;et sont équivalent relachement de touche
+cmp word[ztcl+2],0B6E0h  ;et son équivalent relachement de touche
 je finircl
 
 
@@ -4093,20 +4095,83 @@ cmp cx,100   ;touche 0 pave numerique
 je touche0_pavenum
 
 cmp cx,78     ;touche suppr
-jne pas_touche_sp
+jne pas_touche_reboot
 mov ax,[atbp+8h]
 test ax,0440h
-jz pas_touche_sp 
+jz pas_touche_reboot 
 test ax,0280h
-jz pas_touche_sp 
+jz pas_touche_reboot 
 jmp selcod16:reboot ;rebouter via le mode réel
+pas_touche_reboot:
 
 
+;test si les touches de changement de clavier
+xor ebx,ebx
+mov bl,[alclat1]
+;pushad       ;TRAPPE
+;mov ax,cx
+;call affh0j
+;popad
+;pushad       ;TRAPPE
+;mov ax,bx
+;call affh0j
+;popad
 
-pas_touche_sp:
+cmp cx,bx
+je touche_clavier_alternatif1
+mov bl,[alclat2]
+cmp bx,0FFh
+je pas_touche_clavier_alternative
+cmp cx,bx
+jne pas_touche_clavier_alternative
+
+;si touche 2 on test si la touche 1 est déja enfoncé
+push ecx
+mov bl,[alclat1]
+mov cl,[alclat1]
+mov eax,1
+shr ebx,3
+and cl,7h
+shl eax,cl
+pop ecx
+test [ebx+atbp],al
+jz pas_touche_clavier_alternative
+mov ax,[atbp+8h]
+test ax,0440h
+jz pas_touche_clavier_alternative 
+jmp touche_clavier_alternative
+
+
+touche_clavier_alternatif1:  ;si touche 1 on test si la touche 2 est déja enfoncé
+mov bl,[alclat2]
+cmp bl,0FFh
+je touche_clavier_alternatif2
+push ecx
+mov cl,[alclat2]
+mov eax,1
+shr ebx,3
+and cl,7h
+shl eax,cl
+pop ecx
+test [ebx+atbp],al
+jz pas_touche_clavier_alternative
+
+touche_clavier_alternatif2:
+mov ax,[atbp+8h]
+test ax,0440h
+jnz touche_clavier_alternative
+
+pas_touche_clavier_alternative:
+
+;******************************************************
+charge_carac_touche:   ;charge le caractère associé a la touche
 xor ebx,ebx
 mov bx,cx
 shl ebx,4
+test byte[attcl],080h
+jz clavier_alter_inactif 
+add ebx,2048
+clavier_alter_inactif:
 
 test byte[atbp+7h],02h
 jnz tkmaj
@@ -4310,11 +4375,10 @@ mov ebx,8
 jmp touche_pavenum
 touche9_pavenum:
 mov ebx,9
-
 touche_pavenum:
 mov ax,[atbp+8h]
 test ax,0280h
-jz pas_touche_sp 
+jz charge_carac_touche
 
 xor edx,edx
 mov eax,[sv_alt]
@@ -4324,7 +4388,9 @@ add eax,ebx
 mov [sv_alt],eax
 jmp finircl 
 
-
+touche_clavier_alternative:
+xor byte[attcl],080h
+jmp finircl 
 
 touche_retour_console: ;f10
 mov al,0

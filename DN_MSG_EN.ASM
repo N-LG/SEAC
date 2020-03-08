@@ -4,7 +4,7 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEaC V0.9 March 2020",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SELG V0.9 March 2020",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"development version",17h,13,0
 
 db "unknown command: ",0 ;1
@@ -156,6 +156,11 @@ db "pas de réponse",13,0                                              ;erreur 2
 db "erreur dans la structure",13,0                                    ;erreur 26
 db "données disponible",13,0                                          ;erreur 27
 db "données non disponible",13,0                                      ;erreur 28
-
+db "zone de mémoire indisponible",13,0          ;erreur 29
+db "zone de mémoire hors mémoire physique",13,0 ;erreur 30
+db "erreur controleur UHCI",13,0                ;erreur 31
+db "erreur controleur OHCI",13,0                ;erreur 32
+db "erreur controleur EHCI",13,0                ;erreur 33
+db "erreur controleur XHCI",13,0                ;erreur 34
 
 fin_messages:

@@ -71,7 +71,7 @@ ad_msg_erreur equ 6000h ;8Ko
 
 ad_tabclav_code    equ 8000h   ;512 octet
 ;ad_tabclav_usb    equ 8200h    ;inconnu (128 estimé)
-ad_tabclav_carac equ 1800h     ;2 fois 2048
+ad_tabclav_carac equ 8800h     ;2 fois 2048
 ad_tabclav_chasse equ 9800h    ;2048 max
 
 
@@ -102,7 +102,7 @@ ad_ztcmd      equ 18000h ;zone tampon reception commande
 ;*******************************************************************************************************************************************************
 ;variables systŠme
 
-cu_cce equ 0  ;position du curseur dans la commande en cours de r‚daction
+cu_cce equ 0  ;position du curseur dans la commande en cours de rédaction
 to_cce equ 2  ;taille de la commande en cours de r‚daction
 id_zdc equ 6  ;id de la commande en cours de traitement
 to_ztcmd equ 8  ;taille occup‚ dans la zt commande   
@@ -121,12 +121,23 @@ ad_copiercoller equ 1Ch  ;adresse de la zone reservé au copié/collé
 
 atbp equ 20h    ;attribut bouton pressé
 attcl equ 30h   ;attribut clavier
+;b0=scroll lock activé
+;b1=verr num activé
+;b2=verr maj activé
+;b3=
+;b4=pause activé
+;b5=
+;b6=commande de maj led envoyé
+;b7=jeu de caractère clavier alternatif activé
+
 ztcl equ 32h    ;zone tampon clavier
 nlafj equ 36h   ;pointeur sur la fin du journal
 pfinj equ 38h   ;pointeur sur la fin du journal
 nb_zrc equ 3Ah  ;nombre de touche dans la zone de reception clavier
 sv_chas equ 3Ch ;sauvegarde de l'eventuel dernier caractère de chasse rentrée
 sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par ALT+chiffres
+alclat1 equ 44h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
+alclat2 equ 45h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
 
 
 xs1 equ 50h      ;position de la souris 1 en X

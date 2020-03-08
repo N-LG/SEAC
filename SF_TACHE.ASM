@@ -54,15 +54,8 @@ mov cl,1
 call affmsgsyst
 mov edx,ad_zdc
 call affjournal
-mov al,13
+mov al,17h
 call affcj
-jmp pascommande
-
-erreurcommandeparam:
-mov cl,8
-call affmsgsyst
-mov edx,ad_zdc
-call affjournal
 mov al,13
 call affcj
 jmp pascommande
@@ -636,7 +629,7 @@ jne id_mtt
 suite_boucle1_mtt:
 inc edx
 cmp edx,ad_zdc+200h
-je erreurcommandeparam
+je fin_commande_erreur_param
 jmp boucle1_mtt
 
 
@@ -646,7 +639,7 @@ inc edx
 mov eax,101
 int 61h
 test ecx,0FFFF0000h
-jnz erreurcommandeparam
+jnz fin_commande_erreur_param
 
 ;recherche la zone mémoire qui correspond a l'ID
 mov ax,selramh
@@ -680,7 +673,7 @@ jne tt_mtt
 suite_boucle2_mtt:
 inc edx
 cmp edx,ad_zdc+200h
-je erreurcommandeparam
+je fin_commande_erreur_param
 jmp boucle2_mtt
 
 
@@ -691,9 +684,9 @@ inc edx
 mov eax,100
 int 61h
 test ecx,0FFFFFF00h
-jnz erreurcommandeparam
+jnz fin_commande_erreur_param
 cmp ecx,0
-je erreurcommandeparam
+je fin_commande_erreur_param
 
 es
 mov [ebx+temp_exec_tache],cl ;chargement du nouveau temp
@@ -724,7 +717,7 @@ jne id_stop
 suite_boucle_stop1:
 inc edx
 cmp edx,ad_zdc+200h
-je erreurcommandeparam
+je fin_commande_erreur_param
 jmp boucle_stop1
 
 ;convertit l'id en entier 16 bit
@@ -733,7 +726,7 @@ inc edx
 mov eax,101
 int 61h
 test ecx,0FFFF0000h
-jnz erreurcommandeparam
+jnz fin_commande_erreur_param
 
 
 cmp [id_tache_af],cx
@@ -793,11 +786,19 @@ jmp pascommande
 
 
 erreurtachent:
-push cx
+push ecx
+mov cl,3  
+call affmsgsyst
+mov edx,ad_zdc
+call affjournal
+mov al,34
+call affcj
 mov cl,4
 call affmsgsyst
-pop ax
+pop eax
 call affh1j
+mov al,17h
+call affcj
 mov al,13
 call affcj
 jmp pascommande

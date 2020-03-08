@@ -1,5 +1,5 @@
 ﻿dn_msg_fr:
-;message systeme uttilisé par SeLG 💩
+;message systeme uttilisé par SeLG
 ;doit être entregistré au format utf8
 ;
 ;0 - BLACK    4 - RED       8 - DARKGRAY    C - LIGHTRED
@@ -10,25 +10,25 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEaC V0.9 Mars 2020",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SELG V0.9 Mars 2020",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"version de dévellopement",17h,13,0
 
-db "Commande inconnue: ",0 ;1
-db "Répertoire introuvable: ",0   ;2
-db 0     ;3
-db "Tâche non trouvé: ",0 ;4
+db 13,16h,"Commande inconnue: ",0 ;1
+db 13,16h,"Répertoire introuvable: ",0   ;2
+db 13,16h,"Erreur lors de l'execution de la commande ",34,0     ;3
+db 13,16h,"Tâche non trouvé: ",0 ;4
 db 0  ;5
 db "Format de fichier non reconnue",13,0  ;6
-db "Mode video non supporté",13,0 ;7
-db "Format de commande incorrecte: ",0 ;8
-db "Changement de mode video bloqué",13,0 ;9
+db 13,16h,"Mode video non supporté",17h,13,0 ;7
+db 0 ;8
+db 13,16h,"Changement de mode video bloqué",17h,13,0 ;9
 
 
 ;message des exceptions
 db "Division par zéro",0                    ;ex0 message 10
 db "Mode debug activé ",0                        ;ex1     
 db "L'interruption non masquable(NMI), panne materiel grave",0      ;ex2
-db "L'instruction int 3 executé",0        ;ex3 
+db "L'instruction int 3 à été appelé par la tâche ",0        ;ex3 
 db "Débordement detecté par INTO",0              ;ex4
 db "Débordement detecté par BOUND",0       ;ex5
 db "Le processeur a rencontré une instruction inconnue",0    ;ex6
@@ -118,8 +118,8 @@ db " de definition de langue a été chargé",13,0              ;87
 db " de definition de clavier à été chargé",13,0             ;88
 db " de definition graphique de caractère a été chargé",13,0 ;89
 
-db "le dossier à supprimer n'est pas vide",13,0  ;90
-db "fichier introuvable",13,0 ;91
+db 0 ;90
+db 0 ;91
 db "arret forcé de la tâche ",0  ;92
 db "modification du temp d'execution de la tâche ",0  ;93
 db "le dossier système a été définis",13,0  ;94
@@ -141,7 +141,7 @@ db "erreur du systême de fichier",13,0          ;erreur 4
 db "erreur d'écriture",13,0                     ;erreur 5
 db "pas de réponse disque",13,0                 ;erreur 6
 db "disque occupé",13,0                         ;erreur 7
-db "fichier deja ouvert",13,0                   ;erreur 8
+db "fichier déjà ouvert",13,0                   ;erreur 8
 db "interdiction de lecture",13,0               ;erreur 9
 db "interdicion d'ouverture",13,0               ;erreur 10
 db "plus assez de mémoire",13,0                 ;erreur 11
@@ -162,7 +162,12 @@ db "pas de réponse",13,0                        ;erreur 25
 db "erreur dans la structure",13,0              ;erreur 26
 db "données disponible",13,0                    ;erreur 27
 db "données non disponible",13,0                ;erreur 28
-
+db "zone de mémoire indisponible",13,0          ;erreur 29
+db "zone de mémoire hors mémoire physique",13,0 ;erreur 30
+db "erreur controleur UHCI",13,0                ;erreur 31
+db "erreur controleur OHCI",13,0                ;erreur 32
+db "erreur controleur EHCI",13,0                ;erreur 33
+db "erreur controleur XHCI",13,0                ;erreur 34
 
 fin_messages:
 

@@ -116,6 +116,8 @@ mov cl,2
 call affmsgsyst
 mov edx,ad_chaine_travail
 call affjournal
+mov al,17h
+call affcj
 mov al,13
 call affcj
 jmp pascommande
