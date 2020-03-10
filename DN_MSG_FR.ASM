@@ -45,7 +45,7 @@ db "Erreur FPU",0          ;ex16
 db "Erreur d'alignement",0 ;ex17
 db "Machine Check",0       ;ex18
 db "Erreur SMID",0         ;ex19
-db "Exception 20",0    ;ex20
+db "Exception de virtualisation",0    ;ex20
 db "exception 21",0   ;21
 db "exception 22",0   ;22
 db "exception 23",0   ;23

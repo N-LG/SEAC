@@ -7,39 +7,39 @@ messages_systeme:
 db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SELG V0.9 March 2020",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"development version",17h,13,0
 
-db "unknown command: ",0 ;1
-db "directory not found: ",0   ;2
-db 0     ;3
-db "Task not found: ",0 ;4
+db 13,16h,"unknown command: ",0 ;1
+db 13,16h,"directory not found: ",0   ;2
+db 13,16h,"Error while executing the command ",34,0     ;3
+db 13,16h, "Task not found: ",0 ;4
 db 0  ;5
-db "unrecognized file format",13,0  ;6
-db "Video mode not supported",13,0 ;7
-db "wrong command syntax: ",0 ;8
-db "Locked video mode change",13,0 ;9
+db 13,16h,"unrecognized file format",13,0  ;6
+db 13,16h,"Video mode not supported",13,0 ;7
+db 0 ;8
+db 13,16h,"Locked video mode change",13,0 ;9
 
 
 ;message des exceptions
-db "Divide by zéro",0                    ;ex0 message 10
-db "debug mode activated",0                        ;ex1     
-db "L'interruption non masquable(NMI), panne materiel grave",0      ;ex2
-db "L'instruction int 3 executé",0        ;ex3 
-db "Débordement detecté par INTO",0              ;ex4
-db "Débordement detecté par BOUND",0       ;ex5
-db "Le processeur a rencontré une instruction inconnue",0    ;ex6
-db "Le coprocesseur ne répond pas",0       ;ex7
-db "Double faute",0                 ;ex8
+db "Divide Error",0                    ;ex0 message 10
+db "Debug Exception",0                        ;ex1     
+db "Nonmaskable external interrupt",0      ;ex2
+db "Breakpoint",0        ;ex3 
+db "Overflow",0              ;ex4
+db "BOUND Range Exceeded",0       ;ex5
+db "Invalid Opcode (Undefined Opcode)",0    ;ex6
+db "No Math Coprocessor",0       ;ex7
+db "Double fault",0                 ;ex8
 db "CoProcessor Segment Overrun",0  ;ex9
-db "TSS invalide",13,0                 ;ex10
-db "Segment de mémoire absent",0    ;ex11
-db "Faute de pile",13,0                 ;ex12
-db "Erreur de protection générale",0  ;ex13
+db "Invalid TSS",13,0                 ;ex10
+db "Segment Not Present",0    ;ex11
+db "Stack fault",13,0                 ;ex12
+db "General protection fault",0  ;ex13
 db "Page Fault",0   ;ex14
 db "Exception # 15",0   ;ex15
-db "Erreur FPU",0          ;ex16
-db "Erreur d'alignement",0 ;ex17
+db "x87 FPU Floating-Point Error",0          ;ex16
+db "Alignment Check",0 ;ex17
 db "Machine Check",0       ;ex18
-db "Erreur SMID",0         ;ex19
-db "Exception # 20",0    ;ex20
+db "SIMD Floating-Point Exception",0         ;ex19
+db "Virtualization Exception",0    ;ex20
 db "exception # 21",0   ;21
 db "exception # 22",0   ;22
 db "exception # 23",0   ;23
@@ -112,10 +112,10 @@ db " file has been loaded for the language definition",13,0               ;87
 db " file has been loaded for the keyboard definition",13,0               ;88
 db " file has been loaded for the  the graphic character definition",13,0 ;89
 
-db "le dossier à supprimer n'est pas vide",13,0  ;90
-db "file not found",13,0 ;91
+db 0 ;90
+db 0 ;91
 db "forced stop of task ",0  ;92
-db "modification du temp d'execution de la tâche ",0  ;93
+db "modification of the execution time of the task ",0  ;93
 db "the system folder has been defined",13,0  ;94
 db " has been copied to ",0  ;95
 db " has been removed",13,0  ;96
@@ -130,7 +130,7 @@ messages_erreur:
 db "execution sans probleme",0
 db "parameter error",13,0                                             ;erreur 1
 db "read error",13,0                                                  ;erreur 2
-db "lecteur/disque/fichier non trouvé",13,0                           ;erreur 3
+db "drive / disk / file not found",13,0                               ;erreur 3
 db "file system error",13,0                                           ;erreur 4
 db "writing error",13,0                                               ;erreur 5
 db "no disk response",13,0                                            ;erreur 6
@@ -139,28 +139,28 @@ db "file already open",13,0                                           ;erreur 8
 db "forbidden reading",13,0                                           ;erreur 9
 db "forbidden opening",13,0                                           ;erreur 10
 db "not enougth memory",13,0                                          ;erreur 11
-db "le fichier ouvert est un dossier",13,0                            ;erreur 12
-db "erreur d'origine inconnue",13,0                                   ;erreur 13
-db "nombre de couleur non reconnue",13,0                              ;erreur 14
-db "ecran absent",13,0                                                ;erreur 15
-db "action non autorisé",13,0                                         ;erreur 16
-db "zone tampon vide",13,0                                            ;erreur 17
-db "zone tampon pleine",13,0                                          ;erreur 18
-db "controleur ne répond pas",13,0                                    ;erreur 19
-db "controleur absent",13,0                                           ;erreur 20
-db "impossible de supprimer le dossier car il n'est pas vide",13,0    ;erreur 21
-db "caractère interdit dans le nom de fichier",13,0                   ;erreur 22
-db "création de fichier impossible",13,0                              ;erreur 23
-db "nom de fichier deja uttilisé",13,0                                ;erreur 24
-db "pas de réponse",13,0                                              ;erreur 25
-db "erreur dans la structure",13,0                                    ;erreur 26
-db "données disponible",13,0                                          ;erreur 27
-db "données non disponible",13,0                                      ;erreur 28
-db "zone de mémoire indisponible",13,0          ;erreur 29
-db "zone de mémoire hors mémoire physique",13,0 ;erreur 30
-db "erreur controleur UHCI",13,0                ;erreur 31
-db "erreur controleur OHCI",13,0                ;erreur 32
-db "erreur controleur EHCI",13,0                ;erreur 33
-db "erreur controleur XHCI",13,0                ;erreur 34
+db "the open file is a folder",13,0                                   ;erreur 12
+db "error of unknown origin",13,0                                   ;erreur 13
+db "unrecognized number of colors",13,0                               ;erreur 14
+db "screen missing",13,0                                                ;erreur 15
+db "unauthorized action",13,0                                         ;erreur 16
+db "empty buffer zone",13,0                                            ;erreur 17
+db "full buffer zone",13,0                                          ;erreur 18
+db "controller does not respond",13,0                                    ;erreur 19
+db "controller absent",13,0                                           ;erreur 20
+db "cannot delete folder because it is not empty",13,0                ;erreur 21
+db "forbidden character in file name",13,0                            ;erreur 22
+db "file creation not possible",13,0                              ;erreur 23
+db "file name already used",13,0                                      ;erreur 24
+db "no answer",13,0                                              ;erreur 25
+db "structure error",13,0                                    ;erreur 26
+db "data available",13,0                                          ;erreur 27
+db "data not available",13,0                                      ;erreur 28
+db "memory area unavailable",13,0          ;erreur 29
+db "memory area outside physical memory",13,0 ;erreur 30
+db "UHCI controller error",13,0                ;erreur 31
+db "OHCI controller error",13,0                ;erreur 32
+db "EHCI controller error",13,0                ;erreur 33
+db "XHCI controller error",13,0                ;erreur 34
 
 fin_messages:
