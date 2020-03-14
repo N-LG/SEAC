@@ -2912,118 +2912,16 @@ jmp pascommande
 
 ;**************************************************************
 cmdex:
+mov esi,debut_cmdex
+mov ecx,fin_cmdex-debut_cmdex
+jmp creation_tache_interne
 
-mov edx,ad_zdc
-boucle1_cmpex:     ;trouve le debut du nom du fichier
-cmp byte[edx],0
-je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx]," "
-jne boucle1_cmpex           
-cmp byte[edx+1]," "
-je boucle1_cmpex           
-
-inc edx
-xor eax,eax         ;ouvre le fichier
-xor ebx,ebx
-int 64h
-cmp eax,0       
-jne fin_commande_erreur
-
-;lit la taille du fichier
-mov al,6
-mov ah,1
-mov edx,ad_chaine_travail
-int 64h
-cmp eax,0
-jne fin_commande_erreur
-
-;vérifie que le fichier n'est pas trop grand
-mov ecx,[ad_chaine_travail]
-;mov eax,1024
-;cmp ecx,eax
-;jne err3cmdsup
-
-;réserve une zt de taille suffisante
-push ebx
-push ecx
-add ecx,1Fh
-and ecx,0FFFFFFF0h
-call resmem
-pop ecx
-pop edx
-jc fin_commande_erreur_mem
-xchg ebx,edx         ;edx=adresse de base ebx=adresse du fichier
-
-    
-
-
-;lit le fichier
-push edx
-mov ax,selramh
-mov ds,ax
-mov es,ax
-mov al,4
-mov edi,edx
-xor edx,edx
-add edi,16
-int 64h
-pop edx
-cmp eax,0
-jne fin_commande_erreur
+debut_cmdex:
+include "CI_EX.ASM"
+fin_cmdex:
 
 
 
-;convertit toute les caractère <20h en caractère NULL
-add ecx,16
-mov edi,edx
-mov esi,edx
-add edi,16
-add esi,ecx
-boucle2_cmpex:
-cmp byte[edi],20h
-jae cmdex_flnd
-mov byte[edi],0
-
-cmdex_flnd:
-inc edi
-cmp edi,esi
-jne boucle2_cmpex
-
-;envoie les commandes
-mov edi,edx
-mov esi,edx
-add edi,16
-add esi,ecx
-
-push edx     ;envoie la première ligne
-mov edx,edi
-mov al,0
-int 61h
-pop edx
-
-boucle3_cmpex:
-cmp byte[edi],0
-jne passe_cmdex
-cmp byte[edi+1],0
-je passe_cmdex
-
-push edx          ;envoie les autres
-mov edx,edi
-inc edx
-mov al,0
-int 61h
-pop edx
-
-
-passe_cmdex:
-inc edi
-cmp edi,esi
-jne boucle3_cmpex
-
-mov ebx,edx
-call libmem
-jmp pascommande
 
 
 

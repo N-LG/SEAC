@@ -162,13 +162,34 @@ int 60h
 
 
 erreur_autres_cmdcop:
-mov cl,al
+push eax
+
 mov al,13
-mov ah,1
+mov ah,0
+mov cl,3
 mov ch,0
 mov edx,zone_tampon
 int 61h
 mov al,6
+int 61h
+
+
+mov al,3
+mov edx,zone_tampon
+int 61h
+mov al,6
+int 61h
+
+mov word[zone_tampon],0D22h  ;" puis CR
+
+pop ecx
+mov al,13
+mov ah,1
+mov ch,0
+mov edx,zone_tampon+2
+int 61h
+mov al,6
+mov edx,zone_tampon
 int 61h
 
 int 60h
