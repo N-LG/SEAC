@@ -3595,132 +3595,132 @@ ret
                                                  ;**************************
 iex0:
 mov cx,0
-jmp exsig
+jmp exsigstop
 
 iex1:
 mov cx,1
-jmp exsig
+jmp exsigcont
 
 iex2:
 mov cx,2
-jmp exsig
+jmp exsigstop
 
 iex3:
 mov cx,3
-jmp exsig
+jmp exsigcont
 
 iex4:
 mov cx,4
-jmp exsig
+jmp exsigstop
 
 iex5:
 mov cx,5
-jmp exsig
+jmp exsigstop
 
 iex6:
 mov cx,6
-jmp exsig
+jmp exsigstop
 
 iex7:
 mov cx,7
-jmp exsig
+jmp exsigstop
 
 iex8:
 mov cx,8
-jmp exsig
+jmp exsigstop
 
 iex9:
 mov cx,9
-jmp exsig
+jmp exsigstop
 
 iexA:
 mov cx,10
-jmp exsig
+jmp exsigstop
 
 iexB:
 mov cx,11
-jmp exsig
+jmp exsigstop
 
 iexC:
 mov cx,12
-jmp exsig
+jmp exsigstop
 
 iexD:
 mov cx,13
-jmp exsig
+jmp exsigstop
 
 iexE:
 mov cx,14
-jmp exsig
+jmp exsigstop
 
 iexF:
 mov cx,15
-jmp exsig
+jmp exsigstop
 
 iex10:
 mov cx,16
-jmp exsig
+jmp exsigstop
 
 iex11:
 mov cx,17
-jmp exsig
+jmp exsigstop
 
 iex12:
 mov cx,18
-jmp exsig
+jmp exsigstop
 
 iex13:
 mov cx,19
-jmp exsig
+jmp exsigstop
 
 iex14:
 mov cx,20
-jmp exsig
+jmp exsigstop
 
 iex15:
 mov cx,21
-jmp exsig
+jmp exsigstop
 
 iex16:
 mov cx,22
-jmp exsig
+jmp exsigstop
 
 iex17:
 mov cx,23
-jmp exsig
+jmp exsigstop
 
 iex18:
 mov cx,24
-jmp exsig
+jmp exsigstop
 
 iex19:
 mov cx,25
-jmp exsig
+jmp exsigstop
 
 iex1A:
 mov cx,26
-jmp exsig
+jmp exsigstop
 
 iex1B:
 mov cx,27
-jmp exsig
+jmp exsigstop
 
 iex1C:
 mov cx,28
-jmp exsig
+jmp exsigstop
 
 iex1D:
 mov cx,29
-jmp exsig
+jmp exsigstop
 
 iex1E:
 mov cx,30
-jmp exsig
+jmp exsigstop
 
 iex1F:
 mov cx,31
 
-exsig:  ;exception: signale et stoppe
+exsigstop:  ;exception: signale et stoppe
 
 mov dx,seldat      ;init pile et data
 mov ds,dx
@@ -3732,6 +3732,9 @@ mov ss,dx
 mov esp,[sauv_esp_t0]
 sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême
 push cx
+
+mov al,1Ch
+call affcj
 
 mov cl,42
 call affmsgsyst
@@ -3772,8 +3775,37 @@ jmp selcod:btacheprincipale
 
 
 
+exsigcont:  ;exception: signale et continue
+push ecx
+push ds
+push ecx
+mov cx,seldat      
+mov ds,cx
 
+mov al,1Fh
+call affcj
 
+mov cl,42
+call affmsgsyst
+
+mov ax,[id_tache_exec]
+call affh1j
+
+mov cl,43
+call affmsgsyst
+
+pop ecx
+add cx,10
+call affmsgsyst
+
+mov al,13
+call affcj
+mov al,17h
+call affcj
+
+pop ds
+pop ecx
+iret
 
 
 

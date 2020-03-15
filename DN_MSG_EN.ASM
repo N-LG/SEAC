@@ -52,7 +52,7 @@ db "exception # 29",0   ;29
 db "exception # 30",0   ;30
 db "exception # 31",0   ;ex31 message 41 
 
-db 13,1Ch,"Process # ",0 ;42
+db 13,"Process # ",0 ;42
 db " caused the exception: ",0 ;43
 db 13,"the main task had to be restarted",17h,13,0  ;44
 db 13,"the faulty task had to be stopped",17h,13,0  ;45

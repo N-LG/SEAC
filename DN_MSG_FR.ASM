@@ -58,7 +58,7 @@ db "exception 29",0   ;29
 db "exception 30",0   ;30
 db "exception 31",0   ;ex31 message 41 
 
-db 13,1Ch,"le processus N°",0 ;42
+db 13,"le processus N°",0 ;42
 db " a causé l'exception: ",0 ;43
 db 13,"la tâche principale a dut être redémarré",17h,13,0  ;44
 db 13,"la tâche fautive a dut être arreté",17h,13,0  ;45
