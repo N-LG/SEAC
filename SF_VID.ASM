@@ -91,6 +91,15 @@ test bl,3
 mov eax,cer_parami
 jz fin_sfv_ouvre_console
 
+test bl,10b          ;vérifie que l'on est en mode graphique si on demande un écran graphique
+jz pasmodegraf_sfv_ouvre_console 
+fs
+cmp byte[bitpp],0
+jne pasmodegraf_sfv_ouvre_console 
+mov eax,cer_eabs
+jmp fin_sfv_ouvre_console 
+pasmodegraf_sfv_ouvre_console:
+
 mov ecx,100 ;redimensionne le segment
 mov al,8
 int 61h
