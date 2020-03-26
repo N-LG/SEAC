@@ -56,7 +56,7 @@ db 00000000b
 db 00000000b
 c03:                  ;Y majuscule avec tréma
 db 00000000b
-db 00100100b
+db 00101000b
 db 00000000b
 db 10000010b
 db 10000010b

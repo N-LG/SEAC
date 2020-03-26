@@ -366,7 +366,7 @@ cld
 rep movsb      ;ds:si vers es:di
 
 
-mov cx,2048    ;copie la table de correspondance touche/caravtères
+mov cx,2048    ;copie la table de correspondance touche/caractères
 mov ax,cs
 mov ds,ax
 mov si,touche_carac
@@ -752,8 +752,7 @@ mov ax,5000h
 mov es,ax
 mov bp,polgraf	   ;ES:BP=pointeur sur le début de la nouvelle police de caractère
 mov ax,1110h
-int 10h                                                                ;méthode bios qui fonctionne tres mal apres bootage par grub
-
+int 10h
 
 
 ;*************************************************
@@ -1076,7 +1075,7 @@ mov ds,ax
 mov ax,selramh
 mov es,ax
 
-mov ecx,8000h
+mov ecx,1000h
 call resmem
 jc errallocmem
 es
@@ -2816,6 +2815,18 @@ jne erreur_cmddef_structure
 cmp byte[ad_chaine_travail+8],0 
 jne erreur_cmddef_structure
 
+;cherche si la table est déja en mémoire
+mov ax,selramh
+mov es,ax
+mov eax,[ad_chaine_travail+8]
+mov edx,index_tabcar
+boucle_verif_defg:
+cmp [edx],eax
+je defg_deja_existant 
+add edx,8
+cmp edx,index_tabcar+512
+jne boucle_verif_defg
+
 ;réserve une zone mémoire pour les données
 mov ecx,4096
 push ebx
@@ -2825,8 +2836,6 @@ pop ebx
 jc errallocmem
 
 ;marque la zone comme étant un police matricielle
-mov ax,selramh
-mov es,ax
 es
 mov word[edi+8],czm_pol  
 add edi,16
@@ -2866,6 +2875,7 @@ mov eax,[ad_chaine_travail+8]
 mov [ebx],eax
 mov [ebx+4],edi
 
+fin_defg_ok:
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -2875,9 +2885,15 @@ call affmsgsyst
 jmp pascommande
 
 
-
-
-
+defg_deja_existant:
+mov edi,[edx+4]
+mov al,4
+mov ecx,4096
+mov edx,16
+int 64h
+cmp eax,0
+jne fin_commande_erreur
+jmp fin_defg_ok
 
 
 

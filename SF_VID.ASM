@@ -13,7 +13,7 @@
 ;11=ecrire une chaine a la position du curseur
 ;12=definir la position du curseur
 ;13=systeme de choix par menu
-;barre de progression mode texte
+;14=barre de progression mode texte
 
 ;21=dessine un pixel a la postion x y avec une couleur prédéterminé
 ;22=dessiner un carré de couleur avec une couleur prédéterminé

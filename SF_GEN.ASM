@@ -302,6 +302,8 @@ suite_sfs_obt_optn:
 inc ebx
 cmp ebx,esi
 jne boucle1_sfs_obt_optn
+es
+mov byte[edx],0
 pop es
 pop ds
 pop esi
@@ -658,13 +660,19 @@ mov bh,cl
 push ebx
 
 mov dx,70h
-mov al,00h    ;secondes (contrairement a ce que je pensait le registre des seconde n'est pas au format BCD)
+mov al,00h    ;secondes 
 out dx,al
 inc dx
 in al,dx
-and eax,0FFh
-xor edx,edx
-mov ecx,1000
+mov cl,al
+mov ah,al
+and ecx,0Fh
+and ax,0F0F0h
+shr al,1     ;/16 *8 =/2
+shr ah,3     ;/16 *2 =/8
+add cl,al
+add cl,ah
+mov eax,1000
 mul ecx
 push eax
 
