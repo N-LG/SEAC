@@ -3845,10 +3845,11 @@ push ds
 
 mov ax,seldat
 mov ds,ax
-in al,60h
+;in al,64h
 ;pushad       ;TRAPPE
 ;call affh0j
 ;popad
+in al,60h
 cmp al,0FEh      ;? je ne me souviens plus pourquoi
 je finircl
 cmp al,0FAh

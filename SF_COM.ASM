@@ -100,7 +100,7 @@ sf_com_ouverture:
 ;bx=ID de la tache avec qui communiquer
 ;ecx=taille du descripteur
 ;edx=attribut canal
-;esi=taille de la zone tampon d'envoie
+;esi=taille de la zone tampon d'envoie ou masque d'alignement mode 2
 ;edi=taille de la zone tampon de reception
 ;sortie:
 ;ebx=adresse de la zone dans la mémoire haute
@@ -115,13 +115,31 @@ push ds
 
 push ecx
 push ebx
+
+mov eax,edx
+and eax,0Fh
+cmp eax,2
+je sf_com_ouverture_mode2
+
 add ecx,esi
 add ecx,edi
 add ecx,30h
 call resmem
 jc erreur_sf_com_ouverture
+jmp suite_sf_com_ouverture
 
 
+sf_com_ouverture_mode2:  ;en mode 2 pas de zone d'échange, juste un descripteur avec possibilité d'aligner la mémoire
+mov eax,esi
+or eax,0Fh
+add ecx,30h
+mov edi,ad_descr_com
+call resmemgo
+jc erreur_sf_com_ouverture
+xor esi,esi
+xor edi,edi
+
+suite_sf_com_ouverture:
 mov ax,seldat
 mov ds,ax
 mov cx,[id_tache_exec]

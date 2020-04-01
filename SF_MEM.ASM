@@ -153,9 +153,9 @@ pop eax
 mov esi,ebx   ;esi=adresse de la zone mémoire 
 jc fin_resmemg ;si il n'y a aucune place suffisante on quitte
 
-
-add ebx,10h
-test ebx,eax
+mov edx,ebx
+add edx,10h
+test edx,eax
 jz redim_resmemg    ;la zone trouvé est a la bonne granularité   
 
 mov edx,eax
@@ -193,6 +193,75 @@ pop ecx
 pop eax
 ret
 
+
+;********************************************************************************
+resmemgo:
+;in: ecx=taille souhaité (multiple de 16 octets obligatoirement)
+;    eax=masque (les bit mis a un dans le masque devront être a zéro dans l'adresse des données de la zone)
+;    edi=offset de la granularité par rapport au début de la zone
+;out ebx=position de la mémoire haute
+;cf=0 ok    cf=1 erreur   
+
+push eax
+push ecx
+push edx
+push esi
+push edi
+push ebp
+push ds
+
+mov dx,selramh
+mov ds,dx
+
+mov ebp,ecx ;sauvegarde taille souhaité
+push eax
+inc eax
+add ecx,eax  ;calcul taille demandé + granularité
+call resmem
+pop eax
+mov esi,ebx   ;esi=adresse de la zone mémoire 
+jc fin_resmemgo ;si il n'y a aucune place suffisante on quitte
+
+mov edx,ebx
+add edx,edi
+test edx,eax
+jz redim_resmemgo    ;la zone trouvé est a la bonne granularité   
+
+mov edx,eax
+not eax
+inc edx
+and ebx,eax
+add ebx,edx         
+sub ebx,edi     ;ebx=adresse dans la zone mémoire respectant la granularité souhaité
+
+mov ecx,[esi+4]
+add ecx,esi
+sub ecx,ebx        ;ecx= taille de la nouvelle zone
+
+          
+mov dword[ebx],"DMS "    ;on crée un descripteur pour cette zone
+xor eax,eax
+mov [ebx+4],ecx
+mov [ebx+8],eax 
+mov [ebx+0Ch],eax 
+
+mov ecx,ebx
+sub ecx,esi       ;ecx= taille de la zone précédente
+mov [esi+4],ecx   ;on met a jour le descripteur
+mov byte[esi+2],"V"
+
+redim_resmemgo:
+mov ecx,ebp
+call modtm  ;on redimensionne la zone
+fin_resmemgo:
+pop ds
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+pop eax
+ret
 
 
 
