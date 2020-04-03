@@ -1259,11 +1259,11 @@ call affmsgsyst     ;rapel sur la version installé
 
 mov dword[ad_ztcmd+0],0
 mov dword[ad_ztcmd+2],"ex #"   ;execution du script d'amorçage
-mov dword[ad_ztcmd+6],"dm/C"
-mov dword[ad_ztcmd+10],"FG.T"
-mov word[ad_ztcmd+14],"XT"
-mov byte[ad_ztcmd+16],0
-mov word[to_ztcmd],17
+mov dword[ad_ztcmd+6],"dm/c"
+mov dword[ad_ztcmd+10],"fg.s"
+mov byte[ad_ztcmd+14],"h"
+mov byte[ad_ztcmd+15],0
+mov word[to_ztcmd],16
 
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
@@ -2911,14 +2911,96 @@ call affcj
 mov edx,ad_zdc
 boucle_cmdaf:
 cmp byte[edx]," "
-je fin_cmdaf
+je suite_cmdaf
 inc edx
 cmp edx,ad_zdc+200h
 jne boucle_cmdaf
 jmp pascommande
 
-fin_cmdaf:
+suite_cmdaf:
 inc edx
+
+;ouvre le fichier
+push edx
+mov eax,0
+mov ebx,0
+int 64h
+pop edx
+cmp eax,0
+jne fin_cmdaf
+
+;lit taille fichier
+push ebx
+push edx
+mov edx,ad_chaine_travail
+mov al,6
+mov ah,1 ;fichier
+int 64h
+pop edx
+pop ebx
+cmp eax,0
+jne fin_cmdaf
+
+cmp dword[ad_chaine_travail],80000h
+ja fin_cmdaf
+;cmp dword[ad_chaine_travail+4],0
+;jne fin_cmdaf
+
+mov ecx,[ad_chaine_travail]
+add ecx,1Fh
+and ecx,0FFFFFF0h
+push ebx
+call resmem
+mov edi,ebx
+pop ebx
+jc errallocmem
+add edi,10h
+
+push ebx
+push edi
+mov ax,selramh
+mov es,ax
+mov ecx,[ad_chaine_travail]
+mov edx,0 
+mov al,4
+int 64h
+pop edi
+pop ebx
+cmp eax,0
+jne fin_cmdaf
+
+mov eax,1 ;ferme le fichier
+int 64h
+
+mov ebx,edi
+mov ecx,[ad_chaine_travail]
+mov ax,selramh
+mov ds,ax
+
+boucle2_cmdaf:
+cmp byte[edi],13
+je ignore_boucle2_cmdaf
+cmp byte[edi],32
+jae ignore_boucle2_cmdaf
+push ecx
+push edi
+mov esi,edi
+inc esi
+cli
+rep movsb
+pop edi
+pop ecx
+ignore_boucle2_cmdaf:
+inc edi
+dec ecx
+jnz boucle2_cmdaf 
+
+mov edx,ebx
+sub ebx,10h
+call libmem
+
+
+fin_cmdaf:
 call affjournal
 mov al,17h
 call affcj

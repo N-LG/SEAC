@@ -4,8 +4,9 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SELG V0.9 April 2020",13 
-db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"development version",17h,13,0
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.9 April 2020 development version",13 
+db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
+
 
 db 13,16h,"unknown command: ",0 ;1
 db 13,16h,"directory not found: ",0   ;2
