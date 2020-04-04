@@ -153,7 +153,7 @@ je ignore_ligne_script
 cmp byte[edi],"!"
 je ignore_ligne_script
 cmp byte[edi],"*"
-je commande_ligne_script
+je attente_ligne_script
 
 mov edx,edi ;envoie la commande au systeme
 mov al,0
@@ -162,8 +162,10 @@ int 61h
 ignore_ligne_script:
 ret
 
-commande_ligne_script:   ;interprète la commande spécifique
-;??????????????????????????????????
+attente_ligne_script:   ;interprète la commande spécifique
+mov eax,1
+mov ecx,400
+int 61h
 ret
 
 
