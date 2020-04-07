@@ -540,7 +540,7 @@ mov byte[esi+type_dm],"T"
 
 ;initialisation du temps d'execution de la tache (temps par defaut)
 es
-mov byte[esi+temp_exec_tache],10
+mov byte[esi+temp_exec_tache],1
 
 mov ax,seldat
 mov ds,ax
@@ -831,12 +831,12 @@ call ferme_fichier_tache
 xor ebx,ebx
 mov cx,[id_tache_af]
 cmp [id_tache_exec],cx
-jne tache_suivante
+jne selection_tache_suivante
 mov byte[nb_zrc],0
 mov word[id_tache_af],0
 mov dword[ad_tache_af],0
 or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
-jmp tache_suivante 
+jmp selection_tache_suivante
 
 ;*********************************************************************************************
 ferme_fichier_tache:          ;ferme les fichier ouvert par la tache et les zone de communication employé (cx=ID de la tache)
@@ -968,14 +968,23 @@ je erreur_org_mem
 es
 cmp byte[ebx+2],"T"
 je restauration_tache
-jmp tache_suivante
+jmp selection_tache_suivante
 
 sauv_tache_norm:      ;sauvegarde des piles d'une tache normale
 mov ebx,[ad_tache_exec]
 es
 mov [ebx+sauv_esp0],esp  
 
-tache_suivante:    ;recherche du descripteur de tache suivant
+
+selection_tache_suivante:
+cmp word[tache_force],0
+je boucle_tache_suivante
+
+xor edx,edx            ;recherche du descripteur de tache avec id spécifique
+xchg dx,[tache_force]
+xor ebx,ebx
+boucle_tache_sp:
+    
 es
 mov eax,[ebx+4]
 es
@@ -991,7 +1000,32 @@ cmp byte[ebx+2],"F" ;si on arrive a la fin des descripteur mémoire on revient a 
 je rest_tache_sp
 es
 cmp byte[ebx+2],"T"
-jne tache_suivante
+jne boucle_tache_sp
+es
+cmp [ebx+id_tache],dx
+jne boucle_tache_sp
+jmp restauration_tache
+
+
+boucle_tache_suivante:    ;recherche du descripteur de tache suivant
+es
+mov eax,[ebx+4]
+es
+cmp word[ebx],"DM"
+jne erreur_org_mem
+test eax,0Fh
+jnz erreur_org_mem
+cmp eax,0
+je erreur_org_mem
+add ebx,eax
+es
+cmp byte[ebx+2],"F" ;si on arrive a la fin des descripteur mémoire on revient a la tache 0
+je rest_tache_sp
+es
+cmp byte[ebx+2],"T"
+jne boucle_tache_suivante
+
+
 
 ;*********************************restauration d'une tache normale
 restauration_tache:
@@ -1041,7 +1075,7 @@ rest_tache_sp:           ;restautation de la tache zéro
 ;maj info de la tache
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
-mov byte[cpttc],10          ;1x2,5ms alloué a la tache principale, oui c'est peu
+mov byte[cpttc],1          ;1x2,5ms alloué a la tache principale, oui c'est peu
 
 ;restauration de la pile
 mov ax,selpil

@@ -541,6 +541,13 @@ iret
 
 ;**************************************************************************************************
 sf_com_ecriture_rc:
+
+mov dx,seldat
+mov es,dx
+fs
+mov dx,[ebx+id_emetteur]
+es
+mov [tache_force],dx
 mov dx,selramh
 mov es,dx
 mov edx,ebx
@@ -548,6 +555,12 @@ add edx,to_ztre
 jmp sf_com_ecriture
 
 sf_com_ecriture_em:
+mov dx,seldat
+mov es,dx
+fs
+mov dx,[ebx+id_recepteur]
+es
+mov [tache_force],dx
 mov dx,selramh
 mov es,dx
 mov edx,ebx
@@ -574,6 +587,7 @@ ja sf_com_ecriture_err1
 
 sfcom_ecriture_ok:
 call sf_com_ecriture_transfert
+int 62h  ;on bascule de tache pour forcer l'execution de la tache receptrice
 pop fs
 pop es
 pop ds

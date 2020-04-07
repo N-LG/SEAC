@@ -3109,6 +3109,7 @@ call affcj
 ;********************************************************
 pascommande:
 include "SF_PERI.ASM"         ;gestion periodique du materiel
+int 62h
 jmp btacheprincipale
 
 ;fin de la boucle de la tache principale

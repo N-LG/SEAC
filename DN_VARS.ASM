@@ -302,7 +302,7 @@ ad_tache_cree equ 1ECH
 
 sauv_esp_t0 equ 1F0h    ;sauvegarde de la pile de la tache 0
 id_tache_fichier equ 1F4h ;ID de la tache qui utillise la fonction fichier
-
+tache_force equ 1F6h     ;prochaine tache vers laquel commuter
 
 ;*************************************************************************
 ;zone tampon travail sur FAT et fichier
