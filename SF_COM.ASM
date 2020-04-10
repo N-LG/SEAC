@@ -48,7 +48,7 @@ jne sf_com_er_parami
 
 sf_com_rc_ok:
 cmp al,1
-je sf_com_fermeture
+je sf_com_fermeture_rc
 cmp al,4
 je sf_com_lecture_descripteur
 cmp al,5
@@ -68,7 +68,7 @@ jmp sf_com_er_parami
 
 sf_com_em_ok:
 cmp al,1
-je sf_com_fermeture
+je sf_com_fermeture_em
 cmp al,4
 je sf_com_lecture_descripteur
 cmp al,5
@@ -194,11 +194,40 @@ iret
 
 
 ;**************************************************************************************************
-sf_com_fermeture:
+sf_com_fermeture_em:
+fs
+mov word[ebx+id_emetteur],0
+fs
+or word[ebx+at_canal],1000h   ;b12=canal terminé par emeteur, dès que la zone vers recepteur est vide on supprime le canal
+mov dx,selramh
+mov ds,dx
+mov edx,ebx
+add edx,to_zter
+call sf_com_to
+cmp ebp,0
+jne fin_sf_com_fermeture
+jmp ok_sf_com_fermeture
 
+
+
+sf_com_fermeture_rc:
+fs
+mov word[ebx+id_recepteur],0
+fs
+or word[ebx+at_canal],2000h     ;b13=canal terminé par recepteur, dès que la zone vers emeteur est vide on supprime le canal
+mov dx,selramh
+mov ds,dx
+mov edx,ebx
+add edx,to_ztre
+call sf_com_to
+cmp ebp,0
+jne fin_sf_com_fermeture
+
+
+ok_sf_com_fermeture:
 call libmem
 jc sf_com_er_parami
-
+fin_sf_com_fermeture:
 pop fs
 pop es
 pop ds
@@ -502,6 +531,23 @@ jmp sf_com_lecture_ok
 
 
 sf_com_lecture0:
+sub edx,ebx       ;test si le canal as été marqué comme a effacer
+cmp edx,to_ztre
+je sf_com_lecture0_ztre 
+
+fs
+test word[ebx+at_canal],1000h  
+jz sf_com_lecture0_sansfermeture 
+jmp sf_com_lecture0_fermeture 
+
+sf_com_lecture0_ztre:
+fs
+test word[ebx+at_canal],2000h  
+jz sf_com_lecture0_sansfermeture 
+
+sf_com_lecture0_fermeture:
+call libmem
+sf_com_lecture0_sansfermeture:
 pop fs
 pop es
 pop ds

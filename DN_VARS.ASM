@@ -503,6 +503,12 @@ id_emetteur  equ 08h  ;ID de la tache
 id_recepteur equ 0Ah ;ID de la tache receptrice
 to_descr_com equ 0Ch ;taille du descripteur de canal
 at_canal     equ 10h ;attribut du canal de communication 
+		     ;b0-b3 type de connexion
+		     ;b12=canal terminé par emeteur, dès que la zone vers recepteur est vide on supprime le canal
+		     ;b13=canal terminé par recepteur, dès que la zone vers emeteur est vide on supprime le canal
+		     ;b14=descripteur modifié par emeteur
+		     ;b15=descripteur modifié par recepteur
+
 com_tempo    equ 14h ;dword temporaire
 
 to_zter      equ 20h ;taille de la zone emeteur vers recepteur
