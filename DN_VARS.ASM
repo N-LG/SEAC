@@ -142,21 +142,15 @@ alclat2 equ 45h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
 
 xs1 equ 50h      ;position de la souris 1 en X
 ys1 equ 52h      ;position de la souris 1 en Y
-nbzt1 equ 54h    ;nombre d'octet dans la trame a d‚coder
-nbts1 equ 55h    ;nombre d'octet de la trame a attendre avant de la dédoder
-atts1 equ 56h    ;attribut souris 1
-zts1 equ 58h     ;zone tampon de la souris 1
-axs1 equ 5Ch     ;position d'affichage actuel en x de la souris 1
-ays1 equ 5Eh     ;position d'affichage actuel en y de la souris 1
+axs1 equ 54h     ;position d'affichage actuel en x de la souris 1
+ays1 equ 56h     ;position d'affichage actuel en y de la souris 1
+nbzt1 equ 58h    ;nombre d'octet dans la trame a d‚coder
+nbts1 equ 59h    ;nombre d'octet de la trame a attendre avant de la dédoder
+atts1 equ 5Ah    ;attribut souris 1
+etbs1 equ 5Bh    ;etat précédent boutons souris
+zts1 equ 5Ch     ;zone tampon de la souris 1
 
-xs2 equ 60h      ;position de la souris 2 en X
-ys2 equ 62h      ;position de la souris 2 en Y
-nbzt2 equ 64h    ;nombre d'octet dans la trame a d‚coder
-nbts2 equ 65h    ;nombre d'octet de la trame a attendre avant de la dédoder
-atts2 equ 66h    ;attribut souris 2
-zts2 equ 68h     ;zone tampon de la souris 2
-axs2 equ 6Ch     ;position d'affichage actuel en x de la souris 2
-ays2 equ 6Eh     ;position d'affichage actuel en y de la souris 2
+
 
 
 ;******************************************************************************

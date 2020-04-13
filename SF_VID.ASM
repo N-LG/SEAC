@@ -3,8 +3,8 @@
 ;0=création console
 ;1=suppression console
 ;2=obtenir information ecran
-;3=charger un l'ecran
-;4=sauvegarde de l'ecran
+
+
 ;5=obtient le caractère+touche de la fifo de reception clavier
 ;6=aquisition d'une chaine de caractère validé par entrée
 ;7=demande la mise a jour de l'écran
@@ -274,12 +274,6 @@ fs
 mov ax,[ys1]
 mov [edx+18h],eax
 fs
-mov ax,[xs2]
-mov [edx+1Ch],eax
-fs
-mov ax,[ys2]
-mov [edx+20h],eax
-fs
 mov ax,[octpl]
 mov [edx+24h],eax
 
@@ -291,7 +285,7 @@ iret
 
 ;*******************************************************************************************
 sfv_obt_clav:      ;renvoie la touche dans al, les caractère important pressé a ce moment dans ah 
-                   ;et le caractère dans ecx ou (si le carctère est 106 à 111, renvoie les coordonné de la souris x=ebx y=ecx)
+                   ;et le caractère dans ecx ou (si le carctère est superieur a 127, renvoie les coordonné de la souris x=ebx y=ecx)
 call fc_obt_clav
 
 iret
@@ -335,13 +329,11 @@ cld
 rep movsb
 mov ecx,edx
 
-cmp al,106
+cmp al,0F0h
 jb fin_obt_clav
-cmp al,111
-ja fin_obt_clav
 
 mov ebx,ecx
-shl ecx,16
+shr ecx,16
 and ebx,0FFFFh
 and ecx,0FFFFh
 jmp fin_obt_clav
@@ -464,11 +456,8 @@ boucle_sfv_aqui_chaine:
 push ebx
 call fc_obt_clav         
 pop ebx
-cmp al,106
-jb passouris_sfv_aqui_chaine
-cmp al,111
-ja passouris_sfv_aqui_chaine
-jmp boucle_sfv_aqui_chaine
+cmp al,0F0h
+jae boucle_sfv_aqui_chaine
 
 passouris_sfv_aqui_chaine:
 cmp al,01

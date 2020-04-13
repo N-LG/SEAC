@@ -956,18 +956,6 @@ jne sauv_tache_norm
 
 mov [sauv_esp_t0],esp  ;sauvegarde de l'offset de la pile de la tache zéro
 xor ebx,ebx
-es
-mov eax,[ebx+4]
-es
-cmp word[ebx],"DM"
-jne erreur_org_mem
-test eax,0Fh
-jnz erreur_org_mem
-cmp eax,0
-je erreur_org_mem
-es
-cmp byte[ebx+2],"T"
-je restauration_tache
 jmp selection_tache_suivante
 
 sauv_tache_norm:      ;sauvegarde des piles d'une tache normale
@@ -983,8 +971,8 @@ je boucle_tache_suivante
 xor edx,edx            ;recherche du descripteur de tache avec id spécifique
 xchg dx,[tache_force]
 xor ebx,ebx
+
 boucle_tache_sp:
-    
 es
 mov eax,[ebx+4]
 es
@@ -1059,9 +1047,9 @@ erreur_org_mem:    ;detection d'une erreur dans l'organisation de la mémoire hau
 
 mov eax,[nb_ram]
 es
-mov dword[eax],"DMF?"
-es
 mov dword[ebx],"DMV?"
+es
+mov dword[eax],"DMF?"
 sub eax,ebx
 es
 mov [ebx+4],eax

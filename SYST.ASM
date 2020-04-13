@@ -105,15 +105,10 @@ sti
 
 ;*********************************************************************
 ;active la ligne A20 pour pouvoir ?crire dns la zone memoire superieur!!!!!!!!!!!!!!!!!!!!!méthode ne fonctionnant pas a chaque fois m'as t'on dit
-mov al,0D1h          ;active A20
-out 64h,al           ;la prochaine ?criture sur 60h sera pour le port de sortie
-call attporok
-mov al,0DFh
-out 60h,al           ;envoie de la configuration pour l'activation de l'A20
-call attporok
-mov al,0FFh          ;envoie une commande d'impulsion sur aucune des sorties
-out 64h,al            
-call attporok        
+in al, 092h
+or al, 2
+out 92h, al
+    
 
 ;test si la ligne A20 est bien désactivé
 xor eax,eax
@@ -138,9 +133,17 @@ jne ignore_2eme_methode_A20
 
 ;autre méthode pour activer la ligne A20 (si l'autre ne fonctionne pas!!!)
 autre_methode_A20:
-in al, 092h
-or al, 2
-out 92h, al
+mov al,0D1h          ;active A20
+out 64h,al           ;la prochaine ?criture sur 60h sera pour le port de sortie
+call attporok
+mov al,0DFh
+out 60h,al           ;envoie de la configuration pour l'activation de l'A20
+call attporok
+mov al,0FFh          ;envoie une commande d'impulsion sur aucune des sorties
+out 64h,al            
+call attporok  
+
+
 ignore_2eme_methode_A20:
 
 
@@ -170,7 +173,6 @@ je suitestram
 and ebx,0FFFFFFF0h     ;ne prend en compte que les bloc de 16 octet
 sub ebx,10h
 mov dword[ebx],"DMF?"   ;et le descripteur de fin de m?moire
-
 sub ebx,100000h
 mov [nb_ram+segdat*16],ebx      ;sauvegarde la quantit? total de ram
 
@@ -817,7 +819,7 @@ mov dx,21h             ;regle le masquage des irq
 mov al,0A0h            ;masque les irq 5&7
 out dx,al
 mov dx,0A1h
-mov al,0EFh            ;masque les irq 8?11 et 13?15
+mov al,0FFh            ;masque les irq 8 0 15
 out dx,al
 
 
@@ -1009,61 +1011,189 @@ sti      ;init des valeurs terminé, débloquage des irq
 
 
 ;**********************************************************************
-;programme souris ps/2
+;programme souris ps/2   ;inspiré de https://forum.osdev.org/viewtopic.php?t=24277
 
-mov ax,seldat    ;charge les info souris de base
-mov ds,ax
-mov byte[nbts1],03          ;nombre d'octet de la trame souris
+;définis les parametres de base
+mov dx,seldat
+mov ds,dx
+mov byte[nbts1],3
+mov byte[nbzt1],0 
+;jmp fin_init_souris
+
+;commande au 8042: Enable Auxiliary Interface
+mov al,0A8h     
+call env_8042_cmd
+      
+;modifie le 8042 Command Byte
+mov al,20h
+call env_8042_cmd
+call lec_ps2
+bts ax,1       ;enable l'interruption auxilliaire
+btr ax,5       ;met a zéro le bit "disable auxiliary device"
+mov bl, al
+mov al,60h
+call env_8042_cmd
+mov al,bl
+call env_8042_dat
+
+call lec_ps2
+
+;commande a la souris: set to default value
+mov al,0F6h
+call env_ps2
 
 
-call at8042ok 
-mov al,0A8h     ;activation de la souris ps/2   
-out 64h,al
+;envoie la séquence d'activation de la molette par sequence de commandes set sample rate
+;mov al, 0F3h   ;sample rate
+;call env_ps2
+;mov al, 200    ;a la valeur 200
+;call env_ps2
+;mov al, 0F3h    ;sample rate
+;call env_ps2
+;mov al, 100     ;a la valeur 100
+;call env_ps2
+;mov al, 0F3h    ;sample rate
+;call env_ps2
+;mov al, 80      ;a la valeur 80
+;call env_ps2
 
-call at8042ok 
-mov al,0D4h     ;la prochaine commande sera pour la souris
-out 64h,al            
+;vérifie le type de la souris pour voir si la molette a été activé
+;mov al,0F2h
+;call env_ps2
+;or al,al
+;jz molette_non_active
+;mov byte[nbts1],4
+;molette_non_active: 
 
-call at8042ok
-cli
-mov al,0FFh      ;commande souris > reset souris
-out 60h,al            
-or byte[atts1],01h  ;met a 1 le bit ack attendu
-sti
-call atacks
-jc err_init_souris
+;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
+;mov al, 0F3h
+;call env_ps2
+;mov al, 200
+;call env_ps2
+;mov al, 0F3h
+;call env_ps2
+;mov al,200
+;call env_ps2
+;mov al, 0F3h
+;call env_ps2
+;mov al,80
+;call env_ps2
 
-cli
-or byte[atts1],01h  ;met a 1 le bit ack attendu
-sti
-call atacks
-jc err_init_souris
+;vérifie le type pour voir si les boutons ont été activé
+;mov al,0F2h
+;call env_ps2
 
-cli
-or byte[atts1],01h  ;met a 1 le bit ack attendu
-sti
-call atacks
-jc err_init_souris
+;configure la souris et l'active
+mov al,0F3h    ;set sample rate
+call env_ps2
+mov al,200     ;échantillons par seconde, valeur possible: 10,20,40,60,80,100,200
+call env_ps2
+mov al,0E8h    ;set resolution
+call env_ps2
+mov al,3       ;valeur possible: 0,1,2,3
+call env_ps2
+mov al,0E6h    ;set scaling 1:1
+call env_ps2
+;jmp fin_init_souris
+mov al,0F4h    ;enable
+call env_ps2
 
-call at8042ok 
-mov al,0D4h     ;la prochaine commande sera pour la souris
-out 64h,al            
 
-call at8042ok
-cli
-mov al,0F4h      ;commande souris > active le data reporting 
-out 60h,al            
-or byte[atts1],01h  ;met a 1 le bit ack attendu
-sti
-call atacks
-jnc fin_init_souris
 
-err_init_souris:   ;(au cas ou qq chose aurais merdé lors de l'init souris)     
+
+;démasque l'irq 12
+mov dx,0A1h
+mov al,0EFh
+out dx,al
+
+az2:
+in al,64h
+test al,01h ;0=vide
+jz az1
+in al,60h
+jmp az2
+az1:
+
+;aquitte toutes irq en attente
+mov al,20h
+out 0A0h,al
+mov al,20h
+out 20h,al
+
+jmp fin_init_souris
+
+
+
+;********************************************************************
+;sous fonctions 8042
+
+at8042ok_lec:        ;attend que la puce ait des données disponible sur 60h
+push eax
+push ecx
+mov ecx,10000
+boucle_at8042ok_lec: 
 in al,64h
 test al,1
-jz fin_init_souris
+jnz at8042ok
+dec ecx 
+jnz boucle_at8042ok_lec 
+pop ecx
+pop eax
+stc
+ret
+
+
+at8042ok_env:        ;attend la fin du traitement des donnes par la puce 8042
+push eax
+push ecx
+mov ecx,10000
+boucle_at8042ok_env: 
+in al,64h
+test al,2
+jz at8042ok
+dec ecx 
+jnz boucle_at8042ok_env 
+pop ecx
+pop eax
+stc
+ret
+
+at8042ok:
+pop ecx
+pop eax
+clc
+ret
+
+env_ps2:
+call at8042ok_env
+jc fin_lec_ps2
+push eax
+mov al,0D4h
+out 64h,al
+pop eax
+call at8042ok_env
+jc fin_lec_ps2
+out 60h,al
+
+lec_ps2:
+call at8042ok_lec
+jc fin_lec_ps2
 in al,60h
-jmp err_init_souris
+fin_lec_ps2:
+ret
+
+env_8042_cmd:
+call at8042ok_env
+jc fin_lec_ps2
+out 64h,al
+ret
+
+env_8042_dat:
+call at8042ok_env
+jc fin_lec_ps2
+out 60h,al
+ret
+
 
 fin_init_souris:
 
@@ -1309,6 +1439,8 @@ mov al,5
 int 63h
 cmp al,0
 je majafcsl
+cmp al,0F0h
+jae majafcsl
 
 or byte[at_csl],08h ;signale que l'affichage de la commande doit être mis a jour
 
@@ -3660,31 +3792,7 @@ ret
 include "SF_MEM.ASM"   ;sous fonction sytème pour la gestion des espaces mémoires
 
 
-at8042ok:        ;attend la fin du traitement des donn?es par la puce 8042
-in al,64h
-test al,2
-jnz at8042ok
-ret
 
-atacks:        ;attend que la souris ait reçu un octet
-push ecx
-mov ecx,[cptsf]
-add ecx,400     ;ajoute 1 seconde   ;ecx=temp limite a attendre
-
-batacks:
-cmp ecx,[cptsf]
-jb eratacks         ;si temp max inf a compteur sans fin on arrete d'attendre
-test byte[atts1],01
-jnz batacks
-
-clc            ;pas d'erreur cf=0
-pop ecx
-ret
-
-eratacks:      ;en cas d'errerur mettre cf a 1
-stc
-pop ecx
-ret
 
 
 ;***************************************************************************
@@ -3928,11 +4036,14 @@ push ds
 
 mov ax,seldat
 mov ds,ax
-;in al,64h
+in al,60h
 ;pushad       ;TRAPPE
+;push ax
+;mov al,"!"
+;call affcj
+;pop ax
 ;call affh0j
 ;popad
-in al,60h
 cmp al,0FEh      ;? je ne me souviens plus pourquoi
 je finircl
 cmp al,0FAh
@@ -4138,15 +4249,6 @@ pas_touche_reboot:
 ;test si les touches de changement de clavier
 xor ebx,ebx
 mov bl,[alclat1]
-;pushad       ;TRAPPE
-;mov ax,cx
-;call affh0j
-;popad
-;pushad       ;TRAPPE
-;mov ax,bx
-;call affh0j
-;popad
-
 cmp cx,bx
 je touche_clavier_alternatif1
 mov bl,[alclat2]
@@ -4499,34 +4601,25 @@ jmp charge_ecran
 
 ;*****************************************************
 irqsouris:
-push ax
-push bx
-push si
+pushad
 push ds
 
 mov bx,seldat
 mov ds,bx
 
-test byte[atts1],01h ;test si un ack est atendu
-jz pasacks
-in al,60h
-and byte[atts1],0FEh
-jmp finirqs
-
-pasacks:
 mov bl,[nbzt1]       ;charge le nombre d'octet déja reçu
 xor bh,bh
 mov si,bx
 inc bl
 mov [nbzt1],bl       ; et l'incrémente
 in al,60h
+
+
 mov [zts1+si],al    ;met le caractère reçu dans la zt souris
 cmp [nbts1],bl
 jne finirqs         ;si la trame n'as pas été totalement reçu -> fin
 
-
-xor al,al            ;on décode, d'abord mettre le compteur de la trame a zéros
-mov [nbzt1],al
+mov byte[nbzt1],0     ;on décode, d'abord mettre le compteur de la trame a zéros
 
 mov al,[zts1]       ;extrait le déplacement en x
 xor bh,bh
@@ -4567,19 +4660,126 @@ mov ax,0
 pasinfys1:
 mov [ys1],ax
 
-;**************************************
-;que faire du "clic"
-mov al,[zts1]    
-test al,1
-jz stopbip
-mov al,3
-out 61h,al        ;allume le bipper
-jmp finirqs
+;pushad       ;TRAPPE
+;mov ax,[xs1]  
+;call affh1j
+;mov ax,[ys1]  
+;call affh1j
+;popad
 
-stopbip:
-mov al,0
-out 61h,al        ;éteint le bip
-;**************************************
+
+;traitement cliques 0-3
+mov cl,[zts1]
+and cl,07h
+;mov ch,[zts1+2]  ;******bouton 4 et 5 eventuellement ici
+;and ch,30h
+;shr ch,1
+;or cl,ch
+mov ch,[etbs1]
+mov [etbs1],cl
+xor cl,ch
+
+test cl,1
+jnz modifbts1
+test cl,2
+jnz modifbts2
+test cl,4
+jnz modifbts3
+test cl,8
+jnz modifbts4
+test cl,16
+jnz modifbts5
+jmp molettes_souris
+
+modifbts1:
+test byte[zts1],1
+jnz bts1_press
+jmp bts1_depress 
+
+modifbts2:
+test byte[zts1],2
+jnz bts2_press
+jmp bts2_depress 
+
+modifbts3:
+test byte[zts1],4
+jnz bts3_press
+jmp bts3_depress 
+
+modifbts4:
+test byte[zts1+2],16
+jnz bts2_press
+jmp bts2_depress 
+
+modifbts5:
+test byte[zts1+2],32
+jnz bts3_press
+jmp bts3_depress 
+
+bts1_press:
+mov cl,0F0h
+jmp code_souris_ok
+
+bts1_depress:
+mov cl,0F1h
+jmp code_souris_ok
+
+bts2_press:
+mov cl,0F2h
+jmp code_souris_ok
+
+bts2_depress:
+mov cl,0F3h
+jmp code_souris_ok
+
+bts3_press:
+mov cl,0F4h
+jmp code_souris_ok
+
+bts3_depress:
+mov cl,0F5h
+jmp code_souris_ok
+
+bts4_press:
+mov cl,0F6h
+jmp code_souris_ok
+
+bts4_depress:
+mov cl,0F7h
+jmp code_souris_ok
+
+bts5_press:
+mov cl,0F8h
+jmp code_souris_ok
+
+bts5_depress:
+mov cl,0F9h
+
+
+code_souris_ok:
+xor ch,ch   ;en attendant de lire les touches sp
+
+
+;*******************************************
+xor ebx,ebx              ;ajoute le clique dans la ZT clavier
+cmp byte[nb_zrc],42
+je finirqs
+mov bl,[nb_zrc]
+inc byte[nb_zrc]
+mov edx,ebx      ;mul ebx par 6
+shl ebx,2
+shl edx,1
+add ebx,edx
+mov [ebx+zt_rcl],cx
+mov eax,[xs1]    ;xs1=lsb ys1=msb
+mov [ebx+zt_rcl+2],eax
+
+
+molettes_souris:
+;§§§§§§§§§§§§§§§§§§§§§§   gestion de la molette souris
+
+
+
 
 finirqs:
 mov al,20h
@@ -4587,11 +4787,12 @@ out 0A0h,al
 mov al,20h
 out 20h,al
 pop ds
-pop si
-pop bx
-pop ax
+popad
 sti
 iret
+
+
+
 
 
 ;********************************
