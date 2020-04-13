@@ -280,11 +280,16 @@ jne boucleefreg
 ;**********************************************************************
 ;initiallise les données syst?mes
 
-mov ax,segdat    ;charge les info video
+mov ax,segdat    ;charge les info video 
 mov ds,ax
 mov word[resxt],80           ;mode texte 80x25 au d?but ;-)
 mov word[resyt],25
 mov byte[bitpp],00
+mov word[resx],640
+mov word[resy],400
+mov word[xs1],320
+mov word[ys1],200
+
 
 xor eax,eax
 xor ecx,ecx
@@ -1020,6 +1025,13 @@ mov byte[nbts1],3
 mov byte[nbzt1],0 
 ;jmp fin_init_souris
 
+;commande au 8042: test Auxiliary Interface
+mov al,0A9h     
+call env_8042_cmd
+call lec_ps2
+cmp al,0
+jne fin_init_souris ;si c'est pas bon on initalise pas la disquette
+
 ;commande au 8042: Enable Auxiliary Interface
 mov al,0A8h     
 call env_8042_cmd
@@ -1044,26 +1056,27 @@ call env_ps2
 
 
 ;envoie la séquence d'activation de la molette par sequence de commandes set sample rate
-;mov al, 0F3h   ;sample rate
-;call env_ps2
-;mov al, 200    ;a la valeur 200
-;call env_ps2
-;mov al, 0F3h    ;sample rate
-;call env_ps2
-;mov al, 100     ;a la valeur 100
-;call env_ps2
-;mov al, 0F3h    ;sample rate
-;call env_ps2
-;mov al, 80      ;a la valeur 80
-;call env_ps2
+mov al, 0F3h   ;sample rate
+call env_ps2
+mov al, 200    ;a la valeur 200
+call env_ps2
+mov al, 0F3h    ;sample rate
+call env_ps2
+mov al, 100     ;a la valeur 100
+call env_ps2
+mov al, 0F3h    ;sample rate
+call env_ps2
+mov al, 80      ;a la valeur 80
+call env_ps2
 
 ;vérifie le type de la souris pour voir si la molette a été activé
-;mov al,0F2h
-;call env_ps2
-;or al,al
-;jz molette_non_active
-;mov byte[nbts1],4
-;molette_non_active: 
+mov al,0F2h
+call env_ps2
+call lec_ps2
+cmp al,3
+jne molette_non_active
+mov byte[nbts1],4
+molette_non_active: 
 
 ;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
 ;mov al, 0F3h
@@ -1094,7 +1107,6 @@ mov al,3       ;valeur possible: 0,1,2,3
 call env_ps2
 mov al,0E6h    ;set scaling 1:1
 call env_ps2
-;jmp fin_init_souris
 mov al,0F4h    ;enable
 call env_ps2
 
@@ -1758,15 +1770,19 @@ or byte[at_csl],02h ;signale que l'affichage du journal doit être mis a jour
 jmp majafcsl
 
 ligne_mm:
-cmp word[no_ligne_jcsl],7
-jna ligne_debut
-sub word[no_ligne_jcsl],8
+mov cx,[resyt]
+shr cx,1
+cmp word[no_ligne_jcsl],cx
+jbe ligne_debut
+sub word[no_ligne_jcsl],cx
 and byte[at_csl],0DFh    ;met a zero le bit "on doit afficher la fin du journal
 or byte[at_csl],02h ;signale que l'affichage du journal doit être mis a jour
 jmp majafcsl
 
 ligne_pp:
-add word[no_ligne_jcsl],8   ;8 ça suffit
+mov cx,[resyt]
+shr cx,1
+add word[no_ligne_jcsl],cx
 and byte[at_csl],0DFh    ;met a zero le bit "on doit afficher la fin du journal
 or byte[at_csl],02h ;signale que l'affichage du journal doit être mis a jour
 jmp majafcsl
@@ -4613,14 +4629,17 @@ mov si,bx
 inc bl
 mov [nbzt1],bl       ; et l'incrémente
 in al,60h
-
-
+;pushad       ;TRAPPE
+;call affh0j
+;popad
 mov [zts1+si],al    ;met le caractère reçu dans la zt souris
 cmp [nbts1],bl
 jne finirqs         ;si la trame n'as pas été totalement reçu -> fin
 
 mov byte[nbzt1],0     ;on décode, d'abord mettre le compteur de la trame a zéros
 
+
+;******************************************************met a jour la position curseur   
 mov al,[zts1]       ;extrait le déplacement en x
 xor bh,bh
 mov bl,[zts1+1]
@@ -4660,18 +4679,12 @@ mov ax,0
 pasinfys1:
 mov [ys1],ax
 
-;pushad       ;TRAPPE
-;mov ax,[xs1]  
-;call affh1j
-;mov ax,[ys1]  
-;call affh1j
-;popad
 
 
-;traitement cliques 0-3
+;************************************************************traitement cliques 0-3
 mov cl,[zts1]
 and cl,07h
-;mov ch,[zts1+2]  ;******bouton 4 et 5 eventuellement ici
+;mov ch,[zts1+3]  ;******bouton 4 et 5 eventuellement ici
 ;and ch,30h
 ;shr ch,1
 ;or cl,ch
@@ -4755,8 +4768,8 @@ jmp code_souris_ok
 bts5_depress:
 mov cl,0F9h
 
-
-code_souris_ok:
+;***************************************
+code_souris_ok:         ;lit les touches spéciales
 xor ch,ch   ;en attendant de lire les touches sp
 
 
@@ -4775,10 +4788,53 @@ mov eax,[xs1]    ;xs1=lsb ys1=msb
 mov [ebx+zt_rcl+2],eax
 
 
-molettes_souris:
-;§§§§§§§§§§§§§§§§§§§§§§   gestion de la molette souris
+;******************************************
+molettes_souris:   ;gestion de la molette souris
+cmp byte[nbts1],4
+jne finirqs
 
+boucle_molette:
+cmp byte[zts1+3],0
+je finirqs 
+test byte[zts1+3],80h
+jnz molette_haut
 
+xor ebx,ebx              ;ajoute la touche bas dans la ZT clavier
+cmp byte[nb_zrc],42
+je finirqs
+mov bl,[nb_zrc]
+inc byte[nb_zrc]
+mov edx,ebx      ;mul ebx par 6
+shl ebx,2
+shl edx,1
+add ebx,edx
+mov word[ebx+zt_rcl],84
+test byte[zts1],04h
+jz pas_bt_mb
+mov word[ebx+zt_rcl],81
+pas_bt_mb:
+mov dword[ebx+zt_rcl+2],0
+dec byte[zts1+3]
+jmp boucle_molette
+
+molette_haut:
+xor ebx,ebx              ;ajoute la touche haut dans la ZT clavier
+cmp byte[nb_zrc],42
+je finirqs
+mov bl,[nb_zrc]
+inc byte[nb_zrc]
+mov edx,ebx      ;mul ebx par 6
+shl ebx,2
+shl edx,1
+add ebx,edx
+mov word[ebx+zt_rcl],82
+test byte[zts1],04h
+jz pas_bt_mh
+mov word[ebx+zt_rcl],78
+pas_bt_mh:
+mov dword[ebx+zt_rcl+2],0
+inc byte[zts1+3]
+jmp boucle_molette
 
 
 finirqs:
