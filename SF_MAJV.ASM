@@ -6,15 +6,6 @@ mov ax,selramh
 mov gs,ax
 
 
-fs  ;test si on doit mettre a jour l'écran
-test byte[at_csl],01h
-jz fin_majv
-fs
-and byte[at_csl],0FEh
-fs
-or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
-
-
 fs
 cmp word[id_tache_af],0
 jne majv_tache
@@ -47,14 +38,22 @@ mov ax,selecran
 mov ds,ax
 
 
-majv_detmod:       ;determine le mode 
-mov al,[at_console]
+majv_detmod:
+fs  ;test si on doit mettre a jour l'écran
+test byte[at_csl],01h
+jz maj_souris
+fs
+and byte[at_csl],0FEh
+fs
+or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
+
+   
+mov al,[at_console]   ;determine le mode
 and al,3h
 cmp al,1
 je majv_texte
 cmp al,2
 je majv_graph
-
 cmp al,3
 je majv_combi
 
@@ -65,6 +64,39 @@ mov dword[ad_tache_af],0
 fs
 mov byte[nb_zrc],0
 jmp fin_majv
+
+
+
+
+;*******************************************
+maj_souris:
+test byte[atts1],1
+jz fin_majv
+fs
+mov eax,[xs1]
+fs
+cmp [axs1],eax
+je fin_majv
+
+
+
+mov al,[at_console]          ;determine le mode 
+and al,3h
+cmp al,1
+je majv_texte
+cmp al,2
+je fin_majv
+cmp al,3
+je fin_majv
+
+fs                          ; si il y as une erreur dans l'affichage, affiche la console
+mov word[id_tache_af],0
+fs
+mov dword[ad_tache_af],0
+fs
+mov byte[nb_zrc],0
+jmp fin_majv
+
 
 
 ;************************************
@@ -111,6 +143,40 @@ out dx,al
 mov dx,3D5h
 mov al,bl
 out dx,al
+
+;affiche souris
+fs
+test byte[atts1],1
+jz fin_majv
+xor eax,eax
+xor ebx,ebx
+xor ecx,ecx
+xor edx,edx
+fs
+mov bx,[xs1]
+fs
+mov ax,[ys1]
+fs
+mov cx,[resxt]
+shr eax,4
+shr ebx,3
+mul ecx
+add ebx,eax
+shl ebx,1
+es
+mov byte[ebx],8Fh   ;ecrit le caractère
+inc ebx
+es
+cmp byte[ebx],0
+jne ignore_force_couleur_souris
+mov byte[ebx],07h
+ignore_force_couleur_souris:
+
+;signal que la position souris as été mis a jour
+fs
+mov eax,[xs1]
+fs
+mov [axs1],eax
 jmp fin_majv
 
 

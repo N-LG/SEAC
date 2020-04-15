@@ -147,6 +147,8 @@ ays1 equ 56h     ;position d'affichage actuel en y de la souris 1
 nbzt1 equ 58h    ;nombre d'octet dans la trame a d‚coder
 nbts1 equ 59h    ;nombre d'octet de la trame a attendre avant de la dédoder
 atts1 equ 5Ah    ;attribut souris 1
+		 ;bo=souris activé
+		 ;b1=touche 4 et 5 actives
 etbs1 equ 5Bh    ;etat précédent boutons souris
 zts1 equ 5Ch     ;zone tampon de la souris 1
 

@@ -1023,14 +1023,17 @@ mov dx,seldat
 mov ds,dx
 mov byte[nbts1],3
 mov byte[nbzt1],0 
-;jmp fin_init_souris
+
 
 ;commande au 8042: test Auxiliary Interface
 mov al,0A9h     
 call env_8042_cmd
 call lec_ps2
 cmp al,0
-jne fin_init_souris ;si c'est pas bon on initalise pas la disquette
+jne fin_init_souris ;si c'est pas bon on initalise pas la souris
+mov byte[atts1],1
+
+
 
 ;commande au 8042: Enable Auxiliary Interface
 mov al,0A8h     
@@ -1092,9 +1095,15 @@ molette_non_active:
 ;mov al,80
 ;call env_ps2
 
-;vérifie le type pour voir si les boutons ont été activé
+;vérifie le type pour voir si les boutons 4 et 5 ont été activé
 ;mov al,0F2h
 ;call env_ps2
+;call lec_ps2
+;cmp al,3
+;jne bt45_nonactif
+;or byte[ats1],2
+;bt45_nonactif:
+
 
 ;configure la souris et l'active
 mov al,0F3h    ;set sample rate
@@ -1149,9 +1158,10 @@ test al,1
 jnz at8042ok
 dec ecx 
 jnz boucle_at8042ok_lec 
+
+at8042ok:
 pop ecx
 pop eax
-stc
 ret
 
 
@@ -1167,42 +1177,32 @@ dec ecx
 jnz boucle_at8042ok_env 
 pop ecx
 pop eax
-stc
 ret
 
-at8042ok:
-pop ecx
-pop eax
-clc
-ret
+
 
 env_ps2:
 call at8042ok_env
-jc fin_lec_ps2
 push eax
 mov al,0D4h
 out 64h,al
 pop eax
 call at8042ok_env
-jc fin_lec_ps2
 out 60h,al
 
 lec_ps2:
 call at8042ok_lec
-jc fin_lec_ps2
 in al,60h
 fin_lec_ps2:
 ret
 
 env_8042_cmd:
 call at8042ok_env
-jc fin_lec_ps2
 out 64h,al
 ret
 
 env_8042_dat:
 call at8042ok_env
-jc fin_lec_ps2
 out 60h,al
 ret
 
@@ -4684,10 +4684,13 @@ mov [ys1],ax
 ;************************************************************traitement cliques 0-3
 mov cl,[zts1]
 and cl,07h
+;test byte[atts1],2
+;jz irqs_pasbouton45
 ;mov ch,[zts1+3]  ;******bouton 4 et 5 eventuellement ici
 ;and ch,30h
 ;shr ch,1
 ;or cl,ch
+irqs_pasbouton45:
 mov ch,[etbs1]
 mov [etbs1],cl
 xor cl,ch
@@ -4770,8 +4773,37 @@ mov cl,0F9h
 
 ;***************************************
 code_souris_ok:         ;lit les touches spéciales
-xor ch,ch   ;en attendant de lire les touches sp
+xor ch,ch
 
+mov bl,[atbp+7h]
+and bl,02h   ;majG
+shr bl,1
+or ch,bl
+
+mov bl,[atbp+8h]
+and bl,20h   ;majD
+shr bl,4
+or ch,bl
+
+mov bl,[atbp+8h]
+and bl,40h   ;CtrlG
+shr bl,4
+or ch,bl
+
+mov bl,[atbp+9h]
+and bl,04h   ;CtrlD
+shl bl,1
+or ch,bl
+
+mov bl,[atbp+8h]
+and bl,80h   ;Alt
+shr bl,3
+or ch,bl
+
+mov bl,[atbp+9h]
+and bl,02h   ;Alt Gr
+shl bl,4
+or ch,bl
 
 ;*******************************************
 xor ebx,ebx              ;ajoute le clique dans la ZT clavier
@@ -4793,6 +4825,14 @@ molettes_souris:   ;gestion de la molette souris
 cmp byte[nbts1],4
 jne finirqs
 
+;test byte[atts1],2    ;etend le bit de signe si on est en mode 5 boutons
+;jz molettesansbouton
+;and byte[zts1+3],0Fh
+;test byte[zts1+3],08h
+;jz molettesansbouton
+;or byte[zts1+3],0Fh
+;molettesansbouton:
+
 boucle_molette:
 cmp byte[zts1+3],0
 je finirqs 
@@ -4808,10 +4848,17 @@ mov edx,ebx      ;mul ebx par 6
 shl ebx,2
 shl edx,1
 add ebx,edx
-mov word[ebx+zt_rcl],84
-test byte[zts1],04h
-jz pas_bt_mb
-mov word[ebx+zt_rcl],81
+test word[atbp+8h],0280h    ;alt
+jnz alt_bt_mb
+test word[atbp+8h],0440h    ;ctrl
+jnz ctrl_bt_mb
+mov word[ebx+zt_rcl],84   ;bas
+jmp pas_bt_mb
+alt_bt_mb:
+mov word[ebx+zt_rcl],85   ;droite
+jmp pas_bt_mb
+ctrl_bt_mb:
+mov word[ebx+zt_rcl],81   ;page bas
 pas_bt_mb:
 mov dword[ebx+zt_rcl+2],0
 dec byte[zts1+3]
@@ -4827,10 +4874,17 @@ mov edx,ebx      ;mul ebx par 6
 shl ebx,2
 shl edx,1
 add ebx,edx
-mov word[ebx+zt_rcl],82
-test byte[zts1],04h
-jz pas_bt_mh
-mov word[ebx+zt_rcl],78
+test word[atbp+8h],0280h    ;alt
+jnz alt_bt_mh
+test word[atbp+8h],0440h    ;ctrl
+jnz ctrl_bt_mh
+mov word[ebx+zt_rcl],82   ;haut
+jmp pas_bt_mh
+alt_bt_mh:
+mov word[ebx+zt_rcl],83   ;gauche
+jmp pas_bt_mh
+ctrl_bt_mh:
+mov word[ebx+zt_rcl],78   ;page haut
 pas_bt_mh:
 mov dword[ebx+zt_rcl+2],0
 inc byte[zts1+3]
