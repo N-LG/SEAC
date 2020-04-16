@@ -4657,27 +4657,28 @@ not bh
 noadjy1:
 sub [ys1],bx     ;et l'additionne (c'est un nombre signé)
 
-mov ax,[xs1]                     ;ajuste la position x de la souris par
-cmp ax,[resx]                    ;rapport a la résolution de l'écran
-jng passupxs1
-mov ax,[resx]
-passupxs1:
-cmp ax,0
-jnl pasinfxs1
-mov ax,0
-pasinfxs1:
+mov ax,[resx]                   ;ajuste la position x de la souris par
+dec ax
+cmp [xs1],ax                    ;rapport a la résolution de l'écran
+jl passupxs1
 mov [xs1],ax
+passupxs1:
+cmp word[xs1],0 
+jg pasinfxs1
+mov word[xs1],0
+pasinfxs1:
 
-mov ax,[ys1]                   ;ajuste la position y de la souris par
-cmp ax,[resy]                  ;rapport a la résolution de l'écran
-jng passupys1
-mov ax,[resy]
-passupys1:
-cmp ax,0
-jnl pasinfys1
-mov ax,0
-pasinfys1:
+mov ax,[resy]                   ;ajuste la position y de la souris par
+dec ax
+cmp [ys1],ax                    ;rapport a la résolution de l'écran
+jl passupys1
 mov [ys1],ax
+passupys1:
+cmp word[ys1],0 
+jg pasinfys1
+mov word[ys1],0
+pasinfys1:
+
 
 
 

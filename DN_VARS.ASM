@@ -220,6 +220,7 @@ at_csl equ 0F0h  ;attribut console
 ;b4=utilisation du linear frame buffer
 ;b5=on doit afficher la fin du journal
 ;b6=la mise a jour de l'ecran est en court
+;b7=mise a jour partielle demandé
 no_ligne_jcsl equ 0F2h
 ad_jcsl equ 0F4h ;zone d'enregistrement journal texte
 max_jcsl equ 0F8h
@@ -340,13 +341,17 @@ port_lpt_to equ 2E0h ;nombre d'octet dans la zone tampon de réception lpt 1 (lpt
 ;*****************************************************************
 ;variable utillisé pendant la mise a jour de l'écran
 
-num_ligne_majv equ 540h   ;word
+num_ligne_majv equ 540h   
 couleur_fond equ 544h
 couleur_carac equ 548h
 ad_console0 equ 54Ch       
 
+majv_xdeb equ 550h ;coordonnées utilisé lors des mise a jour de l'écran
+majv_xfin equ 554h
+majv_ydeb equ 558h
+majv_yfin equ 55Ch
 
-
+majv_precal_resxt equ  560h  ;dword resxt x4
 
 ;*************************************************************************
 ;gestion de l'USB

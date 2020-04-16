@@ -1445,18 +1445,31 @@ sfv_majecr:     ;effectue la mise a jour complete de l'ecran
 push ds
 mov ax,seldat
 mov ds,ax
+mov ax,[id_tache_exec]
+cmp ax,[id_tache_af]
+jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
 or byte[at_csl],1
+fin_sfv_majecr:
 xor eax,eax
 pop ds
 iret
 
+
+
 sigmajv:
+push eax
 es
 test byte[at_console],040h
 jnz fin_sigmajv
 fs
+mov ax,[id_tache_exec]
+fs
+cmp ax,[id_tache_af]
+jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
+fs
 or byte[at_csl],1
 fin_sigmajv:
+pop eax
 ret
 
 

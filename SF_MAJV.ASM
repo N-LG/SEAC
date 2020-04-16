@@ -6,12 +6,111 @@ mov ax,selramh
 mov gs,ax
 
 
+
+fs  ;test si on doit mettre a jour l'écran
+test byte[at_csl],01h
+jnz maj_complete
+fs
+test byte[at_csl],01h
+jnz maj_partielle
+fs
+test byte[atts1],01h
+jz fin_majv
+fs
+mov eax,[xs1]
+fs
+cmp [axs1],eax
+je fin_majv
+
+;********************************************************
+xor eax,eax  ;on met a jour uniquement l'affichage souris
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov ax,[axs1]
+fs
+mov bx,[ays1]
+fs
+mov dword[majv_xdeb],eax
+fs
+mov dword[majv_ydeb],ebx
+add eax,8
+add ebx,16
+fs
+mov dword[majv_xfin],eax
+fs
+mov dword[majv_yfin],ebx
+fs
+mov eax,[xs1]
+fs
+mov [axs1],eax
+
+fs
+mov cx,[resy]
+fs
+cmp [majv_yfin],ecx
+jb sqb 
+fs
+mov [majv_yfin],ecx
+sqb:
+dec ecx
+fs
+cmp [majv_ydeb],ecx
+jb majv_charge_seg_csl
+fs
+mov [majv_ydeb],ecx
+jmp majv_charge_seg_csl
+
+
+
+;*********************************************************
+maj_complete:          ;mise a jour complete de l'écran
+fs
+and byte[at_csl],0FEh
+fs
+or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
+
+xor eax,eax
+xor ebx,ebx
+fs
+mov ax,[resx]
+fs
+mov bx,[resy]
+fs
+mov dword[majv_xdeb],0
+fs
+mov dword[majv_xfin],eax
+fs
+mov dword[majv_ydeb],0
+fs
+mov dword[majv_yfin],ebx
+fs
+mov eax,[xs1]
+fs
+mov [axs1],eax
+jmp majv_charge_seg_csl
+
+
+
+;*********************************************************
+maj_partielle:        ;mise a jour partielle de l'écran
+fs
+or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+jmp majv_charge_seg_csl
+
+
+
+;*********************************************************
+majv_charge_seg_csl:     ;charge le bon segment de mémoire relatif a la console
 fs
 cmp word[id_tache_af],0
 jne majv_tache
 mov dx,selconsole
 mov ds,dx 
-jmp majv_detmod
+jmp majv_precalc
 
 majv_tache:
 ;charge le descripteur du segment affiché dans le descripteur global correspondant
@@ -38,16 +137,16 @@ mov ax,selecran
 mov ds,ax
 
 
-majv_detmod:
-fs  ;test si on doit mettre a jour l'écran
-test byte[at_csl],01h
-jz maj_souris
+majv_precalc:    ;précalcule certaines variables
+xor eax,eax
 fs
-and byte[at_csl],0FEh
+mov ax,[resxt]
+shl eax,2
 fs
-or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
+mov [majv_precal_resxt],eax
 
-   
+
+
 mov al,[at_console]   ;determine le mode
 and al,3h
 cmp al,1
@@ -68,34 +167,7 @@ jmp fin_majv
 
 
 
-;*******************************************
-maj_souris:
-test byte[atts1],1
-jz fin_majv
-fs
-mov eax,[xs1]
-fs
-cmp [axs1],eax
-je fin_majv
 
-
-
-mov al,[at_console]          ;determine le mode 
-and al,3h
-cmp al,1
-je majv_texte
-cmp al,2
-je fin_majv
-cmp al,3
-je fin_majv
-
-fs                          ; si il y as une erreur dans l'affichage, affiche la console
-mov word[id_tache_af],0
-fs
-mov dword[ad_tache_af],0
-fs
-mov byte[nb_zrc],0
-jmp fin_majv
 
 
 
@@ -227,7 +299,9 @@ jmp fin_majv
 ;********************************************
 majv_texte_graf:             ;mise a jour du texte en mode graphique
 fs
-mov word[num_ligne_majv],0
+mov eax,[majv_ydeb]
+fs
+mov [num_ligne_majv],eax
 
 fs
 test word[at_csl],10h     ;test si on est en linear  
@@ -365,12 +439,24 @@ cmp ebx,ebp
 jne majv_carac8linear
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne8linear
+
+
+;*****************************
+majv_souris_8b_linear:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 
@@ -466,12 +552,23 @@ cmp ebx,ebp
 jne majv_carac16linear
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne16linear
+
+;*****************************
+majv_souris_16b_linear:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 ;****************************************************
@@ -569,12 +666,23 @@ cmp ebx,ebp
 jne majv_carac24linear
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne24linear
+
+;*****************************
+majv_souris_24b_linear:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 
@@ -670,12 +778,61 @@ cmp ebx,ebp
 jne majv_carac32linear
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne32linear
+
+
+;*****************************
+majv_souris_32b_linear:
+call adresse_souris
+es
+mov dword[edi],0FFFFFFh
+es
+mov dword[edi+4],0FFFFFFh
+es
+mov dword[edi+8],0FFFFFFh
+es
+mov dword[edi+12],0FFFFFFh
+es
+mov dword[edi+16],0FFFFFFh
+es
+mov dword[edi+20],0FFFFFFh
+es
+mov dword[edi+24],0FFFFFFh
+es
+mov dword[edi+28],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+add edi,ecx
+es
+mov dword[edi],0FFFFFFh
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 
@@ -793,12 +950,23 @@ cmp ebx,ebp
 jne majv_carac8banked
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne8banked
+
+;*****************************
+majv_souris_8b_banked:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 ;****************************************************
@@ -915,12 +1083,23 @@ cmp ebx,ebp
 jne majv_carac16banked
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne16banked
+
+;*****************************
+majv_souris_16b_banked:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 
@@ -1046,12 +1225,24 @@ cmp ebx,ebp
 jne majv_carac24banked
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne24banked
+
+
+;*****************************
+majv_souris_24b_banked:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 ;****************************************************
@@ -1168,12 +1359,24 @@ cmp ebx,ebp
 jne majv_carac32banked
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_ligne32banked
+
+
+;*****************************
+majv_souris_32b_banked:
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
 jmp fin_majv
 
 
@@ -1181,7 +1384,9 @@ jmp fin_majv
 ;*********************************************************************************
 majv_combi:             ;mise a jour du mode combiné
 fs
-mov word[num_ligne_majv],0
+mov eax,[majv_ydeb]
+fs
+mov [num_ligne_majv],eax
 
 fs
 test word[at_csl],10h     ;test si on est en linear  
@@ -1312,13 +1517,14 @@ cmp ebx,ebp
 jne majv_carac8linear_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi8linear
-jmp fin_majv
+jmp majv_souris_8b_linear
+
 
 
 ;****************************************************
@@ -1406,13 +1612,13 @@ cmp ebx,ebp
 jne majv_carac16linear_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi16linear
-jmp fin_majv
+jmp majv_souris_16b_linear
 
 ;****************************************************
 majv_combi24linear:
@@ -1504,13 +1710,13 @@ cmp ebx,ebp
 jne majv_carac24linear_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi24linear
-jmp fin_majv
+jmp majv_souris_24b_linear
 
 
 ;****************************************************
@@ -1598,13 +1804,13 @@ cmp ebx,ebp
 jne majv_carac32linear_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi32linear
-jmp fin_majv
+jmp majv_souris_32b_linear
 
 
 ;****************************************************
@@ -1714,13 +1920,13 @@ cmp ebx,ebp
 jne majv_carac8banked_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi8banked
-jmp fin_majv
+jmp majv_souris_8b_banked
 
 ;****************************************************
 majv_combi16banked: ;et 15!  ;-)
@@ -1829,13 +2035,13 @@ cmp ebx,ebp
 jne majv_carac16banked_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi16banked
-jmp fin_majv
+jmp majv_souris_16b_banked
 
 
 
@@ -1955,13 +2161,13 @@ cmp ebx,ebp
 jne majv_carac24banked_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi24banked
-jmp fin_majv
+jmp majv_souris_24b_banked
 
 ;****************************************************
 majv_combi32banked:
@@ -2070,13 +2276,13 @@ cmp ebx,ebp
 jne majv_carac32banked_combi
 
 fs
-inc word[num_ligne_majv]
+inc dword[num_ligne_majv]
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
-cmp [resy],ax
+cmp [majv_yfin],eax
 jne majv_combi32banked
-jmp fin_majv
+jmp majv_souris_32b_banked
 
 
 
@@ -2468,11 +2674,10 @@ ret
 
 ;****************************************************
 majv_init_text_graf:
-xor eax,eax
 xor ecx,ecx
 xor edx,edx
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
 fs
 mov cx,[octpl]
 mul ecx
@@ -2481,25 +2686,51 @@ mov edi,eax   ;edi=pointeur sur la zone ecran
 mov esi,eax
 add esi,[ad_graf] ;esi=pointeur sur la zone image
 
-xor eax,eax
-xor ecx,ecx
+
 fs
-mov ax,[num_ligne_majv]
+mov eax,[num_ligne_majv]
+fs
+mov ecx,[majv_precal_resxt]
 shr eax,4
-fs
-mov cx,[resxt]
 xor edx,edx
 mul ecx
-shl eax,2
 mov ebx,eax 
 add ebx,[ad_texte]    ;ebx=pointeur sur la zone texte
 
-xor ebp,ebp
+
 fs
-mov bp,[resxt]
-shl ebp,2
+mov ebp,[majv_precal_resxt]
 add ebp,ebx         ;ebp=adresse max pour la ligne
 ret
+
+
+
+
+
+;***********************************************************
+adresse_souris:
+xor eax,eax
+xor ecx,ecx
+xor edx,edx
+fs
+mov ax,[axs1]
+fs
+mov cx,[octpp]
+mul ecx
+mov edi,eax
+xor eax,eax
+xor ecx,ecx
+xor edx,edx
+fs
+mov ax,[ays1]
+fs
+mov cx,[octpl]
+mul ecx
+add edi,eax
+ret
+
+
+
 
 ;***********************************************************
 maj_console0:
