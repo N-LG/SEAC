@@ -7,7 +7,8 @@
 
 ;5=obtient le caractère+touche de la fifo de reception clavier
 ;6=aquisition d'une chaine de caractère validé par entrée
-;7=demande la mise a jour de l'écran
+;7=demande la mise a jour complete de l'écran
+;8=demande la mise a jour partielle de l'écran
 
 ;10=ecrire une chaine asciiz a une position défini
 ;11=ecrire une chaine a la position du curseur
@@ -39,6 +40,9 @@ cmp al,6
 je sfv_aqui_chaine
 cmp al,7
 je sfv_majecr
+cmp al,8
+je sfv_majecr_part
+
 
 cmp al,10
 je sfv_chaine_pos
@@ -209,7 +213,7 @@ mov [id_tache_af],ax
 fs
 mov [ad_tache_af],ebx
 fs
-or byte[at_csl],1      ;met a 1 le bit de mise a jour affichage
+or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage
 fs
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 cli
@@ -1175,7 +1179,7 @@ cmp ebx,ebp
 jne boucle_menu_maj
 
 fs
-or byte[at_csl],1
+or byte[at_vid],1
 
 pop edi
 pop ecx
@@ -1273,7 +1277,7 @@ cmp ebx,ebp
 jne boucle_menu_entree
 
 fs
-or byte[at_csl],1
+or byte[at_vid],1
 
 pop edx
 pop ecx
@@ -1420,7 +1424,7 @@ mov dword[ebx+12],07000025h
 
 mov ax,seldat
 mov ds,ax
-or byte[at_csl],1
+or byte[at_vid],1
 
 pop ds
 popad
@@ -1448,8 +1452,30 @@ mov ds,ax
 mov ax,[id_tache_exec]
 cmp ax,[id_tache_af]
 jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-or byte[at_csl],1
+or byte[at_vid],1
 fin_sfv_majecr:
+xor eax,eax
+pop ds
+iret
+
+
+;*********************
+sfv_majecr_part:     ;effectue la mise a jour partielle de l'ecran
+		     ;ebx,ecx=coordonnée coin sup gauche
+ 		     ;esi,edi=coordonné coin inf droite
+
+push ds
+mov ax,seldat
+mov ds,ax
+mov ax,[id_tache_exec]
+cmp ax,[id_tache_af]
+jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
+or byte[at_vid],2
+mov dword[majv_xdeb],ebx
+mov dword[majv_ydeb],ecx
+mov dword[majv_xfin],esi
+mov dword[majv_yfin],edi
+
 xor eax,eax
 pop ds
 iret
@@ -1467,7 +1493,7 @@ fs
 cmp ax,[id_tache_af]
 jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
 fs
-or byte[at_csl],1
+or byte[at_vid],1
 fin_sigmajv:
 pop eax
 ret

@@ -8,11 +8,11 @@ mov gs,ax
 
 
 fs  ;test si on doit mettre a jour l'écran
-test byte[at_csl],01h
+test byte[at_vid],01h
 jnz maj_complete
 fs
-test byte[at_csl],01h
-jnz maj_partielle
+test byte[at_vid],02h
+jnz majv_charge_seg_csl     ;mise a jour partielle
 fs
 test byte[atts1],01h
 jz fin_majv
@@ -45,31 +45,12 @@ mov eax,[xs1]
 fs
 mov [axs1],eax
 
-fs
-mov cx,[resy]
-fs
-cmp [majv_yfin],ecx
-jb sqb 
-fs
-mov [majv_yfin],ecx
-sqb:
-dec ecx
-fs
-cmp [majv_ydeb],ecx
-jb majv_charge_seg_csl
-fs
-mov [majv_ydeb],ecx
 jmp majv_charge_seg_csl
 
 
 
 ;*********************************************************
 maj_complete:          ;mise a jour complete de l'écran
-fs
-and byte[at_csl],0FEh
-fs
-or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
-
 xor eax,eax
 xor ebx,ebx
 fs
@@ -84,22 +65,41 @@ fs
 mov dword[majv_ydeb],0
 fs
 mov dword[majv_yfin],ebx
+
+test byte[atts1],01h
+jz majv_charge_seg_csl       ;si on as une souris, l'affichage se feras en 2 fois pour eviter le clignotement de la souris
+
+xor ebx,ebx
+fs
+mov bx,[ays1]
+add ebx,16
+fs
+mov dword[majv_yfin],ebx
 fs
 mov eax,[xs1]
 fs
 mov [axs1],eax
+
+or byte[at_vid],4h
 jmp majv_charge_seg_csl
 
-
-
-;*********************************************************
-maj_partielle:        ;mise a jour partielle de l'écran
+;*************************************************
+majv_complet2:
+xor eax,eax
+xor ebx,ebx
 fs
-or byte[at_csl],40h ;signal que l'affichage est en train de se mettre a jour
+mov ax,[ays1]
+add ax,16
+fs
+mov bx,[resy]
+fs
+mov dword[majv_ydeb],eax
+fs
+mov dword[majv_yfin],ebx
+fs
+and byte[at_vid],0F8h
+jmp majv_ctrl_valeur
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-jmp majv_charge_seg_csl
 
 
 
@@ -110,7 +110,7 @@ cmp word[id_tache_af],0
 jne majv_tache
 mov dx,selconsole
 mov ds,dx 
-jmp majv_precalc
+jmp majv_ctrl_valeur
 
 majv_tache:
 ;charge le descripteur du segment affiché dans le descripteur global correspondant
@@ -135,6 +135,27 @@ mov [selecran+4],edx
 
 mov ax,selecran 
 mov ds,ax
+
+
+;***********************************************************
+majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
+fs
+and byte[at_vid],0FCh
+fs
+mov cx,[resy]
+fs
+cmp [majv_yfin],ecx
+jb majv_ok_yfin 
+fs
+mov [majv_yfin],ecx
+majv_ok_yfin:
+dec ecx
+fs
+cmp [majv_ydeb],ecx
+jb majv_ok_ydeb
+fs
+mov [majv_ydeb],ecx
+majv_ok_ydeb:
 
 
 majv_precalc:    ;précalcule certaines variables
@@ -449,15 +470,41 @@ jne majv_ligne8linear
 
 ;*****************************
 majv_souris_8b_linear:
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+es
+mov dword[edi],0FFFFFFFFh
+es
+mov dword[edi+4],0FFFFFFFFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
+add edi,ecx
+es
+mov byte[edi],0FFh
 
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-
-
+fs
+test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
+jnz majv_complet2
 jmp fin_majv
+
 
 
 ;****************************************************
@@ -561,15 +608,46 @@ jne majv_ligne16linear
 
 ;*****************************
 majv_souris_16b_linear:
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+es
+mov dword[edi],0FFFFFFFFh
+es
+mov dword[edi+4],0FFFFFFFFh
+es
+mov dword[edi+8],0FFFFFFFFh
+es
+mov dword[edi+12],0FFFFFFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
 
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-
-
+fs
+test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
+jnz majv_complet2
 jmp fin_majv
+
 
 ;****************************************************
 majv_ligne24linear:
@@ -675,16 +753,62 @@ jne majv_ligne24linear
 
 ;*****************************
 majv_souris_24b_linear:
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+es
+mov dword[edi],0FFFFFFFFh
+es
+mov dword[edi+4],0FFFFFFFFh
+es
+mov dword[edi+8],0FFFFFFFFh
+es
+mov dword[edi+12],0FFFFFFFFh
+es
+mov dword[edi+16],0FFFFFFFFh
+es
+mov dword[edi+20],0FFFFFFFFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
+add edi,ecx
+es
+mov word[edi],0FFFFh
+es
+mov byte[edi+2],0FFh
 
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-
-
+fs
+test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
+jnz majv_complet2
 jmp fin_majv
-
 
 ;****************************************************
 majv_ligne32linear:
@@ -788,6 +912,9 @@ jne majv_ligne32linear
 
 ;*****************************
 majv_souris_32b_linear:
+fs
+test byte[atts1],01h
+jz fin_majv
 call adresse_souris
 es
 mov dword[edi],0FFFFFFh
@@ -827,12 +954,9 @@ add edi,ecx
 es
 mov dword[edi],0FFFFFFh
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-
-
+fs
+test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
+jnz majv_complet2
 jmp fin_majv
 
 

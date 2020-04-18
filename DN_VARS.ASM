@@ -168,7 +168,11 @@ octpp equ 79h     ;octet par pixel (valeur ok: 1,2,3,4)
 
 
 
-;attvid equ 80h ;attribut video?????
+at_vid equ 80h ;attribut video
+	       ;b0=maj complete demandé
+	       ;b1=maj partielle demandé
+	       ;b2=
+	       
 resx equ 82h   ;resolution X de l'écran en pixel
 resy equ 84h   ;resolution Y de l'écran en pixel
 resxt equ 86h  ;nombre de colonne de l'affichage texte
@@ -220,7 +224,7 @@ at_csl equ 0F0h  ;attribut console
 ;b4=utilisation du linear frame buffer
 ;b5=on doit afficher la fin du journal
 ;b6=la mise a jour de l'ecran est en court
-;b7=mise a jour partielle demandé
+
 no_ligne_jcsl equ 0F2h
 ad_jcsl equ 0F4h ;zone d'enregistrement journal texte
 max_jcsl equ 0F8h

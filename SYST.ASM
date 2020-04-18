@@ -1018,12 +1018,12 @@ sti      ;init des valeurs terminé, débloquage des irq
 ;**********************************************************************
 ;programme souris ps/2   ;inspiré de https://forum.osdev.org/viewtopic.php?t=24277
 
-;définis les parametres de base
-mov dx,seldat
-mov ds,dx
-mov byte[nbts1],3
-mov byte[nbzt1],0 
 
+
+
+;commande au 8042: Enable Auxiliary Interface
+mov al,0A8h     
+call env_8042_cmd
 
 ;commande au 8042: test Auxiliary Interface
 mov al,0A9h     
@@ -1031,13 +1031,15 @@ call env_8042_cmd
 call lec_ps2
 cmp al,0
 jne fin_init_souris ;si c'est pas bon on initalise pas la souris
+
+
+;définis les parametres de base
+mov dx,seldat
+mov ds,dx
 mov byte[atts1],1
+mov byte[nbts1],3
+mov byte[nbzt1],0 
 
-
-
-;commande au 8042: Enable Auxiliary Interface
-mov al,0A8h     
-call env_8042_cmd
       
 ;modifie le 8042 Command Byte
 mov al,20h
@@ -1199,6 +1201,7 @@ ret
 env_8042_cmd:
 call at8042ok_env
 out 64h,al
+call at8042ok_env
 ret
 
 env_8042_dat:
@@ -1410,7 +1413,7 @@ mov word[to_ztcmd],16
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
-or byte[at_csl],0Fh ;signale que l'affichage complet de la console doit être mis a jour
+mov byte[at_csl],0Eh ;signale que l'affichage complet de la console doit être mis a jour
 jmp btacheprincipale
 
 
@@ -1868,8 +1871,8 @@ test byte[at_csl],02h ;y'a t'il eu modification de l'affichage du journal de la 
 jz finafj
 es
 and byte[at_csl],0FDh ;désactive le besoin de mettre a jour la commande
-es
-or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
+mov eax,7
+int 63h ;signale que l'affichage doit être mis a jour
 
 es
 mov edx,[ad_jcsl]
@@ -2002,8 +2005,8 @@ mov ds,bx
 test byte[at_csl],04h
 jz finafr
 and byte[at_csl],0FBh ;désactive le besoin de mettre a jour la commande
-or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
-
+mov eax,7
+int 63h ;signale que l'affichage doit être mis a jour
 mov edx,ad_repertoire
 mov ebx,[ad_afrep]
 
@@ -2034,7 +2037,8 @@ finafr:
 test byte[at_csl],08h
 jz finafc
 and byte[at_csl],0F7h ;désactive le besoin de mettre a jour la commande
-or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
+mov eax,7
+int 63h ;signale que l'affichage doit être mis a jour
 
 mov edx,ad_cce
 mov ebx,[ad_afcmd]
@@ -2091,8 +2095,6 @@ pasconsole:
 mov dx,seldat  
 mov ds,dx
 mov es,dx
-fs
-and byte[at_csl],0BFh  ;signale que l'écran a finis de se mettre a jour
 
 
 cmp word[to_ztcmd],0   ;la fifo des commandes est elle vide?
@@ -2516,8 +2518,8 @@ jne erreurmodv
 ;maj les info sur le mode video en court
 and cx,1FFh
 mov [mdvc],cx
-or byte[at_csl],0Fh ;signale que l'affichage de la console doit être mis a jour
-
+or byte[at_csl],0Eh ;signale que l'affichage de la console doit être mis a jour
+or byte[at_vid],01h ;et que l'écran complet doit être mis a jour
 test dword[infovesa],10h ;on teste si on est un mode texte ou pas
 jz cmdmodv_texte
 
@@ -4551,7 +4553,7 @@ mov bx,seldat
 mov ds,bx
 mov [id_tache_af],ax
 mov [ad_tache_af],edx
-or byte[at_csl],1      ;met a 1 le bit de mise a jour affichage
+or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 jmp bougled
 

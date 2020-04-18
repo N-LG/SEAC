@@ -734,7 +734,7 @@ jne pas_af_stop
 mov byte[nb_zrc],0
 mov word[id_tache_af],0
 mov dword[ad_tache_af],0
-or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
+or byte[at_vid],01h ;signale que l'affichage doit être mis a jour
 pas_af_stop:
 
 ;recherche la zone mémoire qui correspond a l'ID
@@ -835,7 +835,7 @@ jne selection_tache_suivante
 mov byte[nb_zrc],0
 mov word[id_tache_af],0
 mov dword[ad_tache_af],0
-or byte[at_csl],01h ;signale que l'affichage doit être mis a jour
+or byte[at_vid],01h ;signale que l'affichage doit être mis a jour
 jmp selection_tache_suivante
 
 ;*********************************************************************************************
