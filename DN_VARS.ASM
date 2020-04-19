@@ -357,6 +357,9 @@ majv_yfin equ 55Ch
 
 majv_precal_resxt equ  560h  ;dword resxt x4
 
+majv_precal_longeur_ligne equ 564h
+majv_precal_offset_ligne equ 568h
+
 ;*************************************************************************
 ;gestion de l'USB
 

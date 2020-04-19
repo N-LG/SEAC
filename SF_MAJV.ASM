@@ -71,7 +71,7 @@ jz majv_charge_seg_csl       ;si on as une souris, l'affichage se feras en 2 foi
 
 xor ebx,ebx
 fs
-mov bx,[ays1]
+mov bx,[ys1]
 add ebx,16
 fs
 mov dword[majv_yfin],ebx
@@ -188,10 +188,6 @@ jmp fin_majv
 
 
 
-
-
-
-
 ;************************************
 majv_texte:
 ;test si on est en mode texte de base
@@ -276,43 +272,129 @@ jmp fin_majv
 ;*************************************
 majv_graph:
 fs
+mov eax,[majv_ydeb]
+fs
+mov [num_ligne_majv],eax
+
+xor ecx,ecx
+xor edx,edx
+fs
+mov eax,[majv_xdeb]
+fs
+mov cx,[octpp]
+mul ecx
+mov edi,eax
+xor ecx,ecx
+xor edx,edx
+fs
+mov eax,[majv_ydeb]
+fs
+mov cx,[octpl]
+mul ecx
+add edi,eax
+mov esi,edi
+add esi,[ad_graf]  
+
+xor ecx,ecx
+xor edx,edx
+fs
+mov cx,[octpp]
+fs
+mov eax,[majv_xfin]
+fs
+sub eax,[majv_xdeb]
+mul ecx
+fs
+mov [majv_precal_longeur_ligne],eax
+
+fs
+mov cx,[octpl]
+sub ecx,eax
+fs
+mov [majv_precal_offset_ligne],ecx
+
+
+fs
 test word[at_csl],10h     ;test si on est en linear  
 jz majv_graph_banked 
 
-mov ecx,[to_graf]
-mov esi,[ad_graf]
-mov di,sellfb
-mov es,di
-xor edi,edi
+
+;*******************************************************
+mov ax,sellfb             ;mise a jour écran en linear frame buffer
+mov es,ax
+
+boucle_majv_graph:
+fs
+mov ecx,[majv_precal_longeur_ligne]
+cli
 rep movsb
+fs
+add esi,[majv_precal_offset_ligne]
+fs
+add edi,[majv_precal_offset_ligne]
+fs
+inc dword[num_ligne_majv]
+fs
+mov eax,[num_ligne_majv]
+fs
+cmp [majv_yfin],eax
+jne boucle_majv_graph
+
+fs
+cmp byte[bitpp],32
+je majv_souris_32b_linear
+fs
+cmp byte[bitpp],24
+je majv_souris_24b_linear
+fs
+cmp byte[bitpp],15
+je majv_souris_16b_linear
+fs
+cmp byte[bitpp],16
+je majv_souris_16b_linear
+fs
+cmp byte[bitpp],8
+je majv_souris_8b_linear
 jmp fin_majv
 
 
-;*************************************
+
+
+;*******************************************************
 majv_graph_banked:
-mov ebx,[to_graf]
-mov esi,[ad_graf]
-xor edx,edx
-mov di,selvidA
-mov es,di
+mov ax,selvidA
+mov es,ax
+mov ebx,edi
 
-boucle_banked:
-test ebx,0FFFF0000h
-jz fin_majv_graph_banked 
+boucle_majv_graph_banked:
+;§§§§§§§§§§§§§§§§§
+
 call vesa_mem
-mov ecx,10000h
-xor edi,edi
-rep movsb
+;§§§§§§§§§§§§§§§§§
+fs
+inc dword[num_ligne_majv]
+fs
+mov eax,[num_ligne_majv]
+fs
+cmp [majv_yfin],eax
+jne boucle_majv_graph_banked
 
-sub ebx,10000h
-inc edx
-jmp boucle_banked
 
-fin_majv_graph_banked:
-call vesa_mem
-mov ecx,ebx
-xor edi,edi
-rep movsb
+fs
+cmp byte[bitpp],32
+je majv_souris_32b_banked
+fs
+cmp byte[bitpp],24
+je majv_souris_24b_banked
+fs
+cmp byte[bitpp],15
+je majv_souris_16b_banked
+fs
+cmp byte[bitpp],16
+je majv_souris_16b_banked
+fs
+cmp byte[bitpp],8
+je majv_souris_8b_banked
 jmp fin_majv
 
 
@@ -475,30 +557,30 @@ test byte[atts1],01h
 jz fin_majv
 call adresse_souris
 es
-mov dword[edi],0FFFFFFFFh
+mov dword[edi],0F0F0F0Fh
 es
-mov dword[edi+4],0FFFFFFFFh
+mov dword[edi+4],0F0F0F0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 add edi,ecx
 es
-mov byte[edi],0FFh
+mov byte[edi],0Fh
 
 fs
 test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
