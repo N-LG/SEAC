@@ -69,9 +69,10 @@ ad_msg_syst equ 5000h ;4ko
 ad_msg_erreur equ 6000h ;8Ko  
 
 
-ad_tabclav_code    equ 8000h   ;512 octet
-;ad_tabclav_usb    equ 8200h    ;inconnu (128 estimé)
-ad_tabclav_carac equ 8800h     ;2 fois 2048
+ad_tabclav_code   equ 8000h   ;512 octet
+;ad_tabclav_usb   equ 8200h    ;inconnu (128 estimé)
+ad_curseur_defaut equ 8600h   ;256 octets
+ad_tabclav_carac  equ 8800h     ;2 fois 2048
 ad_tabclav_chasse equ 9800h    ;2048 max
 
 
@@ -593,11 +594,9 @@ ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch
 to_graf equ 10h
-ad_souris equ 14h
-to_souris equ 18h
-ad_curseur equ 1Ch
-to_curseur equ 20h
-ad_curseur_texte equ 24h ;adresse du caractère sur lequel se trouve le curseur texte
+ad_curseur equ 14h
+to_curseur equ 18h
+ad_curseur_texte equ 1Ch ;adresse du caractère sur lequel se trouve le curseur texte
 ad_res_console equ 100h  ;adresse reservé
 
 ;**********************************************************

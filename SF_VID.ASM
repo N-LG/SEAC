@@ -150,25 +150,7 @@ mul ecx
 ig_graf_sfv_ouvre_console:    
 mov [to_graf],eax     ;calcul de la taille occupé par la zone image
 
-xor eax,eax
-bt word[at_console],2
-jnc ig_souris_sfv_ouvre_console
-xor ecx,ecx
-xor edx,edx
-fs
-mov ax,[resx]
-fs
-mov cx,[resy]
-mul ecx
-ig_souris_sfv_ouvre_console:    
-mov [to_souris],eax     ;calcul de la taille occupé par la zone souris
-
-xor eax,eax
-bt word[at_console],3
-jnc ig_curseur_sfv_ouvre_console
-mov eax,500
-ig_curseur_sfv_ouvre_console:  
-mov [to_curseur],eax
+mov dword[to_curseur],256  ;zone curseur de 256 octets
 
 mov ecx,ad_res_console     ;calcule de l'adresse des zones
 mov [ad_texte],ecx
@@ -176,8 +158,6 @@ mov [ad_curseur_texte],ecx
 add ecx,[to_texte]
 mov [ad_graf],ecx
 add ecx,[to_graf]
-mov [ad_souris],ecx
-add ecx,[to_souris]
 mov [ad_curseur],ecx
 add ecx,[to_curseur]
 
@@ -187,6 +167,7 @@ int 61h
 cmp eax,0
 jne fin_sfv_ouvre_console
 
+sti
 fs
 mov ebx,[ad_tache_exec]
 es
@@ -196,8 +177,6 @@ xor al,al               ;vide l'ecran
 mov esi,[ad_texte]
 mov ecx,[to_texte]
 add ecx,[to_graf]
-add ecx,[to_souris]
-add ecx,[to_curseur]
 boucle_sfv_ouvre_console:
 mov [esi],al
 inc esi
@@ -205,7 +184,23 @@ dec ecx
 jnz boucle_sfv_ouvre_console
 
 
-sti
+;copie la souris par défaut
+mov edi,[ad_curseur]
+mov esi,ad_curseur_defaut
+push ds
+push es
+mov ax,seldat
+mov cx,ds
+mov ds,ax
+mov es,cx
+mov ecx,256
+cld
+rep movsb
+pop es
+pop ds
+
+
+
 es                     ;active l'ecran
 mov ax,[ebx+id_tache]
 fs

@@ -418,6 +418,16 @@ cld
 rep movsb    
 
 
+mov cx,256        ;copie le bitmap du curseur graphique
+mov ax,cs
+mov ds,ax
+mov si,curseur8bit
+mov ax,segdat
+mov es,ax
+mov di,ad_curseur_defaut
+cld
+rep movsb   
+
 
 ;**********************************************
 ;**** charge le code 
@@ -982,6 +992,8 @@ include "DN_ACC.ASM"
 fintabacc:
 
 
+curseur8bit:
+include "DN_CURS.ASM"
 
  
 

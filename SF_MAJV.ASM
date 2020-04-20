@@ -6,15 +6,53 @@ mov ax,selramh
 mov gs,ax
 
 
+;*********************************************************
+majv_charge_seg_csl:     ;charge le bon segment de mémoire relatif a la console
+fs
+cmp word[id_tache_af],0
+jne majv_tache
+mov dx,selconsole
+mov ds,dx 
+jmp majv_test_action
 
+majv_tache:
+;charge le descripteur du segment affiché dans le descripteur global correspondant
+
+mov ax,selgdt
+mov ds,ax
+
+fs
+mov ebx,[ad_tache_af]
+gs
+mov ax,[ebx+sel_ecranv]
+and eax,0FFF8h
+add ebx,ldt_tache
+add ebx,eax
+gs
+mov eax,[ebx]
+gs
+mov edx,[ebx+4]
+
+mov [selecran],eax
+mov [selecran+4],edx
+
+mov ax,selecran 
+mov ds,ax
+
+
+;***************************************************
+majv_test_action:
 fs  ;test si on doit mettre a jour l'écran
 test byte[at_vid],01h
 jnz maj_complete
 fs
 test byte[at_vid],02h
-jnz majv_charge_seg_csl     ;mise a jour partielle
+jnz majv_ctrl_valeur     ;mise a jour partielle
+
 fs
 test byte[atts1],01h
+jz fin_majv
+test byte[at_console],04h
 jz fin_majv
 fs
 mov eax,[xs1]
@@ -45,7 +83,7 @@ mov eax,[xs1]
 fs
 mov [axs1],eax
 
-jmp majv_charge_seg_csl
+jmp majv_ctrl_valeur
 
 
 
@@ -65,9 +103,11 @@ fs
 mov dword[majv_ydeb],0
 fs
 mov dword[majv_yfin],ebx
-
+fs
 test byte[atts1],01h
-jz majv_charge_seg_csl       ;si on as une souris, l'affichage se feras en 2 fois pour eviter le clignotement de la souris
+jz majv_ctrl_valeur       ;si on as une souris, l'affichage se feras en 2 fois pour eviter le clignotement de la souris
+test byte[at_console],04h
+jz majv_ctrl_valeur
 
 xor ebx,ebx
 fs
@@ -79,9 +119,9 @@ fs
 mov eax,[xs1]
 fs
 mov [axs1],eax
-
+fs
 or byte[at_vid],4h
-jmp majv_charge_seg_csl
+jmp majv_ctrl_valeur
 
 ;*************************************************
 majv_complet2:
@@ -98,43 +138,12 @@ fs
 mov dword[majv_yfin],ebx
 fs
 and byte[at_vid],0F8h
-jmp majv_ctrl_valeur
+;jmp majv_ctrl_valeur
 
 
 
 
-;*********************************************************
-majv_charge_seg_csl:     ;charge le bon segment de mémoire relatif a la console
-fs
-cmp word[id_tache_af],0
-jne majv_tache
-mov dx,selconsole
-mov ds,dx 
-jmp majv_ctrl_valeur
 
-majv_tache:
-;charge le descripteur du segment affiché dans le descripteur global correspondant
-
-mov ax,selgdt
-mov ds,ax
-
-fs
-mov ebx,[ad_tache_af]
-gs
-mov ax,[ebx+sel_ecranv]
-and eax,0FFF8h
-add ebx,ldt_tache
-add ebx,eax
-gs
-mov eax,[ebx]
-gs
-mov edx,[ebx+4]
-
-mov [selecran],eax
-mov [selecran+4],edx
-
-mov ax,selecran 
-mov ds,ax
 
 
 ;***********************************************************
@@ -165,8 +174,6 @@ mov ax,[resxt]
 shl eax,2
 fs
 mov [majv_precal_resxt],eax
-
-
 
 mov al,[at_console]   ;determine le mode
 and al,3h
@@ -326,7 +333,7 @@ mov es,ax
 boucle_majv_graph:
 fs
 mov ecx,[majv_precal_longeur_ligne]
-cli
+cld
 rep movsb
 fs
 add esi,[majv_precal_offset_ligne]
@@ -367,10 +374,37 @@ mov es,ax
 mov ebx,edi
 
 boucle_majv_graph_banked:
-;§§§§§§§§§§§§§§§§§
-
 call vesa_mem
-;§§§§§§§§§§§§§§§§§
+fs
+mov ecx,[majv_precal_longeur_ligne]
+mov edi,ebx
+add ebx,ecx
+and edi,0FFFFh
+
+mov eax,edi
+add eax,ecx
+cmp eax,10000h
+ja majv_graph_banked_2
+
+cld         ;maj ligne en une passe
+rep movsb
+
+fs
+add esi,[majv_precal_offset_ligne]
+fs
+add ebx,[majv_precal_offset_ligne]
+jmp suite_majv_graph_banked
+
+majv_graph_banked_2:  ;maj ligne en deux passe
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+cld
+rep movsb
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+
+
+
+
+suite_majv_graph_banked:
 fs
 inc dword[num_ligne_majv]
 fs
@@ -378,6 +412,10 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne boucle_majv_graph_banked
+
+
+call vesa_mem
+
 
 
 fs
@@ -552,40 +590,38 @@ jne majv_ligne8linear
 
 ;*****************************
 majv_souris_8b_linear:
+test byte[at_console],04h
+jz fin_majv
 fs
 test byte[atts1],01h
 jz fin_majv
 call adresse_souris
+
+boucle_majv_souris_8b_linear:
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_8b_linear
+cmp ebx,edi
+jae ignore_majv_souris_8b_linear 
 es
-mov dword[edi],0F0F0F0Fh
-es
-mov dword[edi+4],0F0F0F0Fh
+mov [ebx],al
+ignore_majv_souris_8b_linear:
+inc esi
+inc ebx
+dec dl
+jnz boucle_majv_souris_8b_linear
+add ebx,ecx
 add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
-add edi,ecx
-es
-mov byte[edi],0Fh
+sub ebx,16
+mov dl,16
+dec dh
+jnz boucle_majv_souris_8b_linear
 
 fs
 test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
 jnz majv_complet2
 jmp fin_majv
+
 
 
 
@@ -690,45 +726,41 @@ jne majv_ligne16linear
 
 ;*****************************
 majv_souris_16b_linear:
+test byte[at_console],04h
+jz fin_majv
 fs
 test byte[atts1],01h
 jz fin_majv
 call adresse_souris
-es
-mov dword[edi],0FFFFFFFFh
-es
-mov dword[edi+4],0FFFFFFFFh
-es
-mov dword[edi+8],0FFFFFFFFh
-es
-mov dword[edi+12],0FFFFFFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
 
+boucle_majv_souris_16b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_16b_linear
+cmp ebx,edi
+jae ignore_majv_souris_16b_linear 
+call conv8_24
+call conv24_16
+es
+mov [ebx],ax
+ignore_majv_souris_16b_linear:
+inc esi
+add ebx,2
+dec dl
+jnz boucle_majv_souris_16b_linear
+add ebx,ecx
+add edi,ecx
+sub ebx,16*2
+mov dl,16
+dec dh
+jnz boucle_majv_souris_16b_linear
 
 fs
 test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
 jnz majv_complet2
 jmp fin_majv
+
 
 
 ;****************************************************
@@ -835,62 +867,43 @@ jne majv_ligne24linear
 
 ;*****************************
 majv_souris_24b_linear:
+test byte[at_console],04h
+jz fin_majv
 fs
 test byte[atts1],01h
 jz fin_majv
 call adresse_souris
+
+boucle_majv_souris_24b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_24b_linear
+cmp ebx,edi
+jae ignore_majv_souris_24b_linear 
+call conv8_24
 es
-mov dword[edi],0FFFFFFFFh
+mov [ebx],ax
+shr eax,16
 es
-mov dword[edi+4],0FFFFFFFFh
-es
-mov dword[edi+8],0FFFFFFFFh
-es
-mov dword[edi+12],0FFFFFFFFh
-es
-mov dword[edi+16],0FFFFFFFFh
-es
-mov dword[edi+20],0FFFFFFFFh
+mov [ebx+2],al
+ignore_majv_souris_24b_linear:
+inc esi
+add ebx,3
+dec dl
+jnz boucle_majv_souris_24b_linear
+add ebx,ecx
 add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
-add edi,ecx
-es
-mov word[edi],0FFFFh
-es
-mov byte[edi+2],0FFh
+sub ebx,16*3
+mov dl,16
+dec dh
+jnz boucle_majv_souris_24b_linear
 
 fs
 test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
 jnz majv_complet2
 jmp fin_majv
+
 
 ;****************************************************
 majv_ligne32linear:
@@ -994,47 +1007,34 @@ jne majv_ligne32linear
 
 ;*****************************
 majv_souris_32b_linear:
+test byte[at_console],04h
+jz fin_majv
 fs
 test byte[atts1],01h
 jz fin_majv
 call adresse_souris
+
+boucle_majv_souris_32b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_32b_linear
+cmp ebx,edi
+jae ignore_majv_souris_32b_linear 
+call conv8_24
 es
-mov dword[edi],0FFFFFFh
-es
-mov dword[edi+4],0FFFFFFh
-es
-mov dword[edi+8],0FFFFFFh
-es
-mov dword[edi+12],0FFFFFFh
-es
-mov dword[edi+16],0FFFFFFh
-es
-mov dword[edi+20],0FFFFFFh
-es
-mov dword[edi+24],0FFFFFFh
-es
-mov dword[edi+28],0FFFFFFh
+mov [ebx],eax
+ignore_majv_souris_32b_linear:
+inc esi
+add ebx,4
+dec dl
+jnz boucle_majv_souris_32b_linear
+add ebx,ecx
 add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
-add edi,ecx
-es
-mov dword[edi],0FFFFFFh
+sub ebx,16*4
+mov dl,16
+dec dh
+jnz boucle_majv_souris_32b_linear
 
 fs
 test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
@@ -2923,16 +2923,20 @@ mov ax,[axs1]
 fs
 mov cx,[octpp]
 mul ecx
-mov edi,eax
+mov ebx,eax
 xor eax,eax
 xor ecx,ecx
 xor edx,edx
 fs
 mov ax,[ays1]
 fs
-mov cx,[octpl]
+mov cx,[octpl]        ;ecx=octet par ligne
 mul ecx
-add edi,eax
+add ebx,eax           ;ebx=pointeur sur pixel haut gauche du curseur
+mov edi,eax
+add edi,ecx           ;edi=pointeur extremité ligne
+mov esi,[ad_curseur]  ;esi=pointeur sur image curseur
+mov edx,1010h         ;dh= nb de ligne dl=nb de colonne
 ret
 
 
@@ -2974,7 +2978,8 @@ shl eax,2
 push eax
 
 mov ecx,eax
-add ecx,ad_res_console
+add ecx,ad_res_console+256
+
 
 push ecx
 add ecx,15
@@ -3002,12 +3007,24 @@ call creeds
 mov dx,selconsole
 mov ds,dx  
 
-mov word[at_console],01h
+mov word[at_console],05h     ;texte+curseur souris
 
 pop eax
 mov [to_texte],eax
 mov dword[ad_texte],ad_res_console
 mov dword[ad_curseur_texte],ad_res_console
+add eax,ad_res_console
+mov [ad_curseur],eax
+
+mov edi,eax    ;copie la souris par défaut
+mov esi,ad_curseur_defaut
+mov ax,seldat
+mov cx,ds
+mov ds,ax
+mov es,cx
+mov ecx,256
+cld
+rep movsb
 pop es
 pop ds
 ret
