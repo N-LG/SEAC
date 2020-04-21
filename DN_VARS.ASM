@@ -356,10 +356,21 @@ majv_xfin equ 554h
 majv_ydeb equ 558h
 majv_yfin equ 55Ch
 
-majv_precal_resxt equ  560h  ;dword resxt x4
+;précal mise a jour écran en mode graphique uniquement
+majv_precal_longeur_ligne equ 560h
+majv_precal_offset_ligne equ 564h
 
-majv_precal_longeur_ligne equ 564h
-majv_precal_offset_ligne equ 568h
+;précal mise a jour écran en mode combiné et emulation texte
+majv_precal_resxt equ  560h  ;dword resxt x4
+majv_precal_offsetx_ecran equ 564h
+majv_precal_offsetx_image equ 568h
+majv_precal_finligne equ 56Ch
+majv_precal_debutligne equ 570h
+
+
+
+
+
 
 ;*************************************************************************
 ;gestion de l'USB
