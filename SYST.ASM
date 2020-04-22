@@ -2095,7 +2095,6 @@ finafc:
 ;mise a jour de l'écran
 maj_ecran:
 include "SF_MAJV.ASM"
-fin_majv:
 
 
 
@@ -2558,7 +2557,7 @@ mov [octpp],al    ;octet par pixel
 test dword[infovesa],080h
 jz banked_cmdmodv
 
-or word[at_csl],10h     ;met le bit 4 a un (bit utilisation du linear frame buffer)
+or word[at_vid],10h     ;met le bit 4 a un (bit utilisation du linear frame buffer)
 push ds
 mov ebx,[infovesa+28h] ;adresse de base du linear frame buffer
 mov eax,sellfb
@@ -2583,7 +2582,7 @@ jmp fin_cmdmodv
 
 
 banked_cmdmodv:
-and word[at_csl],0FFEFh    ;met le bit 4 a zéro (bit utilisation du linear frame buffer)
+and word[at_vid],0FFEFh    ;met le bit 4 a zéro (bit utilisation du linear frame buffer)
 push ds
 mov ebx,0A0000h ;adresse de base de la ram video en banked
 mov eax,sellfb

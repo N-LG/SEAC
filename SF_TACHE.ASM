@@ -829,13 +829,7 @@ mov ds,ax
 mov cx,[id_tache_exec]
 call ferme_fichier_tache
 xor ebx,ebx
-mov cx,[id_tache_af]
-cmp [id_tache_exec],cx
-jne selection_tache_suivante
-mov byte[nb_zrc],0
-mov word[id_tache_af],0
-mov dword[ad_tache_af],0
-or byte[at_vid],01h ;signale que l'affichage doit être mis a jour
+
 jmp selection_tache_suivante
 
 ;*********************************************************************************************
@@ -902,6 +896,18 @@ suite_efface_canauxcom:
 add ebx,eax
 cmp byte[ebx+type_dm],"F" 
 jne boucle_efface_canauxcom
+
+
+mov ax,seldat   ;test si l'affichage était reglé sur la tache stoppé, si oui revien a l'affichage tache 0
+mov ds,ax
+cmp [id_tache_af],cx
+jne pas_bascule_affichage
+mov byte[nb_zrc],0
+mov word[id_tache_af],0
+mov dword[ad_tache_af],0
+or byte[at_csl],0Eh ;signale que l'affichage doit être mis a jour
+pas_bascule_affichage:
+
 
 
 pop es

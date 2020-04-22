@@ -213,7 +213,6 @@ fs
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 cli
 
-
 xor eax,eax
 
 fin_sfv_ouvre_console:
@@ -1480,7 +1479,7 @@ iret
 sigmajv:
 push eax
 es
-test byte[at_console],040h
+test byte[at_console],080h
 jnz fin_sigmajv
 fs
 mov ax,[id_tache_exec]

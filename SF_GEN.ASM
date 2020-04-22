@@ -457,7 +457,7 @@ mov es,ax
 attent_sfs_mod_seg: ;attent que la tache principale ait finis de mettre a jour l'écran
 int 62h
 fs
-test byte[at_csl],40h
+test byte[at_vid],08h
 jnz attent_sfs_mod_seg
 
 fs
@@ -573,6 +573,16 @@ lldt [esi+sel_ldt_tache] ;on recharge la bonne LDT
 
 mov ax,sel_pilet0 ;on recharge le segment de la pile pour mettre a jour les données 
 mov ss,ax
+
+fs                      ;recharge eventuellement les informations de tache affiché
+mov ax,[id_tache_af]
+fs
+cmp ax,[id_tache_exec]
+jne fin_sfs_mod_seg
+fs
+mov eax,[ad_tache_exec]
+fs
+mov [ad_tache_af],eax
 
 
 fin_sfs_mod_seg: ;restaure les selecteur de segment

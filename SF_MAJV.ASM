@@ -4,7 +4,8 @@ mov ax,seldat
 mov fs,ax
 mov ax,selramh
 mov gs,ax
-
+fs
+or byte[at_vid],08h
 
 ;*********************************************************
 majv_charge_seg_csl:     ;charge le bon segment de mémoire relatif a la console
@@ -89,6 +90,8 @@ jmp majv_ctrl_valeur
 
 ;*********************************************************
 maj_complete:          ;mise a jour complete de l'écran
+fs
+and byte[at_vid],0FCh
 xor eax,eax
 xor ebx,ebx
 fs
@@ -137,7 +140,7 @@ mov dword[majv_ydeb],eax
 fs
 mov dword[majv_yfin],ebx
 fs
-and byte[at_vid],0F8h
+and byte[at_vid],0FBh
 ;jmp majv_ctrl_valeur
 
 
@@ -352,7 +355,7 @@ mov [majv_precal_offset_ligne],ecx
 
 
 fs
-test word[at_csl],10h     ;test si on est en linear  
+test word[at_vid],10h     ;test si on est en linear  
 jz majv_graph_banked 
 
 
@@ -489,7 +492,7 @@ fs
 mov [num_ligne_majv],eax
 
 fs
-test word[at_csl],10h     ;test si on est en linear  
+test word[at_vid],10h     ;test si on est en linear  
 jz majv_texte_banked 
 
 mov ax,sellfb
@@ -1824,7 +1827,7 @@ fs
 mov [num_ligne_majv],eax
 
 fs
-test word[at_csl],10h     ;test si on est en linear  
+test word[at_vid],10h     ;test si on est en linear  
 jz majv_combi_banked 
 
 mov ax,sellfb
@@ -3331,3 +3334,7 @@ pop es
 pop ds
 ret
 
+
+fin_majv:
+fs
+and byte[at_vid],0F7h
