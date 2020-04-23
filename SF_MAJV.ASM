@@ -150,6 +150,7 @@ and byte[at_vid],0FBh
 majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
 fs
 and byte[at_vid],0FCh
+xor ecx,ecx
 fs
 mov cx,[resy]
 fs
@@ -165,6 +166,18 @@ jb majv_ok_ydeb
 fs
 mov [majv_ydeb],ecx
 majv_ok_ydeb:
+
+xor ecx,ecx
+fs
+mov cx,[resx]
+fs
+cmp [majv_xfin],ecx
+jb majv_ok_xfin
+fs
+mov [majv_xfin],ecx
+majv_ok_xfin:
+
+
 
 
 ;**************************************************

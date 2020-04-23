@@ -1028,49 +1028,44 @@ sti      ;init des valeurs terminé, débloquage des irq
 
 
 ;**********************************************************************
-;programme souris ps/2   ;inspiré de https://forum.osdev.org/viewtopic.php?t=24277
+;programme souris ps/2
 
-
-
-
-;commande au 8042: Enable Auxiliary Interface
-mov al,0A8h     
+;commande au 8042: disable keyboard Interface
+mov al,0ADh     
 call env_8042_cmd
 
-;commande au 8042: test Auxiliary Interface
-mov al,0A9h     
+;commande au 8042: disable Auxiliary Interface
+mov al,0A7h     
 call env_8042_cmd
-call lec_ps2
-cmp al,0
-jne fin_init_souris ;si c'est pas bon on initalise pas la souris
 
-
-;définis les parametres de base
-mov dx,seldat
-mov ds,dx
-mov byte[atts1],1
-mov byte[nbts1],3
-mov byte[nbzt1],0 
-
+call vide_8042
       
 ;modifie le 8042 Command Byte
 mov al,20h
 call env_8042_cmd
 call lec_ps2
+;bts ax,0       ;enable l'interruption clavier
 bts ax,1       ;enable l'interruption auxilliaire
-btr ax,5       ;met a zéro le bit "disable auxiliary device"
+;btr ax,4       ;met a zéro le bit "disable keyboard"
+;btr ax,5       ;met a zéro le bit "disable auxiliary device"
 mov bl, al
 mov al,60h
 call env_8042_cmd
 mov al,bl
 call env_8042_dat
-
 call lec_ps2
+
+;commande au 8042: enable keyboard Interface
+mov al,0AEh     
+call env_8042_cmd
+
+;commande au 8042: enable Auxiliary Interface
+mov al,0A8h     
+call env_8042_cmd
 
 ;commande a la souris: set to default value
 mov al,0F6h
 call env_ps2
-
 
 ;envoie la séquence d'activation de la molette par sequence de commandes set sample rate
 mov al, 0F3h   ;sample rate
@@ -1086,40 +1081,57 @@ call env_ps2
 mov al, 80      ;a la valeur 80
 call env_ps2
 
-;vérifie le type de la souris pour voir si la molette a été activé
+;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
+mov al, 0F3h
+call env_ps2
+mov al, 200
+call env_ps2
+mov al, 0F3h
+call env_ps2
+mov al,200
+call env_ps2
+mov al, 0F3h
+call env_ps2
+mov al,80
+call env_ps2
+
+
+;vérifie le type de la souris
+mov dx,seldat
+mov ds,dx
 mov al,0F2h
 call env_ps2
 call lec_ps2
+cmp al,0
+je souris_simple
 cmp al,3
-jne molette_non_active
+je souris_molette
+cmp al,4
+je souris_5boutons
+jmp fin_init_souris
+
+souris_simple:
+mov byte[atts1],1
+mov byte[nbts1],3
+mov byte[nbzt1],0 
+jmp suite_init_souris
+
+souris_molette:
+mov byte[atts1],1
 mov byte[nbts1],4
-molette_non_active: 
+mov byte[nbzt1],0 
+jmp suite_init_souris
 
-;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
-;mov al, 0F3h
-;call env_ps2
-;mov al, 200
-;call env_ps2
-;mov al, 0F3h
-;call env_ps2
-;mov al,200
-;call env_ps2
-;mov al, 0F3h
-;call env_ps2
-;mov al,80
-;call env_ps2
+souris_5boutons:
+mov byte[atts1],3
+mov byte[nbts1],4
+mov byte[nbzt1],0 
+;jmp suite_init_souris
 
-;vérifie le type pour voir si les boutons 4 et 5 ont été activé
-;mov al,0F2h
-;call env_ps2
-;call lec_ps2
-;cmp al,3
-;jne bt45_nonactif
-;or byte[ats1],2
-;bt45_nonactif:
 
 
 ;configure la souris et l'active
+suite_init_souris:
 mov al,0F3h    ;set sample rate
 call env_ps2
 mov al,200     ;échantillons par seconde, valeur possible: 10,20,40,60,80,100,200
@@ -1141,13 +1153,7 @@ mov dx,0A1h
 mov al,0EFh
 out dx,al
 
-az2:
-in al,64h
-test al,01h ;0=vide
-jz az1
-in al,60h
-jmp az2
-az1:
+call vide_8042
 
 ;aquitte toutes irq en attente
 mov al,20h
@@ -1155,74 +1161,9 @@ out 0A0h,al
 mov al,20h
 out 20h,al
 
-jmp fin_init_souris
-
-
-
-;********************************************************************
-;sous fonctions 8042
-
-at8042ok_lec:        ;attend que la puce ait des données disponible sur 60h
-push eax
-push ecx
-mov ecx,10000
-boucle_at8042ok_lec: 
-in al,64h
-test al,1
-jnz at8042ok
-dec ecx 
-jnz boucle_at8042ok_lec 
-
-at8042ok:
-pop ecx
-pop eax
-ret
-
-
-at8042ok_env:        ;attend la fin du traitement des donnes par la puce 8042
-push eax
-push ecx
-mov ecx,10000
-boucle_at8042ok_env: 
-in al,64h
-test al,2
-jz at8042ok
-dec ecx 
-jnz boucle_at8042ok_env 
-pop ecx
-pop eax
-ret
-
-
-
-env_ps2:
-call at8042ok_env
-push eax
-mov al,0D4h
-out 64h,al
-pop eax
-call at8042ok_env
-out 60h,al
-
-lec_ps2:
-call at8042ok_lec
-in al,60h
-fin_lec_ps2:
-ret
-
-env_8042_cmd:
-call at8042ok_env
-out 64h,al
-call at8042ok_env
-ret
-
-env_8042_dat:
-call at8042ok_env
-out 60h,al
-ret
-
-
 fin_init_souris:
+
+
 
 ;**********************************************************************
 ;initialise les zones de taille variable
@@ -3575,6 +3516,78 @@ pop eax
 ret
 
 
+;********************************************************************
+;sous fonctions 8042
+
+at8042ok_lec:        ;attend que la puce ait des données disponible sur 60h
+push eax
+push ecx
+mov ecx,10000
+boucle_at8042ok_lec: 
+in al,64h
+test al,1
+jnz at8042ok
+dec ecx 
+jnz boucle_at8042ok_lec 
+
+at8042ok:
+pop ecx
+pop eax
+ret
+
+
+at8042ok_env:        ;attend la fin du traitement des donnes par la puce 8042
+push eax
+push ecx
+mov ecx,10000
+boucle_at8042ok_env: 
+in al,64h
+test al,2
+jz at8042ok
+dec ecx 
+jnz boucle_at8042ok_env 
+pop ecx
+pop eax
+ret
+
+
+
+env_ps2:
+call at8042ok_env
+push eax
+mov al,0D4h
+out 64h,al
+pop eax
+call at8042ok_env
+out 60h,al
+
+lec_ps2:
+call at8042ok_lec
+in al,60h
+fin_lec_ps2:
+ret
+
+env_8042_cmd:
+call at8042ok_env
+out 64h,al
+call at8042ok_env
+ret
+
+env_8042_dat:
+call at8042ok_env
+out 60h,al
+ret
+
+
+
+vide_8042:
+in al,60h
+nop
+in al,64h
+test al,01h ;0=vide
+jnz vide_8042 
+ret
+
 
 
 ;***************************************************************************************
@@ -4698,12 +4711,12 @@ pasinfys1:
 ;************************************************************traitement cliques 0-3
 mov cl,[zts1]
 and cl,07h
-;test byte[atts1],2
-;jz irqs_pasbouton45
-;mov ch,[zts1+3]  ;******bouton 4 et 5 eventuellement ici
-;and ch,30h
-;shr ch,1
-;or cl,ch
+test byte[atts1],2
+jz irqs_pasbouton45
+mov ch,[zts1+3]
+and ch,30h
+shr ch,1
+or cl,ch
 irqs_pasbouton45:
 mov ch,[etbs1]
 mov [etbs1],cl
@@ -4737,14 +4750,14 @@ jnz bts3_press
 jmp bts3_depress 
 
 modifbts4:
-test byte[zts1+2],16
-jnz bts2_press
-jmp bts2_depress 
+test byte[zts1+3],16
+jnz bts4_press
+jmp bts4_depress 
 
 modifbts5:
-test byte[zts1+2],32
-jnz bts3_press
-jmp bts3_depress 
+test byte[zts1+3],32
+jnz bts5_press
+jmp bts5_depress 
 
 bts1_press:
 mov cl,0F0h
@@ -4839,13 +4852,13 @@ molettes_souris:   ;gestion de la molette souris
 cmp byte[nbts1],4
 jne finirqs
 
-;test byte[atts1],2    ;etend le bit de signe si on est en mode 5 boutons
-;jz molettesansbouton
-;and byte[zts1+3],0Fh
-;test byte[zts1+3],08h
-;jz molettesansbouton
-;or byte[zts1+3],0Fh
-;molettesansbouton:
+test byte[atts1],2    ;etend le bit de signe si on est en mode 5 boutons
+jz molettesansbouton
+and byte[zts1+3],0Fh
+test byte[zts1+3],08h
+jz molettesansbouton
+or byte[zts1+3],0F0h
+molettesansbouton:
 
 boucle_molette:
 cmp byte[zts1+3],0
