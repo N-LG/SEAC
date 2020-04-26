@@ -287,8 +287,10 @@ mov al,bl
 out dx,al
 
 ;affiche souris
+test byte[at_console],04h
+jz fin_majv
 fs
-test byte[atts1],1
+test byte[atts1],01h
 jz fin_majv
 xor eax,eax
 xor ebx,ebx
@@ -306,13 +308,7 @@ mul ecx
 add ebx,eax
 shl ebx,1
 es
-mov byte[ebx],8Fh   ;ecrit le caractère
-inc ebx
-es
-cmp byte[ebx],0
-jne ignore_force_couleur_souris
-mov byte[ebx],07h
-ignore_force_couleur_souris:
+xor byte[ebx+1],7Fh
 
 ;signal que la position souris as été mis a jour
 fs
@@ -2858,6 +2854,11 @@ fs
 mov eax,[esi+4]
 mov esi,eax
 mov eax,[ebx]
+and eax,0FFFFFFh
+cmp eax,20h
+ja caracsup20
+mov eax,20h
+caracsup20:
 and eax,0FFh
 
 suite_lire_ligne_carac:
@@ -3351,3 +3352,21 @@ ret
 fin_majv:
 fs
 and byte[at_vid],0F7h
+
+fs                ;met a jour le bitmap clavier
+mov eax,[atbp]
+fs
+mov ebx,[atbp+4]
+fs
+mov ecx,[atbp+8]
+fs
+mov edx,[atbp+12]
+mov [bm_clavier],eax
+mov [bm_clavier+4],ebx
+mov [bm_clavier+8],ecx
+mov [bm_clavier+12],edx
+
+fs                          ;met a jour la position souris
+mov eax,[axs1]
+mov [posx_souris],eax
+

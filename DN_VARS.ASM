@@ -615,6 +615,18 @@ to_graf equ 10h
 ad_curseur equ 14h
 to_curseur equ 18h
 ad_curseur_texte equ 1Ch ;adresse du caractère sur lequel se trouve le curseur texte
+bm_clavier equ 20h
+posx_souris equ 30h
+posy_souris equ 32h
+resx_ecran equ 34h
+resy_ecran equ 36h
+resx_texte equ 38h
+resy_texte equ 3Ah
+octet_ligne equ 3Ch
+bit_pixel equ 3Eh 
+octet_pixel equ 3Fh
+
+
 ad_res_console equ 100h  ;adresse reservé
 
 ;**********************************************************

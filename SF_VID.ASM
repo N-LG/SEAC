@@ -173,6 +173,16 @@ mov ebx,[ad_tache_exec]
 es
 mov [ebx+sel_ecranv],ds
 
+fs               ;ecrit les infos de base
+mov eax,[resx]
+fs
+mov ecx,[resxt]
+fs
+mov edx,[octpl]
+mov [resx_ecran],eax
+mov [resx_texte],ecx 
+mov [octet_ligne],edx 
+
 xor al,al               ;vide l'ecran
 mov esi,[ad_texte]
 mov ecx,[to_texte]
@@ -1108,7 +1118,7 @@ mov ds,ax
 cmp ch,0
 je sfv_menu_err
 dec ch
-add ch,cl
+add ch,cl      ;cl=ligne min   ch=ligne max
 mov al,cl
 add al,bl
 mov ah,bh
@@ -1182,10 +1192,30 @@ pop eax
 
 sfv_menu_clavier:
 push eax
+push ebx
 push ecx
 call fc_obt_clav
+cmp al,0F0h
+jne sfv_menu_ignore_souris
+shr ecx,4
+mov edx,ecx
+pop ecx
+push ecx
+cmp dl,cl
+jb sfv_menu_ignore_souris 
+cmp dl,ch
+ja sfv_menu_ignore_souris 
+pop ecx
+pop ebx
+pop eax
+mov al,dl
+mov dl,44
+jmp sfv_menu_validation
+
+sfv_menu_ignore_souris:
 mov dl,al
 pop ecx
+pop ebx
 pop eax
 
 cmp dl,82
