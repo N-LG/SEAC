@@ -1400,6 +1400,21 @@ mov fs,dx
 mov gs,dx
 
 
+;******************************************************
+;retour a l'affichage du tecop si la souris est en position 0:0
+cmp dword[axs1],0
+jne pas_retour_tecop
+mov word[id_tache_af],0
+mov dword[ad_tache_af],0
+or byte[at_csl],0Eh      ;met a 1 les bits de mise a jour des parties du tecop
+mov byte[nb_zrc],0    ;efface la zt de reception souris
+pas_retour_tecop:
+
+
+
+
+
+
 ;***************************************************************************
 ;gestion des entrées clavier du mode console
 
@@ -1408,7 +1423,11 @@ int 63h
 cmp al,0
 je majafcsl
 cmp al,0F0h
-jae majafcsl
+je souris_tecop
+cmp al,0F0h
+ja majafcsl
+cmp al,14
+jb touchefx
 
 or byte[at_csl],08h ;signale que l'affichage de la commande doit être mis a jour
 
@@ -1445,6 +1464,8 @@ cmp al,08h
 je cmd_prec
 cmp al,09h
 je cmd_suiv
+cmp al,0F0h
+je souris_tecop
 
 
 test ecx,0FFFFFFE0h
@@ -1789,10 +1810,10 @@ jmp boucl_recmd
 
 max_recmd:
 dec byte[num_cmd]
-and byte[num_cmd],03Fh ;on ne peut afficher que les 64 derni?res commandes
+and byte[num_cmd],03Fh ;on ne peut afficher que les 64 dernières commandes
 jmp recop_cmd
 
-cmdoke:         ;on recopie dans la zt commande en cours de r?daction
+cmdoke:         ;on recopie dans la zt commande en cours de rédaction
 mov edi,ad_cce
 boc_rec_hc:
 fs
@@ -1805,20 +1826,192 @@ jne boc_rec_hc
 
 fin_rec_hc:
 sub edi,ad_cce
-dec edi          ;et on ne compte ps le z?ro finale
+dec edi          ;et on ne compte ps le zéro finale
 mov [to_cce],di
 mov [cu_cce],di
+jmp majafcsl
+
+
+
+touchefx:
+xor ebx,ebx
+mov bl,al
+mov ax,selramh
+mov fs,ax
+cmp ebx,1
+je majafcsl
+sub ebx,2
+cmp cx,[ligne_listing_ecran]
+jae majafcsl
+shl ebx,1
+add ebx,index_ecran
+mov ax,[ebx]
+mov [id_tache_af],ax
+xor edx,edx
+jmp boucle_souris_tecop
+
+
+souris_tecop:
+mov ax,selramh
+mov fs,ax
+shr ecx,4
+cmp cx,[ligne_listing_ecran]
+jae majafcsl
+
+shl ecx,1
+add ecx,index_ecran
+mov ax,[ecx]
+mov [id_tache_af],ax
+xor edx,edx
+
+boucle_souris_tecop:
+fs
+cmp byte[edx+2],"F"
+je erreur_souris_tecop 
+fs
+cmp byte[edx+2],"T"
+jne suite_souris_tecop
+fs
+cmp [edx+id_tache],ax
+je fin_souris_tecop
+
+suite_souris_tecop:
+fs
+mov ebx,[edx+to_tache]
+cmp ebx,0
+je erreur_souris_tecop
+add edx,ebx
+jmp boucle_souris_tecop
+
+fin_souris_tecop:
+mov [ad_tache_af],edx
+or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
+mov byte[nb_zrc],0    ;efface la zt de reception souris
+jmp maj_ecran 
+
+erreur_souris_tecop:
+mov dword[id_tache_af],0
+
 
 ;****************************************************************************
 ;mise a jour affichage console syst?me
 
 majafcsl:
-
-
 mov bx,selramh
 mov ds,bx
 mov bx,seldat
 mov es,bx
+
+;**********************************************
+;mise a jour descriptif cliquable de tache
+es
+test byte[at_csl],01h ;y'a t'il eu modification des descriptif de tâches?
+jz finaft
+es
+and byte[at_csl],0FEh ;désactive le besoin de mettre a jour les descriptifs de tache
+mov eax,7
+int 63h ;signale que l'affichage doit être mis a jour
+
+es
+mov word[ligne_listing_ecran],0
+xor esi,esi
+mov edi,index_ecran
+xor bx,bx
+
+boucle_aff_listing_ecran:
+cmp byte[esi+2],"F"
+je finaft
+cmp byte[esi+2],"T"
+jne suite_aff_listing_ecran
+cmp word[esi+sel_ecranv],0
+je suite_aff_listing_ecran
+
+;enregistre l'id de la tache
+mov ax,[esi+id_tache]
+es
+mov [edi],ax
+add edi,2
+
+;affiche le descriptif tache
+push ebx
+xor eax,eax
+mov ebp,ebx
+es
+mov ax,[resxt]
+add ebp,eax
+mov ch,1Fh
+mov eax,"F"
+call affcarac
+inc ebx
+xor eax,eax
+es
+mov ax,[ligne_listing_ecran]
+add eax,"1"
+mov cl," "
+cmp eax,":"
+jb afftouchef
+mov cl,al
+sub cl,10
+mov eax,"1"
+cmp cl,"3"
+jb afftouchef
+mov al,"+"
+mov cl,"+"
+afftouchef:
+call affcarac
+inc ebx
+mov al,cl
+call affcarac
+inc ebx
+mov eax," "
+call affcarac
+inc ebx
+
+
+mov edx,esi
+add edx,descriptif_tache
+b1_aff_listing_ecran:
+call lireutf8
+cmp eax,0
+je f1_aff_listing_ecran
+call affcarac
+inc ebx
+cmp ebx,ebp
+jne b1_aff_listing_ecran
+
+f1_aff_listing_ecran:
+cmp ebx,ebp
+je f2_aff_listing_ecran
+
+b2_aff_listing_ecran:
+mov eax," "
+call affcarac
+inc ebx
+cmp ebx,ebp
+jne b2_aff_listing_ecran
+f2_aff_listing_ecran:
+
+es
+inc word[ligne_listing_ecran]
+es
+mov ax,[resyt]
+shr ax,1
+es
+cmp [ligne_listing_ecran],ax
+jae finaft
+
+
+suite_aff_listing_ecran:
+mov eax,[esi+to_tache]
+cmp eax,0
+je finaft 
+add esi,eax
+jmp boucle_aff_listing_ecran
+
+finaft:
+
+;**********************************************************
+;mise a jour journal systeme
 es
 test byte[at_csl],02h ;y'a t'il eu modification de l'affichage du journal de la console?
 jz finafj
@@ -1826,6 +2019,20 @@ es
 and byte[at_csl],0FDh ;désactive le besoin de mettre a jour la commande
 mov eax,7
 int 63h ;signale que l'affichage doit être mis a jour
+
+
+
+;calcul la première ligne employé par le journal systeme
+xor eax,eax
+xor ecx,ecx
+xor edx,edx
+es
+mov ax,[ligne_listing_ecran]
+es
+mov cx,[resxt]
+mul ecx
+mov ebx,eax
+
 
 es
 mov edx,[ad_jcsl]
@@ -1835,10 +2042,12 @@ add ebp,edx       ;ebp=adresse de la fin du journal
 es
 mov cx,[no_ligne_jcsl]
 es
-mov byte[coul_car],07h ;initialise la couleur du premier caract?re par defaut
-xor ebx,ebx
+mov byte[coul_car],07h ;initialise la couleur du premier caractère par defaut
 
-bcherchedebj:         ;recherche le d?but de la zone a afficher dans le fichier journal
+
+
+
+bcherchedebj:         ;recherche le début de la zone a afficher dans le fichier journal
 cmp cx,0
 je bcafj
 cmp byte[edx],13  ;est ce une fin de ligne?

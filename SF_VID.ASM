@@ -221,8 +221,9 @@ fs
 or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage
 fs
 mov byte[nb_zrc],0    ;efface la zt de reception souris
+fs
+or byte[at_csl],03h   ;signale que la liste et le journal doit etre mis jour
 cli
-
 xor eax,eax
 
 fin_sfv_ouvre_console:
@@ -246,6 +247,7 @@ mov ds,bx
 mov bx,selramh
 mov es,bx
 mov ebp,[ad_tache_exec]
+or byte[at_csl],03h      ;signale que la liste et le journal doit etre mis jour
 es
 mov dword[ebp+sel_ecranv],0
 pop es

@@ -905,9 +905,8 @@ jne pas_bascule_affichage
 mov byte[nb_zrc],0
 mov word[id_tache_af],0
 mov dword[ad_tache_af],0
-or byte[at_csl],0Eh ;signale que l'affichage doit être mis a jour
 pas_bascule_affichage:
-
+or byte[at_csl],0Fh ;signale que l'affichage doit être mis a jour
 
 
 pop es

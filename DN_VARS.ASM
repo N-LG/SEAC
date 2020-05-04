@@ -47,11 +47,11 @@ ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la créat
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
 
-index_tabcar equ 2600h ;index des 32 tables de caractères
+index_tabcar equ 2600h ;index des 32 tables de caractères (dword)
 
+index_ecran equ 2700h ;index des 64 ecranS (word)
 
 ;???
-
 
 ad_tabcoul equ 3000h ;1024 octets table de correspondance pour les 256 couleurs
 infovesa equ 3400h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
@@ -221,7 +221,7 @@ nb_zone_com equ 0E6h
 ;gestion de la console systŠme
 
 at_csl equ 0F0h  ;attribut console  
- 
+;b0=la liste des écran a été modifié 
 ;b1=le journal a été modifié
 ;b2=le dossier courant a été modifié
 ;b3=la commande a été modifié
@@ -237,7 +237,8 @@ to_jcsl equ 0FCh  ;taille occup‚ par le journal console
 
 
 
-id_tache_af equ 100h ;num‚ros de tache affich‚
+ligne_listing_ecran equ 100h  ;nombre d'écran affiché dans le tecop
+id_tache_af equ 102h ;num‚ros de tache affiché
 ad_tache_af equ 104h ;adresse de la tache affiché
 cmd_bios equ 108h ;sauvegarde provisoire de eax lors d'un appel au bios en mode réel
 
@@ -427,7 +428,7 @@ type_dm equ 02h   ;=T
 ;db 0
 to_tache equ 04h  ;taille de la zone mémoire (identique aux autres descripteur de mémoire) 
 id_tache equ 08h  ;ID de la tache
-po_tache equ 0Ah  ;pointeur de la tache dans la liste
+;po_tache equ 0Ah  ;pointeur de la tache dans la liste
 
 type_fe equ 10h            ;recopie de l'en tête fichier
 ver_fe equ 13h
