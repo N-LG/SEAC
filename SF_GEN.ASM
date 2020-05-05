@@ -429,6 +429,34 @@ iret
 
 ;*******************************************************************************************
 sfs_mod_des_t:      ;modification du descripteur de tache
+pushad
+push es
+mov ax,seldat
+mov es,ax
+es
+or byte[at_csl],1
+es
+mov ebx,[ad_tache_exec]
+mov ax,selramh
+mov es,ax
+mov ecx,100h
+add ebx,descriptif_tache
+add ecx,ebx
+
+sfs_mod_des_t_boucle:
+mov al,[edx]
+cmp al,0
+je sfs_mod_des_t_fin
+es
+mov [ebx],al
+inc ebx
+inc edx
+cmp ebx,ecx
+jne sfs_mod_des_t_boucle
+
+sfs_mod_des_t_fin:
+pop es
+popad
 iret
 
 
