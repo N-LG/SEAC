@@ -454,11 +454,23 @@ inc edx
 cmp ebx,ecx
 jne sfs_mod_des_t_boucle
 
-sfs_mod_des_t_fin:
+dec ebx
+es
+mov byte[ebx],0
 pop es
 popad
 iret
 
+
+sfs_mod_des_t_fin:
+es
+mov [ebx],al
+inc ebx
+cmp ebx,ecx
+jne sfs_mod_des_t_fin
+pop es
+popad
+iret
 
 ;*******************************************************************************************
 sfs_mod_seg:        ;modification de la taille d'un segment dx=selecteur du segment a modifier ecx=nouvelle taille

@@ -1460,10 +1460,9 @@ cmp al,77
 je ligne_debut
 cmp al,80
 je ligne_fin
-cmp al,08h
+cmp al,76
 je cmd_prec
-cmp al,09h
-je cmd_suiv
+
 cmp al,0F0h
 je souris_tecop
 
@@ -1777,6 +1776,8 @@ or byte[at_csl],02h ;signale que l'affichage du journal doit être mis a jour
 jmp majafcsl
 
 cmd_prec:      ;remplit la zone de commande en cours de r?daction par la commande pr?c?dente
+test ah,3h
+jnz cmd_suiv
 inc byte[num_cmd]
 and byte[num_cmd],03Fh ;on ne peut afficher que les 64 derni?res commandes
 jmp recop_cmd
@@ -4452,18 +4453,23 @@ cmp cx,14     ;touche spéciale arret defil
 je touche_scroll
 cmp cx,15     ;touche spéciale pause
 je touche_pause
-cmp cx,10
-je touche_retour_console ;f10
-cmp cx,11
-je touche_ecran_moins   ;f11
-cmp cx,12
-je touche_ecran_plus    ;f12
-cmp cx,104
-je touche_retour_console ;list d
+;cmp cx,104
+;je touche_retour_console ;list d
 cmp cx,102
-je touche_ecran_moins   ;win G
+je touche_retour_console   ;win G
 cmp cx,103
-je touche_ecran_plus    ;win D
+je touche_retour_console    ;win D
+
+
+cmp cx,30     ;touche tab
+jne pas_touche_tab
+mov ax,[atbp+8h]
+test ax,0280h
+jz pas_touche_tab 
+test ax,0440h
+jz touche_ecran_plus 
+jmp touche_retour_console
+pas_touche_tab:
 
 cmp cx,89    ;touche 7 pave numerique
 je touche7_pavenum
