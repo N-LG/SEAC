@@ -302,6 +302,7 @@ suite_sfs_obt_optn:
 inc ebx
 cmp ebx,esi
 jne boucle1_sfs_obt_optn
+erprm__sfs_obt_optn:
 es
 mov byte[edx],0
 pop es
@@ -314,9 +315,11 @@ mov eax,cer_parami
 iret
 
 opt_sfs_obt_optn:
-mov esi,edx
 inc ebx
 dec cl
+cmp byte[ebx],22h
+je apost_sfs_obt_optn
+
 
 boucle2_sfs_obt_optn:
 mov al,[ebx]
@@ -325,15 +328,15 @@ je fin__sfs_obt_optn
 cmp al," "
 je fin__sfs_obt_optn
 es
-mov [esi],al
+mov [edx],al
 inc ebx
-inc esi
+inc edx
 dec cl
 jnz boucle2_sfs_obt_optn
 
 fin__sfs_obt_optn:
 es
-mov byte[esi],0
+mov byte[edx],0
 pop es
 pop ds
 pop esi
@@ -342,6 +345,29 @@ pop ecx
 pop ebx
 xor eax,eax
 iret
+
+
+apost_sfs_obt_optn:   ;option entres guillement
+inc ebx
+boucle3_sfs_obt_optn:
+mov al,[ebx]
+cmp al,0
+je erprm__sfs_obt_optn
+cmp al,22h
+je fin__sfs_obt_optn
+es
+mov [edx],al
+inc ebx
+inc edx
+dec cl
+jnz boucle3_sfs_obt_optn
+jmp fin__sfs_obt_optn 
+
+
+
+
+
+
 
 
 ;*******************************************************************************************

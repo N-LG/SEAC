@@ -4453,12 +4453,12 @@ cmp cx,14     ;touche spéciale arret defil
 je touche_scroll
 cmp cx,15     ;touche spéciale pause
 je touche_pause
-;cmp cx,104
-;je touche_retour_console ;list d
-cmp cx,102
-je touche_retour_console   ;win G
-cmp cx,103
-je touche_retour_console    ;win D
+cmp cx,104
+je touche_retour_console ;touche list
+;cmp cx,102
+;je touche_retour_console   ;win G
+;cmp cx,103
+;je touche_retour_console    ;win D
 
 
 cmp cx,30     ;touche tab
@@ -4631,7 +4631,11 @@ and bl,02h   ;Alt Gr
 shl bl,4
 or ch,bl
 
-;ch=touches spéciale pressé   0=majG 1=majD 2=CtrlG 3=CtrlD 4=Alt 5=AltGr
+mov bl,[atbp+0Ch]
+and bl,0C0h   ;WinD +WinG
+or ch,bl
+
+;ch=touches spéciale pressé   0=majG 1=majD 2=CtrlG 3=CtrlD 4=Alt 5=AltGr 6=WinG 7=winD
 
 
 
@@ -4781,7 +4785,7 @@ touche_clavier_alternative:
 xor byte[attcl],080h
 jmp finircl 
 
-touche_retour_console: ;f10
+touche_retour_console: ;list ou ctrl+alt+tab
 mov al,0
 out 61h,al        ;éteint le bipper
 xor ax,ax ;selectionne la tache principale comme tache a afficher
@@ -4796,37 +4800,37 @@ or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 jmp bougled
 
-touche_ecran_moins:   ;f11
-xor ebx,ebx ;recherche la tache précédente
-mov cx,[id_tache_af]
-mov ax,selramh
-mov ds,ax
-xor edx,edx
+;touche_ecran_moins:   
+;xor ebx,ebx ;recherche la tache précédente
+;mov cx,[id_tache_af]
+;mov ax,selramh
+;mov ds,ax
+;xor edx,edx
 
-boucle_touche_ecran_moins:
-cmp byte[ebx+type_dm],"F"
-je trouve_ecran_moins
-cmp byte[ebx+type_dm],"T"
-jne pas_touche_ecran_moins
-cmp word[ebx+sel_ecranv],0
-je pas_touche_ecran_moins
+;boucle_touche_ecran_moins:
+;cmp byte[ebx+type_dm],"F"
+;je trouve_ecran_moins
+;cmp byte[ebx+type_dm],"T"
+;jne pas_touche_ecran_moins
+;cmp word[ebx+sel_ecranv],0
+;je pas_touche_ecran_moins
 
-cmp [ebx+id_tache],cx
-je trouve_ecran_moins
-mov edx,ebx
+;cmp [ebx+id_tache],cx
+;je trouve_ecran_moins
+;mov edx,ebx
          
-pas_touche_ecran_moins:
-mov eax,[ebx+to_tache]
-add ebx,eax
-jmp boucle_touche_ecran_moins 
+;pas_touche_ecran_moins:
+;mov eax,[ebx+to_tache]
+;add ebx,eax
+;jmp boucle_touche_ecran_moins 
 
-trouve_ecran_moins:
-cmp edx,0
-je retour_ecran0
-mov ax,[edx+id_tache]
-jmp charge_ecran
+;trouve_ecran_moins:
+;cmp edx,0
+;je touche_retour_console
+;mov ax,[edx+id_tache]
+;jmp charge_ecran
 
-touche_ecran_plus:    ;f12
+touche_ecran_plus:    ;alt+tab
 mov edx,[ad_tache_af] ;recherche la tache suivante
 mov ax,selramh
 mov ds,ax
@@ -4835,7 +4839,7 @@ add edx,eax
 
 boucle_touche_ecran_plus:
 cmp byte[edx+type_dm],"F"
-je retour_ecran0
+je touche_retour_console
 cmp byte[edx+type_dm],"T"
 jne pas_touche_ecran_plus
 cmp word[edx+sel_ecranv],0
@@ -4849,11 +4853,6 @@ mov eax,[edx+to_tache]
 add edx,eax
 jmp boucle_touche_ecran_plus
 
-
-retour_ecran0:
-xor ax,ax          ;selectionne la tache principale comme tache a afficher
-xor edx,edx
-jmp charge_ecran
 
 
 ;*****************************************************

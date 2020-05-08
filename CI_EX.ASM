@@ -203,6 +203,12 @@ mov al,6
 mov edx,cmdex_zone_tampon
 int 61h
 
+mov word[cmdex_zone_tampon],0017h  ;fin de couleur
+mov al,6
+mov edx,cmdex_zone_tampon
+int 61h
+
+
 int 60h
 
 

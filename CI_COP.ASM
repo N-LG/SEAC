@@ -192,4 +192,9 @@ mov al,6
 mov edx,zone_tampon
 int 61h
 
+mov word[zone_tampon],0017h  ;fin de couleur
+mov al,6
+mov edx,zone_tampon
+int 61h
+
 int 60h
