@@ -317,6 +317,11 @@ int 64h
 cmp eax,0
 jne cretache_erlc
 ignore_data4:
+
+;referme le fichier
+mov ebx,[num_fichier_tache]  
+mov al,1
+int 64h
 jmp suite_crea_tache
 
 
@@ -570,14 +575,6 @@ jne boucle_verif_id
 
 es
 mov [esi+id_tache],ax
-
-
-
-
-;referme le fichier
-mov ebx,[num_fichier_tache]  
-mov al,1
-int 64h
 jmp pascommande
 
 

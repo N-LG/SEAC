@@ -5989,14 +5989,93 @@ jmp errprmsf
 
 ;**************************************
 res_espace_fichier_mem:
+push ebx
 fs
 mov ebx,[ad_fichier]
 add ecx,431
 and ecx,0FFFFFFF0h
 call modtm 
-jnc  finfonctionfichier
+mov edi,ebx
+pop ebx
+jnc ok_res_espace_fichier_mem  
 mov eax,cer_pasm
 jmp finfonctionfichiererr
+
+
+ok_res_espace_fichier_mem:
+fs
+mov [ad_fichier],edi
+
+;mise a jour du descripteur
+pushad
+and ebx,0FFFFh
+shl ebx,5   ;multiplie par 32
+fs
+add ebx,[ad_ficho]
+
+fs
+mov esi,[at_fichier]
+fs
+mov edi,[at_fichier+4]
+gs
+mov [ebx],esi
+gs
+mov [ebx+4],edi
+
+fs
+mov esi,[at_fichier+8]
+fs
+mov edi,[at_fichier+12]
+gs
+mov [ebx+8],esi
+gs
+mov [ebx+12],edi
+
+fs
+mov esi,[at_fichier+16]
+fs
+mov edi,[at_fichier+20]
+gs
+mov [ebx+16],esi
+gs
+mov [ebx+20],edi
+
+fs
+mov esi,[at_fichier+24]
+fs
+mov edi,[at_fichier+28]
+gs
+mov [ebx+24],esi
+gs
+mov [ebx+28],edi
+popad
+
+jmp finfonctionfichier
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;********************************
 res_espace_fichier_fat:

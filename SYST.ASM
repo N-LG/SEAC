@@ -92,15 +92,15 @@ mov fs,cx
 mov gs,cx
 mov cr0,eax         ;mode en mode réel flat
 jmp $+2
-;mov ax,5000h
-;mov ds,ax
-;mov es,ax
-;mov fs,ax
-;mov gs,ax
-;mov ax,9000h
-;mov ss,ax
-;mov sp,0FFF0h
-;lidt[r_idt+start]
+mov ax,5000h
+mov ds,ax
+mov es,ax
+mov fs,ax
+mov gs,ax
+mov ax,9000h
+mov ss,ax
+mov sp,0FFF0h
+lidt[r_idt+start]
 sti
 
 ;*********************************************************************
@@ -1355,13 +1355,61 @@ include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA
 mov cl,0
 call affmsgsyst     ;rapel sur la version installé
 
-mov dword[ad_ztcmd+0],0
-mov dword[ad_ztcmd+2],"ex #"   ;execution du script d'amorçage
-mov dword[ad_ztcmd+6],"dm/c"
-mov dword[ad_ztcmd+10],"fg.s"
-mov byte[ad_ztcmd+14],"h"
-mov byte[ad_ztcmd+15],0
-mov word[to_ztcmd],16
+
+
+
+mov ax,seldat
+mov ds,ax
+mov esi,[ad_ficho]
+mov ax,selramh
+mov es,ax
+
+;initalisation du repertoire initiale en disque ram
+mov dword[ad_repertoire],"#dm"
+es
+mov dword[esi+0],11
+es
+mov dword[esi+4],0
+es
+mov dword[esi+8],0
+es
+mov dword[esi+12],0
+es
+mov dword[esi+16],0
+es
+mov dword[esi+20],0
+es
+mov dword[esi+24],0
+es
+mov dword[esi+28],0
+
+
+;et le disque systeme
+mov dword[ad_repsys],"#dm"
+es
+mov dword[esi+32],11
+es
+mov dword[esi+36],0
+es
+mov dword[esi+40],0
+es
+mov dword[esi+44],0
+es
+mov dword[esi+48],0
+es
+mov dword[esi+52],0
+es
+mov dword[esi+56],0
+es
+mov dword[esi+60],0
+
+
+mov word[ad_ztcmd+0],0
+mov dword[ad_ztcmd+2],"ex c"   ;commande initiale: execution du script d'amorçage
+mov dword[ad_ztcmd+6],"fg.s"
+mov byte[ad_ztcmd+10],"h"
+mov byte[ad_ztcmd+11],0
+mov word[to_ztcmd],12
 
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
@@ -1409,9 +1457,6 @@ mov dword[ad_tache_af],0
 or byte[at_csl],0Eh      ;met a 1 les bits de mise a jour des parties du tecop
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 pas_retour_tecop:
-
-
-
 
 
 
