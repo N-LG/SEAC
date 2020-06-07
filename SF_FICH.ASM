@@ -1450,7 +1450,7 @@ jne nok_verif_dejaouvert
 ;jne nok_verif_dejaouvert
 
 fs
-mov ax,[at_fichier+2]
+mov ax,[id_tache_exec]
 gs
 cmp ax,[ebx+2]
 je descr_fichier_ok          ;si le fichier est identique et a été ouvert par le même programme on lui renvoie son numéro
