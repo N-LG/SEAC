@@ -17,7 +17,7 @@
 ;al=15  copier des données dans la zone de copier/coller
 ;al=16  lire les données dans la zone de copier/coller
 ;al=17  effacer la zone de copier/coller
-
+;al=18  lire le dossier de travail en cours
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -77,6 +77,8 @@ cmp al,16
 je sfs_coller
 cmp al,17
 je sfs_sup_copiercoller
+cmp al,18
+je sfs_lire_dossier
 
 cmp al,100
 je conv_cdeci_reg
@@ -1155,8 +1157,29 @@ iret
 
 
 
-
-
+;*********************************************
+sfs_lire_dossier:       ;ecrit l'adresse du dossier de travail dans ds:edx (512 octets)
+push ecx
+push esi
+push edi
+push ds
+push es
+mov ax,ds
+mov es,ax
+mov ax,seldat
+mov ds,ax
+mov esi,ad_repertoire
+mov edi,edx
+mov ecx,512
+cld
+rep movsb
+pop es
+pop ds
+pop edi
+pop esi
+pop ecx
+xor eax,eax
+iret
 
 
 

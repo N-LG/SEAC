@@ -15,6 +15,7 @@
 ;al=13 definis vitesse disque
 ;al=14 définis le msb de l'adresse de lecture/ecriture fichier (fonction 4 et 5)
 ;al=15 réserve espace pour fichier
+;al=16 lit contenue répertoire
 
 ;************************************
 
@@ -83,6 +84,8 @@ je sff_maj_partition
 ;je sff_definis_msb_fichier
 cmp al,15
 je sff_reserve_espace_fichier
+cmp al,16
+je sff_lit_dossier
 
 errprmsf:   ;erreur de paramètres
 fs
@@ -5468,7 +5471,7 @@ mov al,[at_fichier]
 and al,00111100b
 cmp al,000100b
 je infofichier_iso9660   ;ou iso9660
-cmp al,000100b
+cmp al,001000b
 je infofichier_mem       ;fichier mémoire
 cmp al,010000b 
 je infofichier_fat       ;on teste si le fichier est fat12,
@@ -6053,30 +6056,6 @@ popad
 jmp finfonctionfichier
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ;********************************
 res_espace_fichier_fat:
 
@@ -6233,6 +6212,175 @@ cmp eax,0
 jne finfonctionfichiererr
 call sauvegarde_zt_fat   ;transfert la zt fat ram sur le disque si celle ci as été modifié
 jmp finfonctionfichiererr
+
+
+
+
+;*************************************************************************************************************************
+sff_lit_dossier:            ;liste le contenu d'un dossier ebx=numéros du fichier 
+                            ;ds:edi=zt ou copier les données ecx=taille max ;edx=premier fichier a lire
+			    ;retour: ebx=nombre de fichier chargé dans la zt
+call initdescrfdcourant
+jc errprmsf
+
+mov ebp,edi
+add ecx,edi ;ecx=adresse a ne pas dépasser
+
+
+fs
+mov al,[at_fichier]
+and al,00000011b
+cmp al,10b
+je errprmsf
+
+
+fs
+mov al,[at_fichier]
+and al,00111100b
+cmp al,000100b
+je sff_lit_dossier_iso9660   ;ou iso9660
+cmp al,001000b
+je sff_lit_dossier_mem       ;fichier mémoire
+cmp al,010000b 
+je sff_lit_dossier_fat       ;on teste si le fichier est fat12,
+cmp al,010100b
+je sff_lit_dossier_fat       ;ou fat16
+cmp al,011000b
+je sff_lit_dossier_fat       ;ou fat32
+jmp errprmsf
+
+
+;**********************
+sff_lit_dossier_mem:
+mov ax,ds
+mov es,ax
+mov ax,selramh
+mov ds,ax
+xor ebx,ebx
+
+
+boucle1_sff_lit_dossier_mem:             ;recherche le premier fichier a afficher
+cmp edx,0
+je boucle2_sff_lit_dossier_mem
+cmp byte[ebx+2],"F"
+je fin_sff_lit_dossier
+cmp byte[ebx+2],"X"
+jne ignore1_sff_lit_dossier_mem
+
+dec edx
+
+ignore1_sff_lit_dossier_mem:
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle1_sff_lit_dossier_mem
+
+
+
+boucle2_sff_lit_dossier_mem:            ;ajoute tout les noms des fichier a la sortie
+cmp byte[ebx+2],"F"
+je fin_sff_lit_dossier
+cmp byte[ebx+2],"X"
+jne ignore2_sff_lit_dossier_mem
+
+mov esi,ebx
+add esi,10h
+
+boucle3_sff_lit_dossier_mem:        ;copie le nom du fichier
+lodsb
+cmp al,0
+jne ignore3_sff_lit_dossier_mem 
+inc edx
+mov al,"/"
+ignore3_sff_lit_dossier_mem :
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_mem
+cmp al,"/"
+jne boucle3_sff_lit_dossier_mem
+
+ignore2_sff_lit_dossier_mem:         ;passe a la zone suivante
+mov eax,[ebx+4]
+add ebx,eax
+jmp boucle2_sff_lit_dossier_mem
+
+
+finzt_sff_lit_dossier_mem:          ;efface le dernier nom si il n'est pas complet
+es
+cmp byte[edi],"/"
+je finzt2_sff_lit_dossier_mem
+cmp edi,ebp
+je finzt2_sff_lit_dossier_mem
+dec edi
+jmp finzt_sff_lit_dossier_mem
+
+finzt2_sff_lit_dossier_mem:
+mov al,0
+stosb
+mov eax,cer_pasm
+mov ebx,edx
+jmp finfonctionfichierokebx
+
+
+fin_sff_lit_dossier:
+mov al,0
+stosb
+xor eax,eax
+mov ebx,edx
+jmp finfonctionfichierokebx
+
+
+
+
+
+;**************************
+sff_lit_dossier_iso9660:
+
+
+
+
+xor eax,eax
+mov ebx,edx
+jmp finfonctionfichierokebx
+
+
+
+
+
+
+
+
+
+
+;**************************
+sff_lit_dossier_fat:
+
+
+
+xor eax,eax
+mov ebx,edx
+jmp finfonctionfichierokebx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

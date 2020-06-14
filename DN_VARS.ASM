@@ -267,6 +267,8 @@ to_1cluster equ 14Ch    ;taille d'un cluster
 nb_cluster equ 150h     ;nombre de cluster de la partition
 
 at_fichier equ 160h   ;attribut fichier
+		      ;b0 à b1 =type de fichier
+		      ;b2 à b6=systeme de fichier
 no_part equ 161h   ;numéros de disque/partition du fichier
 id_ouvf equ 162h    ;id de la tache qui a ouvert le fichier
 ad_fichier equ 164h  ;numéros du premier secteur/cluster du fichier/adresse de la zone fichier en ram
