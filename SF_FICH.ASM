@@ -6228,10 +6228,8 @@ add ecx,edi ;ecx=adresse a ne pas dépasser
 
 
 fs
-mov al,[at_fichier]
-and al,00000011b
-cmp al,10b
-je errprmsf
+test byte[at_fichier],00000010b
+jz errprmsf
 
 
 fs
@@ -6290,12 +6288,12 @@ lodsb
 cmp al,0
 jne ignore3_sff_lit_dossier_mem 
 inc edx
-mov al,"/"
+mov al,"|"
 ignore3_sff_lit_dossier_mem :
 stosb
 cmp edi,ecx
 je finzt_sff_lit_dossier_mem
-cmp al,"/"
+cmp al,"|"
 jne boucle3_sff_lit_dossier_mem
 
 ignore2_sff_lit_dossier_mem:         ;passe a la zone suivante
@@ -6306,7 +6304,7 @@ jmp boucle2_sff_lit_dossier_mem
 
 finzt_sff_lit_dossier_mem:          ;efface le dernier nom si il n'est pas complet
 es
-cmp byte[edi],"/"
+cmp byte[edi],"|"
 je finzt2_sff_lit_dossier_mem
 cmp edi,ebp
 je finzt2_sff_lit_dossier_mem
@@ -6331,17 +6329,123 @@ jmp finfonctionfichierokebx
 
 
 
+;*****************************************************
+charg_part_dossier:             ;charge une partie du dossier dans la chaine de travail
+
+push ebx
+push ecx
+push edx
+push edi
+push es
+mov di,seldat
+mov es,di
+mov edi,zt_lminfo
+mov ecx,256
+call sflirefichier
+pop es
+pop edi
+pop edx
+pop ecx
+pop ebx
+ret
+
+
+
+
+
 
 ;**************************
 sff_lit_dossier_iso9660:
-
-
-
-
-xor eax,eax
+mov ax,ds
+mov es,ax
+mov ax,seldat
+mov ds,ax
 mov ebx,edx
+xor edx,edx
+
+
+boucle1_sff_lit_dossier_iso9660:             ;recherche le premier fichier a afficher
+cmp ebx,0
+je boucle2_sff_lit_dossier_iso9660
+call charg_part_dossier
+cmp eax,0
+jne err_sff_lit_dossier_iso9660
+dec ebx
+xor eax,eax
+mov al,[zt_lminfo] ;taille du descripteur de fichier
+cmp eax,0
+je fin_sff_lit_dossier_iso9660
+add edx,eax
+jmp boucle1_sff_lit_dossier_iso9660
+
+
+
+
+boucle2_sff_lit_dossier_iso9660:             ;enregistre le nom de chaques fichier suivants
+call charg_part_dossier
+cmp eax,0
+jne err_sff_lit_dossier_iso9660
+mov esi,[zt_lminfo+32]
+and esi,0FFh
+add esi,33
+mov byte[zt_lminfo+esi],0
+
+mov esi,zt_lminfo+33
+boucle3_sff_lit_dossier_iso9660:
+lodsb
+cmp al,0
+je suite_sff_lit_dossier_iso9660
+cmp al,";"
+je suite_sff_lit_dossier_iso9660
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+jmp boucle3_sff_lit_dossier_iso9660
+
+
+suite_sff_lit_dossier_iso9660:
+mov al,"|"
+stosb
+inc ebx
+xor eax,eax
+mov al,[zt_lminfo] ;taille du descripteur de fichier
+cmp eax,0
+je fin_sff_lit_dossier_iso9660 
+add edx,eax
+;jmp fin_sff_lit_dossier_iso9660 
+jmp boucle2_sff_lit_dossier_iso9660
+
+
+
+finzt_sff_lit_dossier_iso9660:          ;efface le dernier nom si il n'est pas complet
+es
+cmp byte[edi],"|"
+je finzt2_sff_lit_dossier_iso9660
+cmp edi,ebp
+je finzt2_sff_lit_dossier_iso9660
+dec edi
+jmp finzt_sff_lit_dossier_iso9660
+
+finzt2_sff_lit_dossier_iso9660:
+mov al,0
+stosb
+mov eax,cer_pasm
 jmp finfonctionfichierokebx
 
+
+fin_sff_lit_dossier_iso9660:
+mov al,0
+stosb
+xor eax,eax
+jmp finfonctionfichierokebx
+
+
+
+
+err_sff_lit_dossier_iso9660:
+es
+mov byte[edi],0
+jmp finfonctionfichiererr
 
 
 
