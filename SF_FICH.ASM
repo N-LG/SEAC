@@ -6336,6 +6336,7 @@ push ebx
 push ecx
 push edx
 push edi
+push ebp
 push es
 mov di,seldat
 mov es,di
@@ -6343,6 +6344,7 @@ mov edi,zt_lminfo
 mov ecx,256
 call sflirefichier
 pop es
+pop ebp
 pop edi
 pop edx
 pop ecx
@@ -6412,7 +6414,6 @@ mov al,[zt_lminfo] ;taille du descripteur de fichier
 cmp eax,0
 je fin_sff_lit_dossier_iso9660 
 add edx,eax
-;jmp fin_sff_lit_dossier_iso9660 
 jmp boucle2_sff_lit_dossier_iso9660
 
 
@@ -6452,32 +6453,155 @@ jmp finfonctionfichiererr
 
 
 
-
-
-
 ;**************************
 sff_lit_dossier_fat:
-
-
-
-xor eax,eax
+mov ax,ds
+mov es,ax
+mov ax,seldat
+mov ds,ax
 mov ebx,edx
-jmp finfonctionfichierokebx
+xor edx,edx
+
+
+boucle1_sff_lit_dossier_fat:             ;recherche le premier fichier a afficher
+cmp ebx,0
+je boucle2_sff_lit_dossier_fat
+call charg_part_dossier
+cmp eax,0
+jne err_sff_lit_dossier_iso9660
+
+cmp byte[zt_lminfo],0
+je finzt_sff_lit_dossier_iso9660
+cmp byte[zt_lminfo],02Eh
+je suite1_sff_lit_dossier_fat
+cmp byte[zt_lminfo],0E5h
+je suite1_sff_lit_dossier_fat
+cmp byte[zt_lminfo+0Bh],0Fh
+jne suite1_sff_lit_dossier_fat
+
+dec ebx
+
+suite1_sff_lit_dossier_fat:
+add edx,32
+jmp boucle1_sff_lit_dossier_fat
+
+
+
+
+boucle2_sff_lit_dossier_fat:             ;enregistre le nom de chaques fichier suivants
+call charg_part_dossier
+cmp eax,0
+jne err_sff_lit_dossier_iso9660
+
+cmp byte[zt_lminfo],0
+je finzt_sff_lit_dossier_iso9660
+cmp byte[zt_lminfo],02Eh
+je suite2_sff_lit_dossier_fat
+cmp byte[zt_lminfo],0E5h
+je suite2_sff_lit_dossier_fat
+
+cmp byte[zt_lminfo+0Bh],0Fh
+je suite2_sff_lit_dossier_fat
+
+
+;je vfat_sff_lit_dossier_fat
+
+mov esi,zt_lminfo             ;fichier fat classique
+movsb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+
+ext_sff_lit_dossier_fat:
+mov esi,zt_lminfo+8    
+mov eax,[esi]
+and eax,0FFFFFFh
+cmp eax,0202020h
+je ffn_sff_lit_dossier_fat
+
+mov al,"."
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+movsb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ffn_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ffn_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+
+ffn_sff_lit_dossier_fat:
+mov al,"|"
+stosb
+inc ebx
+
+suite2_sff_lit_dossier_fat:
+add edx,32
+jmp boucle2_sff_lit_dossier_fat
 
 
 
 
 
 
+vfat_sff_lit_dossier_fat:           ;fichier vFat
+
+;???????????????????????????
 
 
+mov al,"|"
+stosb
+inc ebx
 
 
+;???????????????????????????
 
 
-
-
-
+jmp boucle2_sff_lit_dossier_fat
 
 
 
