@@ -8,304 +8,141 @@ call affjournal
 mov al,13
 call affcj
 
-mov ebx,[ad_ficho] ;adresse du descripteur de fichier ouvert
-push ds
-mov ax,selramh
-mov ds,ax
-mov al,[ebx]
-pop ds
-and al,00111100b
-cmp al,10000b
-je dirtypefat
-cmp al,10100b
-je dirtypefat
-cmp al,11000b
-je dirtypefat
-cmp al,100b
-je dirtypeiso9660
-cmp al,1000b
-je dirtypemem
+taille_ztdir equ 2048
 
-jmp pascommande
-
-dirtypeiso9660:
-xor edx,edx
-boucle_dir_cd:
-mov ax,seldat
-mov es,ax
-mov edi,ad_chaine_travail
-xor ebx,ebx
-mov ecx,255  ;ecx=quantité a lire
-mov al,4
-push edx
-int 64h
-cmp al,0
-jne cmddirerr
-
-test byte[ad_chaine_travail+25],02h
-jz pasdossierdircd
-mov al,19h
-call affcj
-pasdossierdircd:
-
-xor ebx,ebx
-mov bl,[ad_chaine_travail+32]
-add ebx,33
-mov byte[ad_chaine_travail+ebx],0
-
-mov ebx,ad_chaine_travail+33
-boucledireffacever:
-cmp byte[ebx],0
-je findireffacever
-cmp byte[ebx],";"
-je findireffacever
-inc ebx
-jmp boucledireffacever
-findireffacever:
-mov byte[ebx],0
-
-mov edx,ad_chaine_travail+33
-call affjournal
-
-mov al,17h
-call affcj
-mov al,13
-call affcj
-pop edx
-xor eax,eax
-mov al,[ad_chaine_travail]
-cmp eax,0
-je pascommande
-add edx,eax
-mov eax,edx
-jmp boucle_dir_cd
-
-
-dirtypefat:
-mov ax,seldat
-mov ds,ax
-mov fs,ax
-mov ax,selramh
-mov es,ax
-
-mov ecx,20000h
+mov ecx,taille_ztdir+40h
 call resmem
-jc fin_commande_erreur_mem
-mov ebp,ebx
-add ebp,10h
-xor edx,edx
-xor ebx,ebx
+jc pascommande 
+mov edi,ebx
+add edi,50h
 
-recharge_dir_fat:
-mov edi,ebp
-add edx,ebx
+mov ax,selramh
+mov ds,ax
+mov edx,0
+boucle1_cmd_dir:
+mov eax,16        ;lire liste fichier
 xor ebx,ebx
-mov ecx,20000h
-mov al,4
+mov ecx,taille_ztdir
 int 64h
+pushad
+
+mov ebx,edi
+mov edx,ebx
+
+boucle2_cmd_dir:
+cmp byte[ebx],"|"
+je affiche_cmd_dir 
+cmp byte[ebx],0
+je fin_cmd_dir 
+inc ebx
+jmp boucle2_cmd_dir
+
+
+affiche_cmd_dir:
+mov byte[ebx],0
+inc ebx
+call affiche_ligne_dir
+mov edx,ebx
+jmp boucle2_cmd_dir
+
+
+fin_cmd_dir:
+call affiche_ligne_dir
+popad
+
+add edx,ebx
+cmp eax,cer_pasm
+je boucle1_cmd_dir
 cmp eax,0
-jne cmddirerr
-xor ebx,ebx
+jne err_cmddir
 
-boucle_dir_fat:
-mov esi,ebp
-
-cmp ebx,20000h
-jae recharge_dir_fat
-es
-cmp byte[ebx+esi],0
-je findirfat
-es
-cmp byte[ebx+esi],02Eh
-je suivant_dir_fat
-es
-cmp byte[ebx+esi],0E5h
-je suivant_dir_fat
-es
-cmp byte[ebx+esi+0Bh],0Fh
-je dir_vfat
-
-es                            ;FAT Standard
-test byte[ebx+esi+0Bh],010h
-jz pasdossierdirfat
-mov al,19h                ;couleur pour un dossier
-call affcj
-pasdossierdirfat:
-
-mov edi,ad_chaine_travail
-boucle1_dir_fat:
-es
-mov al,[ebx+esi]
-cmp al," "
-je finboucle1_dir_fat
-mov [edi],al
-inc esi
-inc edi
-cmp edi,ad_chaine_travail+8
-jb boucle1_dir_fat
-
-finboucle1_dir_fat:
-mov esi,ebp
-es
-mov eax,[ebx+esi+8]
-and eax,0FFFFFFh
-cmp eax,202020h
-je aff_dir_fat
-
-mov byte[edi],"."
-inc edi
-
-mov [edi],al
-inc edi
-shr eax,8
-cmp al," "
-je aff_dir_fat
-mov [edi],al
-inc edi
-shr eax,8
-cmp al," "
-je aff_dir_fat
-mov [edi],al
-inc edi
-
-aff_dir_fat:                            
-mov byte[edi],0
-
-
-mov edx,ad_chaine_travail
-call affjournal
-
-mov al,17h
-call affcj
-mov al,13
-call affcj
-
-suivant_dir_fat:
-add ebx,32
-jmp boucle_dir_fat
-
-
-dir_vfat:                    ;Vfat
-es
-mov cl,[ebx+esi]
-test cl,40h    ;on test si c'est bien le marqueur de début de descripteur de nom long
-je suivant_dir_fat
-and ecx,3Fh
-shl ecx,5
-add esi,ecx
-add ecx,32
-
-es
-test byte[ebx+esi+0Bh],010h
-jz pasdossierdirvfat
-mov al,19h                ;couleur pour un dossier
-call affcj
-pasdossierdirvfat:
-;calcul du checksum  §§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-mov edi,ad_chaine_travail
-boucle_dir_vfat:
-sub esi,32
-;verification du checksum§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-xor eax,eax
-es
-mov ax,[ebx+esi+01h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+03h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+05h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+07h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+09h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+0Eh]
-call utf8_vfat
-es
-mov ax,[ebx+esi+10h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+12h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+14h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+16h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+18h]
-call utf8_vfat
-es
-mov ax,[ebx+esi+1Ch]
-call utf8_vfat
-es
-mov ax,[ebx+esi+1Eh]
-call utf8_vfat
-cmp esi,ebp
-jne boucle_dir_vfat
-fs
-mov byte[edi],0
-
-mov edx,ad_chaine_travail
-call affjournal
-
-mov al,17h
-call affcj
-mov al,13
-call affcj
-
-add ebx,ecx
-jmp boucle_dir_fat
-
-
-findirfat:
-mov ebx,ebp
+mov ebx,edi
 sub ebx,10h
 call libmem
 jmp pascommande
 
-cmddirerr:   ;erreur de lecture
-push eax
-mov ebx,ebp
-sub ebx,10h
+
+
+err_cmddir:
+mov ebx,edi
+sub ebx,50h
 call libmem
-pop eax
 jmp fin_commande_erreur
 
 
-dirtypemem:
-mov ax,selramh
-mov ds,ax
 
+
+
+affiche_ligne_dir:
+pushad
+
+xor eax,eax
 xor ebx,ebx
+int 64h             ;ouvre le fichier
+cmp eax,cer_dov
+je affiche_ligne_dir_dossier
+cmp eax,0
+jne affiche_ligne_dir_ouvert
 
-boucle_dirtypemem:
-cmp byte[ebx+2],"F"
-je pascommande
-cmp byte[ebx+2],"X"
-jne ignore__dirtypemem
 
-mov edx,ebx
-add edx,10h
+push edx;lit la taille
+mov al,6
+mov ah,1
+mov edx,edi
+sub edx,40h
+int 64h
+
+
+mov eax,1   ;ferme le fichier
+int 64h
+
+pop edx
+call affjournal   ;affiche le nom
+
+mov al," "
+call affcj
+mov al,"-"
+call affcj
+mov al," "
+call affcj
+mov edx,edi
+sub edx,40h
+mov ecx,[edx]
+mov eax,102
+int 61h
+call affjournal  ;affiche la taille
+mov cl,78
+call affmsgsyst
+
+popad
+ret
+
+
+
+
+
+affiche_ligne_dir_dossier:
+mov eax,1
+int 64h
+
+mov al,19h
+call affcj
 call affjournal
 mov al,17h
 call affcj
 mov al,13
 call affcj
-
-ignore__dirtypemem:
-mov eax,[ebx+4]
-add ebx,eax
-jmp boucle_dirtypemem 
+popad
+ret
 
 
-
-
-
-
+affiche_ligne_dir_ouvert:
+mov al,1Ch
+call affcj
+call affjournal
+mov al,17h
+call affcj
+mov al,13
+call affcj
+popad
+ret
