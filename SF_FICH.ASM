@@ -6471,7 +6471,7 @@ cmp eax,0
 jne err_sff_lit_dossier_iso9660
 
 cmp byte[zt_lminfo],0
-je finzt_sff_lit_dossier_iso9660
+je fin_sff_lit_dossier_iso9660
 cmp byte[zt_lminfo],02Eh
 je suite1_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
@@ -6494,17 +6494,14 @@ cmp eax,0
 jne err_sff_lit_dossier_iso9660
 
 cmp byte[zt_lminfo],0
-je finzt_sff_lit_dossier_iso9660
+je fin_sff_lit_dossier_iso9660
 cmp byte[zt_lminfo],02Eh
 je suite2_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
 je suite2_sff_lit_dossier_fat
 
 cmp byte[zt_lminfo+0Bh],0Fh
-je suite2_sff_lit_dossier_fat
-
-
-;je vfat_sff_lit_dossier_fat
+je vfat_sff_lit_dossier_fat
 
 mov esi,zt_lminfo             ;fichier fat classique
 movsb
@@ -6586,22 +6583,139 @@ jmp boucle2_sff_lit_dossier_fat
 
 
 
+macro stob_utf8 {   ;macro de transformation en utf8
+cmp eax,0
+je fin_vfat_sff_lit_dossier_fat
+
+cmp eax,80h   ;-de 7 bit
+jb .stob_utf8_1
+cmp eax,800h  ;-de 11 bits
+jb .stob_utf8_2
+
+push eax
+push eax
+and al,3Fh
+or al,80h
+mov bh,al
+pop eax
+shr eax,6
+and al,3Fh
+or al,80h
+mov bl,al
+pop eax
+shr eax,12
+and al,0Fh
+or al,0E0h
+
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+mov al,bl
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+mov al,bh
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+jmp .fin_stob_utf8
+
+
+.stob_utf8_2:
+mov ebx,eax
+and bl,3Fh
+or bl,80h
+
+shr eax,6
+and al,01Fh
+or al,0C0h
+
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+mov al,bl
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+jmp .fin_stob_utf8
+
+
+.stob_utf8_1:
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+
+
+.fin_stob_utf8: 
+}
+
+
 
 
 vfat_sff_lit_dossier_fat:           ;fichier vFat
+mov esi,[zt_lminfo]
+test esi,40h         ;on test si c'est bien le marqueur de début de descripteur de nom long
+jz suite2_sff_lit_dossier_fat
+and esi,3Fh
+shl esi,5
+add edx,esi
+sub esi,32
+add edx,32
 
-;???????????????????????????
+boucle_vfat_sff_lit_dossier_fat:
+xor eax,eax
+mov ax,[esi+zt_lminfo+01h]
+vfat_sff_lit_dossier_fat1:
+stob_utf8
+mov ax,[esi+zt_lminfo+03h]
+vfat_sff_lit_dossier_fat2:
+stob_utf8
+mov ax,[esi+zt_lminfo+05h]
+vfat_sff_lit_dossier_fat3:
+stob_utf8
+mov ax,[esi+zt_lminfo+07h]
+vfat_sff_lit_dossier_fat4:
+stob_utf8
+mov ax,[esi+zt_lminfo+09h]
+vfat_sff_lit_dossier_fat5:
+stob_utf8
+mov ax,[esi+zt_lminfo+0Eh]
+vfat_sff_lit_dossier_fat6:
+stob_utf8
+mov ax,[esi+zt_lminfo+10h]
+vfat_sff_lit_dossier_fat7:
+stob_utf8
+mov ax,[esi+zt_lminfo+12h]
+vfat_sff_lit_dossier_fat8:
+stob_utf8
+mov ax,[esi+zt_lminfo+14h]
+vfat_sff_lit_dossier_fat9:
+stob_utf8
+mov ax,[esi+zt_lminfo+16h]
+vfat_sff_lit_dossier_fat10:
+stob_utf8
+mov ax,[esi+zt_lminfo+18h]
+vfat_sff_lit_dossier_fat11:
+stob_utf8
+mov ax,[esi+zt_lminfo+1Ch]
+vfat_sff_lit_dossier_fat12:
+stob_utf8
+mov ax,[esi+zt_lminfo+1Eh]
+vfat_sff_lit_dossier_fat13:
+stob_utf8
+sub esi,32
+jmp boucle_vfat_sff_lit_dossier_fat
 
 
+
+
+fin_vfat_sff_lit_dossier_fat:
 mov al,"|"
 stosb
 inc ebx
-
-
-;???????????????????????????
-
-
 jmp boucle2_sff_lit_dossier_fat
+
+
 
 
 
