@@ -1511,7 +1511,7 @@ iret
 sigmajv:
 push eax
 es
-test byte[at_console],080h
+test byte[at_console],08h
 jnz fin_sigmajv
 fs
 mov ax,[id_tache_exec]
