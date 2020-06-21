@@ -66,7 +66,7 @@ db 0  ;49
 
 
 
-db 13,"List of partitions and removable disks detected:",13,0  ;50
+db 13,"List of disks:",13,"#dm  Ram Disk",13,0  ;50
 db 13,"Liste des partitions et disques amovibles detecté:",13,0 ;51
 db " Unknown partition type(",0 ;52
 db " damaged partition of ",0 ;53
@@ -85,7 +85,7 @@ db 0 ;65
 db 0 ;66
 db 0 ;67
 db 0 ;68
-db 0 ;69
+db "#di  Floppy Drive",13,0 ;69
 
 db 13,"List of files in the folder: ",0   ;70
 

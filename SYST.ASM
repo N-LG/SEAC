@@ -341,11 +341,16 @@ jz vernumoff
 mov byte[attcl],02h         
 vernumoff:
 
+
 ;initialise variables de la fonction lecture disquette
+es
+test byte[410h],01h        ;test la présence d'au moin un lecteur disquette
+jz floppyoff
+or byte[at_fc_fichier],10h
 mov word[sec_piste_disq],18
 mov word[nb_piste_disq],80
 mov word[sec_cyl_disq],36
-
+floppyoff:
 
 ;**********************************************
 ;**** charge les données

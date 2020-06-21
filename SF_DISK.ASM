@@ -102,9 +102,10 @@ mov eax,cer_parami
 ret
 
 
-
-
 lecdsq:
+fs
+test byte[at_fc_fichier],10h    ;test si le lecteur disquette est présent
+jz erreurdsq
 fs
 test byte[at_fc_fichier],04h    ;test si le moteur de la disquette est déja allumé
 jnz motdjal1
@@ -510,6 +511,9 @@ ret
 
 
 ecrdsq:
+fs
+test byte[at_fc_fichier],10h    ;test si le lecteur disquette est présent
+jz erreurdsq
 fs
 test byte[at_fc_fichier],04h
 jnz motdjal2

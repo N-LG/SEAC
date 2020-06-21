@@ -71,7 +71,7 @@ db 0  ;49
 
 
 
-db 13,"Liste des disques amovibles detecté:",13,0  ;50
+db 13,"Liste des disques:",13,"#dm  Disque Mémoire",13,0  ;50
 db 13,"Liste des partition detecté:",13,0 ;51
 db " partition de type inconnue(",0 ;52
 db " partition endommagé de ",0 ;53
@@ -90,7 +90,7 @@ db 0 ;65
 db 0 ;66
 db 0 ;67
 db 0 ;68
-db 0 ;69
+db "#di  Lecteur de Disquette",13,0 ;69
 
 db 13,"Liste des fichiers du dossier: ",0   ;70
 

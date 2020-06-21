@@ -3,7 +3,7 @@
 
 
 ;****************************************************************
-cmdlm:              ;liste les emplacement m?moires
+cmdlm:              ;liste les emplacement mémoires
 mov ax,selramh
 mov fs,ax
 xor ebx,ebx
@@ -130,8 +130,17 @@ cmdld:          ;liste les disques et partition ata
 ;affiche les infos
 mov cl,50
 call affmsgsyst
-mov esi,ad_descp+64  ;le descripteur 0 est pour la disquette
 
+
+test byte[at_fc_fichier],10h
+jz cmdld_pasdisquette
+mov cl,69
+call affmsgsyst
+cmdld_pasdisquette:
+
+
+
+mov esi,ad_descp+64  ;le descripteur 0 est pour la disquette
 boucleldp:        ;boucle d'affichage des partitition de disque
 cmp byte[esi],2
 jb paspartldp
@@ -184,7 +193,14 @@ jne boucleldp
 
 ;**********
 mov ch,18h
+mov esi,ad_descd
+
 boucleldc:      ;affichage des lecteurs de cdrom présent
+mov al,[esi+dd_atribut]
+and al,07h
+cmp al,4
+jne pascdldp
+
 mov al,10
 mov edi,bootsecteur
 int 64h
@@ -226,6 +242,7 @@ pop ecx
 
 pascdldp:
 inc ch 
+add esi,32
 cmp ch,20h
 jne boucleldc
 

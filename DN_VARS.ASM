@@ -196,6 +196,7 @@ at_fc_fichier equ 0C0h ;attribut des fonctions fichier
 ;b1=dernière opération disquette raté
 ;b2=moteur disquette allumé
 ;b3=irq6 activé
+;b4=lecteur disquette présent
 essai_dsq equ 0C1h
 sec_piste_disq equ 0C2h ;secteur par piste sur la disquette
 nb_piste_disq equ 0C4h ;nombre de piste par face
