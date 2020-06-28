@@ -16,6 +16,7 @@
 ;al=14 définis le msb de l'adresse de lecture/ecriture fichier (fonction 4 et 5)
 ;al=15 réserve espace pour fichier
 ;al=16 lit contenue répertoire
+;al=17 lit disques disponible
 
 ;************************************
 
@@ -86,6 +87,9 @@ cmp al,15
 je sff_reserve_espace_fichier
 cmp al,16
 je sff_lit_dossier
+cmp al,17
+je sff_lit_disques
+
 
 errprmsf:   ;erreur de paramètres
 fs
@@ -6543,6 +6547,13 @@ je ext_sff_lit_dossier_fat
 stosb
 cmp edi,ecx
 je finzt_sff_lit_dossier_iso9660
+lodsb
+cmp al," "
+je ext_sff_lit_dossier_fat
+stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
+
 
 ext_sff_lit_dossier_fat:
 mov esi,zt_lminfo+8    
@@ -6723,6 +6734,81 @@ jmp boucle2_sff_lit_dossier_fat
 
 
 
+
+;****************************************************************************************************
+sff_lit_disques:   ;lit les disques installé   ds:edx pointeur ou copier le bitmap de 32 octet
+                                               ;octet 0 à 15 partitions
+					       ;octet 16 a 28 reservé
+ 					       ;octet 29 = b0-b6 reservé b7= disquette 
+ 					       ;octet 30 = atapi 
+ 					       ;octet 31 = ata  
+mov dword[edx+00],0
+mov dword[edx+04],0
+mov dword[edx+08],0
+mov dword[edx+12],0
+mov dword[edx+16],0
+mov dword[edx+20],0
+mov dword[edx+24],0
+mov dword[edx+28],0
+
+
+;lit la présence disquette
+fs
+test byte[at_fc_fichier],10h
+jz sff_lit_disques_pasdisquette
+or byte[edx+29],80h
+sff_lit_disques_pasdisquette:
+
+
+
+;lit la présence de disque ata et atapi
+mov esi,ad_descd
+mov cl,1
+sff_lit_disques_boucleata:
+fs
+mov al,[esi]
+and al,07h
+
+cmp al,1
+je sff_lit_disques_ata
+cmp al,2
+je sff_lit_disques_ata
+cmp al,3
+jne sff_lit_disques_pasata
+sff_lit_disques_ata:
+or [edx+31],cl
+sff_lit_disques_pasata:
+cmp al,4
+jne sff_lit_disques_pasatapi
+or [edx+30],cl
+sff_lit_disques_pasatapi:
+
+add esi,32
+shl cl,1
+cmp esi,ad_descd+100h
+jne sff_lit_disques_boucleata
+
+
+;lit la présence de partition
+mov esi,ad_descp+64
+mov cl,1
+sff_lit_disques_bouclepart:
+fs
+cmp byte[esi],2   ;ignore partition vide, inconnue et endommagé
+jbe sff_lit_disques_suitepart
+or [edx],cl
+sff_lit_disques_suitepart:
+shl cl,1
+jnc sff_lit_disques_suitepart2
+inc edx
+mov cl,1
+sff_lit_disques_suitepart2:
+add esi,64
+cmp esi,ad_descp+8192
+jne sff_lit_disques_bouclepart
+
+jmp finfonctionfichier
+ 
 
 
 
