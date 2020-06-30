@@ -3,7 +3,7 @@
 ;0=création console
 ;1=suppression console
 ;2=obtenir information ecran
-
+;3=change la console affiché
 
 ;5=obtient le caractère+touche de la fifo de reception clavier
 ;6=aquisition d'une chaine de caractère validé par entrée
@@ -32,6 +32,9 @@ cmp al,1
 je sfv_ferme_console
 cmp al,2
 je sfv_info_ecran
+cmp al,3
+je sfv_choix_console
+
 
 
 cmp al,5
@@ -290,6 +293,54 @@ mov [edx+24h],eax
 pop fs
 xor eax,eax
 iret
+
+
+
+
+
+;****************************************************************
+sfv_choix_console:
+pushad
+push ds
+push fs
+mov ax,selramh
+mov ds,ax
+mov ax,seldat
+mov fs,ax
+xor ebx,ebx
+cmp dx,0
+je sfv_choix_console0
+
+boucle_sfv_choix_console:
+cmp byte[ebx+type_dm],"F"
+je fin_sfv_choix_console
+cmp byte[ebx+type_dm],"T"
+jne suite_sfv_choix_console
+cmp word[ebx+sel_ecranv],0
+je suite_sfv_choix_console
+cmp [ebx+id_tache],dx
+jne suite_sfv_choix_console
+
+sfv_choix_console0:
+fs
+mov [id_tache_af],dx
+fs
+mov [ad_tache_af],ebx
+fs
+or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
+fs
+mov byte[nb_zrc],0    ;efface la zt de reception souris
+fin_sfv_choix_console:
+pop fs
+pop ds
+popad
+xor eax,eax
+iret
+
+suite_sfv_choix_console:
+mov eax,[ebx+to_tache]
+add ebx,eax
+jmp boucle_sfv_choix_console
 
 
 
