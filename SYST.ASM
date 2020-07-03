@@ -2759,8 +2759,17 @@ test dword[infovesa],080h
 jz banked_cmdmodv
 
 or word[at_vid],10h     ;met le bit 4 a un (bit utilisation du linear frame buffer)
-push ds
 mov ebx,[infovesa+28h] ;adresse de base du linear frame buffer
+
+mov eax,[nb_ram]
+cmp ebx,eax                ;on test si le lfb est bien hors de la ram utilisable
+ja cmdmodv_ok_positionlfb 
+and dword[infovesa],07Fh ;met a zéro le bit de disponibilité du linear frame buffer
+mov cx,[mdvc]
+jmp pasdelinear             ;si non on passe en mode banked
+cmdmodv_ok_positionlfb:
+
+push ds
 mov eax,sellfb
 mov ecx,0FFFFFFFFh  ;limite   
 mov dx,selgdt

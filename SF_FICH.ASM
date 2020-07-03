@@ -6393,10 +6393,19 @@ cmp eax,0
 jne err_sff_lit_dossier_iso9660
 mov esi,[zt_lminfo+32]
 and esi,0FFh
+cmp esi,0
+je ignore_sff_lit_dossier_iso9660 
 add esi,33
 mov byte[zt_lminfo+esi],0
 
 mov esi,zt_lminfo+33
+cmp byte[esi],";"
+je ignore_sff_lit_dossier_iso9660 
+cmp byte[esi],0
+je ignore_sff_lit_dossier_iso9660 
+cmp byte[esi],1
+je ignore_sff_lit_dossier_iso9660 
+
 boucle3_sff_lit_dossier_iso9660:
 lodsb
 cmp al,0
@@ -6413,6 +6422,7 @@ suite_sff_lit_dossier_iso9660:
 mov al,"|"
 stosb
 inc ebx
+ignore_sff_lit_dossier_iso9660:
 xor eax,eax
 mov al,[zt_lminfo] ;taille du descripteur de fichier
 cmp eax,0
