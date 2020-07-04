@@ -1165,6 +1165,7 @@ mov al,20h
 out 0A0h,al
 mov al,20h
 out 20h,al
+mov byte[nbzt1],0 
 
 fin_init_souris:
 
@@ -2471,6 +2472,7 @@ cmp eax,"ren"
 je cmdren
 cmp eax,"def"
 je cmddef
+
 jmp commande_fichier
 
 
@@ -3051,6 +3053,10 @@ je cmddef_graph
 erreur_cmddef_structure:
 mov eax,26
 jmp fin_commande_erreur 
+
+
+
+
 
 
 
