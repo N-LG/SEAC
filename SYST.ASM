@@ -2383,21 +2383,39 @@ correction_casse:
 
 cmp byte[esi],":"  
 jne stop_correction_casse1
-mov al,1
+or al,1
 stop_correction_casse1:
 
 cmp byte[esi]," "  
 jne stop_correction_casse2
-mov al,1
+or al,1
 stop_correction_casse2:
 
-cmp byte[esi],"-"  
+cmp word[esi]," -"  
 jne redemarre_correction_casse1
-mov al,0
+and al,0FEh
 redemarre_correction_casse1:
 
-cmp al,1
-je pascorcasse
+
+cmp word[esi],2220h  
+jne interdit_correction_casse1
+or al,2
+interdit_correction_casse1:
+
+cmp word[esi],223Ah  
+jne interdit_correction_casse2
+or al,2
+interdit_correction_casse2:
+
+cmp word[esi],2022h  
+jne autorise_correction_casse1
+and al,0FDh
+autorise_correction_casse1:
+
+
+
+test al,3
+jnz pascorcasse
 cmp byte[esi],"A"  
 jb pascorcasse
 cmp byte[esi],"Z"
