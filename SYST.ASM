@@ -2747,6 +2747,7 @@ call vesa_mode        ;passe dans le mode
 cmp ax,004Fh
 jne erreurmodv
 
+
 ;maj les info sur le mode video en court
 and cx,1FFh
 mov [mdvc],cx
@@ -3068,14 +3069,16 @@ cmp dword[ad_chaine_travail],"DEFC"
 je cmddef_clav
 cmp dword[ad_chaine_travail],"DEFG"
 je cmddef_graph
+
+
 erreur_cmddef_structure:
 mov eax,26
+erreur_cmddef_autres:
+push eax
+mov eax,1
+int 64h
+pop eax
 jmp fin_commande_erreur 
-
-
-
-
-
 
 
 ;***********
@@ -3095,7 +3098,7 @@ sub ecx,edx
 mov edi,ad_msg_syst
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 
 
 ;charge la nouvelle definition des messages erreur
@@ -3105,8 +3108,10 @@ mov edx,[ad_chaine_travail+4]
 mov edi,ad_msg_erreur
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 
+mov eax,1
+int 64h
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -3145,7 +3150,7 @@ mov al,4
 mov edi,ad_tabclav_chasse
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 ignore_chasse_cmddef_clav:
 
 ;charge la nouvelle definition de touche PS/2 si existant
@@ -3158,7 +3163,7 @@ mov ecx,512
 mov edi,ad_tabclav_code
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 ignore_code_cmddef_clav:
 
 ;charge la nouvelle definition de caractère touche si existant
@@ -3171,7 +3176,7 @@ mov ecx,2048
 mov edi,ad_tabclav_carac
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 
 xor edx,edx
 mov dx,[ad_chaine_travail+10]
@@ -3182,7 +3187,7 @@ mov ecx,2048
 mov edi,ad_tabclav_carac+2048
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 
 ignore_touchess_cmddef_clav:
 mov dx,[ad_chaine_travail+14]
@@ -3191,6 +3196,8 @@ dec dh
 mov [alclat1],dx
 ignore_touchesp_cmddef_clav:
 
+mov eax,1
+int 64h
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -3241,7 +3248,7 @@ mov ecx,4096
 mov edx,16
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 
 ;met a jour l'index des tables de caractères
 mov ebx,index_tabcar
@@ -3271,6 +3278,8 @@ mov [ebx],eax
 mov [ebx+4],edi
 
 fin_defg_ok:
+mov eax,1
+int 64h
 mov cl,98  
 call affmsgsyst
 mov edx,esi
@@ -3287,7 +3296,7 @@ mov ecx,4096
 mov edx,16
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_cmddef_autres
 jmp fin_defg_ok
 
 

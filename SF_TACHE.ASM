@@ -537,15 +537,9 @@ mov [edi],eax        ;gs
 es
 mov [esi+sauv_esp0],edi  ;sauvegarde pointeur de la pile
 
-
-
-;initialistaion de l'en tête descripteur espace mémoire
+;finalisation de l'enregistrement de la tache
 es
-mov byte[esi+type_dm],"T"
-
-;initialisation du temps d'execution de la tache (temps par defaut)
-es
-mov byte[esi+temp_exec_tache],1
+mov byte[esi+temp_exec_tache],1  ;initialisation du temps d'execution de la tache (temps par defaut)
 
 mov ax,seldat
 mov ds,ax
@@ -574,7 +568,12 @@ cmp byte[ebx+type_dm],"F"
 jne boucle_verif_id
 
 es
-mov [esi+id_tache],ax
+mov [esi+id_tache],ax 
+
+
+;et pour finir marquer la zone mémoire comme une tache
+es
+mov byte[esi+type_dm],"T"
 jmp pascommande
 
 

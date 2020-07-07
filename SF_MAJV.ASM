@@ -3263,7 +3263,7 @@ ret
 
 ;***********************************************************
 maj_console0:
-
+cli
 push ds
 push es
 mov ax,seldat
@@ -3346,6 +3346,7 @@ cld
 rep movsb
 pop es
 pop ds
+sti
 ret
 
 
