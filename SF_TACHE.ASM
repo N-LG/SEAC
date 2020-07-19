@@ -570,6 +570,11 @@ jne boucle_verif_id
 es
 mov [esi+id_tache],ax 
 
+mov ax,[id_zdc]
+es
+mov [esi+id_maitre],ax 
+
+
 
 ;et pour finir marquer la zone mémoire comme une tache
 es
@@ -1215,6 +1220,95 @@ ret
 
 
 
+;*****************************************
+prio_tache:    ;priorisation d'une tache  dx=id tache a prioriser
+pushad
+push ds
+mov ax,seldat
+mov ds,ax
 
 
+;cherche si tache dernière commute trop ancienne
+mov eax,[cptsf]
+sub eax,80     ;tache executé il y as plus de 200ms
+xor ebx,ebx
+xor ecx,ecx
+boucle_prio1:
+cmp eax,[ebx+table_exec_dex]
+jb suite_prio1
+
+;si oui place ces taches en début de liste
+pushad
+mov esi,ebx
+add esi,ad_table_exec
+mov edi,zt_temp_dexec
+mov ecx,16
+cld
+rep movsb
+
+mov esi,ebx
+mov edi,16
+add esi,ad_table_exec-1
+add edi,esi
+mov ecx,ebx
+std
+rep movsb
+
+mov esi,zt_temp_dexec
+mov edi,ad_table_exec
+mov ecx,16
+cld
+rep movsb
+popad
+
+add ecx,16
+
+suite_prio1:
+add ebx,16
+cmp ebx,[max_table_exec]
+jne boucle_prio1
+
+;place tache a prioriser juste apres
+xor ebx,ebx
+boucle_prio2:
+cmp dx,[ebx+table_exec_id]
+je suite_prio2
+add ebx,16
+cmp ebx,[max_table_exec]
+jne boucle_prio2
+jmp fin_prio_tache
+
+suite_prio2:
+cmp ecx,ebx
+ja fin_prio_tache
+mov eax,ecx
+pushad
+mov esi,ebx
+add esi,ad_table_exec
+mov edi,zt_temp_dexec
+mov ecx,16
+cld
+rep movsb
+
+mov esi,ebx
+mov edi,16
+add esi,ad_table_exec-1
+add edi,esi
+mov ecx,ebx
+sub ecx,eax
+std
+rep movsb
+
+mov esi,zt_temp_dexec
+mov edi,ad_table_exec
+add edi,eax
+mov ecx,16
+cld
+rep movsb
+popad
+
+fin_prio_tache:
+pop ds
+popad
+ret
 

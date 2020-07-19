@@ -263,8 +263,8 @@ fin_ajoute_fichier_ram:
 
 
 ;**************************************************************
-;vide la ram de 0003 0000h à 0008 0000h
-xor ax,ax           
+;vide la ram de 0003 0000h à 0004 FFFFh
+xor ax,ax
 mov ds,ax
 mov ebx,30000h
 xor eax,eax
@@ -272,9 +272,8 @@ xor eax,eax
 boucleefreg:
 mov [ebx],eax
 add ebx,4
-cmp ebx,80000h
+cmp ebx,50000h
 jne boucleefreg
-
 
 
 ;**********************************************************************
@@ -447,6 +446,14 @@ xor edi,edi
 ;cld
 ;rep movsb      ;ds:si vers es:di
 
+push ds
+mov ax,segdat
+mov ds,ax
+mov ax,cs
+mov [20000h],esi
+mov [20000h+4],ax
+pop ds
+
 boucle_copie_code:
 mov al,[esi]
 es
@@ -476,7 +483,7 @@ call crgdt
 
 mov ax,2
 mov ebx,segdat*16       ;segment de donn?es du programme
-mov ecx,01FFFFh    ;128kibi
+mov ecx,03FFFFh    ;256kibi
 mov dl,02h      ;segment de donn?e en lecture/?criture
 call crgdt
 
@@ -498,17 +505,17 @@ mov ecx,07FFh
 mov dl,02h       ;segment de donn?es en lect/ecr
 call crgdt
 
-mov ax,6           ;segment des descripteurs de t?che
-mov ebx,segddt*16
-mov ecx,0FFFFh
-mov dl,02h       ;segment de donn?es en lect/ecr
-call crgdt
+;mov ax,6        
+;mov ebx,???????
+;mov ecx,???????
+;mov dl,02h       ;segment de donn?es en lect/ecr
+;call crgdt
 
-mov ax,7           ;segment des fonction fichier
-mov ebx,segff*16
-mov ecx,1FFFFh    ;128ko
-mov dl,02h       ;segment de donn?es en lect/ecr
-call crgdt
+;mov ax,7        
+;mov ebx,???????
+;mov ecx,???????
+;mov dl,02h       ;segment de donn?es en lect/ecr
+;call crgdt
 
 mov ax,8           ;segment de lecture de la totalit? de la ram
 mov ebx,00000h
@@ -1361,11 +1368,14 @@ include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA
 mov cl,0
 call affmsgsyst     ;rapel sur la version installé
 
-
-
-
 mov ax,seldat
 mov ds,ax
+mov es,ax
+xor eax,eax    ;effacement de la seconde moitié du segment de donnée systeme (pas effectué avant car cette partie contenait le code d'amorçage)
+mov ecx,08000h
+mov edi,20000h
+rep stosd
+
 mov esi,[ad_ficho]
 mov ax,selramh
 mov es,ax

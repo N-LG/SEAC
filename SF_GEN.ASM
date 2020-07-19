@@ -202,22 +202,13 @@ sfs_pause:         ;met en veille la tache durant ecx * 2.5 milliseconde
 push ebx
 push ecx
 push ds
-push es
 mov ax,seldat
 mov ds,ax
-mov ax,selramh
-mov es,ax
-mov ebx,[ad_tache_exec]
 add ecx,[cptsf]
-es
-mov [ebx+cpt_pause],ecx
-mov byte[cpttc],1 
-sti
 boucle_sfs_pause:
 int 62h
 cmp [cptsf],ecx 
 jb boucle_sfs_pause
-pop es
 pop ds
 pop ecx
 pop ebx

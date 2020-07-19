@@ -16,10 +16,8 @@ selgdt equ 20h     ;4
 seggdt equ 1000h
 selidt equ 28h     ;5
 segidt equ 0F80h
-selddt equ 30h     ;6
-segddt equ 05000h
-selztsf equ 38h     ;7
-segff equ 06000h
+;?????? equ 30h     ;6
+;?????? equ 38h     ;7
 selramt equ 40h     ;8
 selramh equ 48h     ;9
 
@@ -98,6 +96,11 @@ ad_tss        equ 13E00h ;TSS et IO map (512 + 8196)  2200h
 ad_descp      equ 16000h ;8kibi 128*64
 ad_ztcmd      equ 18000h ;zone tampon reception commande
 
+
+ad_table_exec equ 20000h ;table d'orde d'execution des taches constitué des élément suivant:
+table_exec_id  equ ad_table_exec + 0  ;id de la tache
+table_exec_ad  equ ad_table_exec + 4  ;adresse de la tache en mémoire
+table_exec_dex equ ad_table_exec + 8  ;dernière execution de la tache
 
 
 ;*******************************************************************************************************************************************************
@@ -313,6 +316,23 @@ sauv_esp_t0 equ 1F0h    ;sauvegarde de la pile de la tache 0
 id_tache_fichier equ 1F4h ;ID de la tache qui utillise la fonction fichier
 tache_force equ 1F6h     ;prochaine tache vers laquel commuter
 
+
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+zt_temp_dexec equ 300h    ;zone tampon utilisé lors de la priorisation de l'orde d'execution des taches
+max_table_exec equ 310h   ;nombre d'octet de la table d'ordre d'execution des taches
+index_table_exec equ 314h ;index pointant sur la prochaine tache a executer
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
+
 ;*************************************************************************
 ;zone tampon travail sur FAT et fichier
 
@@ -486,8 +506,8 @@ sauv_esp3 equ 0ECh
 sel_ldt_tache equ 0F0h ;selecteur de segment de la LDT
 temp_exec_tache equ 0F2h   ;temp d'execution de la tache
 code_service equ 0F3h ;code du service proposé par la tache
-cpt_pause equ 0F4h    ;la tache doit être en pause jusqu'a cette valeur du compteur sans fin
-sel_ecranv equ 0F8h   ;selecteur d'ecran virtuel
+id_maitre equ 0F4h    ;id de la tache a l'origine de celle ci
+sel_ecranv equ 0F6h   ;selecteur d'ecran virtuel
 
 descriptif_tache equ 100h  ;descriptif (texte) de la tache executé
 recop_commande equ 200h ;chaine utf8z de 512o
