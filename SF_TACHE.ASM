@@ -570,18 +570,25 @@ jne boucle_verif_id
 es
 mov [esi+id_tache],ax 
 
-mov ax,[id_zdc]
+mov dx,[id_zdc]
 es
-mov [esi+id_maitre],ax 
+mov [esi+id_maitre],dx 
 
-
-
-;et pour finir marquer la zone mémoire comme une tache
+;marquer la zone mémoire comme une tache
 es
 mov byte[esi+type_dm],"T"
+
+;et pour finir l'ajouter a la liste des taches
+mov ebx,[max_table_exec]
+add dword[max_table_exec],16
+mov [ebx+table_exec_id],ax
+mov [ebx+table_exec_ad],esi
+mov dword[ebx+table_exec_dex],0
+
 jmp pascommande
 
 
+;********************************
 cretache_erlc:      ;fin erreur lecture de fichier
 mov ebx,[ad_tache_cree]
 call libmem
@@ -774,7 +781,7 @@ mov dword[si+4],0
 call libmem
 
 ;ferme les fichier
-call ferme_fichier_tache
+call purge_system_tache
 
 push cx  ;signal l'arret forcée de la tache
 mov cl,92
@@ -828,13 +835,13 @@ call libmem
 mov ax,seldat
 mov ds,ax
 mov cx,[id_tache_exec]
-call ferme_fichier_tache
+call purge_system_tache
 xor ebx,ebx
 
 jmp selection_tache_suivante
 
 ;*********************************************************************************************
-ferme_fichier_tache:          ;ferme les fichier ouvert par la tache et les zone de communication employé (cx=ID de la tache)
+purge_system_tache:          ;purge le systeme de la présence de la tache(cx=ID de la tache)
 pushad
 push ds
 push es
@@ -849,10 +856,10 @@ mov ebx,[ad_ficho]
 mov ebp,[max_ficho]
 add ebp,ebx
 
-boucle_ferme_fichier_tache:
+boucle_purge_system_tache:
 es
 cmp cx,[ebx+2]
-jne nok_ferme_fichier_tache
+jne nok_purge_system_tache
 es
 mov dword[ebx],0
 es
@@ -870,12 +877,13 @@ mov dword[ebx+24],0
 es
 mov dword[ebx+28],0
 
-nok_ferme_fichier_tache:
+nok_purge_system_tache:
 add ebx,20h
 cmp ebx,ebp
-jb boucle_ferme_fichier_tache
+jb boucle_purge_system_tache
 
 
+;*************************************************************
 mov ax,selramh            ;efface les canaux de communication employé par la tache
 mov ds,ax
 xor ebx,ebx
@@ -899,6 +907,7 @@ cmp byte[ebx+type_dm],"F"
 jne boucle_efface_canauxcom
 
 
+;********************************
 mov ax,seldat   ;test si l'affichage était reglé sur la tache stoppé, si oui revien a l'affichage tache 0
 mov ds,ax
 cmp [id_tache_af],cx
@@ -909,6 +918,43 @@ mov dword[ad_tache_af],0
 pas_bascule_affichage:
 or byte[at_csl],0Fh ;signale que l'affichage doit être mis a jour
 
+
+
+;*************************************
+mov ax,seldat     ;suppression dans la table d'ordre d'execution
+mov ds,ax
+mov es,ax
+xor ebx,ebx
+boucle_suppr_exec:
+cmp cx,[ebx+table_exec_id]
+je ok_suppr_exec
+add ebx,16
+cmp ebx,[max_table_exec]
+jne boucle_suppr_exec
+jmp fin_suppr_exec
+
+ok_suppr_exec:
+mov edi,ebx
+mov esi,ebx
+add edi,ad_table_exec
+add esi,10h+ad_table_exec
+mov ecx,[max_table_exec]
+sub ecx,ebx
+shr ecx,2
+cld
+rep movsd
+xor eax,eax
+mov ecx,4
+rep stosd
+
+sub dword[max_table_exec],16
+
+cmp ebx,[index_table_exec]
+jae fin_suppr_exec
+
+sub dword[index_table_exec],16
+
+fin_suppr_exec:
 
 pop es
 pop ds
