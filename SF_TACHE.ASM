@@ -836,7 +836,6 @@ mov ax,seldat
 mov ds,ax
 mov cx,[id_tache_exec]
 call purge_system_tache
-xor ebx,ebx
 
 jmp selection_tache_suivante
 
@@ -883,7 +882,7 @@ cmp ebx,ebp
 jb boucle_purge_system_tache
 
 
-;*************************************************************
+;***************************************
 mov ax,selramh            ;efface les canaux de communication employé par la tache
 mov ds,ax
 xor ebx,ebx
@@ -924,6 +923,8 @@ or byte[at_csl],0Fh ;signale que l'affichage doit être mis a jour
 mov ax,seldat     ;suppression dans la table d'ordre d'execution
 mov ds,ax
 mov es,ax
+cmp cx,0
+je fin_suppr_exec
 xor ebx,ebx
 boucle_suppr_exec:
 cmp cx,[ebx+table_exec_id]
@@ -943,14 +944,21 @@ sub ecx,ebx
 shr ecx,2
 cld
 rep movsd
+sub edi,16
 xor eax,eax
 mov ecx,4
 rep stosd
 
+
+
 sub dword[max_table_exec],16
 
-cmp ebx,[index_table_exec]
-jae fin_suppr_exec
+;cmp ebx,[index_table_exec]
+;ja fin_suppr_exec
+
+
+cmp dword[index_table_exec],0
+je fin_suppr_exec
 
 sub dword[index_table_exec],16
 
@@ -985,7 +993,7 @@ iret
 
 
 ;*********************
-commutation:    
+commutation:  
 push eax         ;sauvegarde complète des registres
 push ebx
 push ecx
@@ -1007,7 +1015,6 @@ cmp word[id_tache_exec],0
 jne sauv_tache_norm
 
 mov [sauv_esp_t0],esp  ;sauvegarde de l'offset de la pile de la tache zéro
-xor ebx,ebx
 jmp selection_tache_suivante
 
 sauv_tache_norm:      ;sauvegarde des piles d'une tache normale
@@ -1015,68 +1022,38 @@ mov ebx,[ad_tache_exec]
 es
 mov [ebx+sauv_esp0],esp  
 
-
 selection_tache_suivante:
-cmp word[tache_force],0
-je boucle_tache_suivante
+mov edx,[index_table_exec]
 
-xor edx,edx            ;recherche du descripteur de tache avec id spécifique
-xchg dx,[tache_force]
-xor ebx,ebx
-
-boucle_tache_sp:
-es
-mov eax,[ebx+4]
-es
-cmp word[ebx],"DM"
-jne erreur_org_mem
-test eax,0Fh
-jnz erreur_org_mem
-cmp eax,0
-je erreur_org_mem
-add ebx,eax
-es
-cmp byte[ebx+2],"F" ;si on arrive a la fin des descripteur mémoire on revient a la tache 0
-je rest_tache_sp
-es
-cmp byte[ebx+2],"T"
-jne boucle_tache_sp
-es
-cmp [ebx+id_tache],dx
-jne boucle_tache_sp
-jmp restauration_tache
-
-
-boucle_tache_suivante:    ;recherche du descripteur de tache suivant
-es
-mov eax,[ebx+4]
-es
-cmp word[ebx],"DM"
-jne erreur_org_mem
-test eax,0Fh
-jnz erreur_org_mem
-cmp eax,0
-je erreur_org_mem
-add ebx,eax
-es
-cmp byte[ebx+2],"F" ;si on arrive a la fin des descripteur mémoire on revient a la tache 0
-je rest_tache_sp
-es
-cmp byte[ebx+2],"T"
-jne boucle_tache_suivante
-
-
-
-;*********************************restauration d'une tache normale
-restauration_tache:
-;maj info de la tache
+;chargement id,chargement adresse,enregistrement dernier commute
+mov ax,[edx+table_exec_id]
+mov ebx,[edx+table_exec_ad]
+mov ecx,[cptsf]
+mov [id_tache_exec],ax
 mov [ad_tache_exec],ebx
+mov [edx+table_exec_dex],ecx
+
+;incrémente index (pour pointer sur prochaine execution
+add edx,16
+cmp edx,[max_table_exec]
+jne ok_commute
+xor edx,edx
+ok_commute:
+mov [index_table_exec],edx
+
+cmp ax,0
+je restauration_tache_0 
+es
+cmp word[ebx],"DM"
+jne restauration_tache_0 
+es
+cmp byte[ebx+2],"T"
+jne restauration_tache_0 
+
+;maj info de la tache
 es
 mov al,[ebx+temp_exec_tache]
 mov byte[cpttc],al
-es
-mov ax,[ebx+id_tache]
-mov [id_tache_exec],ax
 
 ;restauration de la LDT
 es
@@ -1089,9 +1066,53 @@ es
 mov eax,[ebx+to_pile_fe]
 sub eax,4
 mov [tss_sauv_esp0],eax
+
 mov ax,sel_pilet0             
 mov ss,ax
-jmp fin_com_tache
+
+;restauration complète des registres
+pop gs
+pop fs
+pop es
+pop ds
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+pop eax
+jmp finirqtmp 
+
+
+
+;***************************
+restauration_tache_0:           ;restautation de la tache zéro
+mov byte[cpttc],1          ;1x2,5ms alloué a la tache principale, oui c'est peu
+
+;restauration de la pile
+mov ax,selpil
+mov ss,ax
+mov esp,[sauv_esp_t0]
+
+;restauration complète des registres
+pop gs
+pop fs
+pop es
+pop ds
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+pop eax
+jmp finirqtmp 
+
+
+
+
+
 
 
 ;*******************************************
@@ -1110,34 +1131,8 @@ mov cl,48
 call affmsgsyst
 
 
-;***************************
-rest_tache_sp:           ;restautation de la tache zéro
-;maj info de la tache
-mov dword[ad_tache_exec],0
-mov word[id_tache_exec],0
-mov byte[cpttc],1          ;1x2,5ms alloué a la tache principale, oui c'est peu
 
-;restauration de la pile
-mov ax,selpil
-mov ss,ax
-mov esp,[sauv_esp_t0]
-
-
-fin_com_tache:   ;restauration complète des registres
-pop gs
-pop fs
-pop es
-pop ds
-pop ebp
-pop edi
-pop esi
-pop edx
-pop ecx
-pop ebx
-pop eax
-
-jmp finirqtmp 
-
+;??????????????????????????????????????????????????????????????,,,
 
 
 ;************************************************************************************************************************************

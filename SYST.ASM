@@ -101,7 +101,7 @@ mov ax,9000h
 mov ss,ax
 mov sp,0FFF0h
 lidt[r_idt+start]
-sti
+
 
 ;*********************************************************************
 ;active la ligne A20 pour pouvoir ?crire dns la zone memoire superieur!!!!!!!!!!!!!!!!!!!!!méthode ne fonctionnant pas a chaque fois m'as t'on dit
@@ -303,6 +303,8 @@ mov [ad_afcmd],eax  ;numéro du premier caractère qui sert a ecrire la commande e
 sub eax,ecx
 mov [ad_afrep],eax ;numéro du premier caractère qui sert a ecrire le dossier en cours (-3 lignes)
 
+
+mov dword[max_table_exec],16  ;initialise la liste des tache
 
 
 xor dx,dx        ;copie les adresse de base des ports com et lpt detecté par le bios
@@ -843,10 +845,10 @@ mov al,1
 out dx,al
 
 mov dx,21h             ;regle le masquage des irq
-mov al,0A0h            ;masque les irq 5&7
+mov al,0A0h            ;masque les irq 5,7
 out dx,al
 mov dx,0A1h
-mov al,0FFh            ;masque les irq 8 0 15
+mov al,0FFh            ;masque les irq 8 à 15
 out dx,al
 
 
@@ -1035,7 +1037,7 @@ mov [tss_sauv_ss0],ax
 mov [tss_sauv_ss1],bx
 mov [tss_sauv_ss2],cx
 mov [tss_iom],dx
-sti      ;init des valeurs terminé, débloquage des irq
+;sti      ;init des valeurs terminé, débloquage des irq
 
 
 
@@ -1431,6 +1433,7 @@ mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
 mov byte[at_csl],0Eh ;signale que l'affichage complet de la console doit être mis a jour
+sti
 jmp btacheprincipale
 
 
@@ -4418,7 +4421,6 @@ pop edx
 pop ecx
 pop ebx
 pop eax
-sti
 iret
 
 ;******************************************
@@ -5241,7 +5243,6 @@ mov al,20h
 out 20h,al
 pop ds
 popad
-sti
 iret
 
 
@@ -5274,7 +5275,6 @@ push ax
 mov al,20h
 out 20h,al
 pop ax
-sti
 iret
 
 ;***************************************************************************
@@ -5291,7 +5291,6 @@ include "SF_GEN.ASM"
 
 
 int_62:              ;commutation de tache pour le multitache coopératif (pas d'argument)
-cli
 push eax
 push ds
 jmp commutation

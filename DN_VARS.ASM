@@ -94,14 +94,16 @@ ad_zdc        equ 13A00h  ;512 octet
 ad_descd      equ 13C00h  ;512 octets
 ad_tss        equ 13E00h ;TSS et IO map (512 + 8196)  2200h
 ad_descp      equ 16000h ;8kibi 128*64
-ad_ztcmd      equ 18000h ;zone tampon reception commande
 
 
-ad_table_exec equ 20000h ;table d'orde d'execution des taches constitué des élément suivant:
+
+ad_table_exec equ 18000h ;table d'orde d'execution des taches constitué des élément suivant:
 table_exec_id  equ ad_table_exec + 0  ;id de la tache
 table_exec_ad  equ ad_table_exec + 4  ;adresse de la tache en mémoire
 table_exec_dex equ ad_table_exec + 8  ;dernière execution de la tache
 
+
+ad_ztcmd      equ 20000h ;zone tampon reception commande
 
 ;*******************************************************************************************************************************************************
 ;variables systŠme
@@ -315,21 +317,8 @@ ad_tache_cree equ 1ECH
 sauv_esp_t0 equ 1F0h    ;sauvegarde de la pile de la tache 0
 id_tache_fichier equ 1F4h ;ID de la tache qui utillise la fonction fichier
 tache_force equ 1F6h     ;prochaine tache vers laquel commuter
-
-
-
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-zt_temp_dexec equ 300h    ;zone tampon utilisé lors de la priorisation de l'orde d'execution des taches
-max_table_exec equ 310h   ;nombre d'octet de la table d'ordre d'execution des taches
-index_table_exec equ 314h ;index pointant sur la prochaine tache a executer
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§
-
-
+index_table_exec equ 1F8h ;index pointant sur la prochaine tache a executer
+max_table_exec equ 1FCh   ;nombre d'octet de la table d'ordre d'execution des taches
 
 
 
@@ -367,6 +356,9 @@ port_lpt_to equ 2E0h ;nombre d'octet dans la zone tampon de réception lpt 1 (lpt
  
 
 
+;*******************************************************************************
+;gestion de l'ordre des taches
+zt_temp_dexec equ 300h    ;zone tampon utilisé lors de la priorisation de l'orde d'execution des taches
 
 
 
