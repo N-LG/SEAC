@@ -1037,7 +1037,7 @@ mov [tss_sauv_ss0],ax
 mov [tss_sauv_ss1],bx
 mov [tss_sauv_ss2],cx
 mov [tss_iom],dx
-;sti      ;init des valeurs terminé, débloquage des irq
+sti      ;init des valeurs terminé, débloquage des irq
 
 
 
@@ -1159,14 +1159,10 @@ call env_ps2
 mov al,0F4h    ;enable
 call env_ps2
 
-
-
-
 ;démasque l'irq 12
 mov dx,0A1h
 mov al,0EFh
 out dx,al
-
 call vide_8042
 
 ;aquitte toutes irq en attente
@@ -1175,6 +1171,7 @@ out 0A0h,al
 mov al,20h
 out 20h,al
 mov byte[nbzt1],0 
+
 
 fin_init_souris:
 
@@ -2884,9 +2881,6 @@ mov word[no_ligne_jcsl],0
 or byte[at_csl],2      ;met a 1 le bit de mise a jour affichage journal
 jmp pascommande
 
-;****************************************************************
-cmddir:             ;liste le contenue du repertoire courant
-include "CI_DIR.ASM"
 
 ;****************************************************************
 cmdfix:             ;enregisre le dossier actuel comme étant le dossier systeme
@@ -2915,6 +2909,19 @@ rep movsb   ;déplacement
 mov cl,94   
 call affmsgsyst
 jmp pascommande
+
+
+
+;****************************************************************
+cmddir:             ;liste le contenue du repertoire courant
+mov esi,debut_cmddir
+mov ecx,fin_cmddir-debut_cmddir
+jmp creation_tache_interne
+
+debut_cmddir:
+include "CI_DIR.ASM"
+fin_cmddir:
+
 
 ;********************************************
 cmdren:
