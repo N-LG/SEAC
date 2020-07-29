@@ -96,7 +96,6 @@ mov [ebx+0Ch],eax
 mov ebx,edi
 call majetm  ;met a jour les compteurs 
 clc
-sti
 pop es
 pop ds
 pop edi
@@ -108,7 +107,6 @@ ret
 trouvtnok:
 xor ebx,ebx
 stc
-sti
 pop es
 pop ds
 pop edi
@@ -121,7 +119,6 @@ trouvtok:             ;on a trouvé une zone mémoire pile a la taille!
 mov byte[ebx+2],"S"   ;on le marque comme zone système
 call majetm  ;met a jour les compteurs
 clc
-sti
 pop es
 pop ds
 pop edi
@@ -188,7 +185,6 @@ redim_resmemg:
 mov ecx,edi
 call modtm  ;on redimensionne la zone
 fin_resmemg:
-sti
 pop ds
 pop edi
 pop esi
@@ -258,7 +254,6 @@ redim_resmemgo:
 mov ecx,ebp
 call modtm  ;on redimensionne la zone
 fin_resmemgo:
-sti
 pop ds
 pop ebp
 pop edi
@@ -377,35 +372,30 @@ mov dword[edx+12],0
 
 resmemp_fin_ok:
 call majetm   ;met a jour les compteurs
-sti
 pop ds
 popad
 xor eax,eax
 ret
 
 resmemp_erreur_param:
-sti
 pop ds
 popad
 mov eax,cer_parami ;erreur de parametre
 ret
 
 resmemp_erreur_structure:
-sti
 pop ds
 popad
 mov eax,cer_ers ;erreur de structure mémoire
 ret
 
 resmemp_fin_indisponible:
-sti
 pop ds
 popad
 mov eax,cer_znd   ;zone non disponible
 ret
 
 resmemp_fin_absent:
-sti
 pop ds
 popad
 mov eax,cer_zhm   ;zone hors mémoire
@@ -448,7 +438,6 @@ mov [ebx+0Bh],eax
 call fusmemv  ;fusionne les descripteurs de mémoire vide contigue 
 call majetm   ;met a jour les compteurs
 clc
-sti
 pop es
 pop ds
 pop ebx
@@ -457,7 +446,6 @@ ret
 
 nolibmem:
 stc
-sti
 pop es
 pop ds
 pop ebx
@@ -718,7 +706,6 @@ finagrmem:
 call fusmemv  ;fusionne les descripteurs de mémoire vide contigue 
 call majetm   ;met a jour les compteurs
 clc
-sti
 pop fs
 pop es
 pop ds
@@ -750,7 +737,6 @@ call fusmemv  ;fusionne les descripteurs de mémoire vide contigue
 call majetm   ;met a jour les compteurs
 finreducmem:
 clc
-sti
 pop fs
 pop es
 pop ds
@@ -763,7 +749,6 @@ ret
 
 echecagrzm:
 stc
-sti
 pop fs
 pop es
 pop ds

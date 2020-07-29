@@ -624,6 +624,36 @@ fs
 mov [ad_tache_exec],ebx
 
 sfs_mod_seg_majldt:  
+
+
+
+
+
+fs                      ;met a jour l'adresse dans la table d'execution
+mov dx,[id_tache_exec]
+xor ebx,ebx
+boucle_majtable_exec:
+fs
+cmp dx,[ebx+table_exec_id]
+je ok_majtable_exec
+add ebx,16
+fs
+cmp ebx,[max_table_exec]
+jne boucle_majtable_exec
+;jmp fin_sfs_mod_seg
+
+ok_majtable_exec:
+fs
+mov eax,[ad_tache_exec]
+fs
+mov [ebx+table_exec_ad],eax
+
+
+
+
+
+
+
 fs
 mov esi,[ad_tache_exec]
 call maj_ldtache
@@ -644,24 +674,28 @@ fs
 mov [ad_tache_af],eax
 
 
-fs                      ;met a jour l'adresse dans la table d'execution
-mov dx,[id_tache_exec]
-xor ebx,ebx
-boucle_majtable_exec:
-fs
-cmp dx,[ebx+table_exec_id]
-je ok_majtable_exec
-add ebx,16
-fs
-cmp ebx,[max_table_exec]
-jne boucle_majtable_exec
-jmp fin_sfs_mod_seg
 
-ok_majtable_exec:
-fs
-mov eax,[ad_tache_exec]
-fs
-mov [ebx+table_exec_ad],eax
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 fin_sfs_mod_seg: ;restaure les selecteur de segment
 pop ebp

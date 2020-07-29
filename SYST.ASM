@@ -3532,6 +3532,7 @@ call affcj
 
 ;********************************************************
 pascommande:
+sti
 include "SF_PERI.ASM"         ;gestion periodique du materiel
 int 62h
 jmp btacheprincipale

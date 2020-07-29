@@ -584,7 +584,6 @@ add dword[max_table_exec],16
 mov [ebx+table_exec_id],ax
 mov [ebx+table_exec_ad],esi
 mov dword[ebx+table_exec_dex],0
-
 jmp pascommande
 
 
@@ -836,7 +835,6 @@ mov ax,seldat
 mov ds,ax
 mov cx,[id_tache_exec]
 call purge_system_tache
-
 jmp selection_tache_suivante
 
 ;*********************************************************************************************
@@ -1089,6 +1087,8 @@ jmp finirqtmp
 ;***************************
 restauration_tache_0:           ;restautation de la tache zéro
 mov byte[cpttc],1          ;1x2,5ms alloué a la tache principale, oui c'est peu
+mov word[id_tache_exec],0
+mov dword[ad_tache_exec],0
 
 ;restauration de la pile
 mov ax,selpil
@@ -1267,7 +1267,7 @@ pushad
 push ds
 mov ax,seldat
 mov ds,ax
-
+cli
 
 ;cherche si tache dernière commute trop ancienne
 mov eax,[cptsf]
@@ -1327,9 +1327,9 @@ pushad
 mov esi,ebx
 add esi,ad_table_exec
 mov edi,zt_temp_dexec
-mov ecx,16
+mov ecx,4
 cld
-rep movsb
+rep movsd
 
 mov esi,ebx
 mov edi,16
@@ -1343,9 +1343,9 @@ rep movsb
 mov esi,zt_temp_dexec
 mov edi,ad_table_exec
 add edi,eax
-mov ecx,16
+mov ecx,4
 cld
-rep movsb
+rep movsd
 popad
 
 fin_prio_tache:

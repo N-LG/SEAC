@@ -588,12 +588,9 @@ iret
 ;**************************************************************************************************
 sf_com_ecriture_rc:
 
-mov dx,seldat
-mov es,dx
 fs
 mov dx,[ebx+id_emetteur]
-es
-mov [tache_force],dx
+call prio_tache
 mov dx,selramh
 mov es,dx
 mov edx,ebx
@@ -601,12 +598,9 @@ add edx,to_ztre
 jmp sf_com_ecriture
 
 sf_com_ecriture_em:
-mov dx,seldat
-mov es,dx
 fs
 mov dx,[ebx+id_recepteur]
-es
-mov [tache_force],dx
+call prio_tache
 mov dx,selramh
 mov es,dx
 mov edx,ebx

@@ -6433,6 +6433,7 @@ jmp boucle2_sff_lit_dossier_iso9660
 
 
 finzt_sff_lit_dossier_iso9660:          ;efface le dernier nom si il n'est pas complet
+dec edi
 es
 cmp byte[edi],"|"
 je finzt2_sff_lit_dossier_iso9660
@@ -6491,7 +6492,7 @@ je suite1_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
 je suite1_sff_lit_dossier_fat
 cmp byte[zt_lminfo+0Bh],0Fh
-jne suite1_sff_lit_dossier_fat
+je suite1_sff_lit_dossier_fat
 
 dec ebx
 
@@ -6595,6 +6596,8 @@ je finzt_sff_lit_dossier_iso9660
 ffn_sff_lit_dossier_fat:
 mov al,"|"
 stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
 inc ebx
 
 suite2_sff_lit_dossier_fat:
@@ -6733,6 +6736,8 @@ jmp boucle_vfat_sff_lit_dossier_fat
 fin_vfat_sff_lit_dossier_fat:
 mov al,"|"
 stosb
+cmp edi,ecx
+je finzt_sff_lit_dossier_iso9660
 inc ebx
 jmp boucle2_sff_lit_dossier_fat
 

@@ -3,15 +3,14 @@
 cmddir_nom_dossier equ 0
 cmddir_zt_affichage equ 512
 cmddir_handle_dossier equ 1024
-cmddir_taille_script equ 1028
-cmddir_zone_tampon equ 1032
-cmddir_taille equ 60 ;512
+cmddir_zone_tampon equ 1028
+cmddir_taille equ 4096
 
 
 ;change la taille de la zone mémoire
 mov al,8
 mov dx,sel_dat1
-mov ecx,cmddir_zone_tampon+cmddir_taille+1
+mov ecx,cmddir_zone_tampon+cmddir_taille
 int 61h
 cmp eax,0
 jne erreur_autres_cmddir
@@ -63,7 +62,7 @@ mov ebx,[cmddir_handle_dossier]
 mov ecx,cmddir_taille
 mov edi,cmddir_zone_tampon
 int 64h
-
+add edx,ebx
 
 push eax
 push edx
@@ -90,7 +89,6 @@ call affiche_ligne_dir
 pop edx
 pop eax
 
-add edx,ecx
 cmp eax,cer_pasm
 je boucle1_cmd_dir
 cmp eax,0
@@ -105,8 +103,7 @@ push eax
 
 mov al,13
 mov ah,0
-mov cl,3
-mov ch,0
+mov ecx,3
 mov edx,cmddir_zone_tampon
 int 61h
 mov al,6
@@ -122,7 +119,6 @@ mov word[cmddir_zone_tampon],0D22h  ;" puis CR
 pop ecx
 mov al,13
 mov ah,1
-mov ch,0
 mov edx,cmddir_zone_tampon+2
 int 61h
 mov al,6
