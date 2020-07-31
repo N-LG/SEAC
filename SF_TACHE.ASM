@@ -1265,43 +1265,25 @@ ret
 prio_tache:    ;priorisation d'une tache  dx=id tache a prioriser
 pushad
 push ds
+push es
 mov ax,seldat
 mov ds,ax
+mov es,ax
 cli
+
 
 ;cherche si tache dernière commute trop ancienne
 mov eax,[cptsf]
 sub eax,80     ;tache executé il y as plus de 200ms
 xor ebx,ebx
 xor ecx,ecx
+
 boucle_prio1:
 cmp eax,[ebx+table_exec_dex]
 jb suite_prio1
 
 ;si oui place ces taches en début de liste
-pushad
-mov esi,ebx
-add esi,ad_table_exec
-mov edi,zt_temp_dexec
-mov ecx,16
-cld
-rep movsb
-
-mov esi,ebx
-mov edi,16
-add esi,ad_table_exec-1
-add edi,esi
-mov ecx,ebx
-std
-rep movsb
-
-mov esi,zt_temp_dexec
-mov edi,ad_table_exec
-mov ecx,16
-cld
-rep movsb
-popad
-
+call deplace_tache
 add ecx,16
 
 suite_prio1:
@@ -1311,6 +1293,7 @@ jne boucle_prio1
 
 ;place tache a prioriser juste apres
 xor ebx,ebx
+
 boucle_prio2:
 cmp dx,[ebx+table_exec_id]
 je suite_prio2
@@ -1320,10 +1303,24 @@ jne boucle_prio2
 jmp fin_prio_tache
 
 suite_prio2:
-cmp ecx,ebx
-ja fin_prio_tache
+call deplace_tache
+
+fin_prio_tache:
+mov dword[index_table_exec],0
+pop es
+pop ds
+popad
+ret
+
+
+
+deplace_tache: ;déplace la tache pointé par ebx a la place de ecx
+pushad   
+cmp ebx,ecx
+jbe nepas_deplace_tache
+
 mov eax,ecx
-pushad
+
 mov esi,ebx
 add esi,ad_table_exec
 mov edi,zt_temp_dexec
@@ -1332,24 +1329,21 @@ cld
 rep movsd
 
 mov esi,ebx
-mov edi,16
+mov edi,ebx
 add esi,ad_table_exec-1
-add edi,esi
+add edi,ad_table_exec+15
 mov ecx,ebx
 sub ecx,eax
 std
 rep movsb
 
 mov esi,zt_temp_dexec
-mov edi,ad_table_exec
-add edi,eax
+mov edi,eax
+add edi,ad_table_exec
 mov ecx,4
 cld
 rep movsd
-popad
 
-fin_prio_tache:
-pop ds
+nepas_deplace_tache:
 popad
 ret
-
