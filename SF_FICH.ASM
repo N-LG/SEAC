@@ -6335,26 +6335,59 @@ jmp finfonctionfichierokebx
 
 ;*****************************************************
 charg_part_dossier:             ;charge une partie du dossier dans la chaine de travail
-
-push ebx
-push ecx
-push edx
-push edi
-push ebp
+pushad
+push ds
 push es
+
+mov si,selramh
 mov di,seldat
+mov ds,si
 mov es,di
-mov edi,zt_lminfo
-mov ecx,256
+mov eax,edx
+and eax,0FFFF0000h
+ds
+cmp eax,[ebp+16]
+je suite_charg_part_dossier
+
+pushad
+push es
+mov di,selramh
+ds
+mov [ebp+16],eax
+mov es,di
+mov edi,ebp
+add edi,20h
+and edx,eax
+mov ecx,20000h
 call sflirefichier
 pop es
-pop ebp
-pop edi
-pop edx
-pop ecx
-pop ebx
+ss
+mov [esp+28],eax
+popad
+
+cmp eax,0
+je suite_charg_part_dossier 
+pop es
+pop ds
+ss
+mov [esp+28],eax
+popad
 ret
 
+suite_charg_part_dossier:
+mov esi,ebp
+add esi,20h
+and edx,1FFFFh
+add esi,edx
+mov edi,zt_lminfo
+mov ecx,64
+rep movsb
+
+pop es
+pop ds
+popad
+xor eax,eax
+ret
 
 
 
@@ -6362,13 +6395,24 @@ ret
 
 ;**************************
 sff_lit_dossier_iso9660:
-mov ax,ds
+push ds
+push ecx
+mov ax,selramh
+mov ds,ax
 mov es,ax
+mov ecx,20010h
+call resmem
+sti
+pop ecx
+jc erm_sff_lit_dossier_iso9660
+mov [ebx+12],ebp
+mov dword[ebx+16],0FFFFh
+mov ebp,ebx
+pop es
 mov ax,seldat
 mov ds,ax
 mov ebx,edx
 xor edx,edx
-
 
 boucle1_sff_lit_dossier_iso9660:             ;recherche le premier fichier a afficher
 cmp ebx,0
@@ -6404,7 +6448,7 @@ je ignore_sff_lit_dossier_iso9660
 cmp byte[esi],0
 je ignore_sff_lit_dossier_iso9660 
 cmp byte[esi],1
-je ignore_sff_lit_dossier_iso9660 
+je ignore_sff_lit_dossier_iso9660
 
 boucle3_sff_lit_dossier_iso9660:
 lodsb
@@ -6433,16 +6477,25 @@ jmp boucle2_sff_lit_dossier_iso9660
 
 
 finzt_sff_lit_dossier_iso9660:          ;efface le dernier nom si il n'est pas complet
+push ebx
+mov bx,selramh
+mov ds,bx
+mov ebx,ebp
+mov ebp,[ebx+12]
+call libmem
+pop ebx
+boucle_finzt_sff_lit_dossier_iso9660:
 dec edi
 es
 cmp byte[edi],"|"
-je finzt2_sff_lit_dossier_iso9660
+je suite_finzt_sff_lit_dossier_iso9660
 cmp edi,ebp
-je finzt2_sff_lit_dossier_iso9660
+je suite_finzt_sff_lit_dossier_iso9660
 dec edi
-jmp finzt_sff_lit_dossier_iso9660
+jmp boucle_finzt_sff_lit_dossier_iso9660
 
-finzt2_sff_lit_dossier_iso9660:
+
+suite_finzt_sff_lit_dossier_iso9660:
 mov al,0
 stosb
 mov eax,cer_pasm
@@ -6450,15 +6503,28 @@ jmp finfonctionfichierokebx
 
 
 fin_sff_lit_dossier_iso9660:
+push ebx
+mov ebx,ebp
+call libmem
+pop ebx
 mov al,0
 stosb
 xor eax,eax
 jmp finfonctionfichierokebx
 
 
-
-
 err_sff_lit_dossier_iso9660:
+push ebx
+mov ebx,ebp
+call libmem
+pop ebx
+es
+mov byte[edi],0
+jmp finfonctionfichiererr
+
+
+erm_sff_lit_dossier_iso9660:
+mov eax,cer_znd
 es
 mov byte[edi],0
 jmp finfonctionfichiererr
@@ -6470,13 +6536,24 @@ jmp finfonctionfichiererr
 
 ;**************************
 sff_lit_dossier_fat:
-mov ax,ds
+push ds
+push ecx
+mov ax,selramh
+mov ds,ax
 mov es,ax
+mov ecx,20010h
+call resmem
+sti
+pop ecx
+jc erm_sff_lit_dossier_iso9660
+mov [ebx+12],ebp
+mov dword[ebx+16],0FFFFh
+mov ebp,ebx
+pop es
 mov ax,seldat
 mov ds,ax
 mov ebx,edx
 xor edx,edx
-
 
 boucle1_sff_lit_dossier_fat:             ;recherche le premier fichier a afficher
 cmp ebx,0

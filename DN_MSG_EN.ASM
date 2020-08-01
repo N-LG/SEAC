@@ -4,7 +4,7 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.9b july 2020 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.9b August 2020 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
 
 
@@ -30,9 +30,9 @@ db "Invalid Opcode (Undefined Opcode)",0    ;ex6
 db "No Math Coprocessor",0       ;ex7
 db "Double fault",0                 ;ex8
 db "CoProcessor Segment Overrun",0  ;ex9
-db "Invalid TSS",13,0                 ;ex10
+db "Invalid TSS",0                 ;ex10
 db "Segment Not Present",0    ;ex11
-db "Stack fault",13,0                 ;ex12
+db "Stack fault",0                 ;ex12
 db "General protection fault",0  ;ex13
 db "Page Fault",0   ;ex14
 db "Exception # 15",0   ;ex15

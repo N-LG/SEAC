@@ -10,7 +10,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.9b juillet 2020 version de dévellopement",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.9b Aout 2020 version de dévellopement",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
 
 db 13,16h,"Commande inconnue: ",0 ;1
@@ -35,9 +35,9 @@ db "Le processeur a rencontré une instruction inconnue",0    ;ex6
 db "Le coprocesseur ne répond pas",0       ;ex7
 db "Double faute",0                 ;ex8
 db "CoProcessor Segment Overrun",0  ;ex9
-db "TSS invalide",13,0                 ;ex10
+db "TSS invalide",0                 ;ex10
 db "Segment de mémoire absent",0    ;ex11
-db "Faute de pile",13,0                 ;ex12
+db "Faute de pile",0                 ;ex12
 db "Erreur de protection générale",0  ;ex13
 db "Page Fault",0   ;ex14
 db "Exception 15",0   ;ex15
