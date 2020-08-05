@@ -930,6 +930,7 @@ iret
 ;edx=attribut canal
 ;esi=taille de la zone tampon d'envoie
 ;edi=taille de la zone tampon de reception
+;ebp=données en attente de lecture
 
 
 sf_com_info_canal_rc:
@@ -940,14 +941,22 @@ popad
 push ds
 mov ax,selramh
 mov ds,ax
-
+xor eax,eax
 mov ax,[ebx+id_emetteur]
 mov ecx,[ebx+to_descr_com]
 mov edx,[ebx+at_canal]
 and edx,1
 mov esi,[ebx+to_ztre]
 mov edi,[ebx+to_zter]
-mov bx,ax
+
+mov ebp,[ebx+po_zter_ecr] 
+cmp ebp,[ebx+po_zter_lec]
+jae sf_com_info_canal_rc_fin
+add ebp,[ebx+to_zter]
+sf_com_info_canal_rc_fin:
+sub ebp,[ebx+po_zter_lec]  
+
+mov ebx,eax
 pop ds
 xor eax,eax
 iret
@@ -962,17 +971,33 @@ popad
 push ds
 mov ax,selramh
 mov ds,ax
-
+xor eax,eax
 mov ax,[ebx+id_recepteur]
 mov ecx,[ebx+to_descr_com]
 mov edx,[ebx+at_canal]
 and edx,01
 mov esi,[ebx+to_zter]
 mov edi,[ebx+to_ztre]
-mov bx,ax
+
+mov ebp,[ebx+po_ztre_ecr] 
+cmp ebp,[ebx+po_ztre_lec]
+jae sf_com_info_canal_em_fin
+add ebp,[ebx+to_ztre]
+sf_com_info_canal_em_fin:
+sub ebp,[ebx+po_ztre_lec]  
+
+mov ebx,eax
 pop ds
 xor eax,eax
 iret
+
+
+
+
+
+
+
+
 
 
 
