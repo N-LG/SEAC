@@ -1399,6 +1399,11 @@ jne debutslash
 
 
 finchainefichier:
+;verifie que l'on est déja plus en mode création de fichier 
+fs
+cmp byte[option_ouverture],1
+je err_fichier_deja
+
 ;verifie que le fichier n'as pas déja été ouvert
 fs
 mov ebx,[ad_ficho]
@@ -1552,8 +1557,11 @@ xor eax,eax
 jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
 
-err_fichier_nt:
+err_fichier_deja:
+mov eax,cer_nfr
+jmp errouvfichier
 
+err_fichier_nt:
 fs
 cmp byte[option_ouverture],1  ;si on est pas en mode création de fichier, on as pas trouvé le fichier
 je cree_fichier

@@ -41,6 +41,26 @@ mov ax,selecran
 mov ds,ax
 
 
+;************************************************
+;charge les  touches appuyé et la position souris
+
+fs
+mov eax,[atbp]
+fs
+mov ebx,[atbp+4]
+fs
+mov ecx,[atbp+8]
+fs
+mov edx,[atbp+12]
+mov [bm_clavier],eax
+mov [bm_clavier+4],ebx
+mov [bm_clavier+8],ecx
+mov [bm_clavier+12],edx
+fs
+mov eax,[xs1]
+mov [posx_souris],eax
+
+
 ;***************************************************
 majv_test_action:
 fs                      ;test si on doit mettre a jour l'écran
