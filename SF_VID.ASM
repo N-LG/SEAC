@@ -1706,10 +1706,19 @@ pop eax
 call conv_univ
 
 ;ajustement des coordonné du rectangle
-and ebx,07FFFh
-and ecx,07FFFh
-and edi,07FFFh
-and esi,07FFFh
+;and ebx,07FFFh
+;and ecx,07FFFh
+;and edi,07FFFh
+;and esi,07FFFh
+
+test ebx,8000h
+jnz parami_sfv_dessine_rec
+test ecx,8000h
+jnz parami_sfv_dessine_rec
+test esi,8000h
+jnz parami_sfv_dessine_rec
+test edi,8000h
+jnz parami_sfv_dessine_rec
 
 cmp ebx,esi
 jb ajx_sfv_dessine_rec
@@ -1724,10 +1733,10 @@ ajy_sfv_dessine_rec:
 ;verifie que les coordonnées de départ sont bien dans l'image existante
 fs
 cmp [resx],bx
-jb parami_sfv_dessine_rec
+jbe parami_sfv_dessine_rec
 fs
 cmp [resy],cx
-jb parami_sfv_dessine_rec
+jbe parami_sfv_dessine_rec
 
 
 ;controle si les marges exterieurs sont comprit dans l'image existante
@@ -2255,25 +2264,24 @@ boucle_sfv_chaine_pix:
 mov eax,ebx
 add eax,8
 fs
+cmp [resx],ax
+jbe fin_sfv_chaine_pix
+mov eax,ecx
+add eax,16
+fs
 cmp [resy],ax
-jbe ls_sfv_chaine_pix
+jbe fin_sfv_chaine_pix
 call lireutf8
 cmp eax,0
 je fin_sfv_chaine_pix
 cmp eax,13
-je ls_sfv_chaine_pix
+je fin_sfv_chaine_pix
 push edx
 mov edx,edi
 call place_carac
 pop edx
 add ebx,8
 jmp boucle_sfv_chaine_pix
-
-ls_sfv_chaine_pix:
-add ecx,16
-and ebx,0Fh
-jmp boucle_sfv_chaine_pix
-
 
 fin_sfv_chaine_pix:
 call sigmajv
@@ -2285,6 +2293,102 @@ xor eax,eax
 iret
 
 
+
+;*******************************************************************************************
+sfv_chaine_pix2:   ;ecrit la chaine de caractère utf8z en ds:edx a partir de la position x=ebx y=ecx ah=couleur esi=nombre de caractère max en largeur
+pushad
+push ds
+push es
+push fs
+
+push eax
+push ebx
+push edx
+mov ax,seldat
+mov fs,ax
+fs
+mov ebx,[ad_tache_exec]
+
+mov ax,selramh
+mov es,ax
+es
+mov ax,[ebx+sel_ecranv]
+mov es,ax
+pop edx
+pop ebx
+pop eax
+
+shr eax,8    ;couleur dans edi
+and eax,0FFh
+mov edi,eax
+
+shl esi,3    ;position min et max
+add esi,ebx
+mov ebp,ebx
+
+mov eax,ebx
+add eax,8
+fs
+cmp [resx],ax
+jbe fin_sfv_chaine_pix2
+
+boucle_sfv_chaine_pix2:
+mov eax,ecx
+add eax,16
+fs
+cmp [resy],ax
+jbe fin_sfv_chaine_pix2
+mov eax,ebx
+add eax,8
+fs
+cmp [resx],ax
+jbe ig_sfv_chaine_pix2
+cmp esi,ebx
+jbe ls_sfv_chaine_pix2
+call lireutf8
+cmp eax,0
+je fin_sfv_chaine_pix2
+cmp eax,13
+je ls_sfv_chaine_pix2
+push edx
+mov edx,edi
+call place_carac
+pop edx
+add ebx,8
+jmp boucle_sfv_chaine_pix2
+
+ls_sfv_chaine_pix2:
+add ecx,16
+mov ebx,ebp
+jmp boucle_sfv_chaine_pix2
+
+ig_sfv_chaine_pix2:
+call lireutf8
+cmp eax,0
+je fin_sfv_chaine_pix2
+cmp eax,13
+je ls_sfv_chaine_pix2
+add ebx,8
+jmp boucle_sfv_chaine_pix2
+
+
+fin_sfv_chaine_pix2:
+call sigmajv
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+
+
+
+
+
+
+
+;*************************************
 place_carac:          ;ecrit le caractère en eax a la position de x=ebx y=ecx dl=couleur
 pushad
 push gs
@@ -2624,73 +2728,6 @@ popad
 ret
 
 
-
-;*******************************************************************************************
-sfv_chaine_pix2:   ;ecrit la chaine de caractère utf8z en ds:edx a partir de la position x=ebx y=ecx ah=couleur esi=nombre de caractère max en largeur
-pushad
-push ds
-push es
-push fs
-
-push eax
-push ebx
-push edx
-mov ax,seldat
-mov fs,ax
-fs
-mov ebx,[ad_tache_exec]
-
-mov ax,selramh
-mov es,ax
-es
-mov ax,[ebx+sel_ecranv]
-mov es,ax
-pop edx
-pop ebx
-pop eax
-
-shr eax,8    ;couleur dans edi
-and eax,0FFh
-mov edi,eax
-
-shl esi,3    ;position min et max
-add esi,ebx
-mov ebp,ebx
-
-boucle_sfv_chaine_pix2:
-mov eax,ebx
-add eax,8
-fs
-cmp [resy],ax
-jbe ls_sfv_chaine_pix2
-cmp esi,eax
-jb ls_sfv_chaine_pix2
-call lireutf8
-cmp eax,0
-je fin_sfv_chaine_pix2
-cmp eax,13
-je ls_sfv_chaine_pix2
-push edx
-mov edx,edi
-call place_carac
-pop edx
-add ebx,8
-jmp boucle_sfv_chaine_pix2
-
-ls_sfv_chaine_pix2:
-add ecx,16
-mov ebx,ebp
-jmp boucle_sfv_chaine_pix2
-
-
-fin_sfv_chaine_pix2:
-call sigmajv
-pop fs
-pop es
-pop ds
-popad
-xor eax,eax
-iret
 
 
 
