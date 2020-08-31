@@ -392,11 +392,27 @@ jz majv_graph_banked
 mov ax,sellfb             ;mise a jour écran en linear frame buffer
 mov es,ax
 
+;permet l'alignement des transfert de données en dword
+fs
+mov eax,[majv_precal_longeur_ligne]
+mov ecx,eax
+add ecx,3
+and ecx,0FFFFFFFCh
+push ecx
+shr ecx,2
+fs
+mov [majv_precal_longeur_ligne],ecx
+pop ecx
+sub ecx,eax
+fs
+sub [majv_precal_offset_ligne],ecx
+
+
 boucle_majv_graph:
 fs
 mov ecx,[majv_precal_longeur_ligne]
 cld
-rep movsb
+rep movsd
 fs
 add esi,[majv_precal_offset_ligne]
 fs
@@ -458,12 +474,13 @@ jmp suite_majv_graph_banked
 majv_graph_banked_2:  ;maj ligne en deux passe
 push edi
 push edi
-and edi,0FFFFh
+and edi,0FFFCh
 mov ecx,10000h
 sub ecx,edi
 push ecx
+shr ecx,2
 cld
-rep movsb
+rep movsd
 pop eax
 pop edi
 add edi,eax
@@ -473,8 +490,10 @@ sub ecx,eax
 call majbank
 
 xor edi,edi
+add ecx,3
+shr ecx,2
 cld
-rep movsb
+rep movsd
 pop edi
 fs
 add edi,[majv_precal_longeur_ligne]
@@ -3361,9 +3380,9 @@ mov ax,seldat
 mov cx,ds
 mov ds,ax
 mov es,cx
-mov ecx,256
+mov ecx,64
 cld
-rep movsb
+rep movsd
 pop es
 pop ds
 sti
