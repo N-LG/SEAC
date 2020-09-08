@@ -38,13 +38,13 @@ cmp byte[ebx+dcu_type],1
 je uhci_test_cnx_usb
 ;cmp byte[ebx+dcu_type],2
 ;je ohci_test_cnx_usb
-cmp byte[ebx+dcu_type],3
-je ehci_test_cnx_usb
+;cmp byte[ebx+dcu_type],3
+;je ehci_test_cnx_usb
 ;cmp byte[ebx+dcu_type],4
 ;je xhci_test_cnx_usb
 jmp ctrl_suivant_test_cnx_usb
 
-;***************************
+;*************************************************************************************
 uhci_test_cnx_usb:
 xor edx,edx
 mov dl,[usb_port_test]
@@ -66,7 +66,7 @@ test ax,02h
 jz suite_test_cnx_usb
 out dx,ax
 test ax,1
-jz supp_periph_usb
+jz uhci_supp_periph_usb
 mov ax,06h
 out dx,ax 
 
@@ -111,7 +111,7 @@ call affcj
 popad   ;§§§§§§§§§§§§§§§§§§
 
 mov eax,[cptsf]
-add eax,40          ;attent 75ms avant d'arretet le reset(norme 50ms
+add eax,40          ;attent 75ms avant d'arretet le reset(norme 50ms)
 mov [usb_tempo],eax
 mov byte[usb_action],2
 jmp fin_test_cnx_usb
@@ -154,93 +154,13 @@ jmp fin_test_cnx_usb
 
 
 
-;***************************
-ehci_test_cnx_usb:
-xor edx,edx
-mov dl,[usb_port_test]
-shl dx,2
-add dx,ctrl_ehci_portsc
-add dx,[ebx+dcu_es]
-in eax,dx
-test eax,02h
-jz suite_test_cnx_usb
-out dx,eax
-test ax,1
-jz supp_periph_usb 
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-mov al,"E"
-call affcj
-popad   ;§§§§§§§§§§§§§§§§§§
-
-jmp fin_test_cnx_usb
-
 
 
 
 ;****************************************************************
 uhci_set_adresse:
 
-
-;cherche une adresse de périphérique libre
-mov ebx,ad_desc_periph_usb+16
-boucle_uhci_attrib_adresse:
-test byte[ebx],01b
-jz trouve_uhci_attrib_adresse
-add ebx,16
-cmp ebx,ad_desc_periph_usb+800h
-jne boucle_uhci_attrib_adresse 
-
-mov byte[usb_action],0
-jmp suite_test_cnx_usb   ;on ignore ce nouveau périphérique parce que toutes les adresses sont prises
-
-trouve_uhci_attrib_adresse:
-mov ax,[usb_ctrl_test]  ;al=n° de controleur ah=N°de port (usb_ctrl_port)
-mov byte[ebx],01b     ;remplit le descripteur du périphérique
-mov [ebx+dpu_ctrl],ax
-mov byte[ad_desc_periph_usb],01b   ;et aussi le périphérique d'adresse 0 car c'est son adresse pour l'instant
-mov [ad_desc_periph_usb+dpu_ctrl],ax
-sub ebx,ad_desc_periph_usb   ;sauvegarde l'adresse du périphérique sur lequel on travaille
-shr ebx,4
-mov [usb_adresse],bl
-
-
-;prépare la commande
-mov byte[usb_commande],10000000b    ;bmRequestType
-mov byte[usb_commande+1],6  ;bRequest (ici get descriptor)
-mov byte[usb_commande+2],0  ;LSB wValue (index)
-mov byte[usb_commande+3],1  ;MSB wValue (type)
-mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],18  ;wLength
-;envoie la commande
-xor eax,eax
-mov al,0  ;[usb_adresse]
-mov esi,usb_commande
-call sfusb_commande
-
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-push ecx
-push eax
-mov al,13
-call affcj
-mov al,"A"
-call affcj
-pop eax
-call affh1j
-
-mov al,"h"
-call affcj
-
-pop eax
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-popad   ;§§§§§§§§§§§§§§§§§§
-
+;?????????????????????????????????????????????????????????????????
 
 mov eax,[cptsf]
 add eax,4           ;attent 50ms avant de chercher a lire le descripteur (le temps que le périphérique prenne bien en compte la nouvelle adresse)
@@ -250,15 +170,20 @@ jmp fin_test_cnx_usb
 
 
 
+uhci_supp_periph_usb:
+mov ax,0Ah             ;reset les bit de changement d'état et
+out dx,ax 
+jmp supp_periph_usb
+
 
 ;***************************************
 global_lit_descripteur:
 
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-mov al,"3"
-call affcj
-popad   ;§§§§§§§§§§§§§§§§§§
+;?????????????????????????????????????????????????????????????????
 
+mov dword[usb_tempo],0
+mov byte[usb_action],0
+jmp suite_test_cnx_usb
 
 
 
@@ -278,7 +203,7 @@ popad   ;§§§§§§§§§§§§§§§§§§
 ;mov word[usb_commande+4],0  ;wIndex
 ;mov word[usb_commande+6],0  ;wLength
 ;envoie la commande
-;mov al,0 ;le périphérique a temporairement l'adresse 0
+;mov ax,0 ;adresse+endpoint
 ;mov esi,usb_commande
 ;call sfusb_commande
 
@@ -308,9 +233,7 @@ popad   ;§§§§§§§§§§§§§§§§§§
 
 
 
-mov dword[usb_tempo],0
-mov byte[usb_action],0
-jmp suite_test_cnx_usb
+
 
 
 
@@ -322,6 +245,9 @@ pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
 mov al,"D"
 call affcj
 popad   ;§§§§§§§§§§§§§§§§§§
+
+jmp suite_test_cnx_usb ;????????????????????????????????????????????????????????????????ignore l'étape suivante
+
 
 mov ebx,ad_desc_periph_usb+16
 mov ax,[usb_ctrl_test]  ;al=n° de controleur ah=N°de port (usb_ctrl_port)

@@ -706,7 +706,7 @@ czm_pil     equ 21  ;zone tampon utillisé par un pilote
 czm_tmi     equ 22  ;espace mémoire réservé aux périphériques isa
 
 
-
+czm_cp_usb equ 30 ;descripteur de controleur et de périphérique USB
 
 czm_uhci equ 35  ;zoné mémoire utillisé par un controleur UHCI
 czm_ohci equ 36  ;zoné mémoire utillisé par un controleur OHCI

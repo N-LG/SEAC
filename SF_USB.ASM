@@ -36,7 +36,7 @@ uhci_mem_td1 equ 40h
 uhci_mem_zt equ 800h
 
 
-;bulk in out commande:
+;bulk in/out commande:
 ;ds:esi= data
 ;ecx=qt  (in et out uniquement)
 ;al=device
@@ -53,31 +53,36 @@ uhci_mem_zt equ 800h
 
 ;****************************************************************************************************************************************************************************************************************
 ;envoie commande USB
-sfusb_commande:                 ;al=périphérique ds:esi=zt des 8 octet de la commande
-push ebx
-push edx
-push esi
-push edi
+sfusb_commande:        ;al=périphérique ah=endpoint ds:edx=zt des 8 octet de la commande ds:edi=adresse des données optionnel de commande
+pushad
+push ds
+push es
 push fs
-push gs
 
-mov bp,bx
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
 mov bx,seldat
 mov fs,bx
-mov bx,selramh
-mov es,bx
+
 xor ebx,ebx
-xor edx,edx
-mov dl,al
-shl edx,dc_desc_periph_usb
-add edx,ad_desc_periph_usb ;edx=adresse du descripteur de périphérique
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov ebp,ebx                ;ebp=adresse du descripteur de périphérique
+
 fs
-test byte[edx+dpu_att],01b
-jz sfusb_commande_cer_parami
+test byte[ebp+dpu_att],01b
+jz sfusb_commande_err_param
+
+xor ebx,ebx
 fs
-mov bl,[edx+dpu_ctrl] 
+mov bl,[ebp+dpu_ctrl] 
 shl ebx,dc_desc_ctrl_usb
 add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
              
 fs
 cmp byte[ebx+dcu_type],01
@@ -91,20 +96,162 @@ je sfusb_commande_uhci
 ;fs
 ;cmp byte[ebx+dcu_type],04
 ;je sfusb_in_xhci
-sfusb_commande_cer_parami:
-mov eax,cer_parami
-xor ecx,ecx
-pop gs
+sfusb_commande_err_param:
 pop fs
-pop edi
-pop esi
-pop edx
-pop ebx
+pop es
+pop ds
+popad
+mov eax,cer_parami
 ret
 
 
+
+
+
+uhci_bulkmem_cmd   equ 10h   ;8 octet
+uhci_bulkmem_cmdto equ uhci_bulkmem_cmd+6
+uhci_bulkmem_param_adterm equ 18h
+uhci_bulkmem_param_tframe equ 1Ch
+uhci_bulkmem_param_datainout equ 20h
+uhci_bulkmem_param_datain equ 24h
+uhci_bulkmem_param_desc_perif equ 28h
+uhci_bulkmem_param_desc_ctrl equ 2Ch
+
+uhci_bulkmem_qh    equ 30h   ;16 octets
+uhci_bulkmem_td    equ 40h   ;32 octets
+
+
+
+
+
+
 ;**********************************************
-sfusb_commande_uhci:
+sfusb_commande_uhci:    ;al=adresse ah=endpoint    edx=adresse de la commande   edi données a echanger
+
+
+;réserve mémoire
+push eax
+push ecx
+mov ecx,60h
+call resmem
+;????????????????gestion erreur reservation mémoire
+pop ecx
+pop eax
+
+
+;verifie les parametres
+test ax,0F080h
+jnz sfusb_commande_err_param
+
+
+
+;enregistre parametre
+push eax
+and eax,07Fh
+mov [ebx+uhci_bulkmem_param_adterm],eax
+pop eax
+and eax,0F00h
+shr eax,1
+or  [ebx+uhci_bulkmem_param_adterm],eax
+xor ecx,ecx
+mov cx,[edx+6]
+mov [ebx+uhci_bulkmem_param_tframe],ecx
+mov [ebx+uhci_bulkmem_param_datainout],edi
+mov [ebx+uhci_bulkmem_param_desc_perif],ebp      
+mov [ebx+uhci_bulkmem_param_desc_ctrl],ebx
+
+
+
+;enregistre commande
+es
+mov eax,[edx]
+es
+mov ecx,[edx+4]
+mov [ebx+uhci_bulkmem_cmd],eax
+mov [ebx+uhci_bulkmem_cmd+4],ecx
+
+
+
+;calcul nombre de td nécessaire
+
+
+
+
+;calcul espace mémoire
+xor ecx,ecx
+es
+mov cx,[ebx+uhci_bulkmem_cmdto]
+
+
+
+;agrandit espace mémoire
+
+
+
+
+;crée la QH
+mov dword[ebx+uhci_bulkmem_qh],1    ;LINK POINTER (marque link pointer invalide)
+mov eax,ebx
+add eax,uhci_bulkmem_td+100000h
+mov dword[ebx+uhci_bulkmem_qh+4],eax  ;ELEMENT LINK POINTER (pointeur vers le premier TD)
+
+
+
+;crée le td de commande
+mov edi,uhci_bulkmem_td
+add edi,ebx
+mov eax,edi
+add edi,32
+and eax,4
+mov [edi],eax    ;LINK POINTER
+
+mov edx,018800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  
+;or edx,4000000h  ;26=low speed
+mov dword[edi+4],edx
+mov byte[edi+8],02Dh  ;TOKEN (pid)
+mov eax,7   ;taille-1
+shl eax,13
+or eax,[ebx+uhci_bulkmem_param_adterm]
+
+mov dword[edi+9],eax  ;TOKEN (adresse+ endpoin+datatoggle+taille)
+mov eax,ebx
+add eax,uhci_bulkmem_cmd
+mov [edi+12],eax ;BUFFER POINTER
+add edi,32
+
+xor esi,800h ;data toggle=1
+
+
+
+
+;créer les td de in/out
+
+
+
+
+
+;créer le TD pour le status
+
+
+
+
+
+
+;insère le qh dans la file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;cherche une qh de libre
 fs
 mov edi,[ebx+dcu_mem] ;cherche un TD disponible
@@ -170,7 +317,7 @@ pop ecx
 push ecx
 push edx
 push esi
-mov ecx,018800000h ;bit 23=TD actif et bit 27-28=3 erreur avant arret
+mov ecx,01C800000h ;bit 23=TD actif 26=low speed et bit 27-28=3 erreur avant arret
 
 
 ;test si périphérique basse vitesse
@@ -275,6 +422,8 @@ mov byte[ebx+8],069h     ;PID in
 es
 mov dword[ebx+12],esi
 
+
+;***************************************
 ;------creer TD OUT pour status
 es
 mov dword[ebx],ebx
@@ -669,8 +818,8 @@ out dx,eax
 ;écrit une entrée de terminaison dans la frame list uhci
 mov ebx,[esi+dcu_mem] 
 mov ecx,1024
-mov edx,1002h
-add edx,ebx  ;edx=pointeur vers le seul qh
+mov edx,1002h  ;position du premier QH + indication que l'on pointe sur un QH (bit1=1)
+add edx,ebx    ;edx=pointeur vers le seul qh
 sub ebx,100000h
 
 boucle_table_uhci:
@@ -681,19 +830,13 @@ dec ecx
 jnz boucle_table_uhci
 
 
-;créer 1 qh inactif
+;créer qh des interruption
 mov ebx,[esi+dcu_mem] 
-mov edx,[esi+dcu_mem] 
-sub ebx,0FF000h
-add edx,1020h
-
+sub ebx,0FF000h   ;-1Mo +4Ko
 es
 mov dword[ebx],1  ;marqueur d'entrée suivante invalide
 es
 mov dword[ebx+4],1  ;marqueur d'entrée suivante invalide
-
-
-
 
 
 ;configure le controleur
