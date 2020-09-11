@@ -1,4 +1,4 @@
-codeMBR:  
+﻿codeMBR:  
 ;ce code d'amorçage recherche la présence d'une partition de type 30h dans la table du MBR,
 ;charge les 128 premiers kilo octet de la première partition 30h trouvé en 5000h:0000h 
 ;saute vers 5000h:0000h
