@@ -75,13 +75,15 @@ ad_tabclav_chasse equ 9800h    ;2048 max
 
 
 
-ad_desc_ctrl_usb equ 0A000h   
-dc_desc_ctrl_usb equ 5 ;element de 32 octets
-nb_desc_ctrl_usb equ 64 ;64 elements
-ad_desc_periph_usb equ 0A800h 
-dc_desc_periph_usb equ 4 ;element de 16 octets
+;???
+
+ad_desc_periph_usb equ 0B000h 
+dc_desc_periph_usb equ 6 ;element de 64 octets
 nb_desc_periph_usb equ 128 
 
+ad_desc_ctrl_usb equ 0D000h   
+dc_desc_ctrl_usb equ 5 ;element de 32 octets
+nb_desc_ctrl_usb equ 64 ;64 elements
 
 ;???
 
@@ -589,7 +591,8 @@ dpu_att  equ 0 ;attributs: b0=présent b1=acces réservé
 dpu_ctrl equ 1 ;controleur auquel est raccordé le périphérique
 dpu_port equ 2 ;numéro du port sur lequel est branché le périphérique
 dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
-
+;?????
+dpu_ted equ 32 ;taille de transfert max par endpoints 16*3
 
 
 ;***********************************************

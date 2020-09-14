@@ -53,9 +53,9 @@ add dx,ctrl_uhci_portsc1
 add dx,[ebx+dcu_es]
 
 cmp byte[usb_action],1
-je uhci_reset_port
+je uhci_reset1_port
 cmp byte[usb_action],2
-je uhci_attrib_adresse
+je uhci_finreset1_adresse
 cmp byte[usb_action],3
 je uhci_set_adresse
 cmp byte[usb_action],4
@@ -70,31 +70,27 @@ jz uhci_supp_periph_usb
 mov ax,06h
 out dx,ax 
 
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-push eax
-mov al,"C"
-call affcj
-pop eax
-
-mov cx,ax
-call affh1j
-
-mov al,"h"
-call affcj
-popad   ;§§§§§§§§§§§§§§§§§§
-
 mov eax,[cptsf]
-add eax,40      ;attent 125ms avant de reseter le port (norme:100ms)
+add eax,80      ;attent 200ms avant de reseter le port (norme:100ms)
 mov [usb_tempo],eax
 mov byte[usb_action],1
 jmp fin_test_cnx_usb
 
 
 ;*****************
-uhci_reset_port:
+uhci_reset1_port:
 mov ax,0204h   ;met a 1  reset 
 out dx,ax
-int 62h
+
+mov eax,[cptsf]
+add eax,20          ;attent 100ms avant d'arretet le reset(norme 50ms)
+mov [usb_tempo],eax
+mov byte[usb_action],2
+jmp fin_test_cnx_usb
+
+
+;*****************
+uhci_finreset1_adresse:
 xor eax,eax
 out dx,ax
 int 62h
@@ -104,39 +100,8 @@ int 62h
 mov ax,06h
 out dx,ax
 
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-mov al,"1"
-call affcj
-popad   ;§§§§§§§§§§§§§§§§§§
-
 mov eax,[cptsf]
-add eax,40          ;attent 75ms avant d'arretet le reset(norme 50ms)
-mov [usb_tempo],eax
-mov byte[usb_action],2
-jmp fin_test_cnx_usb
-
-
-;*****************
-uhci_attrib_adresse:
-;mov ax, 04h       ;et a 1 le bit enable 
-;out dx,ax
-;int 62h          ;attend au moins 2.5ms
-;or ax, 02       ;raz le signalement du changement d'etat
-;out dx,ax
-
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-mov al,"2"
-call affcj
-popad   ;§§§§§§§§§§§§§§§§§§
-
-
-
-
-
-mov eax,[cptsf]
-add eax,40           ;attent 50ms avant de chercher a lire le descripteur (le temps que le périphérique prenne bien en compte la nouvelle adresse)
+add eax,20           ;attent 50ms avant de chercher a lire le descripteur
 mov [usb_tempo],eax
 mov byte[usb_action],3
 jmp fin_test_cnx_usb
@@ -160,6 +125,45 @@ jmp fin_test_cnx_usb
 ;****************************************************************
 uhci_set_adresse:
 
+pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+mov al,"3"
+call affcj
+popad   ;§§§§§§§§§§§§§§§§§§
+
+
+
+;enregistre la position du périphérique 0
+mov al,[usb_ctrl_test]
+mov ah,[usb_port_test]
+mov byte[ad_desc_periph_usb+dpu_att],1
+mov [ad_desc_periph_usb+dpu_ctrl],al
+mov [ad_desc_periph_usb+dpu_port],ah
+
+
+;prépare la commande
+mov byte[usb_commande],80h    ;bmRequestType
+mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
+mov byte[usb_commande+2],0 ;LSB wValue (index du descripteur
+mov byte[usb_commande+3],1  ;MSB wValue (type de descripteur)
+mov word[usb_commande+4],0  ;wIndex
+mov word[usb_commande+6],8  ;wLength
+;envoie la commande
+mov ax,0 ;adresse+endpoint
+mov edx,usb_commande
+mov edi,usb_commande
+call sfusb_commande
+
+
+;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+;call affh2j
+;mov al,"h"
+;call affcj
+;popad   ;§§§§§§§§§§§§§§§§§§
+
+
+
+
+
 ;?????????????????????????????????????????????????????????????????
 
 mov eax,[cptsf]
@@ -167,6 +171,9 @@ add eax,4           ;attent 50ms avant de chercher a lire le descripteur (le tem
 mov [usb_tempo],eax
 mov byte[usb_action],4
 jmp fin_test_cnx_usb
+
+
+
 
 
 
@@ -192,20 +199,6 @@ jmp suite_test_cnx_usb
 
 
 
-
-
-
-;prépare la commande
-;mov byte[usb_commande],0    ;bmRequestType
-;mov byte[usb_commande+1],5  ;bRequest (ici set_adress)
-;mov byte[usb_commande+2],al ;LSB wValue
-;mov byte[usb_commande+3],0  ;MSB wValue
-;mov word[usb_commande+4],0  ;wIndex
-;mov word[usb_commande+6],0  ;wLength
-;envoie la commande
-;mov ax,0 ;adresse+endpoint
-;mov esi,usb_commande
-;call sfusb_commande
 
 
 
