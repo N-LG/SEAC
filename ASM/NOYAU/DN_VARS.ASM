@@ -591,8 +591,9 @@ dpu_att  equ 0 ;attributs: b0=présent b1=acces réservé
 dpu_ctrl equ 1 ;controleur auquel est raccordé le périphérique
 dpu_port equ 2 ;numéro du port sur lequel est branché le périphérique
 dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
+dpu_togl equ 6 ;état du dernier data toggle utilisé lors d'un transfer bulk pour chaque endpoint
 ;?????
-dpu_ted equ 32 ;taille de transfert max par endpoints 16*3
+dpu_ted equ 32 ;taille de transfert max par endpoints 16*2
 
 
 ;***********************************************

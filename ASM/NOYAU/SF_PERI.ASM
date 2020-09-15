@@ -57,9 +57,12 @@ je uhci_reset1_port
 cmp byte[usb_action],2
 je uhci_finreset1_adresse
 cmp byte[usb_action],3
-je uhci_set_adresse
+je uhci_lit_descripteur
 cmp byte[usb_action],4
-je global_lit_descripteur
+je uhci_finreset2_adresse
+cmp byte[usb_action],5
+je uhci_set_adresse
+
 
 in ax,dx
 test ax,02h
@@ -83,7 +86,7 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,20          ;attent 100ms avant d'arretet le reset(norme 50ms)
+add eax,20          ;attent 50ms avant d'arretet le reset
 mov [usb_tempo],eax
 mov byte[usb_action],2
 jmp fin_test_cnx_usb
@@ -109,21 +112,8 @@ jmp fin_test_cnx_usb
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 ;****************************************************************
-uhci_set_adresse:
+uhci_lit_descripteur:
 
 pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
 mov al,"3"
@@ -132,12 +122,108 @@ popad   ;§§§§§§§§§§§§§§§§§§
 
 
 
-;enregistre la position du périphérique 0
+;remplit les parametre de base du périphérique 0
 mov al,[usb_ctrl_test]
 mov ah,[usb_port_test]
-mov byte[ad_desc_periph_usb+dpu_att],1
+mov byte[ad_desc_periph_usb+dpu_att],0
 mov [ad_desc_periph_usb+dpu_ctrl],al
 mov [ad_desc_periph_usb+dpu_port],ah
+mov word[ad_desc_periph_usb+dpu_idr],0
+mov word[ad_desc_periph_usb+dpu_togl],0
+mov byte[ad_desc_periph_usb+dpu_att],1
+mov dword[ad_desc_periph_usb+dpu_ted],0
+mov dword[ad_desc_periph_usb+dpu_ted+4],0
+mov dword[ad_desc_periph_usb+dpu_ted+8],0
+mov dword[ad_desc_periph_usb+dpu_ted+12],0
+mov dword[ad_desc_periph_usb+dpu_ted+16],0
+mov dword[ad_desc_periph_usb+dpu_ted+20],0
+mov dword[ad_desc_periph_usb+dpu_ted+24],0
+mov dword[ad_desc_periph_usb+dpu_ted+28],0
+
+
+;prépare la commande
+push edx
+mov byte[usb_commande],80h    ;bmRequestType
+mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
+mov byte[usb_commande+2],0 ;LSB wValue (index du descripteur
+mov byte[usb_commande+3],1  ;MSB wValue (type de descripteur)
+mov word[usb_commande+4],0  ;wIndex
+mov word[usb_commande+6],8  ;wLength (normalemnt 18 octet)
+;envoie la commande
+mov ax,0 ;adresse+endpoint
+mov edx,usb_commande
+mov edi,usb_commande
+call sfusb_commande
+pop edx
+
+;eregistre la taille de l'enpoint 0
+mov al,[usb_commande+7]
+mov [ad_desc_periph_usb+dpu_ted],al
+
+mov ax,0204h   ;met a 1  reset 
+out dx,ax
+
+mov eax,[cptsf]
+add eax,20          ;attent 50ms avant d'arretet le reset
+mov [usb_tempo],eax
+mov byte[usb_action],4
+jmp fin_test_cnx_usb
+
+
+
+;*****************
+uhci_finreset2_adresse:
+xor eax,eax
+out dx,ax
+int 62h
+mov ax,04h
+out dx,ax
+int 62h
+mov ax,06h
+out dx,ax
+
+mov eax,[cptsf]
+add eax,20           ;attent 50ms avant de chercher a affecter l'adresse
+mov [usb_tempo],eax
+mov byte[usb_action],5
+jmp fin_test_cnx_usb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;***************************************
+uhci_supp_periph_usb:
+mov ax,0Ah             ;reset les bit de changement d'état et
+out dx,ax 
+jmp supp_periph_usb
+
+
+
+
+;***************************************
+uhci_set_adresse:
+
+
+;cherche une adresse libre
+
+
+
+
 
 
 ;prépare la commande
@@ -146,7 +232,7 @@ mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
 mov byte[usb_commande+2],0 ;LSB wValue (index du descripteur
 mov byte[usb_commande+3],1  ;MSB wValue (type de descripteur)
 mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],8  ;wLength
+mov word[usb_commande+6],18  ;wLength (normalemnt 18 octet)
 ;envoie la commande
 mov ax,0 ;adresse+endpoint
 mov edx,usb_commande
@@ -154,39 +240,11 @@ mov edi,usb_commande
 call sfusb_commande
 
 
-;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-;call affh2j
-;mov al,"h"
-;call affcj
-;popad   ;§§§§§§§§§§§§§§§§§§
 
 
 
 
 
-;?????????????????????????????????????????????????????????????????
-
-mov eax,[cptsf]
-add eax,4           ;attent 50ms avant de chercher a lire le descripteur (le temps que le périphérique prenne bien en compte la nouvelle adresse)
-mov [usb_tempo],eax
-mov byte[usb_action],4
-jmp fin_test_cnx_usb
-
-
-
-
-
-
-uhci_supp_periph_usb:
-mov ax,0Ah             ;reset les bit de changement d'état et
-out dx,ax 
-jmp supp_periph_usb
-
-
-;***************************************
-global_lit_descripteur:
-
-;?????????????????????????????????????????????????????????????????
 
 mov dword[usb_tempo],0
 mov byte[usb_action],0
