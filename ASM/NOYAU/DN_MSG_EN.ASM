@@ -123,7 +123,10 @@ db " has been removed",13,0  ;96
 db " file has been renamed to ",0  ;97
 db "the ",0  ;98
 db 0  ;99
-db 0  ;100
+db "USB device ",34,0; 100
+db 34," has been connected to address ", 0; 101
+db "error when connecting a new USB device",13,0; 102
+db "disconnection of USB device", 0; 103
 
 
 ;************************************************************************

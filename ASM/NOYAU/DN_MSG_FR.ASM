@@ -128,8 +128,10 @@ db " a été supprimé",13,0  ;96
 db " a été rennommé ",0  ;97
 db "le fichier ",0  ;98
 db 0  ;99
-db 0  ;100
-
+db "le périphérique USB «",0  ;100
+db "» a été connecté a l'adresse ",0 ;101
+db "erreur lors de la connexion d'un nouveau périphérique USB",13,0 ;102
+db "déconnexion du périphérique USB ",0 ;103
 
 
 messages_erreur:

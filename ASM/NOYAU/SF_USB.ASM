@@ -79,6 +79,13 @@ mov eax,cer_parami
 ret
 
 
+sfusb_commande_err_mem:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_pasm
+ret
 
 
 ;(les 16 premier octet sont le descripteur mémoire de base)
@@ -91,12 +98,11 @@ uhci_bulkmem_param_pcs equ 24h
 uhci_bulkmem_param_desc_perif equ 28h
 uhci_bulkmem_param_desc_ctrl equ 2Ch
 uhci_bulkmem_param_tod equ 30h
+uhci_bulkmem_param_adata equ 34h
 
 
 uhci_bulkmem_qh    equ 40h   ;16 octets
 uhci_bulkmem_td    equ 50h   ;3*32 octets
-
-uhci_bulkmem_data  equ 0B0h   ;taille variable
 
 
 
@@ -108,21 +114,16 @@ sfusb_commande_uhci:    ;al=adresse ah=endpoint    edx=adresse de la commande   
 mov ebp,ebx
 push eax
 push ecx
-xor ecx,ecx
-es
-mov cx,[edx+6]
-add ecx,uhci_bulkmem_data
+mov ecx,uhci_bulkmem_td
 call resmem
-;????????????????gestion erreur reservation mémoire
+jc sfusb_commande_err_mem
 pop ecx
 pop eax
-mov dword[ebx+8],39      ;??????????????????????????code zone mémoire a définir
-
+mov dword[ebx+8],czm_setup_usb      
 
 ;verifie les parametres
 test ax,0F080h
 jnz sfusb_commande_err_param
-
 
 ;enregistre parametre
 push eax
@@ -150,11 +151,41 @@ mov [ebx+uhci_bulkmem_cmd],eax
 mov [ebx+uhci_bulkmem_cmd+4],ecx
 
 
-;crée la QH
-mov dword[ebx+uhci_bulkmem_qh],1    ;LINK POINTER (marque link pointer invalide)
-mov eax,ebx
-add eax,uhci_bulkmem_td+100000h
-mov dword[ebx+uhci_bulkmem_qh+4],eax  ;ELEMENT LINK POINTER (pointeur vers le premier TD)
+;definie quantité max transferé par TD pour cet endpoint
+xor eax,eax
+mov edx,[ebx+uhci_bulkmem_param_adterm]
+and edx,0780h
+shr edx,6
+add edx,dpu_ted
+add edx,[ebx+uhci_bulkmem_param_desc_perif]
+fs
+mov ax,[edx]
+cmp eax,0
+jne sfusb_commande_uhci_oktod
+mov eax,8
+sfusb_commande_uhci_oktod:
+mov [ebx+uhci_bulkmem_param_tod],eax
+
+
+;définis le nombre de TD et l'adresse de base des données
+xor edx,edx
+mov eax,[ebx+uhci_bulkmem_param_tframe]
+mov ecx,[ebx+uhci_bulkmem_param_tod]
+div ecx
+add eax,3
+shl eax,5
+add eax,uhci_bulkmem_td
+mov eax,200h
+mov [ebx+uhci_bulkmem_param_adata],eax
+
+
+;aggrandit la zone mémoire
+mov ecx,eax
+add ecx,[ebx+uhci_bulkmem_param_tframe]
+add ecx,15
+and ecx,0FFFFFFF0h
+call modtm
+jc erreur_transfert_uhci  ;??????????????????????????????????????????????????????
 
 
 ;précalcule du dword Controle and status
@@ -176,21 +207,14 @@ mov [ebx+uhci_bulkmem_param_pcs],ecx
 
 
 
-;definie quantité transferé par TD
-xor eax,eax
-mov edx,[ebx+uhci_bulkmem_param_adterm]
-and edx,0780h
-shr edx,6
-add edx,dpu_ted
-add edx,[ebx+uhci_bulkmem_param_desc_perif]
-fs
-mov ax,[edx]
-cmp eax,0
-jne sfusb_commande_uhci_oktod
-mov eax,8
-sfusb_commande_uhci_oktod:
-mov [ebx+uhci_bulkmem_param_tod],eax
 
+
+;*****************************
+;crée la QH
+mov dword[ebx+uhci_bulkmem_qh],1    ;LINK POINTER (marque link pointer invalide)
+mov eax,ebx
+add eax,uhci_bulkmem_td+100000h
+mov dword[ebx+uhci_bulkmem_qh+4],eax  ;ELEMENT LINK POINTER (pointeur vers le premier TD)
 
 
 
@@ -221,20 +245,18 @@ mov [edi+12],eax ;BUFFER POINTER
 
 add edi,32
 
-
-
 ;***************************
 ;création des TD IN
 mov esi,80000h   ;1er data toggle a 1
 mov ebp,ebx
-add ebp,uhci_bulkmem_data+100000h
+add ebp,100000h
+add ebp,[ebx+uhci_bulkmem_param_adata]
 mov ecx,[ebx+uhci_bulkmem_param_tframe]
 cmp ecx,0
 je tdinstatus_sfusb_commande_uhci
 bouclein_sfusb_commande_uhci:
 cmp ecx,[ebx+uhci_bulkmem_param_tod]
 jb partielin_sfusb_commande_uhci
-
 
 
 ;********************
@@ -258,7 +280,6 @@ mov al,069h  ;pid
 mov [edi+8],eax  ;TOKEN 
 
 mov [edi+12],ebp ;BUFFER POINTER
-
 
 add edi,32
 xor esi,80000h 
@@ -321,8 +342,6 @@ jmp insert_sfusb_commande_uhci
 
 
 
-
-
 ;*****************
 ;créer le TD de IN pour le status
 tdinstatus_sfusb_commande_uhci:
@@ -343,8 +362,6 @@ mov [edi+8],eax  ;TOKEN
 mov dword[edi+12],0 ;BUFFER POINTER
 
 
-
-
 ;**************************
 ;insère le qh dans la file
 insert_sfusb_commande_uhci:
@@ -353,10 +370,11 @@ mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
 fs
 mov esi,[edi+dcu_mem]
 sub esi,100000h-1000h ;esi=qh
+
 boucle_rqh_uhci:
 test dword[esi],1
 jnz trouve_rqh_uhci
-mov eax,esi
+mov eax,[esi]
 and eax,0FFFFFFF0h
 sub eax,100000h
 mov esi,eax
@@ -369,27 +387,33 @@ or edx,2
 mov [esi],edx
 sti
 
+
+;**********************
 ;attend que les td soit traité
 mov esi,ebx
 add esi,uhci_bulkmem_td
 fs
 mov ecx,[cptsf]
-add ecx,160         ;attend 200ms max
+add ecx,400         ;attend 500ms max
 
 boucle_att_uhci:
 fs
 cmp [cptsf],ecx
 ja erreur_transfert_uhci
-test dword[esi+4],800000h ;test bit 23 du control and status
+test dword[esi+4],800000h ;test bit 23 du control and status (td actif)
 jnz boucle_att_uhci
+test dword[esi+4],7F0000h ;test bit 16 a 22 du control and status (erreurs)
+jnz erreur_transfert_uhci
 test byte[esi],1
 jnz fin_att_uhci
 add esi,32
 jmp boucle_att_uhci
 
 fin_att_uhci:
-cli
+
+;*****************************
 ;supprime le qh de la file
+cli
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
 fs
 mov esi,[edi+dcu_mem]
@@ -397,25 +421,29 @@ sub esi,100000h-1000h ;esi=qh
 boucle_rqh2_uhci:
 cmp [esi],edx
 je trouve_rqh2_uhci
-mov eax,esi
+mov eax,[esi]
 and eax,0FFFFFFF0h
 sub eax,100000h
 mov esi,eax
 jmp boucle_rqh2_uhci
 
 trouve_rqh2_uhci:
-mov eax,[ebx+ebx+uhci_bulkmem_qh]
+mov eax,[ebx+uhci_bulkmem_qh]
 mov [esi],eax
 
-
-
+;**********************************
 ;copie les éventuelles données reçu
+mov ecx,[ebx+uhci_bulkmem_param_tframe]
+cmp ecx,0
+je finok_uhci
+
+mov esi,ebx
+add esi,[ebx+uhci_bulkmem_param_adata]
+mov edi,[ebx+uhci_bulkmem_param_datainout]
+rep movsb
 
 
-
-
-
-
+finok_uhci:
 
 ;efface la zone réservé
 call libmem
@@ -437,6 +465,74 @@ ret
 
 
 erreur_transfert_uhci:
+;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+;mov al,"I"
+;call affcj
+;mov eax,esi
+;sub esi,ebx
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+
+;sub esi,32
+
+;mov al,"P"
+;call affcj
+;mov eax,[esi+4]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[esi+8]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+
+;mov al,"A"
+;call affcj
+;mov eax,[esi+36]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[esi+40]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+
+;mov al,"S"
+;call affcj
+;mov eax,[esi+68]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[esi+72]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+
+
+
+;popad   ;§§§§§§§§§§§§§§§§§§
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 cli
 ;supprime le qh de la file
@@ -454,7 +550,7 @@ mov esi,eax
 jmp boucle_rqh3_uhci
 
 trouve_rqh3_uhci:
-mov eax,[ebx+ebx+uhci_bulkmem_qh]
+mov eax,[ebx+uhci_bulkmem_qh]
 mov [esi],eax
 
 
@@ -537,40 +633,7 @@ call affcj
 
 mov al,13
 call affcj
-mov al,"R"
-call affcj
 
-mov eax,[ebx+uhci_bulkmem_data]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_data+4]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_data+8]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_data+12]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov ax,[ebx+uhci_bulkmem_data+16]
-call affh1j
-
-mov al,"h"
-call affcj
 
 popad   ;§§§§§§§§§§§§§§§§§§
 

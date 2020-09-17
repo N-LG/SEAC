@@ -40,7 +40,7 @@ seltss equ 83h   ;16
 
 
 
-ad_chaine_travail equ 2000h ;zt de travail des commandes internes et de la création de tache
+ad_chaine_travail equ 2000h ;zt de travail des commandes internes, gestion usb, et de la création de tache
 
 ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
 ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
@@ -401,7 +401,7 @@ usb_port_test equ 601h     ;port suivant a tester
 usb_action    equ 602h     ;action a effectuer
 usb_adresse   equ 603h     ;adresse du périphérique sur lequel on travail
 usb_tempo     equ 604h     ;temporisation a attendre si action<>0
-usb_commande  equ 608h     ;zt utillisé pour l'envoie d'une commande (32 octets)
+usb_commande  equ 608h     ;zt utillisé pour l'envoie d'une commande (8 octets)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
@@ -710,7 +710,11 @@ czm_pil     equ 21  ;zone tampon utillisé par un pilote
 czm_tmi     equ 22  ;espace mémoire réservé aux périphériques isa
 
 
-czm_cp_usb equ 30 ;descripteur de controleur et de périphérique USB
+czm_setup_usb equ 30 ;zt echange setup usb
+czm_bulk_usb equ 31 ;zt echange bulk usb
+czm_iso_usb equ 32 ;zt echange iso usb
+czm_int_usb equ 33 ;zt echange int usb
+
 
 czm_uhci equ 35  ;zoné mémoire utillisé par un controleur UHCI
 czm_ohci equ 36  ;zoné mémoire utillisé par un controleur OHCI
