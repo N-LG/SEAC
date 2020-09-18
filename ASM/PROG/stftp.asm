@@ -396,9 +396,32 @@ mov edx,code_oper+2
 int 64h
 cmp eax,0
 je creation_ok
+cmp eax,cer_nfr
+je fichier_existant
 
+erreur_wrq:
 call envoie_erreur3
 jmp boucle
+
+
+fichier_existant:
+;ouvre le fichier
+mov eax,0
+mov ebx,[dossier_ecriture]
+mov edx,code_oper+2
+int 64h
+cmp eax,0
+jne erreur_wrq
+
+;fixe sa taille a zéro
+mov dword[tempo],0
+mov dword[tempo+4],0
+mov edx,tempo
+mov al,7
+mov ah,1 ;taille fichier
+int 64h
+cmp eax,0
+jne erreur_wrq
 
 creation_ok:
 mov [num_fichier],ebx
@@ -857,9 +880,6 @@ client:
 dw 0
 dd 0
 dd 0,0,0,0
-
-
-
 
 
 zt_recep:
