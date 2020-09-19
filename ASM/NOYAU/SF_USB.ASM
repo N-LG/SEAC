@@ -1,21 +1,102 @@
 ﻿SF_USB.ASM:
 
 
-;lecture descripteur appareil
-;lecture configuration actuelle
-;selection configuration actuelle
-;lecture descripteur de configuration
-;reservation usage appareil
-;liberation reservation appareil
-;ouverture connexion isocrone vers terminaison
-;ouverture connexion interruption vers terminaison
-;fermeture terminaison
-;envoie donnée bulk
-;reception donnée bulk
-;envoie commande
+test bl,80h
+jnz erreurparamusb 
+
+;vérifie que le périphérique n'est pas déja réservé
+push eax
+push ebx
+push ds
+mov ax,seldat
+mov ds,ax
+and ebx,7Fh
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb
+test byte[ebx+dpu_att],02h
+jz ok_sf_usb  
+mov ax,[id_tache_exec]
+cmp [ebx+dpu_idr],ax
+je ok_sf_usb  
+pop ds
+pop ebx
+pop eax
+erreurparamusb:
+mov eax,cer_parami
+iret
+
+
+ok_sf_usb:
+pop ds
+pop ebx
+pop eax
+
+;cmp al,0   ;réservation périphérique
+;cmp al,1   ;liberation acces périphérique
+cmp al,2   ;lecture descripteur
+je sfusb_lec_desc
+;cmp al,4   ;selection configuration actuelle
+;cmp al,3   ;lecture configuration actuelle
+;cmp al,5   ;lecture descripteur de configuration
+;cmp al,6   ;envoie donnée bulk
+;cmp al,7   ;reception donnée bulk
+;cmp al,8   ;ouverture connexion isocrone vers terminaison
+;cmp al,9   ;ouverture connexion interruption vers terminaison
+;cmp al,10  ;fermeture connexion iso ou int
+
+mov eax,cer_parami
+iret
 
 
 
+
+
+
+;bl=adresse
+;bh=endpoint
+
+
+
+
+
+
+;**********************************************************
+sfusb_lec_desc:    ;dl=index du descripteur dh=type de descripteur
+push ecx
+push edx
+mov byte[edi],80h    ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov word[edi+2],dx ;wValue
+mov word[edi+4],0  ;wIndex
+mov word[edi+6],8  ;wLength=8 pour lire les taille réel des data completes
+push edx
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+pop edx
+cmp eax,0
+jne fin_sfusb_lec_desc
+
+xor ecx,ecx
+mov cl,[edi]   ;lit la taille du descripteur
+cmp byte[edi+1],2
+jne suite_sfusb_lec_desc
+mov cx,[edi+2]   ;si le descripteur est un descripteur de configuration, on lit la taille totale
+
+suite_sfusb_lec_desc:
+mov byte[edi],80h    ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov byte[edi+2],dl ;LSB wValue (index du descripteur)
+mov byte[edi+3],dh  ;MSB wValue (type de descripteur)
+mov word[edi+4],0  ;wIndex
+mov word[edi+6],cx  ;wLength
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+
+fin_sfusb_lec_desc:
+pop edx
+pop ecx
 iret
 
 
@@ -25,7 +106,17 @@ iret
 
 
 
-;****************************************************************************************************************************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
 ;envoie commande USB
 sfusb_commande:        ;al=périphérique ah=endpoint ds:edx=zt des 8 octet de la commande ds:edi=adresse des données optionnel de commande
 pushad
@@ -99,8 +190,6 @@ uhci_bulkmem_param_desc_perif equ 28h
 uhci_bulkmem_param_desc_ctrl equ 2Ch
 uhci_bulkmem_param_tod equ 30h
 uhci_bulkmem_param_adata equ 34h
-
-
 uhci_bulkmem_qh    equ 40h   ;16 octets
 uhci_bulkmem_td    equ 50h   ;3*32 octets
 
@@ -192,13 +281,16 @@ jc erreur_transfert_uhci  ;?????????????????????????????????????????????????????
 mov ecx,018800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
+xor edx,edx
+xor eax,eax
 fs
-mov edx,[esi+dpu_port]
+mov dl,[esi+dpu_port]
 shl edx,1
 add edx,ctrl_uhci_portsc1
 fs
-add edx,[edi+dcu_es]  ;dx=port
-in ax,dx
+mov ax,[edi+dcu_es]
+add edx,eax
+in ax,dx    ;dx=port
 test ax,100h
 jz fin_precalc_uhci
 or ecx,4000000h  ;26=low speed    
