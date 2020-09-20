@@ -299,8 +299,6 @@ mov [ebx+uhci_bulkmem_param_pcs],ecx
 
 
 
-
-
 ;*****************************
 ;crée la QH
 mov dword[ebx+uhci_bulkmem_qh],1    ;LINK POINTER (marque link pointer invalide)
@@ -557,75 +555,6 @@ ret
 
 
 erreur_transfert_uhci:
-;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-;mov al,"I"
-;call affcj
-;mov eax,esi
-;sub esi,ebx
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov al,13
-;call affcj
-
-;sub esi,32
-
-;mov al,"P"
-;call affcj
-;mov eax,[esi+4]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov eax,[esi+8]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov al,13
-;call affcj
-
-;mov al,"A"
-;call affcj
-;mov eax,[esi+36]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov eax,[esi+40]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov al,13
-;call affcj
-
-;mov al,"S"
-;call affcj
-;mov eax,[esi+68]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov eax,[esi+72]
-;call affh2j
-;mov al,"h"
-;call affcj
-;mov al,13
-;call affcj
-
-
-
-;popad   ;§§§§§§§§§§§§§§§§§§
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 cli
 ;supprime le qh de la file
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
@@ -655,79 +584,6 @@ pop ds
 popad
 mov eax,cer_uhci
 ret
-
-
-
-
-
-
-
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-
-mov eax,[ebx+uhci_bulkmem_cmd+0]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_cmd+4]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov al,13
-call affcj
-mov al,"T"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+4]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+8]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+36]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+40]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+68]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+72]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov al,13
-call affcj
-
-
-popad   ;§§§§§§§§§§§§§§§§§§
 
 
 
