@@ -288,82 +288,39 @@ cmp eax,0
 jne global_erreur_connexionUSB
 
 
-mov cl,[ad_chaine_travail+15]
-cmp cl,0
-jne ok_lire_chaine
-mov cl,[ad_chaine_travail+16]
-cmp cl,0
-jne ok_lire_chaine
-mov cl,[ad_chaine_travail+14]
-cmp cl,0
-jne ok_lire_chaine
-
-mov byte[ad_chaine_travail],8     ;cree un nom vide
-mov word[ad_chaine_travail+2],"?"
-mov word[ad_chaine_travail+4],"?"
-mov word[ad_chaine_travail+6],"?"
-jmp nom_usb_charg
 
 
-ok_lire_chaine:
 
-;prépare la commande
-mov byte[usb_commande],80h    ;bmRequestType
-mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
-mov byte[usb_commande+2],cl ;LSB wValue (index du descripteur)
-mov byte[usb_commande+3],3  ;MSB wValue (type de descripteur)
-mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],2  ;wLength (on lit les deux premier octet pour determiner la taille)
-;envoie la commande
-mov al,[usb_adresse] ;adresse
-mov ah,0 ;endpoint
-mov edx,usb_commande
-mov edi,ad_chaine_travail
-call sfusb_commande
+
+mov byte[ad_chaine_travail],0
+
+mov dl,[ad_chaine_travail+15]   ;index du descripteur
+cmp dl,0
+je ignore_lecture_nom_usb
+push ebx
+mov eax,2
+mov bl,[usb_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dh,3   ;type de descripteur (chaine)
+mov edi,ad_chaine_travail+256
+int 68h
+pop ebx
 cmp eax,0
 jne global_erreur_connexionUSB
 
-xor edx,edx
-mov dl,[ad_chaine_travail]
-
-;prépare la commande
-mov byte[usb_commande],80h    ;bmRequestType
-mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
-mov byte[usb_commande+2],cl ;LSB wValue (index du descripteur)
-mov byte[usb_commande+3],3  ;MSB wValue (type de descripteur)
-mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],dx  ;wLength
-;envoie la commande
-mov al,[usb_adresse] ;adresse
-mov ah,0 ;endpoint
-mov edx,usb_commande
+mov esi,ad_chaine_travail+256
 mov edi,ad_chaine_travail
-call sfusb_commande
-cmp eax,0
-jne global_erreur_connexionUSB
+call conv_chaine_usb
+
+ignore_lecture_nom_usb:
 
 
-
-nom_usb_charg:
 
 mov cl,100
 call affmsgsyst
 
-mov cl,[ad_chaine_travail]
-sub cl,2
-shr cl,1
-mov esi,ad_chaine_travail+2
-
-boucle_affichage_nom_usb:
-mov ax,[esi]
-cmp ax,7Fh
-ja ignore_affichage_nom_usb
-call affcj
-ignore_affichage_nom_usb:
-add esi,2
-dec cl
-jnz boucle_affichage_nom_usb
-
+mov edx,ad_chaine_travail
+call affjournal
 
 mov cl,101
 call affmsgsyst
@@ -374,6 +331,48 @@ call affnje
 
 mov al,13
 call affcj
+
+
+
+;**********************************
+;charge le descripteur de configuration 
+push ebx
+mov eax,2
+mov bl,[usb_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dl,0   ;index du descripteur
+mov dh,2   ;type de descripteur (config)
+mov edi,ad_chaine_travail
+int 68h
+pop ebx
+cmp eax,0
+jne global_erreur_connexionUSB
+
+
+;active la configuration
+mov cl,[ad_chaine_travail+5]
+;prépare la commande
+mov byte[usb_commande],00h    ;bmRequestType
+mov byte[usb_commande+1],9  ;bRequest (ici set configuration)
+mov byte[usb_commande+2],cl ;LSB wValue (index du descripteur)
+mov byte[usb_commande+3],0  ;MSB wValue
+mov word[usb_commande+4],0  ;wIndex
+mov word[usb_commande+6],0  ;wLength (on lit les deux premier octet pour determiner la taille)
+;envoie la commande
+mov al,[usb_adresse] ;adresse
+mov ah,0 ;endpoint
+mov edx,usb_commande
+mov edi,ad_chaine_travail
+call sfusb_commande
+cmp eax,0
+jne global_erreur_connexionUSB
+
+;cherche dans le descripteur de configuration si il y  as une fonction géré par le systeme
+
+;?????????????????????????????????????????????????????????????
+
+
+
 
 mov dword[usb_tempo],0
 mov byte[usb_action],0

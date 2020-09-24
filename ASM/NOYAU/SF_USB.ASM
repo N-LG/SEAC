@@ -697,6 +697,86 @@ ret
 
 
 
+
+
+
+
+
+
+;****************************************************
+conv_chaine_usb:      ;convertit la chaine usb en ds:esi au format utf8z en ds:edi
+pushad
+xor ecx,ecx
+mov cl,[esi]
+cmp ecx,2
+jb fin_conv_chaine_usb
+sub ecx,2
+shr ecx,1
+cmp ecx,0
+je fin_conv_chaine_usb
+add esi,2
+
+boucle_conv_chaine_usb:
+mov ax,[esi]
+add esi,2
+
+test eax,0FF80h
+jz o1_convchaine_usb
+test eax,0F800h
+jz o2_convchaine_usb
+
+push eax
+push eax
+and al,3Fh
+or al,80h
+mov [edi+2],al
+pop eax
+shr eax,6
+and al,3Fh
+or al,80h
+mov [edi+1],al
+pop eax
+shr eax,12
+and al,0Fh
+or al,0E0h
+mov [edi],al
+add edi,3
+jmp suite_conv_chaine_usb
+
+o2_convchaine_usb:
+push eax
+and al,3Fh
+or al,80h
+mov [edi+1],al
+pop eax
+shr eax,6
+and al,01Fh
+or al,0C0h
+mov [edi],al
+add edi,2  
+jmp suite_conv_chaine_usb
+
+o1_convchaine_usb:
+mov [edi],al
+inc edi
+
+suite_conv_chaine_usb:
+dec ecx
+jnz boucle_conv_chaine_usb
+fin_conv_chaine_usb:
+mov byte[edi],0
+popad
+ret
+
+
+
+
+
+
+
+
+
+
 ;****************************************************************************************************
 irqUSB:              ;irq D
 push ax
