@@ -335,13 +335,12 @@ call affcj
 
 
 ;**********************************
-;charge le descripteur de configuration 
+;charge et active le descripteur de configuration 
 push ebx
-mov eax,2
+mov eax,3
 mov bl,[usb_adresse] ;adresse
 mov bh,0 ;endpoint
 mov dl,0   ;index du descripteur
-mov dh,2   ;type de descripteur (config)
 mov edi,ad_chaine_travail
 int 68h
 pop ebx
@@ -349,23 +348,6 @@ cmp eax,0
 jne global_erreur_connexionUSB
 
 
-;active la configuration
-mov cl,[ad_chaine_travail+5]
-;prépare la commande
-mov byte[usb_commande],00h    ;bmRequestType
-mov byte[usb_commande+1],9  ;bRequest (ici set configuration)
-mov byte[usb_commande+2],cl ;LSB wValue (index du descripteur)
-mov byte[usb_commande+3],0  ;MSB wValue
-mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],0  ;wLength (on lit les deux premier octet pour determiner la taille)
-;envoie la commande
-mov al,[usb_adresse] ;adresse
-mov ah,0 ;endpoint
-mov edx,usb_commande
-mov edi,ad_chaine_travail
-call sfusb_commande
-cmp eax,0
-jne global_erreur_connexionUSB
 
 ;cherche dans le descripteur de configuration si il y  as une fonction géré par le systeme
 
@@ -377,6 +359,16 @@ jne global_erreur_connexionUSB
 mov dword[usb_tempo],0
 mov byte[usb_action],0
 jmp suite_test_cnx_usb
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -33,11 +33,13 @@ pop eax
 
 ;cmp al,0   ;réservation périphérique
 ;cmp al,1   ;liberation acces périphérique
+
 cmp al,2   ;lecture descripteur
 je sfusb_lec_desc
-;cmp al,4   ;selection configuration actuelle
-;cmp al,3   ;lecture configuration actuelle
-;cmp al,5   ;lecture descripteur de configuration
+cmp al,3   ;selection configuration actuelle
+je sfusb_active_config
+;cmp al,4   ;lecture configuration actuelle
+;cmp al,5   ;envoie commande brute
 ;cmp al,6   ;envoie donnée bulk
 ;cmp al,7   ;reception donnée bulk
 ;cmp al,8   ;ouverture connexion isocrone vers terminaison
@@ -66,7 +68,7 @@ push ecx
 push edx
 mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
-mov word[edi+2],dx ;wValue
+mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
 mov word[edi+4],0  ;wIndex
 mov word[edi+6],8  ;wLength=8 pour lire les taille réel des data completes
 push edx
@@ -86,8 +88,7 @@ mov cx,[edi+2]   ;si le descripteur est un descripteur de configuration, on lit 
 suite_sfusb_lec_desc:
 mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
-mov byte[edi+2],dl ;LSB wValue (index du descripteur)
-mov byte[edi+3],dh  ;MSB wValue (type de descripteur)
+mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
 mov word[edi+4],0  ;wIndex
 mov word[edi+6],cx  ;wLength
 mov edx,edi
@@ -104,6 +105,80 @@ iret
 
 
 
+;**********************************************************
+sfusb_active_config:    ;dl=index du descripteur de config    edi=zt de 512 ou copier le descripteur de configuration
+push ecx
+push edx
+
+;lit le début du descripteur pour avoir la taille de celuis ci et la valeur de la configuration
+mov byte[edi],80h  ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov byte[edi+2],dl ;LSB wValue (index du descripteur)
+mov byte[edi+3],2  ;MSB wValue (type de descripteur)
+mov word[edi+4],0  ;wIndex
+mov word[edi+6],8  ;wLength=8 pour lire les taille réel des data completes
+push edx
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+pop edx
+cmp eax,0
+jne fin_sfusb_active_config
+
+
+;actrive la configuration
+mov cx,[edi+2]
+push ecx 
+push edx
+mov cl,[edi+5]
+mov byte[edi],00h  ;bmRequestType
+mov byte[edi+1],9  ;bRequest (ici set configuration)
+mov byte[edi+2],cl ;LSB wValue (index du descripteur)
+mov byte[edi+3],0  ;MSB wValue
+mov word[edi+4],0  ;wIndex
+mov word[edi+6],0  ;wLength
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+pop edx
+pop ecx
+cmp eax,0
+jne fin_sfusb_active_config
+
+;lit la totalité du descripteur
+mov byte[edi],80h  ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov byte[edi+2],dl ;LSB wValue (index du descripteur)
+mov byte[edi+3],2  ;MSB wValue (type de descripteur)
+mov word[edi+4],0  ;wIndex
+mov word[edi+6],cx  ;wLength
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+cmp eax,0
+jne fin_sfusb_active_config
+
+
+
+;parcours le descripteur et enregistre les infos des terminaisons (endpoint)
+push ebx
+and ebx,7Fh
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb
+
+
+
+
+
+
+pop ebx
+
+
+
+fin_sfusb_active_config:
+pop edx
+pop ecx
+iret
 
 
 
@@ -115,7 +190,7 @@ iret
 
 
 
-
+;**************************************************************************************************************************************************************************************************************
 ;**************************************************************************************************************************************************************************************************************
 ;envoie commande USB
 sfusb_commande:        ;al=périphérique ah=endpoint ds:edx=zt des 8 octet de la commande ds:edi=adresse des données optionnel de commande
@@ -592,12 +667,155 @@ ret
 
 
 
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;crée canal isocrone usb
+sfusb_iso:        ;al=périphérique ah=endpoint ??????????????????????????????????????????
+pushad
+push ds
+push es
+push fs
+
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
+mov bx,seldat
+mov fs,bx
+
+xor ebx,ebx
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov esi,ebx                ;esi=adresse du descripteur de périphérique
+
+fs
+test byte[esi+dpu_att],01b
+jz sfusb_iso_err_param
+
+xor ebx,ebx
+fs
+mov bl,[esi+dpu_ctrl] 
+shl ebx,dc_desc_ctrl_usb
+add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
+             
+fs
+cmp byte[ebx+dcu_type],01
+je sfusb_iso_uhci
+;fs
+;cmp byte[ebx+dcu_type],02
+;je sfusb_iso_ohci
+;fs
+;cmp byte[ebx+dcu_type],03
+;je sfusb_iso_ehci
+;fs
+;cmp byte[ebx+dcu_type],04
+;je sfusb_iso_xhci
+sfusb_iso_err_param:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
+
+
+
+
+;********************************************************
+sfusb_iso_uhci:
+;???????????????????????????????????????????????????
+ret
+
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;lit/ecrit donnée en mode bulk
+sfusb_bulk:        ;al=périphérique ah=endpoint+bit7=sens ecx=quantité de données ds:edi=adresse des données optionnel de commande
+pushad
+push ds
+push es
+push fs
+
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
+mov bx,seldat
+mov fs,bx
+
+xor ebx,ebx
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov esi,ebx                ;esi=adresse du descripteur de périphérique
+
+fs
+test byte[esi+dpu_att],01b
+jz sfusb_bulk_err_param
+
+xor ebx,ebx
+fs
+mov bl,[esi+dpu_ctrl] 
+shl ebx,dc_desc_ctrl_usb
+add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
+             
+fs
+cmp byte[ebx+dcu_type],01
+je sfusb_bulk_uhci
+;fs
+;cmp byte[ebx+dcu_type],02
+;je sfusb_bulk_ohci
+;fs
+;cmp byte[ebx+dcu_type],03
+;je sfusb_bulk_ehci
+;fs
+;cmp byte[ebx+dcu_type],04
+;je sfusb_bulk_xhci
+sfusb_bulk_err_param:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
+
+
+
+
+;********************************************************
+sfusb_bulk_uhci:
+;???????????????????????????????????????????????????
+ret
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 
 ;*****************************************************************************************************************************************
+;************************************************************************************************************************************************
+
 init_ctrl_usb:     ;initialise le controleur usb dont le descripteur est pointé par ds:esi
 cmp byte[esi+dcu_type],01
 je init_uhci
@@ -767,10 +985,6 @@ fin_conv_chaine_usb:
 mov byte[edi],0
 popad
 ret
-
-
-
-
 
 
 
