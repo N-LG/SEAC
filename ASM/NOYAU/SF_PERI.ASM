@@ -289,9 +289,6 @@ jne global_erreur_connexionUSB
 
 
 
-
-
-
 mov byte[ad_chaine_travail],0
 
 mov dl,[ad_chaine_travail+15]   ;index du descripteur
@@ -350,30 +347,68 @@ jne global_erreur_connexionUSB
 
 
 ;cherche dans le descripteur de configuration si il y  as une fonction géré par le systeme
+mov edi,ad_chaine_travail
+xor eax,eax
+mov ebp,edi
+mov ax,[ad_chaine_travail+2]
+add ebp,eax
 
-;?????????????????????????????????????????????????????????????
+boucle_active_config_usb:
+cmp byte[edi+1],4
+jne suite_active_config_usb
 
 
+cmp byte[edi+5],3
+je config_hid_usb
+cmp byte[edi+5],8
+je config_msd_usb
+cmp byte[edi+5],9
+je config_hub_usb
 
+suite_active_config_usb:
+xor eax,eax
+mov al,[edi]
+add edi,eax
+cmp edi,ebp
+jb boucle_active_config_usb
 
 mov dword[usb_tempo],0
 mov byte[usb_action],0
 jmp suite_test_cnx_usb
 
 
+config_hid_usb:
+cmp byte[edi+7],1
+je config_clavier_usb
+cmp byte[edi+7],2
+je config_souris_usb
+jmp suite_active_config_usb
 
 
+config_msd_usb:
+cmp word[edi+6],05006h
+je config_bulkonly_usb
+jmp suite_active_config_usb
 
 
+config_hub_usb:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp suite_active_config_usb
 
 
+config_souris_usb:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp suite_active_config_usb
 
 
+config_clavier_usb:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp suite_active_config_usb
 
 
-
-
-
+config_bulkonly_usb:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp suite_active_config_usb
 
 
 ;************************************

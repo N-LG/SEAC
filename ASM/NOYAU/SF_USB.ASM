@@ -161,18 +161,47 @@ jne fin_sfusb_active_config
 
 
 ;parcours le descripteur et enregistre les infos des terminaisons (endpoint)
+push eax
 push ebx
+push edi
+push ebp
+push fs
+mov ax,seldat
+mov fs,ax
 and ebx,7Fh
 shl ebx,dc_desc_periph_usb
-add ebx,ad_desc_periph_usb
+add ebx,ad_desc_periph_usb+dpu_ted
+mov ebp,edi
+xor eax,eax
+mov ax,[edi+2]
+add ebp,eax
+
+boucle_sfusb_active_config:
+cmp byte[edi+1],5
+jne ignore_sfusb_active_config
+
+xor edx,edx
+mov dl,[edi+2]
+mov ax,[edi+4]
+and dl,0Fh
+shl edx,1
+add edx,ebx
+fs
+mov [edx],ax
+
+ignore_sfusb_active_config:
+xor eax,eax
+mov al,[edi]
+add edi,eax
+cmp edi,ebp
+jb boucle_sfusb_active_config
 
 
-
-
-
-
+pop fs
+pop ebp
+pop edi
 pop ebx
-
+pop eax
 
 
 fin_sfusb_active_config:
