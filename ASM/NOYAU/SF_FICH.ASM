@@ -6838,7 +6838,9 @@ jmp boucle2_sff_lit_dossier_fat
 ;****************************************************************************************************
 sff_lit_disques:   ;lit les disques installé   ds:edx pointeur ou copier le bitmap de 32 octet
                                                ;octet 0 à 15 partitions
-					       ;octet 16 a 28 reservé
+					       ;octet 16 a 19 usb
+					       ;octet 20 a 23 sata
+					       ;octet 24 a 28 reservé
  					       ;octet 29 = b0-b6 reservé b7= disquette 
  					       ;octet 30 = atapi 
  					       ;octet 31 = ata  
@@ -6850,7 +6852,8 @@ mov dword[edx+16],0
 mov dword[edx+20],0
 mov dword[edx+24],0
 mov dword[edx+28],0
-
+mov dword[edx+24],0
+mov dword[edx+28],0
 
 ;lit la présence disquette
 fs
@@ -6906,6 +6909,19 @@ sff_lit_disques_suitepart2:
 add esi,64
 cmp esi,ad_descp+8192
 jne sff_lit_disques_bouclepart
+
+
+
+;lit les disques Usb
+;?????????????????????????????????????????????
+
+
+
+
+
+
+;lit les disques Sata
+;?????????????????????????????????????????????
 
 jmp finfonctionfichier
  

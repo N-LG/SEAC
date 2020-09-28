@@ -18,7 +18,6 @@ pasarretmoteurdisquette:
 
 
 
-
 ;*********************************************************
 ;gestion de la detection de nouvelles connexion/déconnexion a un port de controleur USB
 cmp byte[usb_action],0
@@ -353,6 +352,10 @@ mov ebp,edi
 mov ax,[ad_chaine_travail+2]
 add ebp,eax
 
+mov dword[usb_tempo],0
+mov byte[usb_action],0
+jmp suite_test_cnx_usb
+
 boucle_active_config_usb:
 cmp byte[edi+1],4
 jne suite_active_config_usb
@@ -407,8 +410,87 @@ jmp suite_active_config_usb
 
 
 config_bulkonly_usb:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+push edx
+push edi
+;prépare la commande
+mov byte[usb_commande],0A1h   ;bmRequestType
+mov byte[usb_commande+1],0FEh ;bRequest (ici get max LUN)
+mov word[usb_commande+2],0    ;wValue
+mov word[usb_commande+4],0    ;wIndex
+mov word[usb_commande+6],1    ;wLength 
+;envoie la commande
+mov al,[usb_adresse] ;adresse
+mov ah,0 ;endpoint
+mov edx,usb_commande
+mov edi,usb_commande
+call sfusb_commande
+pop edi
+pop edx
+cmp eax,0
+je maxlun1_config_bulkonly_usb
+mov byte[usb_commande],0 
+maxlun1_config_bulkonly_usb:
+cmp byte[usb_commande],0FFh 
+jne maxlun2_config_bulkonly_usb
+mov byte[usb_commande],0 
+maxlun2_config_bulkonly_usb:
+
+mov esi,edi
+xor ecx,ecx
+mov cl,[esi]
+add esi,ecx
+cmp byte[edi+1],5
+jne suite_active_config_usb
+cmp byte[esi+3],2
+jne suite_active_config_usb
+mov al,[esi+2]
+mov cl,[edi]
+add esi,ecx
+cmp byte[esi+1],5
+jne suite_active_config_usb
+cmp byte[esi+3],2
+jne suite_active_config_usb
+mov ah,[esi+2]
+test ah,80h
+jz okendp_config_bulkonly_usb
+xchg al,ah
+okendp_config_bulkonly_usb:
+test ah,80h
+jnz suite_active_config_usb
+and ax,0F0Fh
+
+mov ch,[usb_adresse]
+mov cl,[usb_commande] 
+;al=endpoint in ah=endpoint out cl=nb max de Lun ch=adresse
+
+mov edx,ad_desc_clef_usb 
+
+boucle_config_bulkonly_usb:
+cmp byte[edx+dlu_type],0
+je ok_config_bulkonly_usb
+add edx,64
+cmp edx,config_bulkonly_usb+nb_desc_clef_usb*64
+jne boucle_config_bulkonly_usb
 jmp suite_active_config_usb
+
+
+ok_config_bulkonly_usb:
+mov byte[edx+dlu_type],1 ;code clef usb protocole bulk-only et commande scsi
+mov [edx+dlu_endpin],al
+mov [edx+dlu_endpout],ah
+mov [edx+dlu_lun],cl
+mov [edx+dlu_adresse],ch
+;???????????????????????????met a jour les partition du disque
+cmp cl,0
+jne suite_active_config_usb
+dec cl
+jmp boucle_config_bulkonly_usb
+
+
+
+
+
+
 
 
 ;************************************
