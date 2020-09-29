@@ -448,13 +448,13 @@ xor edi,edi
 ;cld
 ;rep movsb      ;ds:si vers es:di
 
-push ds
-mov ax,segdat
-mov ds,ax
-mov ax,cs
-mov [20000h],esi
-mov [20000h+4],ax
-pop ds
+;push ds
+;mov ax,segdat
+;;mov ds,ax
+;mov ax,cs
+;mov [20000h],esi
+;mov [20000h+4],ax
+;pop ds
 
 boucle_copie_code:
 mov al,[esi]
@@ -479,7 +479,7 @@ mov [4],ebx    ;descripteur nul (obligatoire)
 
 mov ax,1            ;selecteur 1: code du programme
 mov ebx,segcod*16
-mov ecx,0FFFFh
+mov ecx,01FFFFh
 mov dl,08Ah       ;segment de code lisible en 32bits
 call crgdt
 
@@ -1356,7 +1356,6 @@ pas_reserve_isa:
 
 ;*********************************************************************
 include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
-
 
 ;*******************************************************************
 ;fin de la séquence d'initialisation

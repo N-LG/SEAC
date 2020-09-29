@@ -412,7 +412,7 @@ push edi
 mov byte[usb_commande],0A1h   ;bmRequestType
 mov byte[usb_commande+1],0FEh ;bRequest (ici get max LUN)
 mov word[usb_commande+2],0    ;wValue
-mov word[usb_commande+4],0    ;wIndex
+mov word[usb_commande+4],0    ;wIndex ;
 mov word[usb_commande+6],1    ;wLength 
 ;envoie la commande
 mov al,[usb_adresse] ;adresse
@@ -435,18 +435,20 @@ mov esi,edi
 xor ecx,ecx
 mov cl,[esi]
 add esi,ecx
-cmp byte[edi+1],5
+cmp byte[esi+1],5
 jne suite_active_config_usb
 cmp byte[esi+3],2
 jne suite_active_config_usb
 mov al,[esi+2]
-mov cl,[edi]
+
+mov cl,[esi]
 add esi,ecx
 cmp byte[esi+1],5
 jne suite_active_config_usb
 cmp byte[esi+3],2
 jne suite_active_config_usb
 mov ah,[esi+2]
+
 test ah,80h
 jz okendp_config_bulkonly_usb
 xchg al,ah
@@ -478,7 +480,7 @@ mov [edx+dlu_lun],cl
 mov [edx+dlu_adresse],ch
 ;???????????????????????????met a jour les partition du disque
 cmp cl,0
-jne suite_active_config_usb
+je suite_active_config_usb
 dec cl
 jmp boucle_config_bulkonly_usb
 
@@ -499,6 +501,74 @@ jmp suite_test_cnx_usb
 
 
 
+
+
+
+
+
+;****************************************************
+;déconnecte le périphérique usb d'adresse cl
+deco_usb:
+pushad
+and ecx,07Fh
+push ecx
+push ecx
+shl ecx,6
+add ecx,ad_desc_periph_usb
+mov edi,ecx
+xor eax,eax
+mov ecx,16
+cld
+rep stosd
+pop eax
+
+
+
+;libère eventuellement tout les disque qui y était attaché
+mov edx,ad_desc_clef_usb
+boucle1_deco_usb:
+cmp byte[edx+dlu_type],0
+je suite1_deco_usb
+cmp [edx+dlu_adresse],al
+jne suite1_deco_usb
+
+mov dword[edx],0
+mov dword[edx+4],0
+;§§§§§§§§§§§§§§§§§§§§§§met a jour la table des partitions
+
+suite1_deco_usb:
+add edx,64
+cmp edx,ad_desc_clef_usb+800h
+jne boucle1_deco_usb
+
+
+;libère eventuellement tout les périphérique qui y était attaché
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§(voir quant on gèrera les hub)
+
+
+
+mov cl,103
+call affmsgsyst
+
+pop eax
+call affnje
+
+mov al,13
+call affcj
+
+popad
+ret
+
+
+
+
+
+
+
+
+
+
+
 ;******************************************
 supp_periph_usb:
 mov edx,ad_desc_periph_usb+64
@@ -510,33 +580,15 @@ cmp [edx+dpu_ctrl],ax
 jne ignore_supp_periph_usb
 
 ;libère le descriptif de périphérique
-xor eax,eax
-mov edi,edx
-mov ecx,16
-cld
-rep stosd
-
-mov cl,103
-call affmsgsyst
-
-mov eax,edx
-sub eax,ad_desc_periph_usb
-shr eax,6
-call affnje
-
-mov al,13
-call affcj
-
-
-
-;libère eventuellement tout les périphérique qui y était attaché
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§(voir quant on gèrera les hub)
+mov ecx,edx
+sub ecx,ad_desc_periph_usb
+shr ecx,6
+call deco_usb 
 
 ignore_supp_periph_usb:
 add edx,64
 cmp edx,ad_desc_periph_usb+128*64
 jne boucle_supp_periph_usb 
-
 
 
 

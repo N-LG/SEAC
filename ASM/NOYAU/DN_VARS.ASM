@@ -2,7 +2,7 @@
 ;variables GDT
 
 selcod equ 08h     ;1    ;selecteur mode protégé
-segcod equ 2000h       ;segment mode réel
+segcod equ 1000h       ;segment mode réel
 
 seldat equ 10h     ;2
 segdat equ 3000h
@@ -13,7 +13,7 @@ segpil equ 8000h
 
 
 selgdt equ 20h     ;4
-seggdt equ 1000h
+seggdt equ 8000h
 selidt equ 28h     ;5
 segidt equ 0F80h
 ;?????? equ 30h     ;6
@@ -75,7 +75,7 @@ ad_tabclav_chasse equ 9800h    ;2048 max
 
 
 
-;???
+;???  0A000h
 
 ad_desc_periph_usb equ 0B000h 
 dc_desc_periph_usb equ 6 ;element de 64 octets
@@ -85,11 +85,11 @@ ad_desc_ctrl_usb equ 0D000h
 dc_desc_ctrl_usb equ 5   ;element de 32 octets
 nb_desc_ctrl_usb equ 64  ;64 elements
 
-ad_desc_clef_usb equ 0A800h   
+ad_desc_clef_usb equ 0D800h   
 dc_desc_clef_usb equ 6   ;element de 64 octets
 nb_desc_clef_usb equ 32  ;32 elements
 
-;??? 0C000h
+;??? 0E000h
 
 
 ad_repertoire equ 13400h  ;adresse du repertoire courant
