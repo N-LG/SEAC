@@ -82,10 +82,14 @@ dc_desc_periph_usb equ 6 ;element de 64 octets
 nb_desc_periph_usb equ 128 
 
 ad_desc_ctrl_usb equ 0D000h   
-dc_desc_ctrl_usb equ 5 ;element de 32 octets
-nb_desc_ctrl_usb equ 64 ;64 elements
+dc_desc_ctrl_usb equ 5   ;element de 32 octets
+nb_desc_ctrl_usb equ 64  ;64 elements
 
-;???
+ad_desc_clef_usb equ 0A800h   
+dc_desc_clef_usb equ 6   ;element de 64 octets
+nb_desc_clef_usb equ 32  ;32 elements
+
+;??? 0C000h
 
 
 ad_repertoire equ 13400h  ;adresse du repertoire courant
@@ -582,9 +586,6 @@ dcu_mem     equ 08h
 dcu_to      equ 0ch
 
 
-
-
-
 ;****************************************************************************
 ;descripteur de périphérique USB
 dpu_att  equ 0 ;attributs: b0=présent b1=acces réservé
@@ -594,6 +595,15 @@ dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
 dpu_togl equ 6 ;état du dernier data toggle utilisé lors d'un transfer bulk pour chaque endpoint
 ;?????
 dpu_ted equ 32 ;taille de transfert max par endpoints 16*2
+
+
+;****************************************************************************
+;descripteur de clef USB
+dlu_type    equ 00h   ;type 1=bulkonly commande scsi
+dlu_adresse equ 01h
+dlu_lun     equ 02h
+dlu_endpin  equ 03h
+dlu_endpout equ 04h
 
 
 ;***********************************************
