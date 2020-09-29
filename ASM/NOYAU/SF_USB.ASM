@@ -1236,7 +1236,7 @@ ret
 
 
 ;************************************************************************
-init_uhci:  
+init_uhci:
 pushad
 push es
 mov ax,selramh

@@ -272,6 +272,10 @@ jz boucle_detec_ahci
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
+;mov al,3
+;out 61h,al        ;allume le bipper
+
+
 mov ch,10h
 mov esi,ad_descd
 
@@ -353,10 +357,11 @@ add esi,32
 cmp ch,18h
 jne boucle_init_infopart
 
+mov al,3
+out 61h,al        ;allume le bipper
 
 ;*********************************************************************************************************************************************
 ;code de detection  et de création des descripteur pour les controleur de bus USB 
-detection_ctrl_usb:
 mov ax,seldat 
 mov ds,ax
 mov ax,selramh 

@@ -352,10 +352,6 @@ mov ebp,edi
 mov ax,[ad_chaine_travail+2]
 add ebp,eax
 
-mov dword[usb_tempo],0
-mov byte[usb_action],0
-jmp suite_test_cnx_usb
-
 boucle_active_config_usb:
 cmp byte[edi+1],4
 jne suite_active_config_usb
@@ -469,7 +465,7 @@ boucle_config_bulkonly_usb:
 cmp byte[edx+dlu_type],0
 je ok_config_bulkonly_usb
 add edx,64
-cmp edx,config_bulkonly_usb+nb_desc_clef_usb*64
+cmp edx,ad_desc_clef_usb+nb_desc_clef_usb*64
 jne boucle_config_bulkonly_usb
 jmp suite_active_config_usb
 

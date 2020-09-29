@@ -1176,7 +1176,6 @@ mov byte[nbzt1],0
 fin_init_souris:
 
 
-
 ;**********************************************************************
 ;initialise les zones de taille variable
 
@@ -1357,9 +1356,6 @@ pas_reserve_isa:
 
 ;*********************************************************************
 include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
-
-
-
 
 
 ;*******************************************************************
@@ -2307,7 +2303,6 @@ finafc:
 ;mise a jour de l'écran
 maj_ecran:
 include "SF_MAJV.ASM"
-
 
 
 
