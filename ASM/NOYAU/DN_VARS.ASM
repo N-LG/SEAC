@@ -602,8 +602,9 @@ dpu_ted equ 32 ;taille de transfert max par endpoints 16*2
 dlu_type    equ 00h   ;type 1=bulkonly commande scsi
 dlu_adresse equ 01h
 dlu_lun     equ 02h
-dlu_endpin  equ 03h
-dlu_endpout equ 04h
+dlu_interface equ 03h
+dlu_endpin  equ 04h
+dlu_endpout equ 05h
 
 
 ;***********************************************

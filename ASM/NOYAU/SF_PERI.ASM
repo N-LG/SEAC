@@ -408,11 +408,13 @@ jmp suite_active_config_usb
 config_bulkonly_usb:
 push edx
 push edi
+xor edx,edx
+mov dl,[edi+2]
 ;prépare la commande
 mov byte[usb_commande],0A1h   ;bmRequestType
 mov byte[usb_commande+1],0FEh ;bRequest (ici get max LUN)
 mov word[usb_commande+2],0    ;wValue
-mov word[usb_commande+4],0    ;wIndex ;
+mov word[usb_commande+4],dx   ;wIndex
 mov word[usb_commande+6],1    ;wLength 
 ;envoie la commande
 mov al,[usb_adresse] ;adresse
@@ -459,25 +461,26 @@ and ax,0F0Fh
 
 mov ch,[usb_adresse]
 mov cl,[usb_commande] 
-;al=endpoint in ah=endpoint out cl=nb max de Lun ch=adresse
+mov dl,[edi+2] ;al=endpoint in ah=endpoint out cl=nb max de Lun ch=adresse dl=N° d'interface
 
-mov edx,ad_desc_clef_usb 
+mov esi,ad_desc_clef_usb 
 
 boucle_config_bulkonly_usb:
-cmp byte[edx+dlu_type],0
+cmp byte[esi+dlu_type],0
 je ok_config_bulkonly_usb
-add edx,64
-cmp edx,ad_desc_clef_usb+nb_desc_clef_usb*64
+add esi,64
+cmp esi,ad_desc_clef_usb+nb_desc_clef_usb*64
 jne boucle_config_bulkonly_usb
 jmp suite_active_config_usb
 
 
 ok_config_bulkonly_usb:
-mov byte[edx+dlu_type],1 ;code clef usb protocole bulk-only et commande scsi
-mov [edx+dlu_endpin],al
-mov [edx+dlu_endpout],ah
-mov [edx+dlu_lun],cl
-mov [edx+dlu_adresse],ch
+mov byte[esi+dlu_type],1 ;code clef usb protocole bulk-only et commande scsi
+mov [esi+dlu_endpin],al
+mov [esi+dlu_endpout],ah
+mov [esi+dlu_lun],cl
+mov [esi+dlu_adresse],ch
+mov [esi+dlu_interface],dl
 ;???????????????????????????met a jour les partition du disque
 cmp cl,0
 je suite_active_config_usb
