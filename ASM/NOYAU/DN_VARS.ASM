@@ -59,7 +59,7 @@ infovesa equ 3400h ;zone tampon utillisé par les fonction VESA pour y charger le
 zt_maj_descp equ 3800h  ;zone tampon pour la mise a jour des descripteur des partitions
 zt_conversion_ucs equ 4000h  ;definition temporaire
 
-zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette
+zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette et d'envoie de commande a une clef usb
 bootsecteur equ 4400h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
 zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier
 secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
@@ -89,7 +89,9 @@ ad_desc_clef_usb equ 0D800h
 dc_desc_clef_usb equ 6   ;element de 64 octets
 nb_desc_clef_usb equ 32  ;32 elements
 
-;??? 0E000h
+zt_clefusb equ 0E000h
+
+;??? 0E200h
 
 
 ad_repertoire equ 13400h  ;adresse du repertoire courant

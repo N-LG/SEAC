@@ -17,7 +17,7 @@ jmp finfonctionfichiererr
 ;10h à 17h disque ATA
 ;18h à 1Fh cdrom
 ;20h à 3Fh disque ahci (projet) 
-;40h à 5Fh disque USB  (projet)
+;40h à 5Fh disque USB 
 ;6Fh à 7Fh reserve (inutilisé)
 ;80h à BFh partition 
 
@@ -93,6 +93,12 @@ cmp al,10h
 je lecata
 cmp al,18h
 je lecatapi
+mov al,ch
+and al,0E0h
+;cmp al,20h
+;je lecsata
+;cmp al,40h
+;je lecusb
 pop gs
 pop fs
 pop es
@@ -500,6 +506,10 @@ cmp al,10h
 je ecrata
 cmp al,18h
 je ecratapi
+;cmp al,20h
+;je ecrsata
+;cmp al,40h
+;je ecrusb
 pop gs
 pop fs
 pop es
@@ -1543,6 +1553,12 @@ cmp al,10h
 je info_ata
 cmp al,18h
 je info_atapi
+mov al,ch
+and al,0E0h
+;cmp al,20h
+;je info_sata
+cmp al,40h
+je info_usb
 cmp ch,80h
 jae info_partition
 mov eax,cer_parami
@@ -1554,6 +1570,118 @@ jmp finfonctionfichiererr
 info_atapi:
 call infodisqueatapi
 jmp finfonctionfichiererr
+
+
+
+
+info_usb:
+mov dl,ch
+and edx,1Fh
+shl edx,dc_desc_clef_usb
+add edx,ad_desc_clef_usb
+fs
+cmp byte[edx+dlu_type],01
+je info_usb_boscsi 
+mov eax,cer_parami
+jmp finfonctionfichiererr 
+
+info_usb_boscsi:
+;prépare cbw
+
+
+
+;reçois donnée
+
+
+
+;reçois csw
+
+
+
+
+
+
+jmp finfonctionfichiererr  ;?
+
+
+
+;**********************************
+;reset la cle usb bulk only (obligatoire apres une erreur)
+reset_clef_bo:
+pushad
+mov esi,edx
+
+;reset la clef
+xor dh,dh
+fs
+mov dl,[esi+dlu_interface]
+mov byte[zt_clefusb],21h    ;bmRequestType
+mov byte[zt_clefusb+1],0FFh  ;bRequest (ici reset bulk-only)
+mov word[zt_clefusb+2],0   ;wValue
+mov word[zt_clefusb+4],dx  ;wIndex (numéros de l'interface)
+mov word[zt_clefusb+6],0   ;wLength
+;envoie la commande
+fs
+mov al,[esi+dlu_adresse] ;adresse
+mov ah,0 ;endpoint
+mov edx,zt_clefusb
+mov edi,zt_clefusb
+call sfusb_commande
+
+
+;clear le stall de l'endpoint in
+xor dh,dh
+fs
+mov dl,[esi+esi+dlu_endpin]
+mov byte[zt_clefusb],02h    ;bmRequestType
+mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
+mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
+mov word[zt_clefusb+4],dx  ;wIndex (numéros de terminaison)
+mov word[zt_clefusb+6],0   ;wLength
+fs
+mov al,[esi+dlu_adresse] ;adresse
+mov ah,0 ;endpoint
+mov edx,zt_clefusb
+mov edi,zt_clefusb
+call sfusb_commande
+
+
+;clear le stall de l'endpoint out
+xor dh,dh
+fs
+mov dl,[esi+esi+dlu_endpout]
+mov byte[zt_clefusb],02h    ;bmRequestType
+mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
+mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
+mov word[zt_clefusb+4],dx  ;wIndex (numéros de terminaison)
+mov word[zt_clefusb+6],0   ;wLength
+fs
+mov al,[esi+dlu_adresse] ;adresse
+mov ah,0 ;endpoint
+mov edx,zt_clefusb
+mov edi,zt_clefusb
+call sfusb_commande
+
+;reseter les enregistrement des toggle bit
+mov ax,1
+mov dx,1
+fs
+mov cl,[esi+esi+dlu_endpin]
+shl ax,cl
+fs
+mov cl,[esi+esi+dlu_endpout]
+shl dx,cl
+or ax,dx
+not ax
+xor edx,edx
+fs
+mov dl,[esi+dlu_adresse]
+shl edx,dc_desc_periph_usb
+add edx,ad_desc_periph_usb
+fs
+and [edx+dpu_togl],ax
+popad
+ret
 
 
 info_partition:
