@@ -5,6 +5,12 @@ db "serveur telnet de commande systeme a distance"
 scode:
 org 0
 
+;choses encore a faire:
+;signale nouvelle connexion
+;gestion des codes d'échapement et iac dans les inputs
+;supression de caractère possible
+;ouverture d'un autre port que le standard
+;
 
 taille_journal equ 10000h
 
@@ -125,9 +131,12 @@ boucle:
 add esi,4
 cmp esi,zt_cnx+512
 je partie2               ;§§§§§§§§§§§§§§§§§ou envoyer un message: désolé on as atteind le nombre de connexion maximum
+cmp dword[esi],ebx
+je  existant
 cmp dword[esi],0
 jne boucle
 mov [esi],ebx
+existant:
 
 ;envoie la demande de non echo local
 mov al,7
@@ -158,7 +167,6 @@ mov al,7
 mov ecx,[offset]
 mov esi,zt_recep
 int 65h
-
 
 
 ;***************************************************************************************************************************************************
@@ -336,11 +344,16 @@ cmp al,13
 je crlf_formatage
 cmp al,20h
 jb suite_formatage
-cmp al,7Fh
-ja suite_formatage 
-
-mov [edi],al
-inc edi
+test al,080h
+jz lutf1ch
+test al,040h
+jz suite_formatage
+test al,020h
+jz lutf2ch
+test al,010h
+jz lutf3ch
+test al,08h
+jz lutf4ch
 
 suite_formatage:
 inc esi
@@ -355,6 +368,92 @@ crlf_formatage:
 mov word[edi],0A0Dh
 add edi,2
 jmp suite_formatage
+
+
+lutf1ch:
+mov [edi],al
+inc edi
+jmp suite_formatage
+
+
+lutf2ch:
+xor eax,eax
+mov al,[esi]
+and al,1Fh
+shl eax,6
+mov dl,[esi+1]
+and dl,3Fh
+or al,dl
+jmp correspondance
+
+lutf3ch:
+xor eax,eax
+mov al,[esi]
+and al,0Fh
+shl eax,6
+mov dl,[esi+1]
+and dl,3Fh
+or al,cl
+shl eax,6
+mov dl,[esi+2]
+and dl,3Fh
+or al,dl
+jmp correspondance
+
+lutf4ch:
+xor eax,eax
+mov al,[esi]
+and al,07h
+shl eax,6
+mov dl,[esi+1]
+and dl,3Fh
+or al,dl
+shl eax,6
+mov dl,[esi+2]
+and dl,3Fh
+or al,dl
+shl eax,6
+mov dl,[esi+3]
+and dl,3Fh
+or al,dl
+correspondance:
+
+test eax,0FFFF0000h
+jnz remplacement
+
+mov edx,code850
+boucleap:
+cmp [edx],ax
+je trouve
+add edx,2
+cmp edx,code850+256
+jne boucleap
+
+
+remplacement:
+mov byte[edi],0B0h ;carré a la place des caractères non affichable
+inc edi
+jmp suite_formatage
+
+trouve:
+sub edx,code850
+shr edx,1
+add dl,80h
+mov [edi],dl
+inc edi
+jmp suite_formatage
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -377,6 +476,21 @@ int 60h
 sdata1:
 org 0
 
+
+
+code850:
+dw 00C7h,00FCh,00E9h,00E2h,00E4h,00E0h,00E5h,00E7h,00EAh,00EBh,00E8h,00EFh,00EEh,00ECh,00C4h,00C5h
+dw 00C9h,00E6h,00C6h,00F4h,00F6h,00F2h,00FBh,00F9h,00FFh,00D6h,00DCh,00F8h,00A3h,00D8h,00D7h,0192h
+dw 00E1h,00EDh,00F3h,00FAh,00F1h,00D1h,00AAh,00BAh,00BFh,00AEh,00ACh,00BDh,00BCh,00A1h,00ABh,00BBh
+dw 2591h,2592h,2593h,2502h,2524h,00C1h,00C2h,00C0h,00A9h,2563h,2551h,2557h,255Dh,00A2h,00A5h,2510h
+dw 2514h,2534h,252Ch,251Ch,2500h,253Ch,00E3h,00C3h,255Ah,2554h,2569h,2566h,2560h,2550h,256Ch,00A4h
+dw 00F0h,00D0h,00CAh,00CBh,00C8h,0131h,00CDh,00CEh,00CFh,2518h,250Ch,2588h,2584h,00A6h,00CCh,2580h
+dw 00D3h,00DFh,00D4h,00D2h,00F5h,00D5h,00B5h,00FEh,00DEh,00DAh,00DBh,00D9h,00FDh,00DDh,00AFh,00B4h
+dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,00A0h
+
+
+
+
 msgok:
 db "STLNT: serveur Telnet démarré",13,0
 msgnok1:
@@ -387,7 +501,7 @@ db "STFTP [X]",13
 db "[X] numéros de l'interface sur laquelle brancher le serveur TFTP",13,0
 
 debut_cmd:
-db "-->"
+db 0C0h,0C4h,">"
 
 nonecho:
 db 0ffh,0fbh,01h
