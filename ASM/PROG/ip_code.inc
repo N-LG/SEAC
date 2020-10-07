@@ -1303,14 +1303,50 @@ jne boucle_principale
 
 
 ;remplit le descripteur de canal
+push edx
 push edi
-mov word[zt_decod],0088h
+mov word[tempo],0088h
+mov dword[tempo+2],0
+mov dword[tempo+6],0
+
+mov esi,[offset_ip]
+mov ax,[esi+tcp_port_sour]
+xchg al,ah
+mov [tempo+0Ah],ax
+
+mov esi,[offset_ethernet]
+mov dl,[esi]
+and dl,0F0h
+cmp dl,40h
+jne remplissage_descr_canal_tcp_ipv6
+
+mov eax,[esi+ipv4_ip_sour]
+mov [tempo+0Ch],eax
+mov dword[tempo+10h],0
+mov dword[tempo+14h],0
+mov dword[tempo+18h],0
+mov dword[tempo+1Ch],0
+jmp fin_remplissage_descr_canal_tcp
+
+remplissage_descr_canal_tcp_ipv6:
+mov dword[tempo+0Ch],0
+mov eax,[esi+ipv6_ip_sour]
+mov edx,[esi+ipv6_ip_sour+4]
+mov [tempo+10h],eax
+mov [tempo+14h],edx
+mov eax,[esi+ipv6_ip_sour+8]
+mov edx,[esi+ipv6_ip_sour+12]
+mov [tempo+18h],eax
+mov [tempo+1Ch],edx
+
+fin_remplissage_descr_canal_tcp:
 mov al,5
-mov ecx,2h
+mov ecx,64
 mov edi,0
-mov esi,zt_decod
+mov esi,tempo
 int 65h
 pop edi
+pop edx
 
 ;remplit le descripteur de port tcp
 mov [edi+cnx_adresse_com],ebx

@@ -119,14 +119,44 @@ jne partie2
 
 ;lit les données du descripteur
 mov al,4
-mov ecx,2h
+mov ecx,64
 mov esi,0
-mov edi,zt_temp
+mov edi,zt_transfert
 int 65h
+cmp eax,0
+jne partie2
+
+cmp dword[zt_transfert+0Ch],0
+jne affiche_ipv4 
+
+mov eax,113
+mov ecx,zt_transfert+10h
+mov edx,zt_transfert+64
+int 61h
+jmp fin_affiche_adresse
+
+affiche_ipv4:
+mov eax,112
+mov ecx,zt_transfert+0Ch
+mov edx,zt_transfert+64
+int 61h
+
+fin_affiche_adresse:
+mov edx,msgnc
+mov al,6
+int 61h
+
+mov edx,zt_transfert+64
+mov al,6
+int 61h
+
+mov edx,msgcrlf
+mov al,6
+int 61h
+
 
 ;ajoute la connexion a la liste
 mov esi,zt_cnx-4
-
 boucle:
 add esi,4
 cmp esi,zt_cnx+512
@@ -486,13 +516,17 @@ dw 2591h,2592h,2593h,2502h,2524h,00C1h,00C2h,00C0h,00A9h,2563h,2551h,2557h,255Dh
 dw 2514h,2534h,252Ch,251Ch,2500h,253Ch,00E3h,00C3h,255Ah,2554h,2569h,2566h,2560h,2550h,256Ch,00A4h
 dw 00F0h,00D0h,00CAh,00CBh,00C8h,0131h,00CDh,00CEh,00CFh,2518h,250Ch,2588h,2584h,00A6h,00CCh,2580h
 dw 00D3h,00DFh,00D4h,00D2h,00F5h,00D5h,00B5h,00FEh,00DEh,00DAh,00DBh,00D9h,00FDh,00DDh,00AFh,00B4h
-dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,00A0h
+dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,0000h
 
 
 
 
 msgok:
-db "STLNT: serveur Telnet démarré",13,0
+db "STLNT: serveur Telnet démarré"
+msgcrlf:
+db 13,0
+msgnc:
+db "STLNT: connexion par ",0
 msgnok1:
 db "STLNT: erreur lors de l'ouverture du port",13,0
 msgnok2:
@@ -513,8 +547,6 @@ offset:
 dd 0
 
 
-zt_temp:
-dd 0
 
 
 zt_cnx:
