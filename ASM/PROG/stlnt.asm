@@ -6,11 +6,9 @@ scode:
 org 0
 
 ;choses encore a faire:
-;signale nouvelle connexion
-;gestion des codes d'échapement et iac dans les inputs
-;supression de caractère possible
+;gestion des codes d'échapement  dans les inputs
 ;ouverture d'un autre port que le standard
-;
+
 
 taille_journal equ 10000h
 
@@ -31,30 +29,30 @@ int 61h
 
 ;**************************************************************
 ;determine l'id du service ethernet
-mov byte[zt_recep],0
+mov byte[zt_transfert],0
 
 mov al,4   
 mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
-mov edx,zt_recep
+mov edx,zt_transfert
 int 61h
 
-cmp byte[zt_recep],0
+cmp byte[zt_transfert],0
 je erreur_param
 
 mov al,100  
-mov edx,zt_recep
+mov edx,zt_transfert
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
-mov edx,zt_recep
+mov edx,zt_transfert
 int 61h
 
 shl ebx,1
-mov ax,[zt_recep+ebx]
+mov ax,[zt_transfert+ebx]
 cmp ax,0
 je erreur_init
 mov bx,ax
@@ -69,15 +67,15 @@ int 65h
 mov [adresse_canal],ebx
 
 ;configure en écoute pour le port TCP23
-mov word[zt_recep],8      ;ouverture port tcp
-mov word[zt_recep+2],23
-mov word[zt_recep+4],12 ;connexion max
-mov dword[zt_recep+6],4096 ;taille de la zt de communication a reserver a chaque canal de communication
+mov word[zt_transfert],8      ;ouverture port tcp
+mov word[zt_transfert+2],23
+mov word[zt_transfert+4],12 ;connexion max
+mov dword[zt_transfert+6],4096 ;taille de la zt de communication a reserver a chaque canal de communication
 
 mov al,5
 mov ebx,[adresse_canal]
 mov ecx,34h
-mov esi,zt_recep
+mov esi,zt_transfert
 mov edi,0
 int 65h
 cmp eax,0
@@ -96,12 +94,12 @@ mov al,4
 mov ebx,[adresse_canal]
 mov ecx,34h
 mov esi,0
-mov edi,zt_recep
+mov edi,zt_transfert
 int 65h
 cmp eax,0
 jne erreur_init 
 
-cmp byte[zt_recep],88h
+cmp byte[zt_transfert],88h
 jne erreur_init
 
 mov edx,msgok
@@ -195,7 +193,7 @@ int 65h
 ;et la commande
 mov al,7
 mov ecx,[offset]
-mov esi,zt_recep
+mov esi,zt_commande
 int 65h
 
 
@@ -247,7 +245,7 @@ rep movsb
 mov ecx,3
 mov esi,debut_cmd
 call envoie_massif
-mov esi,zt_recep
+mov esi,zt_commande
 mov ecx,[offset]
 call envoie_massif
 
@@ -261,46 +259,89 @@ jne partie1
 
 
 ;lit les données reçu
-mov edi,zt_recep
-mov ecx,2048
-mov eax,[offset]
-add edi,eax
-sub ecx,eax
+mov edi,zt_transfert
+mov ecx,64
 mov al,6
-push edi
 int 65h
-pop esi
-add [offset],ecx
 
 
-mov edx,zt_recep
+mov edi,zt_commande
+mov esi,zt_transfert
+mov edx,zt_transfert+128
+add edi,[offset]
 boucle5:
-cmp byte[edx],13
+mov al,[esi]
+cmp al,08h
+je annulcarac
+cmp al,13
 je commandetrouve
+cmp al,1Bh      ;escape code
+je ignore_carac
+cmp al,0FFh     ;interprete as command
+je interpretascommand
+cmp al,20
+jb ignore_carac
+mov [edi],al
+mov [edx],al
+inc esi
 inc edx
-cmp edx,zt_recep+2048
-jne boucle5
+inc edi
+inc dword[offset]
+dec ecx
+jnz boucle5 
+
 
 ;envoie aux autres machine connecté
+fincommande:
+mov ecx,edx
+mov esi,zt_transfert+128
+sub ecx,esi
 call envoie_massif
 jmp partie1
 
+annulcarac:
+cmp dword[offset],0
+je ignore_carac
+dec dword[offset]
+dec edi
+mov dword[edx],082008h
+add edx,3
+ignore_carac:
+inc esi
+dec ecx
+jnz boucle5 
+jmp fincommande
 
-commandetrouve:    
-;efface la ligne de commande
-call efface
-mov ecx,3
+interpretascommand:
+inc esi
+dec ecx
+jz fincommande
+mov al,[esi]
+inc esi
+dec ecx
+jz fincommande
+cmp al,0FBh
+jb boucle5
+inc esi
+dec ecx
+jz fincommande
+jmp boucle5 
+
+
+
+commandetrouve:
+mov byte[edi],0 ;marque la fin de la commande    
+
+call efface     ;efface la ligne de commande
+
+mov ecx,3         ;réecrit la commande
 mov esi,debut_cmd
 call envoie_massif
-
-mov byte[edx],0    ;et envoie la commande
-mov edx,zt_recep
+   
+mov edx,zt_commande  ;et envoie la commande au systeme
 mov al,0
 int 61h
-
-mov byte[zt_recep],0
 mov dword[offset],0
-
 jmp partie1
 
 
@@ -469,6 +510,7 @@ trouve:
 sub edx,code850
 shr edx,1
 add dl,80h
+mov dl,0B0h
 mov [edi],dl
 inc edi
 jmp suite_formatage
@@ -516,7 +558,7 @@ dw 2591h,2592h,2593h,2502h,2524h,00C1h,00C2h,00C0h,00A9h,2563h,2551h,2557h,255Dh
 dw 2514h,2534h,252Ch,251Ch,2500h,253Ch,00E3h,00C3h,255Ah,2554h,2569h,2566h,2560h,2550h,256Ch,00A4h
 dw 00F0h,00D0h,00CAh,00CBh,00C8h,0131h,00CDh,00CEh,00CFh,2518h,250Ch,2588h,2584h,00A6h,00CCh,2580h
 dw 00D3h,00DFh,00D4h,00D2h,00F5h,00D5h,00B5h,00FEh,00DEh,00DAh,00DBh,00D9h,00FDh,00DDh,00AFh,00B4h
-dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,0000h
+dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,00A0h
 
 
 
@@ -552,14 +594,12 @@ dd 0
 zt_cnx:
 rb 512
 zt_commande:
-rb 512
+rb 1024
 zt_journal1:
 rb taille_journal
 zt_journal2:
 rb taille_journal
 zt_transfert:
-rb taille_journal
-zt_recep:
 rb taille_journal
 finzt:
 
