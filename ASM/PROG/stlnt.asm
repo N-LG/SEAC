@@ -124,6 +124,7 @@ int 65h
 cmp eax,0
 jne partie2
 
+;affiche qu'il y as eu une nouvelle connexion
 cmp dword[zt_transfert+0Ch],0
 jne affiche_ipv4 
 
@@ -172,25 +173,20 @@ mov ecx,3
 mov esi,nonecho
 int 65h
 
-;le contenu du journal
-mov ecx,zt_journal2
-boucle2:
-inc ecx
-cmp byte[ecx],0
-jne boucle2
+;..le contenu du journal
 mov esi,zt_journal2
-sub ecx,esi
+mov ecx,[taille_journal2]
 call formatage
 mov al,7
 int 65h
 
-;l'invite de commande
+;..l'invite de commande
 mov al,7
 mov ecx,3
 mov esi,debut_cmd
 int 65h
 
-;et la commande
+;..et la commande
 mov al,7
 mov ecx,[offset]
 mov esi,zt_commande
@@ -206,6 +202,8 @@ mov edx,zt_journal1
 mov ecx,taille_journal
 int 61h
 mov byte[ecx+zt_journal1],0
+mov [taille_journal1],ecx
+
 
 ;compare avec le dernier journal pour voir si quelquechose as été modifié
 mov esi,zt_journal1
@@ -213,11 +211,11 @@ mov edi,zt_journal2
 mov ecx,taille_journal
 cld
 repe cmpsb
+
 dec edi
 dec esi
 cmp byte[esi],0
 je partie3
-
 
 ;efface la ligne de commande
 call efface
@@ -239,6 +237,8 @@ mov edi,zt_journal2
 mov ecx,taille_journal
 cld
 rep movsb
+mov ecx,[taille_journal1]
+mov [taille_journal2],ecx
 
 
 ;reécrit la ligne de commande
@@ -411,6 +411,8 @@ formatage:
 mov edi,zt_transfert
 boucle_formatage:
 mov al,[esi]
+cmp al,0
+je fin_formattage
 cmp al,13
 je crlf_formatage
 cmp al,20h
@@ -430,6 +432,7 @@ suite_formatage:
 inc esi
 dec ecx
 jnz boucle_formatage
+fin_formattage:
 mov ecx,edi
 mov esi,zt_transfert
 sub ecx,zt_transfert
@@ -500,7 +503,6 @@ add edx,2
 cmp edx,code850+256
 jne boucleap
 
-
 remplacement:
 mov byte[edi],0B0h ;carré a la place des caractères non affichable
 inc edi
@@ -510,7 +512,8 @@ trouve:
 sub edx,code850
 shr edx,1
 add dl,80h
-mov dl,0B0h
+cmp dl,0FFh
+je remplacement
 mov [edi],dl
 inc edi
 jmp suite_formatage
@@ -587,6 +590,11 @@ adresse_canal:
 dd 0
 offset:
 dd 0
+taille_journal1:
+dd 0
+taille_journal2:
+dd 0
+
 
 
 
@@ -600,7 +608,7 @@ rb taille_journal
 zt_journal2:
 rb taille_journal
 zt_transfert:
-rb taille_journal
+rb taille_journal*2
 finzt:
 
 
