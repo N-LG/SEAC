@@ -97,8 +97,8 @@ mov al,ch
 and al,0E0h
 ;cmp al,20h
 ;je lecsata
-;cmp al,40h
-;je lecusb
+cmp al,40h
+je lecusb
 pop gs
 pop fs
 pop es
@@ -485,6 +485,126 @@ pop ds
 popad 
 mov eax,cer_do
 ret
+
+
+
+
+
+lecusb:
+mov dl,ch
+and edx,1Fh
+shl edx,dc_desc_clef_usb
+add edx,ad_desc_clef_usb
+fs
+cmp byte[edx+dlu_type],01
+je lecusb_boscsi 
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
+
+lecusb_boscsi:
+;prépare cbw
+mov dword[zt_clefusb],43425355 ;mot magique "USBC"
+
+
+;§§§§§§§§§§§ génération d'un tag et de la taille des données a échanger
+
+mov [zt_clefusb+4],eax ;tag
+mov [zt_clefusb+8],ecx     ;taille des données
+mov byte[zt_clefusb+0ch],80   ;flag 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],12   ;taille de la commande 
+
+;§§§§§§§§§§§ commande lecture scsi
+
+
+
+;envoie cbw
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+and ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_lecusb_boscsi
+
+;reçois donnée
+push ds
+mov ax,es
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,[zt_clefusb+8]
+mov edi,esi
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_lecusb_boscsi   
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§prendre en compte la possibilité que la lecture soit incomplete
+
+
+;reçois csw
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_lecusb_boscsi
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355 ;est ce le mot magique "USBS"?
+jne erreur_lecusb_boscsi
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_lecusb_boscsi
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_lecusb_boscsi
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_lecusb_boscsi
+
+
+pop gs
+pop fs
+pop es
+pop ds
+;ss
+;mov [esp+28],eax
+popad
+xor eax,eax
+ret
+
+
+erreur_lecusb_boscsi:
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_lec
+ret
+
+
+
+
+
+
 
 
 ;******************************************************************************************

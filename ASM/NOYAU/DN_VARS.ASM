@@ -607,7 +607,7 @@ dlu_lun     equ 02h
 dlu_interface equ 03h
 dlu_endpin  equ 04h
 dlu_endpout equ 05h
-
+dlu_nboct   equ 06h
 
 ;***********************************************
 ;port utillisé par controleur UHCI
