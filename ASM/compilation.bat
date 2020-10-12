@@ -1,10 +1,14 @@
 echo off
 color 40
+echo compilation du système
 
 cd NOYAU
 fasm SYST.ASM ../../BIN/SYST.BAZ
 
-cd ../PROG
+cd ../FASM/SELG
+fasm FASM_FR.ASM ../../../BIN/FASM.FE
+
+cd ../../PROG
 ::fasm date.asm ../../BIN/DATE.FE
 fasm edt.asm ../../BIN/EDT.FE
 ::fasm edd.asm ../../BIN/EDD.FE
@@ -22,6 +26,7 @@ fasm EXPL.ASM ../../BIN/EXPL.FE
 fasm ipconfig.asm ../../BIN/IPCONFIG.FE
 fasm shttp.asm ../../BIN/SHTTP.FE
 fasm stftp.asm ../../BIN/STFTP.FE
+fasm stlnt.asm ../../BIN/STLNT.FE
 ::fasm chttp.asm ../../BIN/CHTTP.FE
 ::fasm ctftp.asm ../../BIN/CTFTP.FE
 ::fasm csdns.asm ../../BIN/CSDNS.FE
@@ -81,6 +86,7 @@ ajarch MBR_CHS.BIN SYST.BIN
 ajarch IPCONFIG.FE SYST.BIN
 ajarch SHTTP.FE SYST.BIN
 ajarch STFTP.FE SYST.BIN
+ajarch STLNT.FE SYST.BIN
 ::ajarch CHTTP.FE SYST.BIN
 ::ajarch CSDNS.FE SYST.BIN
 ::ajarch CTFTP.FE SYST.BIN
@@ -94,10 +100,10 @@ ajarch I8254X.FE SYST.BIN
 copy cfg1.sh cfg.sh
 ajarch cfg.sh SYST.BIN
 ajarch aide.txt SYST.BIN
-ajarch bug1.def SYST.BIN
-ajarch fr-txt.def SYST.BIN
+::ajarch bug1.def SYST.BIN
+::ajarch fr-txt.def SYST.BIN
 ::ajarch fr-azs.def SYST.BIN
-ajarch fr-aza.def SYST.BIN
+::ajarch fr-aza.def SYST.BIN
 ::ajarch fr-azn.def SYST.BIN
 ::ajarch fr-bep.def SYST.BIN
 ajarch en-txt.def SYST.BIN
@@ -108,6 +114,7 @@ ajarch 0u0.def SYST.BIN
 ajarch 1u0.def SYST.BIN
 ajarch 25u0.def SYST.BIN
 ajarch F00u0.def SYST.BIN
+copy SYST.BIN  ..\OUTILS\WINDOWS\BOOTNET
 
 copy cfg2.sh cfg.sh
 ajarch cfg.sh SYST2.BIN
@@ -119,10 +126,11 @@ ajarch hello.asm ../../BIN/SYST2.BIN
 
 
 cd ../NOYAU
+
 fasm CHARGEUR.ASM ../../BIN/SEAC_BAZ.IMB
 fasm CHARGEUR2.ASM ../../BIN/SEAC_DEV.IMB
 fasm disquette.asm ../../BIN/DISQUETTE.IMG
-
+::fasm ddur.asm ../../BIN/DDUR.VHD
 cd ..
 
 
