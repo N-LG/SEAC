@@ -1,4 +1,4 @@
-org 10000h ;le programme sera chargé dans le deuxième Mo
+org 10000h ;le programme sera chargÃ© dans le deuxiÃ¨me Mo
 use32
 
 ;extrait de https://ftp.gnu.org/old-gnu/Manuals/grub-0.92/html_mono/multiboot.html
@@ -22,22 +22,22 @@ nombre_magique equ 1BADB002h
 flags equ 10003h
 
 
-dd nombre_magique         ;`magic'          nombre magique de l'en tête multiboot
+dd nombre_magique         ;`magic'          nombre magique de l'en tÃªte multiboot
 dd flags                  ;`flags'
 dd -nombre_magique-flags  ;`checksum'
-dd debut                  ;'header_addr'    adresse de l'en tête
+dd debut                  ;'header_addr'    adresse de l'en tÃªte
 dd debut                  ;'load_addr'      adresse de chargement
-dd fin_copie              ;'load_end_addr'  fin de la zone recopié en mémoire
+dd fin_copie              ;'load_end_addr'  fin de la zone recopiÃ© en mÃ©moire
 dd fin_absolue            ;'bss_end_addr'
-dd debut_programme        ;'entry_addr'     position première instruction executé
+dd debut_programme        ;'entry_addr'     position premiÃ¨re instruction executÃ©
 
 
 
 debut_programme:
-mov esp,fin_absolue      ;définis la pile
+mov esp,fin_absolue      ;dÃ©finis la pile
 
 ;affiche un message pour patienter l'utilisateur
-mov edi, 0B8000h+0F00h ;adresse dernière ligne mémoire video texte
+mov edi, 0B8000h+0F00h ;adresse derniÃ¨re ligne mÃ©moire video texte
 mov esi,msg
 mov ah,0Ah
 boucle_message:
@@ -67,15 +67,15 @@ mov al,0FFh
 out dx,al
 
 
-;passe en mode protégé 16 bit
+;passe en mode protÃ©gÃ© 16 bit
 jmp 0008h:mode_protege_16b-10000h
 
 
-;***********************************partie du code executé en mode protége 16bit
+;***********************************partie du code executÃ© en mode protÃ©ge 16bit
 use16
 mode_protege_16b:
 
-;recharge les selecteur de segment avec les limite de 64Ko du mode réel
+;recharge les selecteur de segment avec les limite de 64Ko du mode rÃ©el
 mov ax,16
 mov ds,ax
 mov es,ax
@@ -83,7 +83,7 @@ mov fs,ax
 mov gs,ax
 mov ss,ax
 
-;passe en mode réel
+;passe en mode rÃ©el
 mov eax,cr0
 and eax,0FFFFFFFEh
 mov cr0,eax
@@ -91,9 +91,9 @@ jmp 1000h:mode_reel-10000h
 
 
 
-;*********************************partie du code executé en mode réel
+;*********************************partie du code executÃ© en mode rÃ©el
 mode_reel:
-;restaure des segment de donnée du mode réel
+;restaure des segment de donnÃ©e du mode rÃ©el
 mov ax,1000h
 mov ds,ax
 mov es,ax
@@ -103,14 +103,14 @@ mov ax,9000h
 mov ss,ax
 mov sp,0FFF0h
 
-;restaure le pointeur de la table d'interruption en mode réel
+;restaure le pointeur de la table d'interruption en mode rÃ©el
 lidt[pointeur_idt-10000h]
 
 ;saute sur le code
 jmp 5000h:0000h
 
 
-;************************************données
+;************************************donnÃ©es
 pointeur_idt:
 dw 3FFh
 dd 0
@@ -141,7 +141,7 @@ msg db 'Chargement du noyau en cours, veuillez patienter...',0
 
 
 noyau:
-file "../../BIN/SYST.BIN"
+file "../../BIN/SYST1.BAZ"
 fin_noyau:
 
 
@@ -152,7 +152,7 @@ fin_copie:
 
 
 
-rb 1000h  ;réserve 64ko de pile
+rb 1000h  ;rÃ©serve 64ko de pile
 
 
 fin_absolue:
