@@ -10,7 +10,7 @@ ASM: contient toutes les sources en assembleur
     ASM/compilation.bat scripte batch pour compiler le systeme  
 BIN: contient tout les binaires précompilé dont Fasm qui n'est pas sur ce dépot  
     *.fe fichier executable du systeme  
-    *.baz code de noyau  
+    *.baz code de base du noyau  
     *.imb fichier multiboot 1  
     *.img image de disquette  
     *.mbr code pour Master Boot Record  
