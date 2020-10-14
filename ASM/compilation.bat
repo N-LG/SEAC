@@ -39,10 +39,10 @@ fasm I8254X.asm ../../BIN/I8254X.FE
 fasm VETHER.asm ../../BIN/VETHER.FE
 
 cd ../BOOT
-::fasm MBR_BIOS.ASM ../../BIN/MBR_BIOS.BIN
-::fasm MBR_LBA.ASM ../../BIN/MBR_LBA.BIN
-::fasm MBR_CHS.ASM ../../BIN/MBR_CHS.BIN
-::fasm MBR_STOP.ASM ../../BIN/MBR_STOP.BIN
+fasm MBR_BIOS.ASM ../../BIN/MBR_BIOS.MBR
+::fasm MBR_LBA.ASM ../../BIN/MBR_LBA.MBR
+::fasm MBR_CHS.ASM ../../BIN/MBR_CHS.MBR
+::fasm MBR_STOP.ASM ../../BIN/MBR_STOP.MBR
 
 cd ../DEF
 ::fasm bug1.asm ../../BIN/bug1.def
@@ -62,75 +62,74 @@ fasm en-txt.asm ../../BIN/en-txt.def
 ::fasm F00u0.asm  ../../BIN/F00u0.def
 
 cd ../../BIN/
-copy SYST.BAZ SYST.BIN 
-copy SYST.BAZ SYST2.BIN 
-::ajarch FASM.FE SYST.BIN
-ajarch DATE.FE SYST.BIN
-ajarch EDT.FE SYST.BIN
-::ajarch EDD.FE SYST.BIN
-ajarch EDH.FE SYST.BIN
-ajarch EDG.FE SYST.BIN
-ajarch PARTD.FE SYST.BIN
-::ajarch IMGP.FE SYST.BIN
-ajarch LC.FE SYST.BIN
-ajarch TERM.FE SYST.BIN
-ajarch CIRC.FE SYST.BIN
-ajarch CDNS.FE SYST.BIN
-ajarch EXPL.FE SYST.BIN
-ajarch UTF8.FE SYST.BIN
-ajarch CALC.FE SYST.BIN
-ajarch MBR_BIOS.BIN SYST.BIN
-::ajarch MBR_LBA.BIN SYST.BIN
-ajarch MBR_CHS.BIN SYST.BIN
-::ajarch MBR_STOP.BIN SYST.BIN
-ajarch IPCONFIG.FE SYST.BIN
-ajarch SHTTP.FE SYST.BIN
-ajarch STFTP.FE SYST.BIN
-ajarch STLNT.FE SYST.BIN
-::ajarch CHTTP.FE SYST.BIN
-::ajarch CSDNS.FE SYST.BIN
-::ajarch CTFTP.FE SYST.BIN
-::ajarch SDHCP.FE SYST.BIN
-ajarch SNIF.FE SYST.BIN
-ajarch AJARCH.FE SYST.BIN
-ajarch RTL8139.FE SYST.BIN
-ajarch 3C90X.FE SYST.BIN
-ajarch I8254X.FE SYST.BIN
-::ajarch VETHER.FE SYST.BIN
+copy SYST.BAZ SYST1.BAZ 
 copy cfg1.sh cfg.sh
-ajarch cfg.sh SYST.BIN
-ajarch aide.txt SYST.BIN
-::ajarch bug1.def SYST.BIN
-::ajarch fr-txt.def SYST.BIN
-::ajarch fr-azs.def SYST.BIN
-::ajarch fr-aza.def SYST.BIN
-::ajarch fr-azn.def SYST.BIN
-::ajarch fr-bep.def SYST.BIN
-ajarch en-txt.def SYST.BIN
-::ajarch en-qws.def SYST.BIN
-ajarch en-qwi.def SYST.BIN
-::ajarch en-dvk.def SYST.BIN
-ajarch 0u0.def SYST.BIN
-ajarch 1u0.def SYST.BIN
-ajarch 25u0.def SYST.BIN
-ajarch F00u0.def SYST.BIN
-copy SYST.BIN  ..\OUTILS\WINDOWS\BOOTNET
+ajarch cfg.sh SYST1.BAZ
+::ajarch FASM.FE SYST1.BAZ
+ajarch DATE.FE SYST1.BAZ
+ajarch EDT.FE SYST1.BAZ
+::ajarch EDD.FE SYST1.BAZ
+ajarch EDH.FE SYST1.BAZ
+ajarch EDG.FE SYST1.BAZ
+ajarch PARTD.FE SYST1.BAZ
+::ajarch IMGP.FE SYST1.BAZ
+ajarch LC.FE SYST1.BAZ
+ajarch TERM.FE SYST1.BAZ
+ajarch CIRC.FE SYST1.BAZ
+ajarch CDNS.FE SYST1.BAZ
+ajarch EXPL.FE SYST1.BAZ
+ajarch UTF8.FE SYST1.BAZ
+ajarch CALC.FE SYST1.BAZ
+ajarch MBR_BIOS.MBR SYST1.BAZ
+::ajarch MBR_LBA.MBR SYST1.BAZ
+::ajarch MBR_CHS.MBR SYST1.BAZ
+::ajarch MBR_STOP.MBR SYST1.BAZ
+ajarch IPCONFIG.FE SYST1.BAZ
+ajarch SHTTP.FE SYST1.BAZ
+ajarch STFTP.FE SYST1.BAZ
+ajarch STLNT.FE SYST1.BAZ
+::ajarch CHTTP.FE SYST1.BAZ
+::ajarch CSDNS.FE SYST1.BAZ
+::ajarch CTFTP.FE SYST1.BAZ
+::ajarch SDHCP.FE SYST1.BAZ
+ajarch SNIF.FE SYST1.BAZ
+ajarch AJARCH.FE SYST1.BAZ
+ajarch RTL8139.FE SYST1.BAZ
+ajarch 3C90X.FE SYST1.BAZ
+ajarch I8254X.FE SYST1.BAZ
+::ajarch VETHER.FE SYST1.BAZ
+ajarch aide.txt SYST1.BAZ
+::ajarch bug1.def SYST1.BAZ
+::ajarch fr-txt.def SYST1.BAZ
+::ajarch fr-azs.def SYST1.BAZ
+::ajarch fr-aza.def SYST1.BAZ
+::ajarch fr-azn.def SYST1.BAZ
+::ajarch fr-bep.def SYST1.BAZ
+ajarch en-txt.def SYST1.BAZ
+::ajarch en-qws.def SYST1.BAZ
+ajarch en-qwi.def SYST1.BAZ
+::ajarch en-dvk.def SYST1.BAZ
+ajarch 0u0.def SYST1.BAZ
+ajarch 1u0.def SYST1.BAZ
+ajarch 25u0.def SYST1.BAZ
+ajarch F00u0.def SYST1.BAZ
+copy SYST1.BAZ  ..\OUTILS\WINDOWS\BOOTNET
 
+copy SYST.BAZ SYST2.BAZ
 copy cfg2.sh cfg.sh
-ajarch cfg.sh SYST2.BIN
-ajarch FASM.FE SYST2.BIN
-ajarch EDT.FE SYST2.BIN
+ajarch cfg.sh SYST2.BAZ
+ajarch FASM.FE SYST2.BAZ
+ajarch EDT.FE SYST2.BAZ
 cd ../ASM/PROG
-ajarch fe.inc ../../BIN/SYST2.BIN
-ajarch hello.asm ../../BIN/SYST2.BIN
+ajarch fe.inc ../../BIN/SYST2.BAZ
+ajarch hello.asm ../../BIN/SYST2.BAZ
 
 
 cd ../NOYAU
 
-fasm CHARGEUR.ASM ../../BIN/SEAC_BAZ.IMB
+fasm CHARGEUR1.ASM ../../BIN/SEAC_BAZ.IMB
 fasm CHARGEUR2.ASM ../../BIN/SEAC_DEV.IMB
 fasm disquette.asm ../../BIN/DISQUETTE.IMG
-::fasm ddur.asm ../../BIN/DDUR.VHD
 cd ..
 
 
