@@ -507,24 +507,57 @@ mov eax,cer_parami
 ret
 
 lecusb_boscsi:
+mov esi,edi
 ;prépare cbw
+and ecx,0FFh
+cmp ecx,0
+jne lecusb_boscsi_ok
+mov ecx,100h
+lecusb_boscsi_ok:
+push ecx
+mov eax,ecx
+mov cl,[edx+dlu_nboct]
+shl eax,cl
+mov ecx,[cptsf]
+
 mov dword[zt_clefusb],43425355 ;mot magique "USBC"
-
-
-;§§§§§§§§§§§ génération d'un tag et de la taille des données a échanger
-
-mov [zt_clefusb+4],eax ;tag
-mov [zt_clefusb+8],ecx     ;taille des données
+mov [zt_clefusb+4],ecx ;tag
+mov [zt_clefusb+8],eax     ;taille des données
 mov byte[zt_clefusb+0ch],80   ;flag 
 mov al,[edx+dlu_lun]
 mov [zt_clefusb+0Dh],al   ;lun
-mov byte[zt_clefusb+0Eh],12   ;taille de la commande 
 
-;§§§§§§§§§§§ commande lecture scsi
+bswap ebx
+pop ecx
+xchg cl,ch
+mov eax,[edx+dlu_msb_ad]
+bswap eax
+cmp eax,0
+jne lecusb_boscsi_cmd16 
 
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],28h  ;commande 
+mov byte[zt_clefusb+10h],0    ;vide
+mov [zt_clefusb+11h],ebx      ;adresse du secteur
+mov [zt_clefusb+15h],cx       ;nb de secteur
+mov dword[zt_clefusb+17h],0   ;vide
+mov dword[zt_clefusb+1Bh],0   ;vide
+mov dword[zt_clefusb+1Fh],0   ;vide
+jmp lecusb_bo_envcbw
 
+lecusb_boscsi_cmd16:
+mov byte[zt_clefusb+0Eh],16   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],88h  ;commande 
+mov byte[zt_clefusb+10h],0    ;vide
+mov [zt_clefusb+11h],eax      ;adresse du secteur (MSB)
+mov [zt_clefusb+15h],ebx      ;adresse du secteur (LSB)
+mov word[zt_clefusb+19h],0    ;nb de secteur (MSB)
+mov [zt_clefusb+1Bh],cx       ;nb de secteur (LSB)
+mov dword[zt_clefusb+1Dh],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
 
 ;envoie cbw
+lecusb_bo_envcbw:
 push ds
 mov ax,fs
 mov ds,ax
@@ -592,6 +625,7 @@ ret
 
 
 erreur_lecusb_boscsi:
+call reset_clef_bo
 pop gs
 pop fs
 pop es
@@ -1804,6 +1838,7 @@ popad
 ret
 
 
+;**********************************
 info_partition:
 mov al,ch
 sub al,7Fh  ;-80h +1
@@ -1851,10 +1886,6 @@ mov [ebx],eax
 add ebx,4
 cmp ebx,zt_maj_descp+2048
 jne bouclevide_maj_partiton
-
-
-
-
 
 mov edi,bootsecteur
 mov al,8
