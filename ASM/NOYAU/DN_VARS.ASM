@@ -608,6 +608,8 @@ dlu_interface equ 03h
 dlu_endpin  equ 04h
 dlu_endpout equ 05h
 dlu_nboct   equ 06h
+;?????
+dlu_msb_ad  equ 0Ch
 
 ;***********************************************
 ;port utillisé par controleur UHCI

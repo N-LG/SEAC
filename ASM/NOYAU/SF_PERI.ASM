@@ -481,7 +481,19 @@ mov [esi+dlu_endpout],ah
 mov [esi+dlu_lun],cl
 mov [esi+dlu_adresse],ch
 mov [esi+dlu_interface],dl
-;???????????????????????????met a jour les partition du disque
+mov byte[esi+dlu_nboct],9  ;on vas supposer que les périphérique ont des secteur de 512 octet 
+mov dword[esi+dlu_msb_ad],0
+
+;met a jour les partition du disque
+pushad
+mov ecx,esi
+shr ecx,6
+sub ecx,ad_desc_clef_usb
+mov ch,cl
+mov eax,12
+int 64h
+popad
+
 cmp cl,0
 je suite_active_config_usb
 dec cl
