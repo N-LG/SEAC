@@ -152,7 +152,7 @@ cmp eax,0
 jne global_erreur_connexionUSB
 
 
-;eregistre la taille de l'enpoint 0
+;enregistre la taille de l'enpoint 0
 mov al,[usb_commande+7]
 mov [ad_desc_periph_usb+dpu_ted],al
 
@@ -487,8 +487,9 @@ mov dword[esi+dlu_msb_ad],0
 ;met a jour les partition du disque
 pushad
 mov ecx,esi
-shr ecx,6
 sub ecx,ad_desc_clef_usb
+shr ecx,6
+add ecx,40h
 mov ch,cl
 mov eax,12
 int 64h
@@ -549,11 +550,32 @@ jne suite1_deco_usb
 
 mov dword[edx],0
 mov dword[edx+4],0
-;§§§§§§§§§§§§§§§§§§§§§§met a jour la table des partitions
+
+;met a jour la table des partitions
+push eax
+push edx
+mov eax,edx
+sub eax,ad_desc_clef_usb
+shr eax,6
+add eax,40h
+mov edx,ad_descp
+boucle2_deco_usb:
+cmp [edx+1],al
+jne suite2_deco_usb
+
+mov dword[edx],0
+mov dword[edx+4],0
+
+suite2_deco_usb:
+add edx,64
+cmp edx,ad_descp+800h
+jne boucle2_deco_usb
+pop edx
+pop eax
 
 suite1_deco_usb:
 add edx,64
-cmp edx,ad_desc_clef_usb+800h
+cmp edx,ad_desc_clef_usb+2000h
 jne boucle1_deco_usb
 
 

@@ -347,8 +347,8 @@ mov [ebx+uhci_bulkmem_cmd+4],ecx
 ;definie quantité max transferé par TD pour cet endpoint
 xor eax,eax
 mov edx,[ebx+uhci_bulkmem_param_adterm]
-and edx,0780h
-shr edx,6
+and edx,078000h
+shr edx,14
 add edx,dpu_ted
 add edx,[ebx+uhci_bulkmem_param_desc_perif]
 fs
@@ -885,8 +885,8 @@ or eax,[ebx+uhci_bulkmem_param_adterm] ;toggle bit
 ;definie quantité max transferé par TD pour cet endpoint
 xor eax,eax
 mov edx,[ebx+uhci_bulkmem_param_adterm]
-and edx,0780h
-shr edx,6
+and edx,078000h
+shr edx,14
 add edx,dpu_ted
 add edx,[ebx+uhci_bulkmem_param_desc_perif]
 fs
@@ -920,7 +920,7 @@ jc sfusb_bulk_err_mem  ;??????????????????????????????????????????????????????
 
 
 ;précalcule du dword Controle and status
-mov ecx,018800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  
+mov ecx,038800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  29=short packet detect
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
 xor edx,edx
@@ -939,18 +939,24 @@ or ecx,4000000h  ;26=low speed
 fin_precalc_bulk_uhci:
 mov [ebx+uhci_bulkmem_param_pcs],ecx
 
+
 ;**********************************
-;copie éventuellement les données reçu
+;copie éventuellement les données a envoyer
 cmp byte[ebx+uhci_bulkmem_param_adterm],0E1h
 jne ignore_env_bulk_uhci
 push ds
 push es
-pop ds
+push ds
+push es
 mov ecx,[ebx+uhci_bulkmem_param_tframe] 
 mov edi,ebx
 add edi,[ebx+uhci_bulkmem_param_adata]
 mov esi,[ebx+uhci_bulkmem_param_datainout]
+pop ds
+pop es
+cld
 rep movsb
+pop es
 pop ds
 ignore_env_bulk_uhci:
 
@@ -964,7 +970,6 @@ add eax,uhci_bulkmem_td+100000h
 mov dword[ebx+uhci_bulkmem_qh+4],eax  ;ELEMENT LINK POINTER (pointeur vers le premier TD)
 
 
-
 ;***************************
 ;création des TD
 mov edi,uhci_bulkmem_td
@@ -973,10 +978,7 @@ mov ebp,ebx
 add ebp,100000h
 add ebp,[ebx+uhci_bulkmem_param_adata]
 mov ecx,[ebx+uhci_bulkmem_param_tframe]
-
 boucletd_sfusb_bulk_uhci:
-cmp ecx,0
-je fin_cree_td_bulk_uhci
 cmp ecx,[ebx+uhci_bulkmem_param_tod]
 jb partiel_sfusb_bulk_uhci
 
@@ -991,32 +993,25 @@ mov [edi],eax    ;LINK POINTER
 mov edx,[ebx+uhci_bulkmem_param_pcs]
 mov dword[edi+4],edx ;CONTROL AND STATUS
 
-
 mov eax,[ebx+uhci_bulkmem_param_tod]
 dec eax
 shl eax,21
 or eax,[ebx+uhci_bulkmem_param_adterm] ;adresse+endpoint+pid
-or eax,esi   ;data toggle 
 mov [edi+8],eax  ;TOKEN 
 
 mov [edi+12],ebp ;BUFFER POINTER
 
+sub ecx,[ebx+uhci_bulkmem_param_tod]
+jz dernier_td_bulk_uhci
 add edi,32
 xor dword[ebx+uhci_bulkmem_param_adterm],80000h 
 add ebp,[ebx+uhci_bulkmem_param_tod]
-sub ecx,[ebx+uhci_bulkmem_param_tod]
 jmp boucletd_sfusb_bulk_uhci
-
 
 
 ;********************
 ;créer le td   (taille inferieur a la taille max)
 partiel_sfusb_bulk_uhci:
-mov eax,edi
-add eax,100020h
-or  eax,4
-mov [edi],eax    ;LINK POINTER
-
 mov edx,[ebx+uhci_bulkmem_param_pcs]
 mov dword[edi+4],edx ;CONTROL AND STATUS
 
@@ -1024,16 +1019,17 @@ mov eax,ecx
 dec eax
 shl eax,21
 or eax,[ebx+uhci_bulkmem_param_adterm] ;adresse+endpoint+pid
-or eax,esi   ;data toggle 
 mov [edi+8],eax  ;TOKEN 
 
 mov [edi+12],ebp ;BUFFER POINTER
 
 xor dword[ebx+uhci_bulkmem_param_adterm],80000h 
 
+dernier_td_bulk_uhci:
+mov dword[edi],1    ;LINK POINTER
+
 ;**************************
 ;insère le qh dans la file
-fin_cree_td_bulk_uhci:
 cli
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
 fs
@@ -1078,17 +1074,17 @@ jnz fin_att_bulk_uhci
 add esi,32
 jmp boucle_att_bulk_uhci
 
+
 fin_att_bulk_uhci:
-
-
 ;************************************
-;met a jour le toggl bit dans la mémoire
-mov eax,[ebx+uhci_bulkmem_param_adterm] 
-and eax,80000h
+;met a jour le prochain toggl bit a utiliser dans la mémoire
+mov eax,[esi+4] 
 shr eax,19
+not eax
+and eax,1
 push eax
 mov ecx,[ebx+uhci_bulkmem_param_adterm]
-and ecx,78000f
+and ecx,78000h
 shr ecx,15
 and ecx,0Fh
 mov eax,1
@@ -1097,6 +1093,7 @@ not eax
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
 and [esi+dpu_togl],ax
 pop eax
+shl eax,cl
 or [esi+dpu_togl],ax
 
 
@@ -1120,6 +1117,7 @@ trouve_rqh2_bulk_uhci:
 mov eax,[ebx+uhci_bulkmem_qh]
 mov [esi],eax
 
+
 ;**********************************
 ;copie éventuellement les données reçu
 cmp byte[ebx+uhci_bulkmem_param_adterm],069h
@@ -1128,8 +1126,29 @@ mov ecx,[ebx+uhci_bulkmem_param_tframe]
 mov esi,ebx
 add esi,[ebx+uhci_bulkmem_param_adata]
 mov edi,[ebx+uhci_bulkmem_param_datainout]
+cld
 rep movsb
+
+pushad  ;§§§§§§§§§§§§§§§
+mov ecx,[ebx+uhci_bulkmem_param_tframe]
+mov esi,ebx
+add esi,[ebx+uhci_bulkmem_param_adata]
+mov al,13
+call affcj
+mov al,13
+call affcj
+mov al,"Z"
+call affcj
+bctrappe:
+mov al,[esi]
+call affh0j
+inc esi
+dec ecx
+jnz bctrappe
+popad   ;§§§§§§§§§§§§§§§
+
 ignore_recep_bulk_uhci:
+
 
 
 
@@ -1153,6 +1172,70 @@ ret
 
 
 erreur_transfert_bulk_uhci:
+
+
+
+pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+
+mov eax,[ebx+uhci_bulkmem_param_adterm]
+call affh2j
+
+
+mov al,13
+call affcj
+mov al,"T"
+call affcj
+
+mov eax,[ebx+uhci_bulkmem_td+4]
+call affh2j
+
+mov al,"h"
+call affcj
+
+mov eax,[ebx+uhci_bulkmem_td+8]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+36]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+40]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+68]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+72]
+call affh2j
+
+mov al,"h"
+call affcj
+
+mov al,13
+call affcj
+
+
+popad   ;§§§§§§§§§§§§§§§§§§
+
+
+
+
+
 
 ;************************************
 ;met a jour le toggl bit dans la mémoire
