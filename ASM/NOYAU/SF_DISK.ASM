@@ -507,6 +507,8 @@ mov eax,cer_parami
 ret
 
 lecusb_boscsi:
+mov ax,seldat
+mov ds,ax
 mov esi,edi
 ;prépare cbw
 and ecx,0FFh
@@ -532,21 +534,9 @@ pop ecx
 xchg cl,ch
 mov eax,[edx+dlu_msb_ad]
 bswap eax
+
 cmp eax,0
 jne lecusb_boscsi_cmd16
-jmp lecusb_boscsi_cmd16 
-
-mov byte[zt_clefusb+0Eh],12   ;taille de la commande 
-mov byte[zt_clefusb+0Fh],0A8h  ;commande 
-mov byte[zt_clefusb+10h],0    ;vide
-mov [zt_clefusb+11h],ebx      ;adresse du secteur
-mov word[zt_clefusb+15h],0    ;nb de secteur (MSB)
-mov [zt_clefusb+17h],cx       ;nb de secteur (LSB)
-mov dword[zt_clefusb+19h],0   ;vide
-mov dword[zt_clefusb+1Dh],0   ;vide
-mov dword[zt_clefusb+21h],0   ;vide
-jmp lecusb_bo_envcbw
-
 
 mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
 mov byte[zt_clefusb+0Fh],28h  ;commande 
@@ -558,6 +548,18 @@ mov dword[zt_clefusb+18h],0   ;vide
 mov dword[zt_clefusb+1Ch],0   ;vide
 mov dword[zt_clefusb+20h],0   ;vide
 jmp lecusb_bo_envcbw
+
+
+;mov byte[zt_clefusb+0Eh],12   ;taille de la commande 
+;mov byte[zt_clefusb+0Fh],0A8h  ;commande 
+;mov byte[zt_clefusb+10h],0    ;vide
+;mov [zt_clefusb+11h],ebx      ;adresse du secteur
+;mov word[zt_clefusb+15h],0    ;nb de secteur (MSB)
+;mov [zt_clefusb+17h],cx       ;nb de secteur (LSB)
+;mov dword[zt_clefusb+19h],0   ;vide
+;mov dword[zt_clefusb+1Dh],0   ;vide
+;mov dword[zt_clefusb+21h],0   ;vide
+;jmp lecusb_bo_envcbw
 
 
 lecusb_boscsi_cmd16:
@@ -588,19 +590,24 @@ jne erreur_lecusb_boscsi
 
 
 ;reçois donnée
+boucle_lecusb_boscsi:
 push ds
 mov ax,es
 mov ds,ax
+fs
 mov al,[edx+dlu_adresse]
+fs
 mov ah,[edx+dlu_endpin]
-mov ecx,[zt_clefusb+8]
+mov ecx,512
 mov edi,esi
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 pop ds
-;cmp eax,0
-;jne erreur_lecusb_boscsi   
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§prendre en compte la possibilité que la lecture soit incomplete
+add esi,512
+sub dword[zt_clefusb+8],512
+cmp dword[zt_clefusb+8],0
+jne boucle_lecusb_boscsi 
+;on ignore les eventuelles erreur a ce moment la
 
 
 ;reçois csw
@@ -625,8 +632,8 @@ cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
 jne erreur_lecusb_boscsi
 cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
 jne erreur_lecusb_boscsi
-;cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-;jne erreur_lecusb_boscsi
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_lecusb_boscsi
 
 
 pop gs
@@ -678,8 +685,8 @@ cmp al,18h
 je ecratapi
 ;cmp al,20h
 ;je ecrsata
-;cmp al,40h
-;je ecrusb
+cmp al,40h
+je ecrusb
 pop gs
 pop fs
 pop es
@@ -857,6 +864,178 @@ pop ds
 popad 
 mov eax,cer_parami
 ret
+
+
+
+
+ecrusb:
+mov dl,ch
+and edx,1Fh
+shl edx,dc_desc_clef_usb
+add edx,ad_desc_clef_usb
+fs
+cmp byte[edx+dlu_type],01
+je ecrusb_boscsi 
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
+
+ecrusb_boscsi:
+mov ax,seldat
+mov ds,ax
+;prépare cbw
+and ecx,0FFh
+cmp ecx,0
+jne ecrusb_boscsi_ok
+mov ecx,100h
+ecrusb_boscsi_ok:
+push ecx
+mov eax,ecx
+mov cl,[edx+dlu_nboct]
+shl eax,cl
+mov ecx,[cptsf]
+
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov [zt_clefusb+8],eax     ;taille des données
+mov byte[zt_clefusb+0ch],00h   ;flag (out) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+
+bswap ebx
+pop ecx
+xchg cl,ch
+mov eax,[edx+dlu_msb_ad]
+bswap eax
+
+cmp eax,0
+jne ecrusb_boscsi_cmd16
+
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],2Ah  ;commande 
+mov byte[zt_clefusb+10h],0    ;vide
+mov [zt_clefusb+11h],ebx      ;adresse du secteur
+mov byte[zt_clefusb+15h],0    ;vide
+mov [zt_clefusb+16h],cx       ;nb de secteur
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+jmp ecrusb_bo_envcbw
+
+
+;mov byte[zt_clefusb+0Eh],12   ;taille de la commande 
+;mov byte[zt_clefusb+0Fh],0AAh  ;commande 
+;mov byte[zt_clefusb+10h],0    ;vide
+;mov [zt_clefusb+11h],ebx      ;adresse du secteur
+;mov word[zt_clefusb+15h],0    ;nb de secteur (MSB)
+;mov [zt_clefusb+17h],cx       ;nb de secteur (LSB)
+;mov dword[zt_clefusb+19h],0   ;vide
+;mov dword[zt_clefusb+1Dh],0   ;vide
+;mov dword[zt_clefusb+21h],0   ;vide
+;jmp ecrusb_bo_envcbw
+
+
+ecrusb_boscsi_cmd16:
+mov byte[zt_clefusb+0Eh],16   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],8Ah  ;commande 
+mov byte[zt_clefusb+10h],0    ;vide
+mov [zt_clefusb+11h],eax      ;adresse du secteur (MSB)
+mov [zt_clefusb+15h],ebx      ;adresse du secteur (LSB)
+mov word[zt_clefusb+19h],0    ;nb de secteur (MSB)
+mov [zt_clefusb+1Bh],cx       ;nb de secteur (LSB)
+mov dword[zt_clefusb+1Dh],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+ecrusb_bo_envcbw:
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_ecrusb_boscsi
+
+
+;reçois donnée
+boucle_ecrusb_boscsi:
+push ds
+mov ax,es
+mov ds,ax
+fs
+mov al,[edx+dlu_adresse]
+fs
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,512
+mov edi,esi
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+
+add esi,512
+sub dword[zt_clefusb+8],512
+cmp dword[zt_clefusb+8],0
+jne boucle_ecrusb_boscsi 
+;on ignore les eventuelles erreur a ce moment la
+
+
+;reçois csw
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_ecrusb_boscsi
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+jne erreur_ecrusb_boscsi
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_ecrusb_boscsi
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_ecrusb_boscsi
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_ecrusb_boscsi
+
+
+pop gs
+pop fs
+pop es
+pop ds
+;ss
+;mov [esp+28],eax
+popad
+xor eax,eax
+ret
+
+
+erreur_ecrusb_boscsi:
+call reset_clef_bo
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_ecr
+ret
+
+
 
 
 
@@ -1751,27 +1930,131 @@ shl edx,dc_desc_clef_usb
 add edx,ad_desc_clef_usb
 fs
 cmp byte[edx+dlu_type],01
-je info_usb_boscsi 
+je infousb_boscsi 
 mov eax,cer_parami
 jmp finfonctionfichiererr 
 
-info_usb_boscsi:
+infousb_boscsi:
+;on charge d'abord la dimension du disque
+mov ax,seldat
+mov ds,ax
+mov esi,edi
 ;prépare cbw
+mov ecx,[cptsf]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],8     ;taille des données
+mov byte[zt_clefusb+0ch],80h   ;flag (in) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],25h  ;commande 
+mov byte[zt_clefusb+10h],0    ;vide
+mov dword[zt_clefusb+11h],0      ;adresse du secteur
+mov byte[zt_clefusb+15h],0    ;vide
+mov word[zt_clefusb+16h],0       ;nb de secteur
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
 
+
+;envoie cbw
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_infousb_boscsi
 
 
 ;reçois donnée
-
+push ds
+mov ax,es
+mov ds,ax
+fs
+mov al,[edx+dlu_adresse]
+fs
+mov ah,[edx+dlu_endpin]
+mov ecx,512
+mov edi,esi
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+;on ignore les eventuelles erreur a ce moment la
 
 
 ;reçois csw
+push ds
+mov ax,fs
+mov ds,ax
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+pop ds
+cmp eax,0
+jne erreur_infousb_boscsi
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+jne erreur_lecusb_boscsi
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_lecusb_boscsi
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_lecusb_boscsi
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_lecusb_boscsi
 
 
 
 
 
 
-jmp finfonctionfichiererr  ;?
+;charge le descripteur du disque
+
+
+
+;recopie le nom
+
+
+
+
+;génère un nom générique si pas de nom
+
+
+
+
+
+pop gs
+pop fs
+pop es
+pop ds
+;ss
+;mov [esp+28],eax
+popad
+xor eax,eax
+ret
+
+
+erreur_infousb_boscsi:
+call reset_clef_bo
+pop gs
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_lec
+ret
+
+
 
 
 
@@ -1783,7 +2066,6 @@ mov esi,edx
 
 ;reset la clef
 xor dh,dh
-fs
 mov dl,[esi+dlu_interface]
 mov byte[zt_clefusb],21h    ;bmRequestType
 mov byte[zt_clefusb+1],0FFh  ;bRequest (ici reset bulk-only)
@@ -1791,7 +2073,6 @@ mov word[zt_clefusb+2],0   ;wValue
 mov word[zt_clefusb+4],dx  ;wIndex (numéros de l'interface)
 mov word[zt_clefusb+6],0   ;wLength
 ;envoie la commande
-fs
 mov al,[esi+dlu_adresse] ;adresse
 mov ah,0 ;endpoint
 mov edx,zt_clefusb
@@ -1801,14 +2082,12 @@ call sfusb_commande
 
 ;clear le stall de l'endpoint in
 xor dh,dh
-fs
 mov dl,[esi+esi+dlu_endpin]
 mov byte[zt_clefusb],02h    ;bmRequestType
 mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
 mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
 mov word[zt_clefusb+4],dx  ;wIndex (numéros de terminaison)
 mov word[zt_clefusb+6],0   ;wLength
-fs
 mov al,[esi+dlu_adresse] ;adresse
 mov ah,0 ;endpoint
 mov edx,zt_clefusb
@@ -1818,14 +2097,12 @@ call sfusb_commande
 
 ;clear le stall de l'endpoint out
 xor dh,dh
-fs
 mov dl,[esi+esi+dlu_endpout]
 mov byte[zt_clefusb],02h    ;bmRequestType
 mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
 mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
 mov word[zt_clefusb+4],dx  ;wIndex (numéros de terminaison)
 mov word[zt_clefusb+6],0   ;wLength
-fs
 mov al,[esi+dlu_adresse] ;adresse
 mov ah,0 ;endpoint
 mov edx,zt_clefusb
@@ -1835,20 +2112,16 @@ call sfusb_commande
 ;reseter les enregistrement des toggle bit
 mov ax,1
 mov dx,1
-fs
 mov cl,[esi+esi+dlu_endpin]
 shl ax,cl
-fs
 mov cl,[esi+esi+dlu_endpout]
 shl dx,cl
 or ax,dx
 not ax
 xor edx,edx
-fs
 mov dl,[esi+dlu_adresse]
 shl edx,dc_desc_periph_usb
 add edx,ad_desc_periph_usb
-fs
 and [edx+dpu_togl],ax
 popad
 ret

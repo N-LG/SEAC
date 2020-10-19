@@ -875,11 +875,13 @@ and ecx,78000h
 shr ecx,15
 and ecx,0Fh
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
+fs
 mov eax,[esi+dpu_togl]
 shr eax,cl
 and eax,1
 shl eax,19
-or eax,[ebx+uhci_bulkmem_param_adterm] ;toggle bit
+or [ebx+uhci_bulkmem_param_adterm],eax ;toggle bit
+
 
 
 ;definie quantité max transferé par TD pour cet endpoint
@@ -1078,7 +1080,7 @@ jmp boucle_att_bulk_uhci
 fin_att_bulk_uhci:
 ;************************************
 ;met a jour le prochain toggl bit a utiliser dans la mémoire
-mov eax,[esi+4] 
+mov eax,[esi+8] 
 shr eax,19
 not eax
 and eax,1
@@ -1091,10 +1093,13 @@ mov eax,1
 shl eax,cl
 not eax
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
+fs
 and [esi+dpu_togl],ax
 pop eax
 shl eax,cl
+fs
 or [esi+dpu_togl],ax
+
 
 
 ;*****************************
@@ -1128,25 +1133,6 @@ add esi,[ebx+uhci_bulkmem_param_adata]
 mov edi,[ebx+uhci_bulkmem_param_datainout]
 cld
 rep movsb
-
-pushad  ;§§§§§§§§§§§§§§§
-mov ecx,[ebx+uhci_bulkmem_param_tframe]
-mov esi,ebx
-add esi,[ebx+uhci_bulkmem_param_adata]
-mov al,13
-call affcj
-mov al,13
-call affcj
-mov al,"Z"
-call affcj
-bctrappe:
-mov al,[esi]
-call affh0j
-inc esi
-dec ecx
-jnz bctrappe
-popad   ;§§§§§§§§§§§§§§§
-
 ignore_recep_bulk_uhci:
 
 
@@ -1253,6 +1239,7 @@ not eax
 mov esi,[ebx+uhci_bulkmem_param_desc_perif]
 and [esi+dpu_togl],ax
 pop eax
+fs
 or [esi+dpu_togl],ax
 
 

@@ -104,7 +104,7 @@ mov ax,06h
 out dx,ax
 
 mov eax,[cptsf]
-add eax,80           ;attent 200ms avant de chercher a lire le descripteur
+add eax,180           ;attent 200ms avant de chercher a lire le descripteur
 mov [usb_tempo],eax
 mov byte[usb_action],3
 jmp fin_test_cnx_usb
@@ -509,6 +509,12 @@ jmp boucle_config_bulkonly_usb
 
 ;************************************
 global_erreur_connexionUSB:
+pushad    ;§§§§§§§§§§
+mov al,[usb_action]
+call affh0j
+popad ;§§§§§§§
+
+
 mov cl,102
 call affmsgsyst
 mov dword[usb_tempo],0
