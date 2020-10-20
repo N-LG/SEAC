@@ -136,6 +136,56 @@ inc ch
 cmp ch,20h
 jne boucle_ldp
 
+
+;******************************
+;affiche les clef usb
+mov ch,40h
+boucle_lcp:
+push ecx
+mov al,10
+mov edi,zone_tampon
+int 64h
+cmp eax,0
+jne suite_lcp
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,zone_tampon+64
+int 63h
+
+mov ecx,[zone_tampon]
+shr ecx,1
+mov edx,saisienum
+mov al,102
+int 61h
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_choix_disque2
+int 63h
+
+mov edx,saisienum
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_choix_disque3
+int 63h
+
+pop ecx
+mov [esi],ch ;sauvegarde le numéros de disque
+inc esi
+push ecx
+
+suite_lcp:
+pop ecx
+inc ch
+cmp ch,60h
+jne boucle_lcp
+
+;****************************
 sub esi,petite_zt
 mov ecx,esi
 shl ecx,8
@@ -209,7 +259,10 @@ mov dword[offset_curseur],0
 
 ;***************************************
 chargement_partie:     ;charge la zt par 128ko de données
-
+mov al,[num_disque]
+and al,0E0h
+cmp al,40h
+je chargement_partie_disque
 mov al,[num_disque]
 and al,18h
 cmp al,0

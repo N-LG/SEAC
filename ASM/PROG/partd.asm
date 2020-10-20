@@ -36,9 +36,10 @@ mov edx,msgldp1
 mov al,11
 mov ah,07h ;couleur
 int 63h
-
 mov dword[num_disque],0
 
+
+;******************************
 ;listing des disques présent
 mov ch,10h
 boucle_ldp:
@@ -108,6 +109,59 @@ jne boucle_ldp
 
 
 
+;******************************
+;affiche les clef usb
+mov ch,40h
+boucle_lcp:
+push ecx
+mov al,10
+mov edi,ZT512A
+int 64h
+cmp eax,0
+jne suite_lcp
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,ZT512A+64
+int 63h
+
+mov ecx,[ZT512A]
+shr ecx,1
+mov edx,taille_part
+mov al,102
+int 61h
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,espace
+int 63h
+
+mov edx,taille_part
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,kiloctet
+int 63h
+
+
+pop ecx
+mov ebx,[num_disque]
+mov[ebx+table_disque],ch
+push ecx
+inc dword[num_disque]
+
+
+suite_lcp:
+pop ecx
+inc ch
+cmp ch,60h
+jne boucle_lcp
+
+
+;***************************
 mov al,13
 mov bh,7 ;couleur
 mov bl,0
@@ -129,7 +183,10 @@ int 64h
 cmp eax,0
 jne er_accd
 
-
+mov al,[disque_choisie]
+and al,0E0h
+cmp al,40h
+je init_infodisque_usb
 
 ;extrait les données de taille et de structure
 mov eax,[ZT512A+0C8h]   ;LSB nombre de secteur en LBA48 
@@ -156,6 +213,15 @@ init_infodisque_chs:
 mov eax,[ZT512A+72h]   ;nombre de secteur en CHS
 mov [taille_disque],eax
 mov dword[taille_disque+4],0
+jmp charge_infostructure
+
+
+init_infodisque_usb:
+mov eax,[ZT512A]     ;LSB nombre de secteur 
+mov edx,[ZT512A+4]   ;MSB nombre de secteur  
+mov [taille_disque],eax
+mov [taille_disque+4],edx
+;jmp charge_infostructure
 
 
 
@@ -1620,6 +1686,8 @@ db "choisisez le disque:",13,0
 kiloctet:
 db "Kilo-octets",13,0
 
+espace:
+db " ",0
 
 msg_eraccd:
 db "erreur lors de l'accèes au disque, voulez vous?",13
@@ -2108,20 +2176,6 @@ pop si
 pop bx
 pop ax
 ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 rb 510 + secteur_fat16 - $ 
