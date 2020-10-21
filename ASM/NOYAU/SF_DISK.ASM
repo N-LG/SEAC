@@ -1936,9 +1936,15 @@ jmp finfonctionfichiererr
 
 infousb_boscsi:
 ;on charge d'abord la dimension du disque
-mov ax,seldat
+mov ax,fs
 mov ds,ax
 mov esi,edi
+;efface la zone ou on vas recopier le descripteur
+mov ecx,64 
+xor eax,eax
+cld
+rep stosd
+
 ;prépare cbw
 mov ecx,[cptsf]
 mov dword[zt_clefusb],43425355h ;mot magique "USBC"
@@ -1949,110 +1955,147 @@ mov al,[edx+dlu_lun]
 mov [zt_clefusb+0Dh],al   ;lun
 mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
 mov byte[zt_clefusb+0Fh],25h  ;commande 
-mov byte[zt_clefusb+10h],0    ;vide
-mov dword[zt_clefusb+11h],0      ;adresse du secteur
-mov byte[zt_clefusb+15h],0    ;vide
-mov word[zt_clefusb+16h],0       ;nb de secteur
+mov dword[zt_clefusb+10h],0   ;vide
+mov dword[zt_clefusb+14h],0   ;vide
 mov dword[zt_clefusb+18h],0   ;vide
 mov dword[zt_clefusb+1Ch],0   ;vide
 mov dword[zt_clefusb+20h],0   ;vide
 
-
 ;envoie cbw
-push ds
-mov ax,fs
-mov ds,ax
 mov al,[edx+dlu_adresse]
 mov ah,[edx+dlu_endpout]
 or ah,80h
 mov ecx,31
 mov edi,zt_clefusb
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-pop ds
 cmp eax,0
 jne erreur_infousb_boscsi
 
-
 ;reçois donnée
-push ds
-mov ax,es
-mov ds,ax
-fs
 mov al,[edx+dlu_adresse]
-fs
 mov ah,[edx+dlu_endpin]
-mov ecx,512
-mov edi,esi
+mov ecx,8
+mov edi,zt_clefusb+64
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-pop ds
 ;on ignore les eventuelles erreur a ce moment la
 
-
 ;reçois csw
-push ds
-mov ax,fs
-mov ds,ax
 mov al,[edx+dlu_adresse]
 mov ah,[edx+dlu_endpin]
 mov ecx,13
 mov edi,zt_clefusb+32
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-pop ds
 cmp eax,0
 jne erreur_infousb_boscsi
 
 
 ;lit résultat opération
 cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
-jne erreur_lecusb_boscsi
+jne erreur_infousb_boscsi
 mov eax,[zt_clefusb+4] 
 cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
-jne erreur_lecusb_boscsi
+jne erreur_infousb_boscsi
 cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
-jne erreur_lecusb_boscsi
+jne erreur_infousb_boscsi
 cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-jne erreur_lecusb_boscsi
+jne erreur_infousb_boscsi
+
+
+mov eax,[zt_clefusb+64]
+mov ecx,[zt_clefusb+68]
+bswap eax
+bswap ecx
+
+es
+mov [esi],eax
+es
+mov [esi+8],ecx
+es
+mov dword[esi+12],0
+add esi,64
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§simuler les autres options?
 
 
 
+;charge le descripteur du périphérique
+push edx
+mov eax,2
+mov bl,[edx+dlu_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dh,1   ;type de descripteur (descripteur global)(chaine)
+mov dl,0  ;index
+mov edi,zt_clefusb
+int 68h
+pop edx
+cmp eax,0
+jne finfonctionfichiererr 
+
+cmp byte[zt_clefusb+15],0
+je nomgenerique_infousb_boscsi
+
+;charge le descripteur de chaine
+push edx
+mov eax,2
+mov bl,[edx+dlu_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dh,3   ;type de descripteur (chaine)
+mov dl,[zt_clefusb+15]  ;index
+mov edi,zt_clefusb
+int 68h
+pop edx
+cmp eax,0
+jne finfonctionfichiererr 
+
+
+;recopie maximum 64 caractère du nom au format utf8
+cmp byte[zt_clefusb],10       ;si 4 ou moins on inscrit le nom générique
+jbe nomgenerique_infousb_boscsi
+cmp byte[zt_clefusb],82      ;si 40 ou plus on tronque le nom
+jbe pastronque_infousb_boscsi
+mov byte[zt_clefusb],82
+pastronque_infousb_boscsi:
+push esi
+mov esi,zt_clefusb
+mov edi,zt_clefusb+128
+call conv_chaine_usb
+pop edi
+mov esi,zt_clefusb+128
+cld
+repnz movsb
+xor eax,eax
+jmp finfonctionfichiererr
 
 
 
-;charge le descripteur du disque
-
-
-
-;recopie le nom
 
 
 
 
 ;génère un nom générique si pas de nom
+nomgenerique_infousb_boscsi:
+es
+mov dword[esi],"Clef"
+es
+mov dword[esi+4]," USB"
+es
+mov dword[esi+8],0B0C24E20h  ;" N°" en utf8
 
-
-
-
-
-pop gs
-pop fs
-pop es
+xor ecx,ecx
+mov eax,102
+mov cl,[edx+dlu_adresse]
+mov edx,esi
+add edx,12
+push es
 pop ds
-;ss
-;mov [esp+28],eax
-popad
+int 61h
 xor eax,eax
-ret
+jmp finfonctionfichiererr
 
 
 erreur_infousb_boscsi:
 call reset_clef_bo
-pop gs
-pop fs
-pop es
-pop ds
-popad
 mov eax,cer_lec
-ret
+jmp finfonctionfichiererr
 
 
 
