@@ -2469,6 +2469,8 @@ cmp eax,"vmem"
 je cmdvmem
 cmp eax,"cd.."
 je cmdcdpp
+cmp eax,"echo"
+je cmdaf
 
 jmp commande_fichier
 
@@ -2516,7 +2518,18 @@ cmp eax,"ex"
 je cmdex
 cmp eax,"nd"
 je cmdnd
-
+cmp eax,"ls"
+je cmddir
+cmp eax,"rm"
+je cmdsup
+cmp eax,"cp"
+je cmdcop
+cmp eax,"mv"
+je cmdren
+cmp eax,"ps"
+je cmdlt
+cmp eax,"mk"
+je cmdnd
 
 commande_fichier:
 include "SF_TACHE.ASM"
@@ -3426,6 +3439,9 @@ mov al,13
 call affcj
 jmp pascommande
 
+
+
+
 ;**************************************************************
 cmdex:
 mov esi,debut_cmdex
@@ -3439,14 +3455,8 @@ fin_cmdex:
 
 
 
-
-
-
-
 ;*****************************************
 cmdnd:
-
-
 mov edx,ad_zdc-1
 boucle1_cmdnd:     
 inc edx
@@ -3478,7 +3488,7 @@ inc edx
 mov eax,2        ;créer le dossier
 xor ebx,ebx
 int 64h
-cmp eax,12       
+cmp eax,cer_nfr      
 jne fin_commande_erreur
 
 mov eax,1
