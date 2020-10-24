@@ -111,7 +111,7 @@ db 0 ;85
 db 0 ;86
 db " file has been loaded for the language definition",13,0               ;87
 db " file has been loaded for the keyboard definition",13,0               ;88
-db " file has been loaded for the  the graphic character definition",13,0 ;89
+db " file has been loaded for the graphic character definition",13,0 ;89
 
 db 0 ;90
 db 0 ;91

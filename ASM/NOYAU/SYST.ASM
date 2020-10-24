@@ -3049,7 +3049,7 @@ je boucle_cmddef
 
 
 inc edx
-mov esi,edx
+mov ebp,edx
 xor eax,eax         ;ouvre le fichier
 xor ebx,ebx
 int 64h
@@ -3128,7 +3128,7 @@ mov eax,1
 int 64h
 mov cl,98  
 call affmsgsyst
-mov edx,esi
+mov edx,ebp
 call affjournal
 mov cl,87   
 call affmsgsyst
@@ -3214,7 +3214,7 @@ mov eax,1
 int 64h
 mov cl,98  
 call affmsgsyst
-mov edx,esi
+mov edx,ebp
 call affjournal
 mov cl,88   
 call affmsgsyst
@@ -3265,22 +3265,22 @@ cmp eax,0
 jne erreur_cmddef_autres
 
 ;met a jour l'index des tables de caractères
-mov ebx,index_tabcar
+mov esi,index_tabcar
 boucle_cmddef_graph:
-cmp dword[ebx],0
+cmp dword[esi],0
 jne boucle_cmddef_graph_suite
-cmp dword[ebx+4],0
+cmp dword[esi+4],0
 je boucle_cmddef_graph_fin
 
 boucle_cmddef_graph_suite:
-add ebx,8
-cmp ebx,index_tabcar+512
+add esi,8
+cmp esi,index_tabcar+512
 jne boucle_cmddef_graph 
 
 ;si la table est pleine on supprime la dernière entrée de la table
-sub ebx,8
+sub esi,8
 
-mov eax,[ebx]
+mov eax,[esi]
 push ebx
 mov ebx,eax
 call libmem
@@ -3288,15 +3288,15 @@ pop ebx
 
 boucle_cmddef_graph_fin:
 mov eax,[ad_chaine_travail+8]
-mov [ebx],eax
-mov [ebx+4],edi
+mov [esi],eax
+mov [esi+4],edi
 
 fin_defg_ok:
 mov eax,1
 int 64h
 mov cl,98  
 call affmsgsyst
-mov edx,esi
+mov edx,ebp
 call affjournal
 mov cl,89   
 call affmsgsyst
