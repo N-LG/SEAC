@@ -933,6 +933,7 @@ jne boucle_suppr_exec
 jmp fin_suppr_exec
 
 ok_suppr_exec:
+push ecx
 mov edi,ebx
 mov esi,ebx
 add edi,ad_table_exec
@@ -946,21 +947,37 @@ sub edi,16
 xor eax,eax
 mov ecx,4
 rep stosd
-
-
+pop ecx
 
 sub dword[max_table_exec],16
-
 ;cmp ebx,[index_table_exec]
 ;ja fin_suppr_exec
-
-
 cmp dword[index_table_exec],0
 je fin_suppr_exec
-
 sub dword[index_table_exec],16
-
 fin_suppr_exec:
+
+
+
+;*************************************
+mov ax,seldat     ;suppression des réservation de périphérique USB
+mov ds,ax
+mov ebx,ad_desc_periph_usb
+
+boucle_suppr_resusb:
+test byte[ebx+dpu_att],02h
+jnz suite_suppr_resusb 
+cmp [ebx+dpu_idr],cx
+jne suite_suppr_resusb 
+and byte[ebx+dpu_att],0FDh
+mov word[ebx+dpu_idr],0
+
+suite_suppr_resusb:
+add ebx,64
+cmp ebx,ad_desc_periph_usb+2000h
+jne boucle_suppr_resusb
+
+
 
 pop es
 pop ds

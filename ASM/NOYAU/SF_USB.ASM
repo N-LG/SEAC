@@ -3,6 +3,8 @@
 
 test bl,80h
 jnz erreurparamusb 
+cmp bl,0
+je erreurparamusb
 
 ;vérifie que le périphérique n'est pas déja réservé
 push eax
@@ -31,8 +33,10 @@ pop ds
 pop ebx
 pop eax
 
-;cmp al,0   ;réservation périphérique
-;cmp al,1   ;liberation acces périphérique
+cmp al,0   ;réservation périphérique
+je sf_usb_reserve
+cmp al,1   ;liberation acces périphérique
+je sf_usb_libere
 
 cmp al,2   ;lecture descripteur
 je sfusb_lec_desc
@@ -48,6 +52,53 @@ je sfusb_active_config
 
 mov eax,cer_parami
 iret
+
+
+
+
+
+;*******************************************************************
+sf_usb_reserve:
+push ebx
+push ds
+mov ax,seldat
+mov ds,ax
+and ebx,7Fh
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb
+or byte[ebx+dpu_att],02h
+mov ax,[id_tache_exec]
+mov [ebx+dpu_idr],ax
+pop ds
+pop ebx
+xor eax,eax
+iret
+
+
+;*******************************************************************
+sf_usb_libere:
+push ebx
+push ds
+mov ax,seldat
+mov ds,ax
+and ebx,7Fh
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb
+and byte[ebx+dpu_att],0FDh
+mov word[ebx+dpu_idr],0
+pop ds
+pop ebx
+xor eax,eax
+iret
+
+
+
+
+
+
+
+
+
 
 
 
@@ -659,6 +710,77 @@ ret
 
 
 erreur_transfert_uhci:
+pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+
+
+mov al,13
+call affcj
+mov al,"C"
+call affcj
+
+mov eax,[ebx+uhci_bulkmem_param_adterm]
+call affh2j
+
+
+mov al,13
+call affcj
+mov al," "
+call affcj
+
+mov eax,[ebx+uhci_bulkmem_td+4]
+call affh2j
+
+mov al,"h"
+call affcj
+
+mov eax,[ebx+uhci_bulkmem_td+8]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+36]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+40]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+68]
+call affh2j
+
+mov al,"h"
+call affcj
+
+
+mov eax,[ebx+uhci_bulkmem_td+72]
+call affh2j
+
+mov al,"h"
+call affcj
+
+mov al,13
+call affcj
+
+
+popad   ;§§§§§§§§§§§§§§§§§§
+
+
+
+
+
+
+
+
+
 cli
 ;supprime le qh de la file
 mov edi,[ebx+uhci_bulkmem_param_desc_ctrl]
@@ -960,6 +1082,30 @@ cld
 rep movsb
 pop es
 pop ds
+
+pushad  ;§§§§§§§§§§§§§§§
+mov ecx,[ebx+uhci_bulkmem_param_tframe]
+mov esi,ebx
+add esi,[ebx+uhci_bulkmem_param_adata]
+mov al,13
+call affcj
+mov al,13
+call affcj
+mov al,"O"
+call affcj
+mov al," "
+call affcj
+bctrappe:
+mov al,[esi]
+call affh0j
+mov al," "
+call affcj
+inc esi
+dec ecx
+jnz bctrappe
+popad   ;§§§§§§§§§§§§§§§
+
+
 ignore_env_bulk_uhci:
 
 
@@ -1163,13 +1309,19 @@ erreur_transfert_bulk_uhci:
 
 pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
 
+
+mov al,13
+call affcj
+mov al,"B"
+call affcj
+
 mov eax,[ebx+uhci_bulkmem_param_adterm]
 call affh2j
 
 
 mov al,13
 call affcj
-mov al,"T"
+mov al," "
 call affcj
 
 mov eax,[ebx+uhci_bulkmem_td+4]
