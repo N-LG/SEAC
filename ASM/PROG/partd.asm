@@ -1914,7 +1914,7 @@ db 0
 format_taille_fat:
 dd 0
 
-
+db "TEST"
 
 ;*************************************
 secteur_fat16:
@@ -1959,178 +1959,206 @@ nom_fat16:
 db "NO NAME    "
 nom_type_fat16:
 db "FAT16   "
+
 code_fat16:
-
-
-stra:               ;62
-db "fichier SYST.BAZ absent"
-strb:
 mov ax,7C0h
 mov ds,ax
-
-mov ax,2000h             ;charge une FAT en 2000h:0000
 mov es,ax
-xor si,si
-mov bp,[taille_fat_16b_fat16]
-mov bx,1
+mov ax,9000h        
+mov ss,ax
+xor sp,sp
+mov [num_disque-secteur_fat16],dl ;dl=disque sur lequel le bios a booté
 
-bchf:
-call chcl
-dec bp
-inc bx
-add si,200h
-cmp bp,0
-jne bchf
 
-mov ax,3000h             ;charge repertoire racine en 3000h:0000
-mov es,ax
+
+;test si la lecture des secteurs via fonction 42h est ok
+mov ah,41h
+mov dl,[num_disque_fat16-secteur_fat16]
+mov bx,55AAh
+int 13h
+jnc fonction42ok_code_fat16
+
+;si non recupère les carac physique du disque
+mov dl,[num_disque_fat16-secteur_fat16]
+mov ah,8
+int 13h
+and cx,3Fh  ;cx=secteur par piste
+mov [sec_piste_fat16-secteur_fat16],cx
+xor ax,ax
+mov al,dh   ;ax=nombre de tête
+mul cx
+mov [sec_cylindre_fat16-secteur_fat16],ax ;ax=nb de secteur par cylindre
+
+fonction42ok_code_fat16:
+
+
+
+;charge le dossier racine
 xor si,si
-mov bp,[taille_rep_racine_fat16]
-mov ax,[taille_fat_16b_fat16]
-mov cl,[nb_fat_fat16]
+mov bp,[taille_rep_racine_fat16-secteur_fat16]
+mov ax,[taille_fat_16b_fat16-secteur_fat16]
+mov cl,[nb_fat_fat16-secteur_fat16]
 mul cl
-inc ax
+xor ebx,ebx
 mov bx,ax
+add ebx,[adresse_premier_secteur_fat16-secteur_fat16]
+
 
 bchd:
-call chcl
+call chrg_sec_code_fat16
 sub bp,16
 inc bx
 add si,200h
 cmp bp,0
 jne bchd
 
-;*****************************************
-mov cx,[taille_rep_racine_fat16]
-xor bx,bx
-testp:
-xor di,di
-boucp:
-mov al,[43+di]
-es
-mov ah,[bx+di]
-cmp al,ah
-jne rate
-inc di
-cmp di,11
-je fin
-jmp boucp
 
-rate:
-add bx,32
-dec cx
-cmp cx,0
-je stop
-jmp testp
 
-stop:
-mov cx,23
-mov si,62
-call afmg
-nopp:
-nop
-jmp nopp
+;recherche dans le dossier racine le bon fichier
+mov si,1024
+boucle_rechf_code_fat16:
+cmp dword[si],"SYST"
+jne suite_rechf_code_fat16
+cmp dword[si+4],"   "
+jne suite_rechf_code_fat16
+cmp dword[si+11]," BAZ"
+je trouv_rechf_code_fat16
+suite_rechf_code_fat16:
+add si,32
+cmp si,0
+jne boucle_rechf_code_fat16
+jmp erreur_fat16
 
-fin:
-es
-mov ax,[bx+26]
-mov bx,ax
-;*****************************************    
+trouv_rechf_code_fat16:
+xor ebx,ebx
+mov bx,[si+1Ah]
 
+
+
+;charge le fichier en 5000h:0000h
 mov ax,5000h            ;charge le fichier en 5000h:0000h
 mov es,ax
 xor si,si
 
-mov bp,[taille_rep_racine_fat16]
+boucle_chargef_code_fat16:
+call chrg_clu_code_fat16
+cmp ebx,0
+je erreur_fat16
+cmp ebx,0FF0h
+jge fin_chargef_code_fat16
+add si,200h
+cmp si,0
+jne boucle_chargef_code_fat16
+mov ax,es
+add ax,1000h
+mov es,ax
+jmp boucle_chargef_code_fat16
+
+
+fin_chargef_code_fat16:
+mov si,msg2_fat16
+call afmsg_code_fat16
+jmp 5000h:0000h
+
+
+erreur_fat16:
+mov si,msg1_fat16
+call afmsg_code_fat16
+
+sansfin_code_fat16:
+nop
+jmp sansfin_code_fat16
+
+
+chrg_clu_code_fat16:
+push ebx
+mov bp,[taille_rep_racine_fat16-secteur_fat16]
 shr bp,4
-mov ax,[taille_fat_16b_fat16]
-mov cl,[nb_fat_fat16]
+mov ax,[taille_fat_16b_fat16-secteur_fat16]
+mov cl,[nb_fat_fat16-secteur_fat16]
 mul cl
 dec ax
 add ax,bp
 
-bocharg:
-add bx,ax
-call chcl
-sub bx,ax
-call chnb
-cmp bx,0FF0h
-jge sauverfic
-add si,200h
-jmp bocharg
+call chrg_sec_code_fat16
 
-sauverfic:         
-mov ax,5000h        ;chargement des segment
-mov ds,ax
+
+pop ebx
+shr ebx,1
+mov eax,ebx
+shr eax,16
+cmp ax,[index_fat16-secteur_fat16]
+je suite_code_fat16_lecturefat
+
+;met a jour la table des fat (charge une partie de FAT )
+pushad
+push fs
+mov ax,fs           
 mov es,ax
-mov ax,9000h        
-;mov ss,ax
-;xor ax,ax           ;remise a zero des registre    
-;xor bx,bx
-;xor cx,cx
-;xor dx,dx
-;xor si,si
-;xor di,di
-;xor bp,bp
-;xor sp,sp            ;reinitialisation de la pile
-jmp 5000h:0000h
+xor si,si
+mov bp,[taille_fat_16b_fat16-secteur_fat16]
+xor ebx,ebx
+mov bx,[secteur_reserve_fat16-secteur_fat16]
+add ebx,[adresse_premier_secteur_fat16-secteur_fat16]
+pop fs
+popad
 
-
-chnb:                 ;charge nø de FAT
-push ax               ;entr‚e: bx=Nøde FAT
-push cx               ;Sortie bx=Nøcontenue dans la FAT
-push dx
-push es
-
-mov ax,2000h
-mov es,ax
-shr bx,1
-jc  unns
-mov ax,bx
-mov cl,3
-mul cl
-mov bx,ax
-es
-mov ax,[bx]
-mov bx,ax
-and bx,0FFFh
-jmp kirk
-unns:
-mov ax,bx
-mov cl,3
-mul cl
-mov bx,ax
+boucle_chargefat_code_fat16:
+call chrg_sec_code_fat16
+dec bp
 inc bx
-es
+add si,200h
+cmp bp,0
+jne boucle_chargefat_code_fat16
+
+
+suite_code_fat16_lecturefat:
+xor ebx,ebx
+fs
 mov ax,[bx]
 mov bx,ax
-shr bx,4
-and bx,0FFFh
-kirk:
-pop es
-pop dx
-pop cx
-pop ax
 ret
 
 
-chcl:    ;bx=Nøcluster es:si=zone ou copier
-push ax
-push bx
-push cx
-push dx
-push bp
-push si
-mov cx,[nb_sect_par_piste_fat16] 
-mov ax,[26] 
-mul cx
-mov cx,ax
+
+
+afmsg_code_fat16:
+mov al,[si]
+cmp al,0
+jne affiche_code_fat16
+ret
+affiche_code_fat16:
+mov ah,0Eh
+mov bx,07h
+int 10h
+inc si
+jmp afmsg_code_fat16
+
+
+chrg_sec_code_fat16:    ;ebx=Numero de secteur es:si=zone ou copier
+pushad
+cmp word[sec_piste_fat16-secteur_fat16],0
+jne oldpc_fat16
+
+mov [ofsdap_fat16],si
+mov ax,es
+mov [segdap_fat16],ax
+mov [adressedap_fat16],ebx
+
+mov ah,42h
+mov dl,[num_disque_fat16-secteur_fat16]
+mov si,zt_dap_fat16
+int 13h
+jmp findec_fat16
+
+oldpc_fat16:
 mov ax,bx
 xor dx,dx
+mov cx,[sec_cylindre_fat16-secteur_fat16]
 div cx
-mov bx,ax
+mov bx,ax  ;bx=cylindre
 mov ax,dx
-mov cl,[24]
+mov cl,[sec_piste_fat16-secteur_fat16] ;nb de secteur par piste
 div cl
 mov dh,al
 mov cx,bx
@@ -2142,44 +2170,51 @@ and ah,03Fh
 or cl,ah
 mov bp,5
 mov bx,si
-alfq: 
+alfq_fat16: 
 mov al,1
 mov ah,2
-xor dl,dl
+mov dl,[num_disque_fat16-secteur_fat16]
 int 13h
-jnc findec
+jnc findec_fat16
 dec bp
-jnz alfq
-findec:
-pop si
-pop bp
-pop dx
-pop cx
-pop bx
-pop ax
-ret
-
-afmg:          ;affiche message en ds:si    cx=nb  carac
-push ax
-push bx
-push si
-
-mov ah,0Eh
-mov bl,0Ah
-bome:
-mov al,[si]
-int 10h
-inc si
-dec cx
-jnz bome
-pop si
-pop bx
-pop ax
+jnz alfq_fat16
+findec_fat16:
+popad
 ret
 
 
-rb 510 + secteur_fat16 - $ 
+msg1_fat16:               
+db "echec "
+msg2_fat16:
+db "chargement...",0
+
+index_fat16:
+dw 0FFFFh
+
+
+rb 506 + secteur_fat16 - $ 
+
+zt_dap_fat16:
+db 10h
+db 0
+dw 1
+ofsdap_fat16:
 db 055h,0AAh
+segdap_fat16:
+dw 0
+adressedap_fat16:
+dd 0,0
+sec_piste_fat16:
+dw 0
+sec_cylindre_fat16:
+dw 0
+num_disque_fat16:
+db 0
+
+
+
+
+
 
 
 ;***********************
