@@ -316,9 +316,14 @@ mov byte[chaine_part_mbr+49],13
 mov byte[chaine_part_mbr+50],0
 
 mov cl,[ebx+4]          ;code type
-mov edx,chaine_part_mbr
+mov edx,chaine_part_mbr+1
 mov al,105
 int 61h
+
+cmp byte[ebx],80h          ;affiche si boutable
+jne part_pas_boutable
+mov byte[chaine_part_mbr],"*"
+part_pas_boutable:
 
 mov ecx,[ebx+12]          ;taille
 shr ecx,1
@@ -773,8 +778,8 @@ jmp choix_action
 modif_partition_mbr:
 mov al,12
 mov ebx,0
-mov ecx,[num_partition]
-add ecx,12
+mov ecx,[resyt]
+dec ecx
 int 63h
 
 mov edx,msg_modif1
@@ -793,7 +798,80 @@ int 63h
 cmp bh,1
 je affiche_part
 
-;£££££££££££££££££££££££££££££££££££££££££££££££££££££££$
+and ebx,03h
+shl ebx,4
+add ebx,ZT512B+1BEh
+mov esi,ebx
+
+mov al,12
+mov ebx,0
+mov ecx,[resyt]
+dec ecx
+int 63h
+
+mov edx,msg_blanc
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+;demande quel type de partition
+mov al,12
+mov ebx,0
+mov ecx,[resyt]
+sub ecx,4
+int 63h
+
+mov edx,msg_modif2
+mov al,11
+mov ah,7 ;couleur
+int 63h
+
+mov cl,[esi+4]
+mov al,105
+mov edx,saisienum
+int 61h
+mov ah,07h
+mov edx,saisienum
+mov ecx,3
+mov al,6
+int 63h
+mov al,101
+mov edx,saisienum
+int 61h
+mov [esi+4],cl
+
+;demande si la partition doit être marqué bootable
+mov al,12
+mov ebx,0
+mov ecx,[resyt]
+sub ecx,4
+int 63h
+
+mov edx,msg_modif3
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov al,13
+mov bh,7 ;couleur
+mov bl,[esi]
+shr bl,7
+mov cl,[resyt]
+sub cl,3
+mov ch,2
+int 63h
+
+cmp bl,0
+jne fixepartitionboutable 
+mov byte[esi],00h
+jmp sauvegarde_mbr
+
+fixepartitionboutable:
+mov byte[ZT512B+1BEh],0
+mov byte[ZT512B+1CEh],0
+mov byte[ZT512B+1DEh],0
+mov byte[ZT512B+1EEh],0
+mov byte[esi],80h
 jmp sauvegarde_mbr
 
 
@@ -1774,11 +1852,16 @@ db "impossible de créer la partition, il n'y as plus de partition de libre",0
 
 
 msg_blanc:
-db "                                                                                ",0
+db "                                                         ",0
 
 
 msg_modif1:
 db "choisissez la partition a modifier (echap pour annuler)",0
+msg_modif2:
+db "code du type de partition:",0 
+msg_modif3:
+db "partition amorçable?                          ",13,"non",13,"oui",0
+
  
 msg_format1:
 db "choisissez la partition a formatter (echap pour annuler)",0
@@ -1914,9 +1997,8 @@ db 0
 format_taille_fat:
 dd 0
 
-db "TEST"
 
-;*************************************
+;****************************************************************************************
 secteur_fat16:
 use16
 jmp code_fat16 
@@ -1964,7 +2046,7 @@ code_fat16:
 mov ax,7C0h
 mov ds,ax
 mov es,ax
-mov ax,9000h        
+mov ax,9000h
 mov ss,ax
 xor sp,sp
 mov [num_disque-secteur_fat16],dl ;dl=disque sur lequel le bios a booté
@@ -2004,13 +2086,13 @@ mov bx,ax
 add ebx,[adresse_premier_secteur_fat16-secteur_fat16]
 
 
-bchd:
+boucle_chargedr_code_fat16:
 call chrg_sec_code_fat16
 sub bp,16
 inc bx
 add si,200h
 cmp bp,0
-jne bchd
+jne boucle_chargedr_code_fat16
 
 
 
@@ -2217,7 +2299,7 @@ db 0
 
 
 
-;***********************
+;********************************************************************
 secteur_fat32:
 jmp code_fat32
 nop
@@ -2274,40 +2356,205 @@ db "NO NAME    "
 nom_type_fat32:
 db "FAT32   "
 code_fat32:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-rb 510 + secteur_fat32 - $ 
+mov ax,7C0h
+mov ds,ax
+mov es,ax
+mov ax,9000h
+mov ss,ax
+xor sp,sp
+mov [num_disque-secteur_fat32],dl ;dl=disque sur lequel le bios a booté
+
+
+
+;test si la lecture des secteurs via fonction 42h est ok
+mov ah,41h
+mov dl,[num_disque_fat32-secteur_fat32]
+mov bx,55AAh
+int 13h
+jc erreur_fat32
+
+
+
+
+
+;charge le dossier racine
+;???????
+
+
+;recherche dans le dossier racine le bon fichier
+mov si,1024
+boucle_rechf_code_fat32:
+cmp dword[si],"SYST"
+jne suite_rechf_code_fat32
+cmp dword[si+4],"   "
+jne suite_rechf_code_fat32
+cmp dword[si+11]," BAZ"
+je trouv_rechf_code_fat32
+suite_rechf_code_fat32:
+add si,32
+cmp si,0
+jne boucle_rechf_code_fat32
+jmp erreur_fat32
+
+trouv_rechf_code_fat32:
+xor ebx,ebx
+mov bx,[si+1Ah]
+
+
+
+;charge le fichier en 5000h:0000h
+mov ax,5000h            ;charge le fichier en 5000h:0000h
+mov es,ax
+xor si,si
+
+boucle_chargef_code_fat32:
+call chrg_clu_code_fat32
+cmp ebx,0
+je erreur_fat32
+cmp ebx,0FF0h
+jge fin_chargef_code_fat32
+add si,200h
+cmp si,0
+jne boucle_chargef_code_fat32
+mov ax,es
+add ax,1000h
+mov es,ax
+jmp boucle_chargef_code_fat32
+
+
+fin_chargef_code_fat32:
+mov si,msg2_fat32-secteur_fat32
+call afmsg_code_fat32
+jmp 5000h:0000h
+
+
+erreur_fat32:
+mov si,msg1_fat32-secteur_fat32
+call afmsg_code_fat32
+
+sansfin_code_fat32:
+nop
+jmp sansfin_code_fat32
+
+
+chrg_clu_code_fat32:
+push ebx
+mov bp,[taille_rep_racine_fat16-secteur_fat32]
+shr bp,4
+mov ax,[taille_fat_16b_fat16-secteur_fat32]
+mov cl,[nb_fat_fat16-secteur_fat32]
+mul cl
+dec ax
+add ax,bp
+
+call chrg_sec_code_fat32
+
+
+pop ebx
+shr ebx,1
+mov eax,ebx
+shr eax,16
+cmp ax,[index_fat32-secteur_fat16]
+je suite_code_fat32_lecturefat
+
+;met a jour la table des fat (charge une partie de FAT )
+pushad
+push fs
+mov ax,fs           
+mov es,ax
+xor si,si
+mov bp,[taille_fat_32b_fat32-secteur_fat32]
+xor ebx,ebx
+mov bx,[secteur_reserve_fat32-secteur_fat32]
+add ebx,[adresse_premier_secteur_fat32-secteur_fat32]
+pop fs
+popad
+
+boucle_chargefat_code_fat32:
+call chrg_sec_code_fat32
+dec bp
+inc bx
+add si,200h
+cmp bp,0
+jne boucle_chargefat_code_fat16
+
+
+suite_code_fat32_lecturefat:
+xor ebx,ebx
+fs
+mov ax,[bx]
+mov bx,ax
+ret
+
+
+
+afmsg_code_fat32:
+mov al,[si]
+cmp al,0
+jne affiche_code_fat32
+ret
+affiche_code_fat32:
+mov ah,0Eh
+mov bx,07h
+int 10h
+inc si
+jmp afmsg_code_fat32
+
+
+chrg_sec_code_fat32:    ;ebx=Numero de secteur es:si=zone ou copier
+pushad
+
+mov [ofsdap_fat32-secteur_fat32],si
+mov ax,es
+mov [segdap_fat32-secteur_fat32],ax
+mov [adressedap_fat32-secteur_fat32],ebx
+
+mov ah,42h
+mov dl,[num_disque_fat32-secteur_fat32]
+mov si,zt_dap_fat16
+int 13h
+
+findec_fat32:
+popad
+ret
+
+
+msg1_fat32:               
+db "echec "
+msg2_fat32:
+db "chargement...",0
+
+index_fat32:
+dw 0FFFFh
+
+
+rb 506 + secteur_fat32 - $ 
+
+zt_dap_fat32:
+db 10h
+db 0
+dw 1
+ofsdap_fat32:
 db 055h,0AAh
+segdap_fat32:
+dw 0
+adressedap_fat32:
+dd 0,0
+num_disque_fat32:
+db 0
 
-
-
+;***********************************************
 
 
 nom_fichier:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 256
 
 
 ZT512A:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 512
 
 ZT512B:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 512
 
 ZT512C:
 
