@@ -99,6 +99,12 @@ zone_attente_tcp_delais      equ 20   ;délais entre chaque réexpédition de trame
 zone_attente_tcp_nb          equ 24   ;nombre de réexpétion maximum restante
 zone_attente_tcp_descr       equ 28   ;adresse du descripteur de connexion
 
+;pour type 5
+zone_attente_tcp_ack_trame   equ 12   ;numéros d'aquitement de la trame
+;zone_attente_tcp_compteur    equ 16   ;valeur compteur maximum durant laquel conserver la trame
+;zone_attente_tcp_descr       equ 28   ;adresse du descripteur de connexion
+
+
 
 zone_attente_trame equ 32
 
@@ -618,7 +624,7 @@ int 60h
 
 ok_reception:
 cmp ecx,0
-je envoie_trame_attente
+je verifie_trame_attente
 mov [taille_trame],ecx
 
 ;envoie de toutes les trames reçu
@@ -802,11 +808,11 @@ mov eax,[adresse_ipv4_destination]
 mov ebx,[ad_zone_attente]
 mov ecx,[nb_zone_attente]
 
-boucle_envoie_trame_attente_ipv4:
+boucle_verifie_trame_attente_ipv4:
 cmp byte[ebx+zone_attente_type],1
-jne suite_envoie_trame_attente_ipv4
+jne suite_verifie_trame_attente_ipv4
 cmp [ebx+zone_attente_adresse_rech],eax
-jne suite_envoie_trame_attente_ipv4
+jne suite_verifie_trame_attente_ipv4
 
 pushad      ;trame correspondante trouvé, on met a jour l'adresse Ethernet et on l'envoie
 xor ecx,ecx
@@ -821,10 +827,10 @@ call envoie_trame_ethernet
 popad 
 mov word[ebx+zone_attente_type],0 ;et libère la zone
 
-suite_envoie_trame_attente_ipv4:
+suite_verifie_trame_attente_ipv4:
 add ebx,2048
 dec ecx
-jnz boucle_envoie_trame_attente_ipv4
+jnz boucle_verifie_trame_attente_ipv4
 jmp boucle_principale 
 
 
@@ -1462,7 +1468,7 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
@@ -1528,25 +1534,25 @@ cmp byte[edi+cnx_etat],5
 je trame_tcp_arret_serveur_attente_fin
 cmp byte[edi+cnx_etat],6
 je trame_tcp_arret_client_attente_ack
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
 ;*************************************************
 trame_tcp_arret_serveur_attente_ack:    ;connexion en phase d'arret (initiative serveur) attent ack par client
 test dword[esi+tcp_flag],1000h  ;ack=1
-jz envoie_trame_attente
+jz verifie_trame_attente
 mov eax,[esi+tcp_ack]
 bswap eax
 cmp eax,[edi+cnx_seq_serveur_suivante]
-jne envoie_trame_attente
+jne verifie_trame_attente
 mov byte[edi+cnx_etat],5
 
 
 ;***************************************************
 trame_tcp_arret_serveur_attente_fin:       ;connexion en phase d'arret (initiative serveur) attent fin par client
 test dword[esi+tcp_flag],0100h  ;fin=1
-jz envoie_trame_attente
+jz verifie_trame_attente
 inc dword[edi+cnx_seq_client_attendue]
 
 
@@ -1616,16 +1622,16 @@ call envoie_trame_ip
 
 call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
 
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 ;***********************************************
 trame_tcp_arret_client_attente_ack:     ;connexion en phase d'arret (initiative client) attente ack par client
 test dword[esi+tcp_flag],1000h  ;ack=1
-jz envoie_trame_attente
+jz verifie_trame_attente
 mov eax,[esi+tcp_ack]
 bswap eax
 cmp eax,[edi+cnx_seq_serveur_suivante]
-jne envoie_trame_attente
+jne verifie_trame_attente
 
 mov dword[edi],0        ;effacement descripteur
 mov dword[edi+4],0
@@ -1643,7 +1649,7 @@ mov dword[edi+48],0
 mov dword[edi+52],0
 mov dword[edi+56],0
 mov dword[edi+60],0
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 ;***************************************************************
@@ -1651,7 +1657,7 @@ trame_tcp_syncronisation_sortante:
 mov ax,[esi+tcp_flag]
 and ax,0FF00h
 cmp ax,1200h     ;test si c'est un SYN+ACK
-jne envoie_trame_attente
+jne verifie_trame_attente
 
 mov byte[edi+cnx_etat],3   ;si oui passe la CNX en mode établie
 
@@ -1707,7 +1713,7 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
@@ -1719,13 +1725,13 @@ and ax,0FF00h
 cmp ax,0200h
 je envoie_reponse_syncro ;si le système redemande une syncro on lui renvoie la trame syn+ack
 cmp ax,1000h
-jne envoie_trame_attente
+jne verifie_trame_attente
 mov eax,[esi+tcp_ack]   ;si le systeme répond a l'ack final on passe en mode de transmission établit
 bswap eax
 cmp eax,[edi+cnx_seq_serveur_suivante] 
-jne envoie_trame_attente
+jne verifie_trame_attente
 mov byte[edi+cnx_etat],3
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
@@ -1762,7 +1768,7 @@ mov dword[edi+48],0
 mov dword[edi+52],0
 mov dword[edi+56],0
 mov dword[edi+60],0
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
@@ -1774,13 +1780,24 @@ mov eax,[esi+tcp_seq]
 bswap eax
 cmp [edi+cnx_seq_client_attendue],eax
 je trame_tcp_seq_ok
+ja trame_tcp_aquitte    ;si on l'as déja reçu on la réaquitte (parce que l'ack n'as pas dût être reçu par le destinataire)
 
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§que faire en cas d'erreur de séquence 
-
-
-
+;sauvegarde la trame reçu en avance
+push eax
+mov al,5
+mov ecx,[taille_niv_sup]
+mov esi,[offset_ethernet] 
+call trame_attente
+pop eax
+cmp esi,0
+je verifie_trame_attente
+mov ecx,400
+add ecx,[cptsf]
+mov [esi+zone_attente_tcp_ack_trame],eax
+mov [esi+zone_attente_tcp_compteur],ecx      ;valeur compteur maximum pour conserver la trame
+mov [esi+zone_attente_tcp_descr],edi        ;adresse du descripteur de la connexion
+jmp verifie_trame_attente
 
 
 trame_tcp_seq_ok:
@@ -1812,6 +1829,7 @@ test ax,0200h ;test si c'est une demande de syncro et met a jour
 jnz trame_tcp_maj_num_seq
 
 ;aquitte les données reçu
+trame_tcp_aquitte:
 mov esi,zt_decod+64
 mov [offset_ip],esi 
 
@@ -1859,7 +1877,7 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-jmp envoie_trame_attente
+jmp verifie_trame_attente
 
 
 
@@ -1942,12 +1960,12 @@ call envoie_trame_ip
 
 call sauvegarde_trame_tcp
 
-;jmp envoie_trame_attente
+;jmp verifie_trame_attente
 
 
 
 ;***************************************************************************************
-envoie_trame_attente:
+verifie_trame_attente:              ;verifie les trame en attentes
 
 ;rexpédie les trame TCP ayant dépassé le délais
 mov ebx,[ad_zone_attente]
@@ -1955,7 +1973,45 @@ mov ecx,[nb_zone_attente]
 
 boucle_rexp_trame_nack:
 cmp byte[ebx+zone_attente_type],4
-jne ignore_rexp_trame_nack
+jne traite_trame_attente_ack
+cmp byte[ebx+zone_attente_type],5
+jne traite_trame_attente_avance
+
+ignore_rexp_trame_nack:
+add ebx,2048
+dec ecx
+jnz boucle_rexp_trame_nack
+jmp verification_connexion_active
+
+
+
+
+;*****************
+traite_trame_attente_avance:  ;traite trame tcp reçu avec n°de séquence en avace
+mov eax,[cptsf]
+cmp [ebx+zone_attente_tcp_compteur],eax
+jb traite_trame_attente_avance_efface   ;si temp dépassé efface la trame
+
+mov edi,[ebx+zone_attente_tcp_descr]
+mov eax,[edi+cnx_seq_client_attendue]
+cmp eax,[ebx+zone_attente_tcp_ack_trame]
+jne ignore_rexp_trame_nack     ;si numéros de séquence toujours pas valide ignore la trame
+
+;envoie les données a l'application
+;§§§§§§§§§§§§§§§§§§§§§§§
+
+
+traite_trame_attente_avance_efface:
+mov byte[ebx+zone_attente_type],0 ;effacement de la trame
+jmp ignore_rexp_trame_nack
+
+
+
+
+
+
+;*****************
+traite_trame_attente_ack:         ;traite trame tcp en attente d'ack
 mov eax,[cptsf]
 cmp [ebx+zone_attente_tcp_compteur],eax
 ja ignore_rexp_trame_nack
@@ -1978,13 +2034,10 @@ cld
 rep movsb
 call envoie_trame_ip
 popad
+jmp ignore_rexp_trame_nack
 
 
-ignore_rexp_trame_nack:
-add ebx,2048
-dec ecx
-jnz boucle_rexp_trame_nack
-jmp verification_connexion_active
+
 
 detruite_rexp_trame_nack:         ;dépassement du nombre d'envoie de trame
 mov byte[ebx+zone_attente_type],0 ;effacement de la trame
