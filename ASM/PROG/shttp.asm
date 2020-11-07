@@ -178,6 +178,9 @@ je descripteur_vide
 add esi,to_reception
 dec ecx
 jnz boucle_rech_descr
+
+mov eax,1 ;si nb max atteind, on supprime la connexion
+int 65h
 jmp test_donnee_rec
 
 descripteur_vide:
@@ -582,6 +585,31 @@ jmp ajoute_dossier
 
 
 
+;*****************************************************
+ferme_connexion:
+pushad
+;recherche le descripteur de la connexion
+mov esi,zts_reception
+mov ecx,[nb_reception]
+boucle_ferme_cnx:
+cmp [esi+adresse_com],ebx
+jne suite_ferme_cnx
+
+mov word[esi+port_client],0
+mov eax,1 ;supprime la connexion
+int 65h
+
+suite_ferme_cnx:
+add esi,to_reception
+dec ecx
+jnz boucle_ferme_cnx
+
+popad
+ret
+
+
+
+
 ;***********************************************************
 envoie_fichier:
 pushad
@@ -680,7 +708,8 @@ je fin_envoie_fichier
 cmp eax,0
 jne erreur_envoie_fichier
 
-
+;supprime la connexion
+call ferme_connexion
 popad
 xor eax,eax
 ret
@@ -778,6 +807,9 @@ mov esi,edi
 mov ecx,ebp
 mov al,7
 int 65h
+
+;supprime la connexion
+call ferme_connexion
 jmp boucle_principale
 
 

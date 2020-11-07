@@ -1253,7 +1253,6 @@ test word[esi+tcp_flag],00200h
 jz boucle_principale
 
 
-
 ;si oui test si il y as la possibilité de créer une nouvelle connexion
 mov esi,[offset_ip]
 mov ax,[esi+tcp_port_dest]   
@@ -1782,12 +1781,16 @@ cmp [edi+cnx_seq_client_attendue],eax
 je trame_tcp_seq_ok
 ja trame_tcp_aquitte    ;si on l'as déja reçu on la réaquitte (parce que l'ack n'as pas dût être reçu par le destinataire)
 
-
 ;sauvegarde la trame reçu en avance
+push esi
 push eax
-mov al,5
+mov ax,[esi+tcp_flag]
+and eax,00F0h
+shr eax,2 ;div par  16 mul par 4
 mov ecx,[taille_niv_sup]
-mov esi,[offset_ethernet] 
+sub ecx,eax
+add esi,eax
+mov al,5
 call trame_attente
 pop eax
 cmp esi,0
@@ -1797,6 +1800,15 @@ add ecx,[cptsf]
 mov [esi+zone_attente_tcp_ack_trame],eax
 mov [esi+zone_attente_tcp_compteur],ecx      ;valeur compteur maximum pour conserver la trame
 mov [esi+zone_attente_tcp_descr],edi        ;adresse du descripteur de la connexion
+pop esi
+
+mov ax,[esi+tcp_flag]
+test ax,0100h  ;test si c'est une demande de fin de connexion
+jnz trame_tcp_demande_fin
+
+mov ax,[esi+tcp_flag]
+test ax,0200h ;test si c'est une demande de syncro et met a jour
+jnz trame_tcp_maj_num_seq
 jmp verifie_trame_attente
 
 
@@ -1817,8 +1829,6 @@ mov al,7
 mov ebx,[edi+cnx_adresse_com]
 int 65h
 pop esi
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§que faire en cas d'ereur de connexion
-
 
 mov ax,[esi+tcp_flag]
 test ax,0100h  ;test si c'est une demande de fin de connexion
@@ -1830,53 +1840,7 @@ jnz trame_tcp_maj_num_seq
 
 ;aquitte les données reçu
 trame_tcp_aquitte:
-mov esi,zt_decod+64
-mov [offset_ip],esi 
-
-mov ax,[edi+cnx_port_serveur]  ;port
-mov bx,[edi+cnx_port_client]
-xchg al,ah
-xchg bl,bh
-mov [esi+tcp_port_sour],ax
-mov [esi+tcp_port_dest],bx
-
-mov eax,[edi+cnx_seq_serveur_suivante]
-mov ebx,[edi+cnx_seq_client_attendue]
-bswap eax
-bswap ebx
-mov [esi+tcp_seq],eax
-mov [esi+tcp_ack],ebx
-
-mov word[esi+tcp_flag],1050h   ;ACK a 1 + en-tête de 5dword
-
-mov word[esi+tcp_fenetre],4000h ;fenetre d'envoie 16Ko
-mov word[esi+tcp_cheksum],0
-mov word[esi+tcp_pointeur],0
-
-mov dword[taille_niv_sup],20
-
-mov eax,[edi+cnx_adresse_ipv4_client]
-mov [adresse_ipv4_destination],eax
-mov eax,[edi+cnx_adresse_ipv6_client]
-mov [adresse_ipv6_destination],eax
-mov eax,[edi+cnx_adresse_ipv4_client+4]
-mov [adresse_ipv6_destination+4],eax
-mov eax,[edi+cnx_adresse_ipv4_client+8]
-mov [adresse_ipv6_destination+8],eax
-mov eax,[edi+cnx_adresse_ipv4_client+12]
-mov [adresse_ipv6_destination+12],eax
-
-
-;créer la partie en tête ip
-mov byte[type_niv_sup],06
-call cree_entete_ip
-
-;calcul le checksum
-call chk_gen
-mov esi,[offset_ip] 
-mov word[esi+tcp_cheksum],ax
-
-call envoie_trame_ip
+call envoie_ack_tcp
 jmp verifie_trame_attente
 
 
@@ -1973,9 +1937,9 @@ mov ecx,[nb_zone_attente]
 
 boucle_rexp_trame_nack:
 cmp byte[ebx+zone_attente_type],4
-jne traite_trame_attente_ack
+je traite_trame_attente_ack
 cmp byte[ebx+zone_attente_type],5
-jne traite_trame_attente_avance
+je traite_trame_attente_avance
 
 ignore_rexp_trame_nack:
 add ebx,2048
@@ -1997,9 +1961,21 @@ mov eax,[edi+cnx_seq_client_attendue]
 cmp eax,[ebx+zone_attente_tcp_ack_trame]
 jne ignore_rexp_trame_nack     ;si numéros de séquence toujours pas valide ignore la trame
 
-;envoie les données a l'application
-;§§§§§§§§§§§§§§§§§§§§§§§
+;met a jour la séquence de la connexion
+mov ecx,[ebx+zone_attente_taille]
+add [edi+cnx_seq_client_attendue],ecx
 
+;envoie les données a l'application
+push ebx
+mov ebx,esi
+add esi,zone_attente_trame
+mov al,7
+mov ebx,[edi+cnx_adresse_com]
+int 65h
+pop ebx
+
+;envoie l'ack
+call envoie_ack_tcp
 
 traite_trame_attente_avance_efface:
 mov byte[ebx+zone_attente_type],0 ;effacement de la trame
@@ -2470,6 +2446,19 @@ jmp boucle_principale
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;*************************************************************************************************************************
 ;*************************************************************************************************************************
 envoie_trame_ip:                     ;adresse_ipv4_destination ou adresse_ipv6_destination devront contenir des information valide
@@ -2770,6 +2759,62 @@ inc word[esi+cnx_nbmax]
 popad
 ret
 
+
+
+
+
+;**************************************************************************
+envoie_ack_tcp:             ;envoie un ack a la connexion pointé par edi, detruit la zt_decod
+pushad
+mov esi,zt_decod+64
+mov [offset_ip],esi 
+
+mov ax,[edi+cnx_port_serveur]  ;port
+mov bx,[edi+cnx_port_client]
+xchg al,ah
+xchg bl,bh
+mov [esi+tcp_port_sour],ax
+mov [esi+tcp_port_dest],bx
+
+mov eax,[edi+cnx_seq_serveur_suivante]
+mov ebx,[edi+cnx_seq_client_attendue]
+bswap eax
+bswap ebx
+mov [esi+tcp_seq],eax
+mov [esi+tcp_ack],ebx
+
+mov word[esi+tcp_flag],1050h   ;ACK a 1 + en-tête de 5dword
+
+mov word[esi+tcp_fenetre],4000h ;fenetre d'envoie 16Ko
+mov word[esi+tcp_cheksum],0
+mov word[esi+tcp_pointeur],0
+
+mov dword[taille_niv_sup],20
+
+mov eax,[edi+cnx_adresse_ipv4_client]
+mov [adresse_ipv4_destination],eax
+mov eax,[edi+cnx_adresse_ipv6_client]
+mov [adresse_ipv6_destination],eax
+mov eax,[edi+cnx_adresse_ipv4_client+4]
+mov [adresse_ipv6_destination+4],eax
+mov eax,[edi+cnx_adresse_ipv4_client+8]
+mov [adresse_ipv6_destination+8],eax
+mov eax,[edi+cnx_adresse_ipv4_client+12]
+mov [adresse_ipv6_destination+12],eax
+
+
+;créer la partie en tête ip
+mov byte[type_niv_sup],06
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+tcp_cheksum],ax
+
+call envoie_trame_ip
+popad
+ret
 
 
 
