@@ -6,13 +6,13 @@
 
 ;reste a faire:
 
-;gestion des trame reçu en avance ou en retard
-
+;gestion des trame reçu en avance ou en retard (a controler)
 ;réemission des paquets perdus (a controler)
 ;gerer les autres protocoles ethernet (a controler)
 ;gerer le multi adresse ethernet (a controler)
 
 ;gerer la reception de message ICMP
+
 ;ajouter verif conformité param adresse carte
 ;adresse de broadcast
 ;fragmentation IPv4
@@ -217,6 +217,8 @@ cmp byte[zt_decod],7
 je ouverture_portudp
 cmp byte[zt_decod],8
 je ouverture_porttcp
+cmp byte[zt_decod],9
+je acces_icmp
 
 mov word[zt_decod],00FFh  ;on signale que la commande est inconnue
 mov al,5
@@ -305,10 +307,6 @@ mov edi,0
 mov esi,zt_decod
 int 65h
 jmp lire_nouvelle_trame 
-
-
-
-
 
 
 
@@ -571,6 +569,7 @@ mov [adresse_ipv6_destination+12],eax
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -580,29 +579,32 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-
 call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
-
-;!!!!!!!!!!!!!!!!!!!!!!TRAPPE
-;pushad
-;mov byte[tempo],"1"
-;mov byte[tempo+1],0
-;mov al,6        
-;mov edx,tempo
-;int 61h
-;popad
-;!!!!!!!!!!!!!!!!!!!!!!TRAPPE
-
-
-
-
 jmp lire_nouvelle_trame 
 
 
 
 ;**************************************
-lecture_icmp:
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+acces_icmp:
+mov esi,table_acces_icmp
+
+boucle_acces_icmp:
+cmp dword[esi+6],0FFFFFFFFh
+je suite_acces_icmp
+add esi,4
+cmp esi,table_acces_icmp+8*4
+jne boucle_ethernet_autresadresses
+jmp lire_nouvelle_trame 
+
+suite_acces_icmp:
+mov [esi],ebx
+
+mov word[zt_decod],0089h
+mov al,5
+mov ecx,8h
+mov edi,0
+mov esi,zt_decod
+int 65h
 jmp lire_nouvelle_trame
 
 
@@ -1003,8 +1005,7 @@ jne boucle_principale
 
 mov esi,[offset_ip]
 cmp byte[esi+icmp_type],8     ;est ce une demande d'écho?
-jne boucle_principale
-
+jne autres_trame_icmp_v4
 
 mov word[esi+icmp_type],0    ;réponse a un demande d'écho
 
@@ -1041,6 +1042,43 @@ add ecx,[taille_niv_sup]
 
 call envoie_trame_ethernet
 jmp boucle_principale  
+
+
+autres_trame_icmp_v4:
+mov esi,[offset_ip]
+sub esi,22      ;prépare l'en tête
+mov edi,[offset_ethernet]
+xor eax,eax
+mov al,[edi+ipv4_ttl]
+mov [esi],ax
+mov edx,[edi+ipv4_ip_sour]
+mov [esi+2],edx
+mov dword[esi+6],0
+mov dword[esi+10],0
+mov dword[esi+14],0
+mov dword[esi+18],0
+
+mov edi,table_acces_icmp             ;envoie a tout les receptionnaire des paquets icmp
+mov ecx,[taille_trame]
+
+
+boucle_autres_trame_icmp_v4:
+
+mov ebx,[edi]
+cmp ebx,0FFFFFFFFh
+je suite_autres_trame_icmp_v4
+
+mov al,7
+int 65h
+
+suite_autres_trame_icmp_v4:
+add edi,4
+cmp edi,table_acces_icmp+8*4
+jne boucle_autres_trame_icmp_v4
+
+
+jmp boucle_principale
+
 
 
 
@@ -1458,6 +1496,7 @@ mov [adresse_ipv6_destination+12],eax
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -1609,6 +1648,7 @@ mov dword[edi+56],0
 mov dword[edi+60],0
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -1703,6 +1743,7 @@ mov eax,[edi+cnx_adresse_ipv4_client+12]
 mov [adresse_ipv6_destination+12],eax
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -1897,6 +1938,7 @@ mov [adresse_ipv6_destination+12],eax
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -1912,6 +1954,7 @@ mov word[esi+tcp_flag],1150h   ;FIN et ACK a 1 + en-tête de 5dword
 mov word[esi+tcp_cheksum],0
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -2061,7 +2104,7 @@ je ignore_envoie_directe
 mov al,10
 int 65h
 cmp eax,0
-jne ignore_envoie_directe
+jne supprime_envoie_directe
 cmp ebp,0
 je ignore_envoie_directe
 
@@ -2073,6 +2116,10 @@ int 65h
 
 mov esi,zt_decod
 call envoie_trame_ethernet
+jmp ignore_envoie_directe
+
+supprime_envoie_directe:
+mov dword[tout_ethernet],0FFFFFFFFh
 ignore_envoie_directe:
 
 
@@ -2238,6 +2285,7 @@ mov word[esi+udp_cheksum],0
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],17
 call cree_entete_ip
 
@@ -2343,6 +2391,7 @@ mov [adresse_ipv6_destination+12],eax
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -2437,6 +2486,112 @@ ignore_verification_connexion_active_tcp:
 add esi,64
 dec ecx
 jnz verification_connexion_active_tcp
+
+
+;****************************************************
+;verification des messages icmp
+mov esi,table_acces_icmp
+mov ecx,8
+verification_connexion_active_icmp:
+mov ebx,[esi]
+cmp ebx,0FFFFFFFFh
+je ignore_verification_connexion_active_icmp
+mov al,10
+push ecx
+push esi
+int 65h
+pop esi
+pop ecx
+
+cmp eax,0
+jne efface_verification_connexion_active_icmp 
+cmp ebp,0
+je ignore_verification_connexion_active_icmp
+
+;***************************
+;envoie la trame icmp
+pushad
+push esi
+mov al,6
+mov ebx,[esi]
+mov edi,zt_decod+80h
+mov ecx,1500
+int 65h        ;lit les données avec une place réservé pour les en-tête
+pop edi
+
+;prépare les donnée de la trame
+sub ecx,14       ;-22+8     ;taille des données
+mov esi,zt_decod+80h
+mov bx,[esi]                ;port de destination
+mov eax,[esi+2]
+mov [adresse_ipv4_destination],eax
+
+mov eax,[esi+6]
+mov [adresse_ipv6_destination],eax
+mov eax,[esi+10]
+mov [adresse_ipv6_destination+4],eax
+mov eax,[esi+14]
+mov [adresse_ipv6_destination+8],eax
+mov eax,[esi+18]
+mov [adresse_ipv6_destination+12],eax
+
+
+add esi,14    ;+22-8
+mov [taille_niv_sup],ecx
+mov [offset_ip],esi 
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
+mov byte[type_niv_sup],1
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+icmp_cheksum],ax
+
+call envoie_trame_ip
+popad
+jmp ignore_verification_connexion_active_icmp
+
+efface_verification_connexion_active_icmp:
+mov dword[esi],0FFFFFFFFh
+
+ignore_verification_connexion_active_icmp:
+add esi,4
+dec ecx
+jnz verification_connexion_active_icmp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 jmp boucle_principale
 
@@ -2722,6 +2877,7 @@ mov eax,[edi+cnx_adresse_ipv4_client+12]
 mov [adresse_ipv6_destination+12],eax
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -2804,6 +2960,7 @@ mov [adresse_ipv6_destination+12],eax
 
 
 ;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],06
 call cree_entete_ip
 
@@ -2843,7 +3000,7 @@ mov [esi+ipv4_longueur],cx
 xor cx,[cptsf]
 mov [esi+ipv4_id],cx   ;peut être changer de métode pour générer les ID
 mov word[esi+ipv4_flag_frag],0
-mov dh,128
+mov dh,[ttl_niv_sup]
 mov dl,[type_niv_sup]
 mov [esi+ipv4_ttl],dh
 mov [esi+ipv4_protocole],dl

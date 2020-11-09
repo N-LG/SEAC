@@ -29,6 +29,8 @@ offset_ip:
 dd 0
 taille_niv_sup:
 dd 0
+ttl_niv_sup:
+db 0
 type_niv_sup:
 db 0
 somme_pseudo_entete:
@@ -75,6 +77,15 @@ dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 tout_ethernet:
 dd 0FFFFFFFFh
 
+table_acces_icmp:
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
+dd 0FFFFFFFFh
 
 table_ethernet_virtuel:
 dw 0,0,0,0FFFFh,0FFFFh             ;adresse mac + adresse canal de communication  8x
