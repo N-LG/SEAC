@@ -10,8 +10,7 @@
 ;réemission des paquets perdus (a controler)
 ;gerer les autres protocoles ethernet (a controler)
 ;gerer le multi adresse ethernet (a controler)
-
-;gerer la reception de message ICMP
+;gerer la reception de message ICMP (a controler)
 
 ;ajouter verif conformité param adresse carte
 ;adresse de broadcast
@@ -589,7 +588,7 @@ acces_icmp:
 mov esi,table_acces_icmp
 
 boucle_acces_icmp:
-cmp dword[esi+6],0FFFFFFFFh
+cmp dword[esi],0FFFFFFFFh
 je suite_acces_icmp
 add esi,4
 cmp esi,table_acces_icmp+8*4
@@ -2522,7 +2521,9 @@ pop edi
 ;prépare les donnée de la trame
 sub ecx,14       ;-22+8     ;taille des données
 mov esi,zt_decod+80h
-mov bx,[esi]                ;port de destination
+mov al,[esi]                ;port de destination
+mov [ttl_niv_sup],al
+
 mov eax,[esi+2]
 mov [adresse_ipv4_destination],eax
 
@@ -2536,20 +2537,20 @@ mov eax,[esi+18]
 mov [adresse_ipv6_destination+12],eax
 
 
-add esi,14    ;+22-8
+add esi,22
+sub ecx,22
 mov [taille_niv_sup],ecx
 mov [offset_ip],esi 
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 ;créer la partie en tête ip
-mov byte[ttl_niv_sup],128
 mov byte[type_niv_sup],1
 call cree_entete_ip
 
-;calcul le checksum
+mov esi,[offset_ip]
+mov dword[somme_pseudo_entete],0 ;on n'uttilise pas le pseudo_entete en ICMPv4
+mov word[esi+icmp_cheksum],0
 call chk_gen
-mov esi,[offset_ip] 
-mov word[esi+icmp_cheksum],ax
+mov [esi+icmp_cheksum],ax
 
 call envoie_trame_ip
 popad
@@ -2562,34 +2563,6 @@ ignore_verification_connexion_active_icmp:
 add esi,4
 dec ecx
 jnz verification_connexion_active_icmp
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
