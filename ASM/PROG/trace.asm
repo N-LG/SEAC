@@ -1,7 +1,7 @@
 ﻿bidon:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
-db "Ping ICMP"
+db "Trace route ICMP"
 scode:
 org 0
 
@@ -79,7 +79,7 @@ je err_param
 
 
 ;**************************************************************
-;determine nombre de ping
+;determine le nombre de sauts maximum
 mov byte[zt_recep],0
 
 mov al,4   
@@ -101,9 +101,49 @@ je err_param
 test ecx,0FFFFFF00h
 jnz err_param
 
-mov [nb_ping],cl
+mov [nb_saut],cl
 
 ignore_param2:
+
+
+
+;**************************************************************
+;determine le nombre d'essaies par étape
+mov byte[zt_recep],0
+
+mov al,4   
+mov ah,3   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,zt_recep
+int 61h
+
+cmp byte[zt_recep],0
+je ignore_param3
+
+
+mov al,100  
+mov edx,zt_recep
+int 61h
+
+cmp ecx,0
+je err_param
+test ecx,0FFFFFF00h
+jnz err_param
+
+mov [nb_essais],cl
+mov [ping_erreur],cl
+ignore_param3:
+
+
+
+
+
+
+
+
+
+
+
 
 ;***********************************************************
 ;etablire une connexion
@@ -116,7 +156,7 @@ mov edi,2000
 int 65h
 mov [adresse_canal],ebx
 
-;configure 69
+;configure
 mov byte[zt_recep],9
 
 mov al,5
@@ -175,7 +215,9 @@ int 61h
 boucle_principale:
 
 ;prépare commande
-mov word[zt_recep],128        ;ttl
+mov al,[no_saut]
+mov [zt_recep],al        ;ttl
+mov byte[zt_recep+1],0
 mov eax,[adresse_cible]
 mov [zt_recep+2],eax           ;adresse ipv4
 mov dword[zt_recep+6],0        ;adresse ipv6
@@ -238,11 +280,25 @@ mov eax,12
 int 61h
 sub eax,[cptsf]
 sub ecx,eax
-cmp word[zt_recep+22],0
-jne continue_attente 
+cmp word[zt_recep+22],0   ;si c'est une réponse a un echo c'est la fin
+je destination_trouve 
+cmp word[zt_recep+22],11   ;si c'est un timeout c'est pour nous
+jne continue_attente
+mov eax,[adresse_cible]   ;si c'était bien pour la destination c'est ok
+cmp [zt_recep+30+16],eax
+jne continue_attente
 
 
 ;affiche le résultat
+mov al,102
+xor ecx,ecx
+mov cl,[no_saut]
+mov edx,tempo
+int 61h
+mov al,6        
+mov edx,tempo
+int 61h
+
 mov al,6
 mov edx,msg1a
 int 61h
@@ -256,23 +312,33 @@ mov edx,tempo
 int 61h
 
 mov al,6
-mov edx,msg1b
+mov edx,msg_crlf
 int 61h
 
-mov eax,12          
+
+
+suite_boucle:
+mov al,[nb_essais]
+mov [ping_erreur],al
+mov al,[nb_saut]
+inc al
+inc byte[no_saut]
+inc word[sequence]
+cmp byte[no_saut],al
+jne boucle_principale
+
+
+mov al,6
+mov edx,msg_fin
 int 61h
-sub eax,[cptsf]
-cmp eax,0
-je temps_court
 
-xor edx,edx
-mov ecx,25
-mul ecx
-mov ecx,10
-div ecx
+int 60h
 
-mov ecx,eax
+;si pas de réponse affiche un message d'erreur
+erreur_ping:  
 mov al,102
+xor ecx,ecx
+mov cl,[no_saut]
 mov edx,tempo
 int 61h
 mov al,6        
@@ -280,48 +346,30 @@ mov edx,tempo
 int 61h
 
 mov al,6
-mov edx,msg1d
-int 61h
-
-inc byte[ping_ok]
-jmp suite_boucle
-
-
-temps_court:
-mov al,6
-mov edx,msg1c
-int 61h
-
-inc byte[ping_ok]
-jmp suite_boucle
-
-
-;si pas de réponse affiche un message d'erreur
-erreur_ping:  
-mov al,6
 mov edx,msg2
 int 61h
-inc byte[ping_erreur]
+dec byte[ping_erreur]
+jnz boucle_principale
+jmp suite_boucle
 
 
-suite_boucle:
-mov al,[nb_ping]
-inc byte[ping_effectue]
-inc word[sequence]
-cmp byte[ping_effectue],al
-jne boucle_principale
+;on est arrivé au destinataire final
+destination_trouve:
+mov al,102
+xor ecx,ecx
+mov cl,[no_saut]
+mov edx,tempo
+int 61h
+mov al,6        
+mov edx,tempo
+int 61h
 
-
-
-
-;affiche la synthèse
 mov al,6
 mov edx,msg3a
 int 61h
 
-mov al,102
-xor ecx,ecx
-mov cl,[ping_effectue]
+mov al,112
+mov ecx,zt_recep+2
 mov edx,tempo
 int 61h
 mov al,6        
@@ -329,34 +377,10 @@ mov edx,tempo
 int 61h
 
 mov al,6
-mov edx,msg3b
+mov edx,msg_crlf
 int 61h
 
-mov al,102
-xor ecx,ecx
-mov cl,[ping_ok]
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
 
-mov al,6
-mov edx,msg3c
-int 61h
-
-mov al,102
-xor ecx,ecx
-mov cl,[ping_erreur]
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov al,6
-mov edx,msg3d
-int 61h
 
 int 60h
 
@@ -384,59 +408,54 @@ adresse_canal:
 dd 0
 adresse_cible:
 dd 0
-nb_ping:
+nb_saut:
+db 40
+nb_essais:
 db 4
 sequence:
 dw 0
 cptsf:
 dd 0
-ping_effectue:
-db 0
+no_saut:
+db 1
 ping_erreur:
-db 0
-ping_ok:
-db 0
+db 4
 
 
 msg0a:
-db 13,"PING: test de connexion vers ",0
+db 13,"TRACE: test du chemin de connexion vers ",0
 msg0b:
 db 13,0
 
-msg1a:
-db "Réponse de ",0
-msg1b:
-db " reçu en ",0
-msg1c:
-db "moins de 2"
-msg1d:
-db "ms",13,0
-
 msg2:
-db "Délais d'attente de réponse dépassé",13,0
+db " Délais d'attente de réponse dépassé",13,0
 
+
+
+msg1a:
+db " intermédiaire ",0
 
 msg3a:
-db 13,"PING: résultat des tests de connexion:",13,"envoyé: ",0
-msg3b:
-db "  Reçu: ",0
-msg3c:
-db "  Perdu: ",0
-msg3d:
+db " destinataire! ",0
+
+
+msg_crlf:
 db 13,0
 
 
-
+msg_fin:
+db "TRACE: la destination n'as pas put être atteinte",13,0
 
 
 msg_err1:
-db "PING: erreur de parametres, syntaxe correcte: ping X YYY ZZ",13
+db "TRACE: erreur de parametres, syntaxe correcte: trace X YYY ZZ WW",13
 db "X   = numéros de l'interface réseau",13
 db "YYY = adresse de la cible",13
-db "ZZ  = nombre de test a effectuer",13,0
+db "ZZ  = nombre de saut maximum (parametre optionnel)",13
+db "WW  = nombre d'essaies en cas d'echec (parametre optionnel)",13,0
 
 msg_err2:
-db "PING: erreur lors de la communication avec l'interface réseau",13,0
+db "TRACE: erreur lors de la communication avec l'interface réseau",13,0
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0

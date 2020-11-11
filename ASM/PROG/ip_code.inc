@@ -10,7 +10,7 @@
 ;réemission des paquets perdus (a controler)
 ;gerer les autres protocoles ethernet (a controler)
 ;gerer le multi adresse ethernet (a controler)
-;gerer la reception de message ICMP (a controler)
+;gerer la reception de message ICMP (bug des qu'il y as plusieurs connexion en simultané)
 
 ;ajouter verif conformité param adresse carte
 ;adresse de broadcast
@@ -590,9 +590,9 @@ mov esi,table_acces_icmp
 boucle_acces_icmp:
 cmp dword[esi],0FFFFFFFFh
 je suite_acces_icmp
-add esi,4
-cmp esi,table_acces_icmp+8*4
-jne boucle_ethernet_autresadresses
+;add esi,4
+;cmp esi,table_acces_icmp+8*4
+;jne boucle_ethernet_autresadresses
 jmp lire_nouvelle_trame 
 
 suite_acces_icmp:
@@ -604,7 +604,7 @@ mov ecx,8h
 mov edi,0
 mov esi,zt_decod
 int 65h
-jmp lire_nouvelle_trame
+;jmp lire_nouvelle_trame
 
 
 
@@ -1060,9 +1060,7 @@ mov dword[esi+18],0
 mov edi,table_acces_icmp             ;envoie a tout les receptionnaire des paquets icmp
 mov ecx,[taille_trame]
 
-
 boucle_autres_trame_icmp_v4:
-
 mov ebx,[edi]
 cmp ebx,0FFFFFFFFh
 je suite_autres_trame_icmp_v4
@@ -1071,9 +1069,9 @@ mov al,7
 int 65h
 
 suite_autres_trame_icmp_v4:
-add edi,4
-cmp edi,table_acces_icmp+8*4
-jne boucle_autres_trame_icmp_v4
+;add edi,4
+;cmp edi,table_acces_icmp+8*4
+;jne boucle_autres_trame_icmp_v4
 
 
 jmp boucle_principale
@@ -2510,13 +2508,12 @@ je ignore_verification_connexion_active_icmp
 ;***************************
 ;envoie la trame icmp
 pushad
-push esi
 mov al,6
 mov ebx,[esi]
 mov edi,zt_decod+80h
 mov ecx,1500
 int 65h        ;lit les données avec une place réservé pour les en-tête
-pop edi
+
 
 ;prépare les donnée de la trame
 sub ecx,14       ;-22+8     ;taille des données
@@ -2560,9 +2557,9 @@ efface_verification_connexion_active_icmp:
 mov dword[esi],0FFFFFFFFh
 
 ignore_verification_connexion_active_icmp:
-add esi,4
-dec ecx
-jnz verification_connexion_active_icmp
+;add esi,4
+;dec ecx
+;jnz verification_connexion_active_icmp
 
 
 
