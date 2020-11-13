@@ -1,7 +1,7 @@
 ﻿bidon:
-pile equ 40960 ;definition de la taille de la pile
+pile equ 4960 ;definition de la taille de la pile
 include "fe.inc"
-db "manuel en ligne de commande"
+db "manuel en ligne de motclef"
 scode:
 org 0
 
@@ -10,18 +10,20 @@ mov ds,ax
 mov es,ax
 
 
+;rendre propre les labels
+;ameliorer l'affichage de la liste des labels
 
 ;**************************************************************
-;determine le nom de la commande a rechercher
-mov byte[commande],0
+;determine le nom de la motclef a rechercher
+mov byte[motclef],0
 
 mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de motclef a lire
 mov cl,128 ;0=256 octet max
-mov edx,commande
+mov edx,motclef
 int 61h
 
-cmp byte[commande],0
+cmp byte[motclef],0
 je aff_err_param
 
 
@@ -30,14 +32,10 @@ je aff_err_param
 mov byte[zt_recep],0
 
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,1   ;numéros de l'option de motclef a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-
-
-
 
 
 
@@ -64,10 +62,13 @@ mov ah,1 ;fichier
 int 64h
 cmp eax,0
 jne aff_err_fichier
-
-
 add dword[taille],zt_recep
 
+;agrandit la zone mémoire pour pouvoir contenir le fichier
+mov dx,sel_dat1
+mov ecx,[taille]
+mov al,8
+int 61h
 
 
 ;charge fichier
@@ -82,67 +83,135 @@ jne aff_err_fichier
 
 
 
-
-;transforme cr et lf en zéros
+;transforme cr et lf en zéros et ~ en marque de liens
 mov ebx,zt_recep
-boucle_transf_zero:
+mov al,12h
+boucle_transf:
 cmp byte[ebx],10
 je transf_zero
 cmp byte[ebx],13
-jne ntransf_zero
+je transf_zero
+cmp byte[ebx],"~"
+je transf_tidle
+jmp ignore_transf
+
+transf_tidle:
+mov byte[ebx],al
+cmp al,17h
+je transf_tidle2
+mov al,17h
+jmp ignore_transf
+
+transf_tidle2:
+mov al,12h
+jmp ignore_transf
+
 transf_zero:
 mov byte[ebx],0
-ntransf_zero:
+mov al,12h
+
+ignore_transf:
 inc ebx
 cmp [taille],ebx
-jne boucle_transf_zero
+jne boucle_transf
+
+;si c'est * le mot clef, on affiche la liste des mots clefs
+cmp word[motclef],"*"
+je liste_motclef
+
+
+;*******************************************
+;passe le mot clef en minuscule
+mov ebx,motclef
+boucle_minuscule:
+cmp byte[ebx],"A"
+jb suite_minuscule
+cmp byte[ebx],"Z"
+ja suite_minuscule
+add byte[ebx],20h
+suite_minuscule:
+inc ebx
+cmp ebx,motclef+128
+jne boucle_minuscule
 
 
 
-
+;***********************************************
 ;recherche
 mov ebx,zt_recep
 boucle_recherche:
 cmp byte[ebx],":"
 jne suite_recherche 
 
-mob edi,ebx
+mov edi,ebx
 inc edi
-mov esi,commande
+mov esi,motclef
 
 boucle_test_nom:
 mov al,[edi]
-cmp al,0
+mov ah,[esi]
+
+cmp ax,0
 je nom_ok
-cmp [esi],al
-jne suite_recherche
+cmp ax,":"
+je nom_ok
+cmp al,0
+je suite_recherche 
+cmp al,ah
+jne autrenom
 inc edi
 inc esi
 jmp boucle_test_nom 
  
+autrenom:
+cmp byte[edi],0
+je suite_recherche 
+cmp byte[edi],":"
+je continue_recherche
+inc edi
+jmp autrenom
 
+continue_recherche:
+inc edi
+mov esi,motclef
+jmp boucle_test_nom
 
 suite_recherche:
 call atteint_ligne_suivante
 cmp ebx,[taille]
 jb boucle_recherche
-jmp aff_err_commande
-
-
-
-
-
-
-
-
-
+jmp aff_err_motclef
 
 
 nom_ok:
 call atteint_ligne_suivante
-
+mov al,6
+mov edx,msg5
+int 61h
+mov al,6
+mov edx,motclef
+int 61h
+mov al,6
+mov edx,msg2
+int 61h
 
 afficheligne:
+cmp byte[ebx],"%"
+je coul_blanc
+cmp byte[ebx],"^"
+jne suite_affligne
+
+mov al,6
+mov edx,vert
+int 61h
+jmp suite_affligne
+
+coul_blanc:
+mov al,6
+mov edx,blanc
+int 61h
+
+suite_affligne:
 mov al,6
 mov edx,ebx
 inc edx
@@ -180,6 +249,31 @@ ret
 
 
 
+;******************************************************************************************
+liste_motclef:
+mov al,6
+mov edx,msg6
+int 61h
+
+mov ebx,zt_recep
+
+boucle_liste:
+cmp byte[ebx],":"
+jne suite_liste
+
+mov al,6
+mov edx,ebx
+int 61h
+
+suite_liste:
+call atteint_ligne_suivante
+cmp ebx,[taille]
+jb boucle_liste
+
+mov al,6
+mov edx,msg_crlf
+int 61h
+int 60h
 
 
 
@@ -189,12 +283,12 @@ ret
 
 
 ;*****************************************************************************************
-aff_err_commande:
+aff_err_motclef:
 mov al,6        ;fonction n°6: ecriture d'une chaine dans le journal
 mov edx,msg1    ;adresse du message a afficher
 int 61h         ;appel fonction systeme générales
 mov al,6
-mov edx,commande
+mov edx,motclef
 int 61h
 mov al,6
 mov edx,msg2
@@ -224,12 +318,24 @@ db 13,"MAN: aucune entrée dans le manuel concernant ",22h,0
 msg2:
 db 22h,13,0
 msg3:
-db 13,"MAN: erreur dans les parametres de la commande",13,0
+db 13,"MAN: erreur dans les parametres de la motclef",13,0
 msg4:
 db 13,"MAN: erreur d'acces au fichier du manuel",13,0
+msg5:
+db 13,"MAN: contenu de la rubrique ",22h,0
+msg6:
+db 13,"MAN: liste des rubriques disponibles:",13,0
+msg7:
+db " ",0
 
 msg_crlf:
 db 13,17h,0
+
+blanc:
+db 1Fh,0
+vert:
+db 1Ah,0
+
 
 fichier:
 db "MANUEL.TXT",0
@@ -238,11 +344,10 @@ dd 0
 taille:
 dd 0,0
 
-commande:
+motclef:
 rb 128
 zt_recep:
-rb 100000h
-
+rb 512
 
 sdata2:
 org 0
