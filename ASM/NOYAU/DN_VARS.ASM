@@ -13,7 +13,7 @@ segpil equ 8000h
 
 
 selgdt equ 20h     ;4
-seggdt equ 8000h
+seggdt equ 9000h
 selidt equ 28h     ;5
 segidt equ 0F80h
 ;?????? equ 30h     ;6
@@ -408,6 +408,7 @@ usb_action    equ 602h     ;action a effectuer
 usb_adresse   equ 603h     ;adresse du périphérique sur lequel on travail
 usb_tempo     equ 604h     ;temporisation a attendre si action<>0
 usb_commande  equ 608h     ;zt utillisé pour l'envoie d'une commande (8 octets)
+usb_tag       equ 610h     ;tag (dword)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
