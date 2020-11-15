@@ -1,0 +1,85 @@
+﻿
+:commandes
+^commandes disponibles avec le systeme d'exploitation SEaC:
+ ~af~ ~ajarch~ ~calc~ ~edt~ ~edh~ ~edg~ ~efj~ ~expl~ ~dir~
+ ~cd~ ~ld~ ~lm~ ~lv~ ~lt~ ~~ ~~ ~~ ~~
+ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~
+ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~
+ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~ ~~
+
+:ajarch
+^AJARCH
+ ajarch permet de rajouter un fichier quelconque a un fichier noyau (extension .~BAZ~)
+
+%commande: ajarch XXX YYY
+ avec XXX=nom du fichier a rajouter
+      YYY=nom du fichier noyau
+
+:baz:noyau
+^Fichier NOYAU
+ le fichier noyau (extension .BAZ) est un fichier qui est un executable conçu pour être chargé et executé a l'adresse 7C0h:0000h ou 5000h:0000h.
+ le fichier as une granularité de 16 octets
+
+
+
+ 
+:calc
+^calculatrice
+
+ entrez manuellement l'expression a calculer
+ validez avec entrée, quitter avec echap
+ vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
+%commande: calc
+
+
+:dir:ls
+ Liste le contenue du dossier en cours d'utilisation
+%commande: dir
+:af
+%commande: af XXX
+ ajoute le texte XXX ou le contenu du fichier XXX au journal
+:cd
+%commande: cd          = change de dossier, cd.. permet de revenir au dossier parent
+:ld
+%commande: ld          = Liste les partitions et cdrom qui ont été détecté par le système
+:lm
+%commande: lm          = Liste les espaces mémoires utilisé par le système
+:lt
+%commande: lt          = Liste les Taches en cours d'execution sur le système
+:lv
+%commande: lv          = Liste les modes d'affichage reconnue par la carte video
+:cop
+%commande: cop XXX YYY = copie le fichier XXX dans le dossier YYY
+:efj
+%commande: efj         = efface le contenue du journal système
+:fix
+%commande: fix         = fait enregistrer au système que le dossier en cours d'uttilisation est le dossier système
+:mtt
+%commande: mtt XXX YYY = fixe le temp d'execution de la tache XXX a la valeur YYY (unité de temps 2.5ms)
+:sup
+%commande: sup XXX     = supprime le fichier XXX 
+:ver
+%commande: ver         = affiche la version du système
+:modv
+%commande: modv XXX    = change le mode video de l'écran pour le mode XXX
+:stop
+%commande: stop XXX    = arrête la tâche numéros XXX
+:def
+%commande: def XXX     = charge un fichier de destination XXX
+:ex
+%commande: ex XXX      = execute le script XXXX
+:edt
+%commande: edt         = editeur texte
+:edh
+%commande: edh         = editeur hexadécimal
+:partd
+%commande: partd       = gestionnaire de partition
+:ipconfig
+%commande: ipconfig    = affiche les information sur les driver ip actif
+:man
+^MAN: affiche une rubrique d'aide dans le journal
+
+
+%commande: man XXX YYY
+ 
+
