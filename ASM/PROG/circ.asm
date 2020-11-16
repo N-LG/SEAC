@@ -1,4 +1,8 @@
 ﻿circ:
+;rajouter support du multi canal
+;rajouter test périodique de connexion
+
+
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "Client IRC"
@@ -154,9 +158,6 @@ mov ah,1   ;option=mode texte
 mov al,0   ;création console     
 int 63h
 
-mov dx,sel_dat1    ;variable du programme
-mov ds,dx
-mov es,dx
 mov dx,sel_dat2    ;écran video
 mov fs,dx
 
@@ -280,43 +281,191 @@ int 65h
 
 
 boucle:
-;************************************************************
+;******************************************************************************************************************
 ;test si donné reçu
 
 mov al,6
 mov ebx,[adresse_canal]
 mov edi,zt_recep
-mov ecx,511
+mov ecx,512
+sub ecx,[index_recep]
+add edi,[index_recep]
 int 65h
 cmp eax,0
 jne aff_err_cnx
+add [index_recep],ecx
+
+
+;verif si présence d'une fin de ligne
+mov esi,zt_recep
+mov ecx,[index_recep]
 cmp ecx,0
 je test_clavier
+boucle_crlf:
+cmp word[esi],0A0Dh
+je traite_message
+inc esi
+dec ecx
+jnz boucle_crlf
+jmp test_clavier
 
 
 
 
+;*********************************************************************************
+traite_message:
+mov word[esi],0
+add esi,2
 
-
-
-
-
-
-
-
-mov byte[ecx+zt_recep],0
 mov edx,zt_recep
+cmp byte[edx],":"
+jne commande_serveur
+
+inc edx             
+mov [offset_nom],edx
+
+call rech_espace
+mov [offset_cmd],edx
+
+call rech_espace
+mov [offset_chan],edx
+
+call rech_espace
+inc edx
+mov [offset_msg],edx
+
+mov ebx,[offset_cmd]
+cmp dword[ebx],"PRIV"
+jne affiche_complet
+cmp dword[ebx+4],"MSG "
+jne affiche_complet
+
+
+
+mov edx,zt_recep+1     ;transforme tout les ! et espace en zéro
+boucle_trespace:
+cmp byte[edx],0
+je fin_trespace
+cmp byte[edx]," "
+je zero_trespace
+cmp byte[edx],"!"
+jne suite_trespace
+zero_trespace:
+mov byte[edx],0
+suite_trespace:
+inc edx
+cmp edx,[offset_msg]
+jne boucle_trespace
+
+fin_trespace:
+
+
+
+suite_affiche_msg:
+call efface_saisie
+
+mov edx,[offset_nom]
 mov al,11
 mov ah,07h ;couleur
 int 63h
 
 
+mov edx,msg_arobase
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+
+mov edx,[offset_chan]
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov edx,msg_deuxpoint
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov edx,[offset_msg]
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov edx,msg_crlf
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+call affiche_saisie
+jmp fin_traite_message
+
+
+
+affiche_complet:
+call efface_saisie
+
+mov edx,zt_recep
+mov al,11
+mov ah,06h ;couleur
+int 63h
+
+mov edx,msg_crlf
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+call affiche_saisie
+jmp fin_traite_message
+
+
+
+
+
+
+
+
+commande_serveur:
+cmp dword[zt_recep],"PING"
+je repond_ping
+cmp dword[zt_recep],"PONG"
+je fin_traite_message
+
+mov al,11             ;on affiche la commande reçu
+mov ah,07h ;couleur
+int 63h
+mov edx,msg_crlf
+mov al,11
+mov ah,07h ;couleur
+int 63h
+jmp fin_traite_message
+
+
 
 ;répond a un PING
+repond_ping:
+mov dword[zt_recep],"PONG"
+sub esi,2
+mov word[esi],0A0Dh
+mov ecx,esi
+sub ecx,zt_recep-2
+mov al,7
+mov ebx,[adresse_canal]
+mov esi,zt_recep
+int 65h
+jmp fin_traite_message
 
 
 
-
+;replace les dernières données en début de zone (si besoin)
+fin_traite_message:
+mov edi,zt_recep
+mov ecx,[index_recep]
+add ecx,edi
+sub ecx,esi
+mov [index_recep],ecx
+cmp ecx,0
+je test_clavier
+rep movsb
 
 
 
@@ -335,8 +484,11 @@ cmp al,100
 je touche_entre
 cmp al,30
 je touche_back
+cmp al,0F0h
+jae maj_aff
 
-
+cmp ecx,0
+je maj_aff
 cmp ecx,80h   ;-de 7 bit
 jb insert1
 cmp ecx,800h  ;-de 11 bits
@@ -352,16 +504,10 @@ jmp maj_aff
 insert1:
 mov ebx,[index_message]
 mov [ebx+message],cl
-mov [zt_recep],cl
 
-mov byte[zt_recep+1],0
-mov edx,zt_recep
-mov al,11
-mov ah,0Ah ;couleur
-int 63h
-
-inc dword[index_message]
-jmp maj_aff
+mov byte[ebx+message+1],0
+mov ecx,1
+jmp suite_insert
 
 
 insert2:
@@ -370,22 +516,16 @@ mov eax,ecx
 and al,3Fh
 or al,80h
 mov [ebx+message+1],al
-mov [zt_recep+1],al
+
 shr ecx,6
 mov al,cl
 and al,01Fh
 or al,0C0h
 mov [ebx+message],al
-mov [zt_recep],al
 
-mov byte[zt_recep+2],0
-mov edx,zt_recep
-mov al,11
-mov ah,0Ah ;couleur
-int 63h
-
-add dword[index_message],2    
-jmp maj_aff
+mov byte[ebx+message+2],0
+mov ecx,2
+jmp suite_insert
 
 
 
@@ -395,28 +535,20 @@ mov eax,ecx
 and al,3Fh
 or al,80h
 mov [ebx+message+2],al
-mov [zt_recep+2],al
 shr ecx,6
 mov al,cl
 and al,3Fh
 or al,80h
 mov [ebx+message+1],al
-mov [zt_recep+1],al
 shr ecx,6
 mov al,cl
 and al,0Fh
 or al,0E0h
 mov [ebx+message],al
-mov [zt_recep],al
 
-mov byte[zt_recep+3],0
-mov edx,zt_recep
-mov al,11
-mov ah,0Ah ;couleur
-int 63h
-
-add dword[index_message],3    
-jmp maj_aff
+mov byte[ebx+message+3],0
+mov ecx,3
+jmp suite_insert
 
 
 
@@ -426,43 +558,41 @@ mov eax,ecx
 and al,3Fh
 or al,80h
 mov [ebx+message+3],al
-mov [zt_recep+3],al
+
 shr ecx,6
 mov al,cl
 and al,3Fh
 or al,80h
 mov [ebx+message+2],al
-mov [zt_recep+2],al
+
 shr ecx,6
 mov al,cl
 and al,3Fh
 or al,80h
 mov [ebx+message+1],al
-mov [zt_recep+1],al
+
 shr ecx,6
 mov al,cl
 and al,07h
 or al,0F0h
 mov [ebx+message],al
-mov [zt_recep],al
 
-mov byte[zt_recep+4],0
-mov edx,zt_recep
-mov al,11
-mov ah,0Ah ;couleur
-int 63h
+mov byte[ebx+message+4],0
+mov ecx,4
+;jmp suite_insert
 
-add dword[index_message],4    
+suite_insert:
+call efface_saisie
+add [index_message],ecx
+inc dword[carac_message]
+call affiche_saisie
 jmp maj_aff
 
 
 
 
-
-
-
-
 touche_entre:
+call efface_saisie
 mov ebx,[index_message]
 mov word[ebx+message],0D0Ah
 add dword[index_message],2
@@ -470,11 +600,11 @@ cmp byte[message],"/"
 je touche_commande
 
 ;envoe message au channel
-mov dword[zt_recep],"PRIV"
-mov dword[zt_recep+4],"MSG "
-mov dword[zt_recep+8],"#"
+mov dword[zt_envoie],"PRIV"
+mov dword[zt_envoie+4],"MSG "
+mov dword[zt_envoie+8],"#"
 
-mov edi,zt_recep+9
+mov edi,zt_envoie+9
 mov esi,salon
 call insert_chaine
 
@@ -488,11 +618,44 @@ rep movsb
 mov ecx,edi
 mov al,7
 mov ebx,[adresse_canal]
-mov esi,zt_recep
+mov esi,zt_envoie
 sub ecx,esi
 int 65h
 
+mov ebx,[index_message]
+mov byte[ebx+message],0
+
+
+
+mov edx,msg_arobase
+mov al,11
+mov ah,02h ;couleur
+int 63h
+
+
+mov edx,salon
+mov al,11
+mov ah,02h ;couleur
+int 63h
+
+mov edx,msg_deuxpoint
+mov al,11
+mov ah,02h ;couleur
+int 63h
+
+mov edx,message
+mov al,11
+mov ah,02h ;couleur
+int 63h
+
+
+
+
+
+
 mov dword[index_message],0
+mov dword[carac_message],0
+mov byte[message],0
 jmp maj_aff
 
 
@@ -510,6 +673,8 @@ dec ecx
 int 65h
 
 mov dword[index_message],0
+mov dword[carac_message],0
+mov byte[message],0
 jmp maj_aff
 
 
@@ -518,22 +683,22 @@ jmp maj_aff
 
 
 touche_back:
+call efface_saisie
+cmp dword[carac_message],0
+je fin_touche_back
+dec dword[carac_message]
+boucle_touche_back:
 cmp dword[index_message],0
-je maj_aff
+je fin_touche_back
 dec dword[index_message]
 mov ebx,[index_message]
 mov al,[ebx+message]
 and al,0C0h
 cmp al,80h
-je touche_back
-
-
-mov byte[zt_recep],"#"
-mov byte[zt_recep+1],0
-mov edx,zt_recep
-mov al,11
-mov ah,10h ;couleur
-int 63h
+je boucle_touche_back
+mov dword[ebx+message],0
+fin_touche_back:
+call affiche_saisie
 
 
 ;jmp maj_aff
@@ -592,8 +757,57 @@ ret
 
 
 
+rech_espace:
+cmp byte[edx],0
+je fin_rech_espace
+cmp byte[edx]," "
+je suite_rech_espace
+inc edx
+jmp rech_espace
+
+suite_rech_espace:
+inc edx
+cmp byte[edx]," "
+je rech_espace
+fin_rech_espace:
+ret
 
 
+
+efface_saisie:
+push ecx
+push esi
+mov ecx,[carac_message]
+fs
+mov esi,[ad_curseur_texte]
+cmp ecx,0
+jne boucle_efface_saisie
+pop esi
+pop ecx
+ret
+boucle_efface_saisie:
+sub esi,4
+fs
+mov dword[esi],0
+dec ecx
+jnz boucle_efface_saisie 
+fs
+mov [ad_curseur_texte],esi
+pop esi
+pop ecx
+ret
+
+
+affiche_saisie:
+push eax
+push edx
+mov edx,message
+mov al,11
+mov ah,0Ah ;couleur
+int 63h
+pop edx
+pop eax
+ret
 
 
 
@@ -609,7 +823,7 @@ msg2:
 db 13,"aller sur quel salon? ",0
 
 msg_err1:
-db "CIRC: erreur de parametres, sytax correcte: circ X YYY ZZ",13
+db "CIRC: erreur de parametres, syntaxe correcte: circ X YYY ZZ",13
 db "X   = numéros de l'interface réseau",13
 db "YYY = adresse du serveur",13
 db "ZZ  = port du serveur",13,0
@@ -622,6 +836,15 @@ db "CIRC: perte de connexion avec le serveur",13,0
 
 
 
+msg_arobase:
+db "@",0
+msg_deuxpoint:
+db ":",0
+msg_crlf:
+db 13,0
+msg_vide:
+db 0
+
 id_tache:
 dw 0
 adresse_canal:
@@ -629,6 +852,18 @@ dd 0
 
 
 index_message:
+dd 0
+carac_message:
+dd 0
+
+
+offset_nom:
+dd 0
+offset_cmd:
+dd 0
+offset_chan:
+dd 0
+offset_msg:
 dd 0
 
 commande_ethernet:
@@ -645,6 +880,9 @@ ip_serveur:
 dd 0
 cmd_ip6:
 dd 0,0,0,0
+index_recep:
+dd 0
+
 
 identifiant:
 rb 32
@@ -656,8 +894,11 @@ rb 256
 commande:
 rb 512
 
+zt_envoie:
+rb 512
 zt_recep:
 rb 512
+zt_conv:
 
 
 sdata2:
