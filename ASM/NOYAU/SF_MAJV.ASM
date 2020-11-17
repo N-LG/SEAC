@@ -68,7 +68,7 @@ test byte[at_vid],01h
 jnz maj_complete
 fs
 test byte[at_vid],02h
-jnz majv_ctrl_valeur     ;mise a jour partielle
+jnz majv_partielle      ;mise a jour partielle
 
 fs
 test byte[atts1],01h
@@ -144,6 +144,8 @@ fs
 mov [axs1],eax
 fs
 or byte[at_vid],4h
+fs
+and byte[at_vid],0FEh
 jmp majv_ctrl_valeur
 
 ;*************************************************
@@ -164,12 +166,13 @@ and byte[at_vid],0FBh
 ;jmp majv_ctrl_valeur
 
 
+majv_partielle:
+fs
+and byte[at_vid],0FDh
 
 
 ;***********************************************************
 majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
-fs
-and byte[at_vid],0FCh
 xor ecx,ecx
 fs
 mov cx,[resy]
