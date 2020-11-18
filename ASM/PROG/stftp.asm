@@ -373,8 +373,27 @@ int 61h
 jmp boucle
 
 
+
+
 erreur_lecture:
+push eax
 call envoie_erreur0A
+
+mov al,6
+mov edx,msg_errlec
+int 61h
+pop ecx
+
+mov al,13
+mov ah,1
+mov edx,zt_recep
+int 61h
+mov al,6
+int 61h
+
+mov al,6
+mov edx,msg_errfin 
+int 61h
 jmp boucle
 
 
@@ -505,6 +524,8 @@ pop ecx
 cmp eax,0
 jne erreur_ecriture
 
+
+
 cmp ecx,512
 jne fin_wrq
 
@@ -575,8 +596,26 @@ jmp boucle
 
 
 erreur_ecriture:
+push eax
 call envoie_erreur0B
+
+mov al,6
+mov edx,msg_errecr 
+int 61h
+pop ecx
+
+mov al,13
+mov ah,1
+mov edx,zt_recep
+int 61h
+mov al,6
+int 61h
+
+mov al,6
+mov edx,msg_errfin 
+int 61h
 jmp boucle
+
 
 ;******************************************************************************
 
@@ -826,6 +865,13 @@ db 13,0
 msgfin:
 db "STFTP: fin de transfert de fichier",13,0
 
+
+msg_errlec:
+db "STFTP: erreur lors de la lecture du fichier: ",16h,0
+msg_errecr:
+db "STFTP: erreur lors de l'écriture du fichier: ",16h,0
+msg_errfin:
+db 17h,0
 
 msger_carte:
 db 13,"STFTP: carte réseau selectionné absente",13,0

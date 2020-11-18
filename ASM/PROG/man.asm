@@ -42,12 +42,13 @@ int 61h
 ;***********************************
 ;ouvre le fichier
 mov edx,zt_recep
+mov ebx,0
 cmp byte[edx],0
 jne ok_ouvrir
 mov edx,fichier
+mov ebx,1
 ok_ouvrir:
 xor eax,eax
-mov bx,0
 int 64h
 cmp eax,0
 jne aff_err_fichier
@@ -85,12 +86,14 @@ jne aff_err_fichier
 
 ;transforme cr et lf en zéros et ~ en marque de liens
 mov ebx,zt_recep
-mov al,12h
+mov al,13h
 boucle_transf:
 cmp byte[ebx],10
 je transf_zero
 cmp byte[ebx],13
 je transf_zero
+cmp word[ebx],227Eh      ;~"
+je ignore_transf
 cmp byte[ebx],"~"
 je transf_tidle
 jmp ignore_transf
@@ -103,12 +106,12 @@ mov al,17h
 jmp ignore_transf
 
 transf_tidle2:
-mov al,12h
+mov al,13h
 jmp ignore_transf
 
 transf_zero:
 mov byte[ebx],0
-mov al,12h
+mov al,13h
 
 ignore_transf:
 inc ebx
