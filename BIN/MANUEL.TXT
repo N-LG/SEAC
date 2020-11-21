@@ -1,0 +1,173 @@
+:commandes:commande
+^commandes disponibles avec le systeme d'exploitation SEaC:
+
+%Commandes intégré
+ ~AF~ ~EFJ~ ~DIR~/~LS~ ~DEF~ ~SUP~ ~COP~ ~VER~
+ ~CD~ ~LD~ ~LM~ ~LV~ ~LT~/~PS~ ~MODV~ ~EFJ~ ~FIX~ ~MTT~ ~STOP~
+%Editeurs:
+ ~EDT~ ~EDH~ ~EDG~ ~PARTD~ 
+%Divers
+ ~FASM~ ~AJARCH~ ~EXPL~ ~CALC~ ~UTF8~ ~MAN~ ~TERM~ ~LC~
+%Pilote Réseau
+ ~RTL8139~ ~3C90X~ ~I8254X~
+%Utilisation réseau
+ ~IPCONFIG~ ~PING~ ~CDNS~ ~TRACE~ ~CIRC~ ~SNIF~
+%Serveur 
+ ~SHTTP~ ~STFTP~ ~STLNT~ 
+:ajarch
+^AJARCH
+ ajarch permet de rajouter un fichier quelconque a un fichier noyau (extension .~BAZ~)
+
+%commande: ajarch XXX YYY
+ avec XXX=nom du fichier a rajouter
+      YYY=nom du fichier noyau
+:baz:noyau
+^Fichier NOYAU
+ le fichier noyau (extension .BAZ) est un fichier qui est un executable conçu pour être chargé et executé a l'adresse 7C0h:0000h ou 5000h:0000h.
+ le fichier as une granularité de 16 octets, il est possible de rajouter des fichier a cette archive qui seront chargé en fichier ram lors de l'amorçage avec la commande ~AJARCH~
+:calc
+^CALC: calculatrice
+
+%commande: calc
+ entrez manuellement l'expression a calculer
+ validez avec entrée, quitter avec echap
+ vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
+:cd:ld:dir:ps:expl
+^Commandes de gestion des fichier
+%commande: cd     
+ change de dossier, cd.. permet de revenir au dossier parent
+
+:cop:sup:ren:dir:ls
+^Commandes pour la manipulation de fichier
+
+%commande: dir
+ Liste le contenue du dossier en cours d'utilisation
+%commande: sup XXX
+ supprime le fichier XXX
+%commande: cop XXX YYY
+ copie le fichier XXX dans le dossier YYY
+%commande: ld
+ liste les partitions et cdrom qui ont été détecté par le système (pas d'argument)
+:lm:lt:ps:mtt:stop
+^Commandes de gestions des applications
+
+%commande: lm
+ Liste les espaces mémoires utilisé par le système (pas d'argument)
+%commande: lt
+ Liste les Taches en cours d'execution sur le système
+%commande: stop XXX
+ Arrête la tâche numéros XXX
+%commande: mtt XXX YYY
+ fixe le temp d'execution de la tache XXX a la valeur YYY (unité de temps 2.5ms)
+:lv:modv
+^Commandes de paramêtrage video
+
+%commande: lv       
+ Liste les modes d'affichage reconnue par la carte video
+%commande: modv XXX
+ change le mode video de l'écran pour le mode XXX, il est impossible de changer de mode video si des application utilisent un écran vidéo
+:efj:af:fix
+^Commandes de manipulation du journal du ~Tecop~
+%commande: efj
+ Efface le contenue du journal système
+%commande: fix
+ Fait enregistrer au système que le dossier en cours d'uttilisation est le dossier système
+%commande: ver
+ Affiche la version du système dans le journal système
+%commande: af XXX
+ ajoute le texte XXX ou le contenu du fichier XXX au journal
+:tecop
+^TECOP: Terminal de COmmande Principal
+ Le tecop est le nom de l'interface qui permet de piloter le systeme d'exploitation SEaC en mode texte
+ On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite)
+ le tecop est constitué de 4 zones:
+
+:def
+^DEF: chargement d'un fichier de définition 
+%commande: def XXX     = charge un fichier de destination XXX
+:ex
+^EX: execute un script
+%commande: ex XXX      = execute le script XXXX
+:edt
+^EDT: editeur de texte
+%commande: edh XXX
+ XXX = nom du fichier a ouvrir(paramêtre optionnel)
+:edh
+^EDH: editeur Hexadécimal
+%commande: edh XXX
+ XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramêtre optionnel)
+:partd
+^PARTD: outils de partitionnement
+
+
+%commande: partd
+
+:ipconfig
+^IPCONFIG: configuration des cartes Ethernet
+
+%commande: ipconfig 
+ affiche les information sur les driver ip actif
+
+%commande: ipconfig X YYY ZZZZZ
+ configure le paramêtre YYY avec la valeur ZZZZZ dans la carte X
+ valeurs possible pour YYY:
+         amac = adresse mac
+         ipv4 = adresse ip v4
+         mas4 = masque de sous réseau ip v4
+         pas4 = passerelle ip v4 
+         ip6p = adresse ip v6 privée
+         ip6g = adresse ip v6 global
+
+%commande: ipconfig X comp ZZZZZZ
+ configure les paramêtres de la carte X
+ avec ZZZZZZ liste des paramêtres séparé par un espace:
+         adresse ip v4
+         masque de sous réseau ip v4
+         passerelle ip v4 
+         adresse ip v6 privée
+         adresse ip v6 global
+
+
+
+:man
+^MAN: affiche une rubrique d'aide dans le journal
+
+%commande: man XXX YYY
+ avec XXX = mot clef de la rubrique
+      YYY = nom du fichier ou sont contenue les informations (paramêtre optionnel)
+
+ par défaut, a base de donnée est le fichier MANUEL.TXT qui se trouve dans le ~dossier systeme~
+ le format du fichier est un simple fichier texte, le premier caractère de chaque ligne indique de quel type est la ligne
+ " " la ligne est une simple ligne de texte
+ ":" la ligne est une liste de mot clef
+ "^" affiche la ligne en vert clair (titre de la rubrique)
+ "%" affiche la ligne en blanc clair (sous titre/information importante)
+ une expression entouré de "~" indique qu'il s'agit d'un mot clef 
+
+ 
+:shttp
+^SHTTP: serveur http
+
+%commande: shttp X YYY
+ avec: X = numéros de l'interface réseau a utiliser
+       YYY = nom du dossier des fichiers du site que l'on peut consulter
+
+
+:stftp
+^STFTP: serveur tftp
+ %commande: stftp X YYY
+ avec: X = numéros de l'interface réseau a utiliser
+       YYY = nom du dossier des fichiers du site que l'on peut télecharger
+       ZZZ = nom du dossier ou seront écrit les fichier reçu (paramêtre optionnel)
+
+:stlnt
+^STLNT: serveur telnet
+
+ %commande: stlnt X YY
+ avec: X = numéros de l'interface réseau a utiliser
+       YY = numéros de port a utiliser (parametre optionel, 23 par défaut)
+
+
+:dossier systeme:systeme
+^Dossier systeme
+ le dossier systàme est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
