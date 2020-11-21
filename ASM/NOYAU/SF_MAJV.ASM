@@ -163,7 +163,7 @@ fs
 mov dword[majv_yfin],ebx
 fs
 and byte[at_vid],0FBh
-;jmp majv_ctrl_valeur
+jmp majv_ctrl_valeur
 
 
 majv_partielle:

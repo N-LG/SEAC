@@ -127,7 +127,7 @@ db 055h,0AAh
 
 
 noyau:
-file "../../BIN/SYST.BIN"
+file "../../BIN/SYST1.BAZ"
 
 rb 1474559 + MBR - $ 
 db 0

@@ -520,7 +520,9 @@ push ecx
 mov eax,ecx
 mov cl,[edx+dlu_nboct]
 shl eax,cl
-mov ecx,[cptsf]
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
 
 mov dword[zt_clefusb],43425355h ;mot magique "USBC"
 mov [zt_clefusb+4],ecx ;tag
@@ -897,7 +899,9 @@ push ecx
 mov eax,ecx
 mov cl,[edx+dlu_nboct]
 shl eax,cl
-mov ecx,[cptsf]
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
 
 mov dword[zt_clefusb],43425355h ;mot magique "USBC"
 mov [zt_clefusb+4],ecx ;tag
@@ -1946,7 +1950,9 @@ cld
 rep stosd
 
 ;prépare cbw
-mov ecx,[cptsf]
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
 mov dword[zt_clefusb],43425355h ;mot magique "USBC"
 mov [zt_clefusb+4],ecx ;tag
 mov dword[zt_clefusb+8],8     ;taille des données

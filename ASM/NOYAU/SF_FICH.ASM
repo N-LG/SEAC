@@ -4746,7 +4746,6 @@ ret
 ajn_cluster:               ;ajoute un nouveau cluster 
 ;entrée: edx=dernier cluster du fichier
 ;sortie: edx=nouveau cluster final
-
 push ebx                      ;on verifie d'abord si le cluster suivant est disponible 
 push edi
 mov edi,edx     ;edi=sauvegarde du précédent cluster
@@ -4863,6 +4862,8 @@ mov [to_fichier],eax
 fs
 mov [ebx+zt_lminfo+01Ch],eax   ;modifie le descripteur du disque
 pasajt_ecrire_meta_fichier_fat:
+
+
 
 ;verifie que le premier cluster existe bien
 fs
@@ -5244,13 +5245,14 @@ cmp edx,[to_1cluster]
 jb num_1er_cluster_ecr
 mov ebp,ebx
 call lireindexfat
+cmp eax,0
+jne fin_sfecrirefichier_err
 cmp ebx,0FFFFFFF0h ;réservé
 je fin_sfecrirefichier_ersyf
 cmp ebx,0FFFFFFF7h ;défaillant
 je fin_sfecrirefichier_erecr
 cmp ebx,0FFFFFFF8h ;fin de fichier
 je sfecrirefichier_arrivefin   
-
 fs
 sub edx,[to_1cluster]
 jmp boucle_deter_1ercluster_ecr
@@ -5716,6 +5718,10 @@ je fin_minfofichier_fat_taille
 
 mov ecx,eax
 boucle1_minfofichier_fat_taille:   ;recherche le dernier cluster a uttiliser
+fs
+cmp ecx,[to_1cluster]
+jb marquefin_minfofichier_fat_taille
+
 call lireindexfat
 cmp eax,0
 jne fin_minfofichier_fat_taille
@@ -5723,12 +5729,30 @@ mov eax,ebx
 and eax,0FFFFFFF0h
 cmp eax,0FFFFFFF0h
 je fin_minfofichier_fat_taille
-fs
-cmp ecx,[to_1cluster]
-jb boucle2_minfofichier_fat_taille
+
 fs
 sub ecx,[to_1cluster]
 jmp boucle1_minfofichier_fat_taille
+
+
+;marque le dernier cluster comme un cluster de fin
+marquefin_minfofichier_fat_taille:
+mov ecx,ebx
+call lireindexfat
+cmp eax,0
+jne fin_minfofichier_fat_taille
+mov eax,ebx
+and eax,0FFFFFFF0h
+cmp eax,0FFFFFFF0h
+je fin_minfofichier_fat_taille
+
+push ebx
+mov ebx,ecx
+mov eax,0FFFFFFF8h
+call ecrireindexfat_sp
+pop ebx
+
+
 
 boucle2_minfofichier_fat_taille:  ;supprime ceux qui ne servent plus
 mov ecx,ebx
@@ -5743,11 +5767,12 @@ je fin_minfofichier_fat_taille
 push ebx
 mov ebx,ecx
 xor eax,eax
-call ecrireindexfat
+call ecrireindexfat_sp
 pop ebx
 jmp boucle2_minfofichier_fat_taille
 
 fin_minfofichier_fat_taille:
+call sauvegarde_zt_fat   ;transfert la zt fat ram sur le disque si celle ci as été modifié
 pop ebx
 
 

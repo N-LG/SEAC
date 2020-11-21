@@ -74,7 +74,7 @@ mov ax,06h
 out dx,ax 
 
 mov eax,[cptsf]
-add eax,80      ;attent 200ms avant de reseter le port (norme:100ms)
+add eax,180      ;attent 200ms avant de reseter le port (norme:100ms)
 mov [usb_tempo],eax
 mov byte[usb_action],1
 jmp fin_test_cnx_usb
@@ -104,7 +104,7 @@ mov ax,06h
 out dx,ax
 
 mov eax,[cptsf]
-add eax,180           ;attent 200ms avant de chercher a lire le descripteur
+add eax,80           ;attent 200ms avant de chercher a lire le descripteur
 mov [usb_tempo],eax
 mov byte[usb_action],3
 jmp fin_test_cnx_usb
