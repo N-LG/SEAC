@@ -1,10 +1,10 @@
 ﻿dn_msg_en:
-;message systeme uttilisé par SeLG 💩
+;message systeme uttilisé par SeAC 💩
 ;doit être entregistré au format utf8
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.18 November 2020 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.18 January 2021 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
 
 
@@ -55,9 +55,9 @@ db "exception # 31",0   ;ex31 message 41
 
 db 13,"Process # ",0 ;42
 db " caused the exception: ",0 ;43
-db 13,"the main task had to be restarted",17h,13,0  ;44
-db 13,"the faulty task had to be stopped",17h,13,0  ;45
-db "state of the stack:",0  ;46
+db " after step ",0  ;44
+db 13,"the main task had to be restarted",17h,13,0  ;45
+db 13,"the faulty task had to be stopped",17h,13,0  ;46
 db "impossible to reserve memory",0  ;47 seul texte qui doit être codé en ISO 8859-1 et pas en UTF8
 db 1Ch,"detection of an error in memory, erasure of corrupted memory",17h,13,0  ;48
 db 0  ;49
@@ -132,39 +132,49 @@ db "disconnection of USB device", 0; 103
 ;************************************************************************
 messages_erreur:
 db "execution sans probleme",0
-db "parameter error",13,0                                             ;erreur 1
-db "read error",13,0                                                  ;erreur 2
-db "drive / disk / file not found",13,0                               ;erreur 3
-db "file system error",13,0                                           ;erreur 4
-db "writing error",13,0                                               ;erreur 5
-db "no disk response",13,0                                            ;erreur 6
-db "disk busy",13,0                                                   ;erreur 7
-db "file already open",13,0                                           ;erreur 8
-db "forbidden reading",13,0                                           ;erreur 9
-db "forbidden opening",13,0                                           ;erreur 10
-db "not enougth memory",13,0                                          ;erreur 11
-db "the open file is a folder",13,0                                   ;erreur 12
-db "error of unknown origin",13,0                                   ;erreur 13
-db "unrecognized number of colors",13,0                               ;erreur 14
-db "screen missing",13,0                                                ;erreur 15
-db "unauthorized action",13,0                                         ;erreur 16
-db "empty buffer zone",13,0                                            ;erreur 17
-db "full buffer zone",13,0                                          ;erreur 18
-db "controller does not respond",13,0                                    ;erreur 19
-db "controller absent",13,0                                           ;erreur 20
-db "cannot delete folder because it is not empty",13,0                ;erreur 21
-db "forbidden character in file name",13,0                            ;erreur 22
-db "file creation not possible",13,0                              ;erreur 23
-db "file name already used",13,0                                      ;erreur 24
-db "no answer",13,0                                              ;erreur 25
-db "structure error",13,0                                    ;erreur 26
-db "data available",13,0                                          ;erreur 27
-db "data not available",13,0                                      ;erreur 28
-db "memory area unavailable",13,0          ;erreur 29
-db "memory area outside physical memory",13,0 ;erreur 30
-db "UHCI controller error",13,0                ;erreur 31
-db "OHCI controller error",13,0                ;erreur 32
-db "EHCI controller error",13,0                ;erreur 33
-db "XHCI controller error",13,0                ;erreur 34
+db "parameter error",13,0                                     ;erreur 1
+db "read error",13,0                                          ;erreur 2
+db "drive / disk / file not found",13,0                       ;erreur 3
+db "file system error",13,0                                   ;erreur 4
+db "writing error",13,0                                       ;erreur 5
+db "no disk response",13,0                                    ;erreur 6
+db "disk busy",13,0                                           ;erreur 7
+db "file already open",13,0                                   ;erreur 8
+db "forbidden reading",13,0                                   ;erreur 9
+db "forbidden opening",13,0                                   ;erreur 10
+db "not enougth memory",13,0                                  ;erreur 11
+db "the open file is a folder",13,0                           ;erreur 12
+db "error of unknown origin",13,0                             ;erreur 13
+db "unrecognized number of colors",13,0                       ;erreur 14
+db "screen missing",13,0                                      ;erreur 15
+db "unauthorized action",13,0                                 ;erreur 16
+db "empty buffer zone",13,0                                   ;erreur 17
+db "full buffer zone",13,0                                    ;erreur 18
+db "controller does not respond",13,0                         ;erreur 19
+db "controller absent",13,0                                   ;erreur 20
+db "cannot delete folder because it is not empty",13,0        ;erreur 21
+db "forbidden character in file name",13,0                    ;erreur 22
+db "file creation not possible",13,0                          ;erreur 23
+db "file name already used",13,0                              ;erreur 24
+db "no answer",13,0                                           ;erreur 25
+db "structure error",13,0                                     ;erreur 26
+db "data available",13,0                                      ;erreur 27
+db "data not available",13,0                                  ;erreur 28
+db "memory area unavailable",13,0                             ;erreur 29
+db "memory area outside physical memory",13,0                 ;erreur 30
+db "UHCI controller error",13,0                               ;erreur 31
+db "OHCI controller error",13,0                               ;erreur 32
+db "EHCI controller error",13,0                               ;erreur 33
+db "XHCI controller error",13,0                               ;erreur 34
+db "Stack overflow or underflow",13,0                         ;erreur 35
+db "Invalid arithmetic operation",13,0                        ;erreur 36
+db "Invalid operation",13,0                                   ;erreur 37
+db "Denormalized operand",13,0                                ;erreur 38
+db "Divide-by-zero",13,0                                      ;erreur 39
+db "Numeric overflow",13,0                                    ;erreur 40
+db "Numeric underflow",13,0                                   ;erreur 41
+db "Inexact result (precision)",13,0                          ;erreur 42
+
+
 
 fin_messages:

@@ -10,7 +10,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.18 Novembre 2020 version de dévellopement",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.18 Janvier 2021 version de dévellopement",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
 
 db 13,16h,"Commande inconnue: ",0 ;1
@@ -60,9 +60,9 @@ db "exception 31",0   ;ex31 message 41
 
 db 13,"le processus N°",0 ;42
 db " a causé l'exception: ",0 ;43
-db 13,"la tâche principale a dut être redémarré",17h,13,0  ;44
-db 13,"la tâche fautive a dut être arreté",17h,13,0  ;45
-db "état de la pile:",0  ;46
+db " apres l'étape ",0  ;44
+db 13,"la tâche principale a dut être redémarré",17h,13,0  ;45
+db 13,"la tâche fautive a dut être arreté",17h,13,0  ;46
 db "impossible de r",0E9h,"server de la m",0E9h,"moire",0  ;47 seul texte qui doit être codé en ISO 8859-1 et pas en UTF8
 db 1Ch,"detection d'une erreur dans la mémoire, effacement de la mémoire corrompue",17h,13,0  ;48
 db 0  ;49
@@ -136,7 +136,7 @@ db "déconnexion du périphérique USB ",0 ;103
 
 messages_erreur:
 db "action terminé sans problème",0
-db "erreur de paramêtre",13,0                   ;erreur 1
+db "erreur de paramètre",13,0                   ;erreur 1
 db "erreur de lecture",13,0                     ;erreur 2
 db "lecteur/disque/fichier non trouvé",13,0     ;erreur 3
 db "erreur du systême de fichier",13,0          ;erreur 4
@@ -170,6 +170,17 @@ db "erreur controleur UHCI",13,0                ;erreur 31
 db "erreur controleur OHCI",13,0                ;erreur 32
 db "erreur controleur EHCI",13,0                ;erreur 33
 db "erreur controleur XHCI",13,0                ;erreur 34
+db "débordement de pile du FPU",13,0            ;erreur 35
+db "opération arithmétique invalide",13,0       ;erreur 36
+db "opération invalide",13,0                    ;erreur 37
+db "opérand incorrecte",13,0                    ;erreur 38
+db "division par zéro",13,0                     ;erreur 39
+db "débordement numérique",13,0                 ;erreur 40
+db "sous capacité numérique",13,0               ;erreur 41
+db "résultat inexacte",13,0                     ;erreur 42
+
+
+
 
 fin_messages:
 

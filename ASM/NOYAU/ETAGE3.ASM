@@ -816,6 +816,7 @@ mov ds,dx
 mov es,dx
 mov fs,dx
 mov gs,dx
+mov byte[trappe_tache0],1
 
 mov dx,selpil
 mov ss,dx
@@ -928,6 +929,7 @@ avx_absent:
 
 
 cpuid_absent:
+mov byte[trappe_tache0],2
 
 
 
@@ -1071,6 +1073,7 @@ mov byte[nbzt1],0
 
 
 fin_init_souris:
+mov byte[trappe_tache0],3
 
 
 ;**********************************************************************
@@ -1240,6 +1243,7 @@ jmp infini_errallocmem
 ;******************************************************************
 ;reserve le trou de mémoire isa
 reserve_mem_isa:
+mov byte[trappe_tache0],5
 mov edx,0F00000h
 mov ecx,0100000h
 call resmemp
@@ -1249,10 +1253,14 @@ mov ax,selramh
 mov ds,ax
 mov dword[0DFFFF8h],czm_tmi
 pas_reserve_isa:
+mov byte[trappe_tache0],6
 
 
 ;*********************************************************************
 include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
+
+
+
 
 ;*******************************************************************
 ;fin de la séquence d'initialisation
@@ -1262,6 +1270,7 @@ call affmsgsyst     ;rapel sur la version installé
 mov ax,seldat
 mov ds,ax
 mov es,ax
+mov byte[trappe_tache0],14
 xor eax,eax    ;effacement de la seconde moitié du segment de donnée systeme (pas effectué avant car cette partie contenait le code d'amorçage)
 mov ecx,08000h
 mov edi,20000h
@@ -1323,6 +1332,8 @@ mov word[id_tache_exec],0
 mov byte[cpttc],25
 mov byte[at_csl],0Eh ;signale que l'affichage complet de la console doit être mis a jour
 sti
+mov byte[trappe_tache0],15
+
 jmp btacheprincipale
 
 
@@ -4288,15 +4299,19 @@ excep_fc_ok:
 
 cmp word[id_tache_exec],0 ;si c'est une tache de base on l'arrete
 je redem_id0
-mov cl,45
+mov cl,46
 call affmsgsyst
 jmp int_60
 
 redem_id0:  ;sinon on redemarre la tache principale
+mov cl,44
+call affmsgsyst
+mov al,[trappe_tache0]
+call affh1j
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
-mov cl,44
+mov cl,45
 call affmsgsyst
 mov esp,0FFFCh
 sti

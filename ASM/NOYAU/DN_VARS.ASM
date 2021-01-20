@@ -122,7 +122,7 @@ id_zdc equ 6  ;id de la commande en cours de traitement
 to_ztcmd equ 8  ;taille occup‚ dans la zt commande   
 coul_car equ 0Ah ;couleur d'affichage du caractère
 num_cmd equ 0Bh  ;num‚ro de la commnde dans l'historique (navigation pr touche F7 et F8)
-
+trappe_tache0 equ 0Fh ;dernière étape executé par la tache 0
 
 
 
@@ -367,7 +367,7 @@ port_lpt_to equ 2E0h ;nombre d'octet dans la zone tampon de réception lpt 1 (lpt
 ;*******************************************************************************
 ;gestion de l'ordre des taches
 zt_temp_dexec equ 300h    ;zone tampon utilisé lors de la priorisation de l'orde d'execution des taches
-
+ 
 
 
 ;*****************************************************************
@@ -414,7 +414,15 @@ usb_tag       equ 610h     ;tag (dword)
 
 
 
-;**********************************************************
+
+at_processeur equ 700h
+
+
+
+
+
+;************************************************************************************************************
+;************************************************************************************************************
 ;descripteur de disque
 dd_atribut       equ 00h     
 ;b0-2 0=absent 1=chs 2=lba28 3=lba48 4=ATAPI
@@ -509,11 +517,13 @@ temp_exec_tache equ 0F2h   ;temp d'execution de la tache
 code_service equ 0F3h ;code du service proposé par la tache
 id_maitre equ 0F4h    ;id de la tache a l'origine de celle ci
 sel_ecranv equ 0F6h   ;selecteur d'ecran virtuel
+conf_tache equ 0F8h   ;config sauvegarde par xsave ou fxsave
 
 descriptif_tache equ 100h  ;descriptif (texte) de la tache executé
 recop_commande equ 200h ;chaine utf8z de 512o
 ldt_tache equ 400h       ;local descriptor table (16 descripteurs)
-data_tache equ 500h  
+xsave_tache equ 500h   ;zone de sauvegarde par xsave ou fxsave
+data_tache equ 700h  ;données des différents segments
 
 
 ;***************************************************
@@ -702,7 +712,14 @@ cer_uhci   equ 31 ;erreur controleur UHCI
 cer_ohci   equ 32 ;erreur controleur OHCI
 cer_ehci   equ 33 ;erreur controleur EHCI
 cer_xhci   equ 34 ;erreur controleur XHCI
-
+cer_efis   equ 35 ;exceptiojn du fpu
+cer_efia   equ 36 ;exceptiojn du fpu
+cer_efi    equ 37 ;exceptiojn du fpu
+cer_efd    equ 38 ;exceptiojn du fpu
+cer_efz    equ 39 ;exceptiojn du fpu
+cer_efo    equ 40 ;exceptiojn du fpu
+cer_efu    equ 41 ;exceptiojn du fpu
+cer_efp    equ 42 ;exceptiojn du fpu
 
 ;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 
