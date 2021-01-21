@@ -1253,7 +1253,7 @@ mov ax,selramh
 mov ds,ax
 mov dword[0DFFFF8h],czm_tmi
 pas_reserve_isa:
-mov byte[trappe_tache0],6
+
 
 
 ;*********************************************************************

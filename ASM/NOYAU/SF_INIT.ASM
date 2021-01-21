@@ -5,6 +5,7 @@
 mov ax,seldat
 mov es,ax
 mov ds,ax
+mov byte[trappe_tache0],6
 mov byte[pos_cyl_disq],0FFh  ;position de la tête indeterminé
 
 mov dx,3F7h ;mode 500000 bit/s
@@ -139,6 +140,7 @@ add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ata
 
+mov byte[trappe_tache0],7
 
 ;***************************************************
 cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur n'as été detecté, on remplit les descripteur avec les adresses standard
@@ -166,10 +168,11 @@ jne boucle_remplissage_ctrl_ata
 
 
 fin_detec_ata:
-
+mov byte[trappe_tache0],8
 
 ;*****************************************************************************************************************************
 ;détecte les controleur ahci
+jmp ignore_detect_ahci
 
 mov ebx,80000008h
 boucle_detec_ahci:
@@ -269,6 +272,9 @@ add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ahci
 
+ignore_detect_ahci:
+
+mov byte[trappe_tache0],9
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
@@ -353,6 +359,7 @@ add esi,32
 cmp ch,18h
 jne boucle_init_infopart
 
+mov byte[trappe_tache0],10
 
 ;*********************************************************************************************************************************************
 ;code de detection  et de création des descripteur pour les controleur de bus USB 
