@@ -1,4 +1,5 @@
-:commandes:commande
+﻿
+:commandes:commande:cmd
 ^commandes disponibles avec le systeme d'exploitation SEaC:
 
 %Commandes intégré
@@ -32,14 +33,11 @@
  entrez manuellement l'expression a calculer
  validez avec entrée, quitter avec echap
  vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
-:cd:ld:dir:ps:expl
-^Commandes de gestion des fichier
-%commande: cd     
- change de dossier, cd.. permet de revenir au dossier parent
-
-:cop:sup:ren:dir:ls
+:cd:cop:sup:ren:dir:ls
 ^Commandes pour la manipulation de fichier
 
+%commande: cd     
+ change de dossier, cd.. permet de revenir au dossier parent
 %commande: dir
  Liste le contenue du dossier en cours d'utilisation
 %commande: sup XXX
@@ -60,7 +58,7 @@
 %commande: mtt XXX YYY
  fixe le temp d'execution de la tache XXX a la valeur YYY (unité de temps 2.5ms)
 :lv:modv
-^Commandes de paramêtrage video
+^Commandes de paramétrage video
 
 %commande: lv       
  Liste les modes d'affichage reconnue par la carte video
@@ -68,6 +66,7 @@
  change le mode video de l'écran pour le mode XXX, il est impossible de changer de mode video si des application utilisent un écran vidéo
 :efj:af:fix
 ^Commandes de manipulation du journal du ~Tecop~
+
 %commande: efj
  Efface le contenue du journal système
 %commande: fix
@@ -77,39 +76,51 @@
 %commande: af XXX
  ajoute le texte XXX ou le contenu du fichier XXX au journal
 :tecop
-^TECOP: Terminal de COmmande Principal
+^TECOP
+ Terminal de COmmande Principal
+
  Le tecop est le nom de l'interface qui permet de piloter le systeme d'exploitation SEaC en mode texte
  On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite)
  le tecop est constitué de 4 zones:
-
 :def
-^DEF: chargement d'un fichier de définition 
-%commande: def XXX     = charge un fichier de destination XXX
-:ex
-^EX: execute un script
-%commande: ex XXX      = execute le script XXXX
-:edt
-^EDT: editeur de texte
-%commande: edh XXX
- XXX = nom du fichier a ouvrir(paramêtre optionnel)
-:edh
-^EDH: editeur Hexadécimal
-%commande: edh XXX
- XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramêtre optionnel)
-:partd
-^PARTD: outils de partitionnement
+^DEF
+ chargement d'un fichier de définition 
 
+%commande: def XXX
+          XXX = nom du fichier a charger
+:ex
+^EX
+ execute un script
+
+%commande: ex XXX 
+          XXX = nom du fichier a executer
+:edt
+^EDT
+ editeur de texte
+
+%commande: edh XXX
+          XXX = nom du fichier a ouvrir(paramètre optionnel)
+:edh
+^EDH
+ editeur Hexadécimal
+
+%commande: edh XXX
+          XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramètre optionnel)
+:partd
+^PARTD
+ outils de partitionnement
 
 %commande: partd
 
 :ipconfig
-^IPCONFIG: configuration des cartes Ethernet
+^IPCONFIG
+ configuration des cartes Ethernet
 
 %commande: ipconfig 
  affiche les information sur les driver ip actif
 
 %commande: ipconfig X YYY ZZZZZ
- configure le paramêtre YYY avec la valeur ZZZZZ dans la carte X
+ configure le paramètre YYY avec la valeur ZZZZZ dans la carte X
  valeurs possible pour YYY:
          amac = adresse mac
          ipv4 = adresse ip v4
@@ -119,22 +130,20 @@
          ip6g = adresse ip v6 global
 
 %commande: ipconfig X comp ZZZZZZ
- configure les paramêtres de la carte X
- avec ZZZZZZ liste des paramêtres séparé par un espace:
+ configure les paramètres de la carte X
+ avec ZZZZZZ liste des paramètres séparé par un espace:
          adresse ip v4
          masque de sous réseau ip v4
          passerelle ip v4 
          adresse ip v6 privée
          adresse ip v6 global
-
-
-
 :man
-^MAN: affiche une rubrique d'aide dans le journal
+^MAN
+ affiche une rubrique d'aide dans le journal
 
 %commande: man XXX YYY
  avec XXX = mot clef de la rubrique
-      YYY = nom du fichier ou sont contenue les informations (paramêtre optionnel)
+      YYY = nom du fichier ou sont contenue les informations (paramètre optionnel)
 
  par défaut, a base de donnée est le fichier MANUEL.TXT qui se trouve dans le ~dossier systeme~
  le format du fichier est un simple fichier texte, le premier caractère de chaque ligne indique de quel type est la ligne
@@ -143,31 +152,86 @@
  "^" affiche la ligne en vert clair (titre de la rubrique)
  "%" affiche la ligne en blanc clair (sous titre/information importante)
  une expression entouré de "~" indique qu'il s'agit d'un mot clef 
-
- 
 :shttp
-^SHTTP: serveur http
+^SHTTP
+ serveur http
 
 %commande: shttp X YYY
  avec: X = numéros de l'interface réseau a utiliser
        YYY = nom du dossier des fichiers du site que l'on peut consulter
-
-
 :stftp
-^STFTP: serveur tftp
+^STFTP
+ serveur tftp
+
  %commande: stftp X YYY
  avec: X = numéros de l'interface réseau a utiliser
        YYY = nom du dossier des fichiers du site que l'on peut télecharger
-       ZZZ = nom du dossier ou seront écrit les fichier reçu (paramêtre optionnel)
-
+       ZZZ = nom du dossier ou seront écrit les fichier reçu (paramètre optionnel)
 :stlnt
 ^STLNT: serveur telnet
 
  %commande: stlnt X YY
  avec: X = numéros de l'interface réseau a utiliser
-       YY = numéros de port a utiliser (parametre optionel, 23 par défaut)
-
-
+       YY = numéros de port a utiliser (paramètre optionel, 23 par défaut)
 :dossier systeme:systeme
 ^Dossier systeme
- le dossier systàme est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
+ le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
+:seac
+^SEac: systeme d'exploitation approximativement complet
+ (plus d'explication a venir)
+:snif
+^SNIF
+ intercepteur de trame ethernet
+
+%commande: snif X 
+ avec: X = numéros de l'interface réseau a utiliser
+:ping
+^PING
+ test de liaison par demande d'echo avec le protocole ICMP
+
+%commande: ping X YYY
+ avec: X   = numéros de l'interface réseau a utiliser
+       YYY = adresse de la machine que l'on cherche a tester
+:trace
+^TRACE
+ permet de determiner le chemin emprunté par les paquet transmis a une machine sur réseau IP
+
+%commande: trace X YYY ZZ WW
+ avec: X   = numéros de l'interface réseau a utiliser
+       YYY = adresse la machine cible
+       zZ  = nombre de saut maximum (paramètre optionnel, 40 par défaut)
+       WW  = nombre de tentative en cas d'absence de réponse (paramètre optionnel, 4 par défaut)
+:cdns
+^CDNS
+ résolveur DNS, permet d'obtenir l'adresse IP de la machine en fonction du nom
+
+%commande: cdns X YYY
+ avec: X   = numéros de l'interface réseau a utiliser
+       YYY = nom de la machine
+:circ
+^CIRC
+ client pour systeme de messagerie utilisant le protocole IRC
+
+%commande: circ X YYY ZZ
+ avec: X   = numéros de l'interface réseau a utiliser
+       YYY = adresse du serveur
+       ZZ  = port du serveur
+:rtl8139:3c90x:i8254x:ethernet:ip
+^Pilotes pour carte ethernet/ip
+
+%commande: rtl8139
+ démarre le pilote pour une carte Realtek 8139 ou compatible
+%commande: 3c90x
+ démarre le pilote pour une carte 3Com  ou compatible
+%commande: I8254x
+démarre le pilote pour une carte Intel  ou compatible
+:fasm
+^FASM
+ compilateur assembleur créer par Tomasz Grysztar
+ pour plus d'information, consultez ~http://flatassembler.net~
+
+%commande: fasm XXX YYY
+ avec: XXX = nom du fichier source
+       YYY = nom du fichier executable a créer
+  ^
+ /!\ sous SEAC, les nom des fichier executable doivent être en majuscule
