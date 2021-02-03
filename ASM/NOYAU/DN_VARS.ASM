@@ -91,7 +91,10 @@ nb_desc_clef_usb equ 32  ;32 elements
 
 zt_clefusb equ 0E000h
 
-;??? 0E200h
+po_zech_sata equ 0E200h
+
+
+;??? 0E400h
 
 
 ad_repertoire equ 13400h  ;adresse du repertoire courant
@@ -673,6 +676,29 @@ bit_pixel equ 3Eh
 octet_pixel equ 3Fh
 
 
+
+
+
+;**********************************************************************
+;organisation mémoire zt de dialogue sata
+
+zsata_ad_ahci equ 10h
+zsata_ad_port equ 14h
+zsata_nb_secteur equ 18h
+zsata_conv_secteur equ 20h
+
+zsata_liste  equ 100h   ;liste de pointeur vers les commandes
+
+zsata_cfis   equ 500h   ;commande de base
+zsata_acmd   equ 540h   ;commanda atapi 
+zsata_prdt   equ 580h   ;physical region descriptor table
+
+zsata_recfis equ 800h
+
+zsata_data   equ 1000h
+
+
+
 ad_res_console equ 100h  ;adresse reservé
 
 ;**********************************************************
@@ -735,8 +761,10 @@ czm_pol    equ 5  ;police de caractère matricielle
 
 czm_dfo    equ 10  ;descripteur des fichiers ouverts
 czm_ztf1   equ 11  ;zone tampon FAT1
-czm_ztf2    equ 12 ;zone tampon FAT2
-czm_ztlef equ 13  ;zone tampon lecture/ecriture fichier
+czm_ztf2   equ 12  ;zone tampon FAT2
+czm_ztlef  equ 13  ;zone tampon lecture/ecriture fichier
+czm_sata   equ 14  ;zone mémoire réservé au dialogue d'un périphérique sata branché sur un controleur ahci
+
 
 czm_com     equ 20  ;zone tampon de reception port com
 czm_pil     equ 21  ;zone tampon utillisé par un pilote 
@@ -755,5 +783,3 @@ czm_ehci equ 37  ;zoné mémoire utillisé par un controleur EHCI
 czm_xhci equ 38  ;zoné mémoire utillisé par un controleur XHCI
 
 
-czm_ahci equ 40  ;zone mémoire réservé au dialogue avec un contoleur ahci
-czm_sata equ 41  ;zone mémoire réservé au dialogue d'un périphérique sata branché sur un controleur ahci

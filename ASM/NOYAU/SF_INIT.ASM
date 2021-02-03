@@ -171,10 +171,14 @@ fin_detec_ata:
 mov byte[trappe_tache0],8
 
 ;*****************************************************************************************************************************
-;détecte les controleur ahci
-jmp ignore_detect_ahci
-
+;détecte les controleur ahci et leurs port ouverts
+;jmp ignore_detect_ahci
+mov ax,seldat 
+mov ds,ax
+mov ax,selramh 
+mov es,ax
 mov ebx,80000008h
+
 boucle_detec_ahci:
 mov dx,0CF8h
 mov eax,ebx
@@ -188,83 +192,87 @@ jne pas_ctrl_ahci
 ahci_pi equ 00Ch
 ahci_port0 equ 100h
 
-ahci_port_commandes equ 00h
-ahci_port_rfis equ 08h
-ahci_port_int equ 14h
-
-ahci_dev_commandes equ 0
-ahci_dev_rfis equ 1024 
-ahci_dev_eshost equ 2048
-ahci_dev_esport equ 2052
-ahci_dev_numport equ 2056
-ahci_dev_pci     equ 2060
 
 pushad
-;création espace mémoire Host
-mov ecx,2000h ;8Ko
-mov eax,0FFFh ;??????????????????
-call resmemg 
-;jc erreur  ;??????????????????
+;lit adresse de base du controleur
+mov dx,0CF8h
+mov eax,ebx
+add eax,28
+out dx,eax
+mov dx,0CFCh
+mov eax,esi
+in eax,dx
+sub eax,100000h
+mov esi,eax
 
-;config Host(pci)
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;activation controleur
+mov dx,0CF8h
+mov eax,ebx
+sub eax,4
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+and eax,0FFFF0000h
+or  eax,000000006h
+out dx,eax
+
 
 ;test disponibilité port
-mov eax,[ebx+ahci_pi]
-mov esi,ebx
-add esi,ahci_port0
-mov cl,0
+es
+mov edx,[esi+ahci_pi]
+mov ebx,ahci_port0
+add ebx,esi
+
 boucle_test_port_ahci:
-test eax,01h
+test edx,01h
 jz passe_test_port_ahci
 
+
 ;création espace port
+pushad
 push ebx
-mov ecx,2000h ;8Ko
-mov eax,0FFFh ;??????????????????
-call resmemg  
+mov ecx,1000h ;1Ko
+mov eax,007Fh 
+call resmemg 
 mov edi,ebx
 pop ebx
-;jc erreur  ;??????????????????
-
-mov [esi+ahci_port_commandes],edi 
-add dword[esi+ahci_port_rfis],ahci_dev_commandes  ;lsb command list
-mov dword[esi+ahci_port_commandes+4],0            ;msb command list
-mov [esi+ahci_port_rfis],edi
-add dword[esi+ahci_port_rfis],ahci_dev_rfis ;lsb receved FIS
-mov dword[esi+ahci_port_rfis+4],0           ;msb receved FIS
-mov dword[esi+ahci_port_int],0 ;interruptions toutes désactivé
+jc erreur_port_ahci
+es
+mov dword[edi+8],czm_sata
 
 
-;enregistres info dans espace port pour identifier port
-mov [edi+ahci_dev_eshost],ebx ;adresse de base E/S du controleur 
-mov [edi+ahci_dev_esport],esi ;adresse de base E/S du port
-mov [edi+ahci_dev_numport],cl ;numéros de port
-;mov [edi+ahci_dev_pci],0 ;adresse PCI   ;??????????????????
+;config port
+es
+mov [edi+zsata_ad_ahci],esi  ;enregistre l'adresse de base du controleur
+es
+mov [edi+zsata_ad_port],ebx  ;enregistre l'adresse port de base de cette interface
+
+mov eax,edi
+add eax,zsata_liste   ;configure l'adresse de la liste de commande
+es
+mov [ebx],eax
+es
+mov dword[ebx+04h],0
+mov eax,edi
+add eax,zsata_recfis  ;configure l'adresse de la receved fis
+es
+mov [ebx+08h],eax
+es
+mov dword[ebx+0Ch],0
+
+es
+mov dword[ebx+14h],0 ;désactive les interruptions
 
 
-;préremplir command list et received FIS
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-;démarrer port
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-passe_test_port_ahci:
-inc cl
-shr eax,1
-add esi,80h
-cmp cl,32
-jne boucle_test_port_ahci
-
-
-;activation host
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
+erreur_port_ahci:
 popad
 
-
-
+passe_test_port_ahci:
+shr edx,1
+add ebx,80h
+cmp edx,0
+jnz boucle_test_port_ahci
+popad
 
 
 pas_ctrl_ahci:
@@ -272,12 +280,45 @@ add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ahci
 
-ignore_detect_ahci:
+
+
+;liste les disques ahci***********
+xor esi,esi
+mov edi,po_zech_sata
+
+boucle_liste_disque_ahci:
+es
+cmp byte[esi+2],"F"
+je fin_liste_disque_ahci
+es
+cmp byte[esi+2],"S"
+jne suite_liste_disque_ahci
+es
+cmp dword[esi+8],14
+jne suite_liste_disque_ahci
+
+mov [edi],esi
+mov dword[edi+4],0  ;dword réservé pour un usage future
+add edi,8
+cmp edi,po_zech_sata+512
+je fin_liste_disque_ahci
+
+suite_liste_disque_ahci:
+es
+mov eax,[esi+4]
+add esi,eax
+jmp boucle_liste_disque_ahci
+
+fin_liste_disque_ahci:
+
 
 mov byte[trappe_tache0],9
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
+mov ax,seldat 
+mov ds,ax
+mov es,ax
 mov ch,10h
 mov esi,ad_descd
 
