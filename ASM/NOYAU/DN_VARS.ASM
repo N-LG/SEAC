@@ -686,6 +686,7 @@ zsata_ad_ahci equ 10h
 zsata_ad_port equ 14h
 zsata_nb_secteur equ 18h
 zsata_conv_secteur equ 20h
+zsata_msb_adresse equ 24h
 
 zsata_liste  equ 100h   ;liste de pointeur vers les commandes
 

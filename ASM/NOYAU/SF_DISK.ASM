@@ -1908,8 +1908,8 @@ cmp al,18h
 je info_atapi
 mov al,ch
 and al,0E0h
-;cmp al,20h
-;je info_sata
+cmp al,20h
+je info_sata
 cmp al,40h
 je info_usb
 cmp ch,80h
@@ -1923,7 +1923,9 @@ jmp finfonctionfichiererr
 info_atapi:
 call infodisqueatapi
 jmp finfonctionfichiererr
-
+info_sata:
+call infodisquesata
+jmp finfonctionfichiererr
 
 
 
@@ -2552,6 +2554,252 @@ ret
 ;************************************
 sff_definis_vitesse_disque:
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+
+;************************************************************************************************************************
+;sous fonctions AHCI
+
+
+
+;*****************
+init_ahci:
+push ebx
+
+;determiner adresse du port
+xor ebx,ebx
+sub ch,20h
+mov bl,ch
+shl ebx,3
+fs
+mov esi,[ebx+po_zech_sata]
+cmp esi,0
+je init_ahci_er1
+
+;calculer taille en octet
+xor eax,eax
+mov al,cl
+cmp eax,0
+jne init_ahci_256
+mov eax,100h
+init_ahci_256:
+gs
+mov cl,[esi+zsata_conv_secteur]
+cmp cl,0
+jne init_ahci_zero
+mov cl,9
+init_ahci_zero: 
+shl eax,cl
+mov ecx,eax
+
+;charge la taille et l'adresse du segment ES
+xor ebx,ebx
+mov bx,es
+test bl,04h
+jz init_ahci_gdt 
+fs
+add ebx,[ad_tache_exec]
+add ebx,ldt_tache
+push gs
+jmp suite
+
+init_ahci_gdt:
+push gs
+mov ax,selgdt
+mov gs,ax
+
+suite:   
+and ebx,0FFFFFFF8h   ;gs:ebx pointe sur le descripteur de segment
+gs
+mov al,[ebx+4]
+gs
+mov ah,[ebx+7]
+shl eax,16
+gs
+mov ax,[ebx+2]
+push eax
+
+gs
+mov al,[ebx+6]
+shl eax,16
+gs
+mov ax,[ebx]
+and eax,0FFFFFh
+test byte[ebx+6],80h
+jz gz
+shl eax,12
+or eax,0FFFh
+gz:
+
+pop ebx   ;ebx=adresse eax=taille du selecteur ES
+pop gs
+
+
+;transformer seg:offset en adresse de base
+
+
+
+
+;préparer PRDT
+mov [esi+zsata_prdt],edi
+mov dword[esi+zsata_prdt+4],0
+mov dword[esi+zsata_prdt+8],0
+mov [esi+zsata_prdt+12],ecx
+
+
+
+xor eax,eax
+pop ebx
+ret
+
+init_ahci_er1:
+mov eax,cer_lecnt
+pop ebx
+ret
+
+init_ahci_er2:
+mov eax,cer_ano
+pop ebx
+ret
+
+
+
+
+
+;**********************
+fin_ahci:
+;activer execution première commande
+gs
+mov ebx,[esi+zsata_ad_port]
+gs
+mov dword[ebx+38h],1
+
+;attendre fin execution
+fs
+mov ecx,[cptsf]
+add ecx,200
+
+boucle_fin_ahci:
+gs
+cmp dword[ebx+38h],0
+je ok_fin_ahci
+fs
+cmp ecx,[cptsf]
+ja boucle_fin_ahci
+
+mov eax,cer_prd
+ret
+
+ok_fin_ahci:
+
+
+;vérifie code d'erreur
+;????????????????????????
+xor eax,eax
+ret
+
+
+
+;**************************************************************
+
+	      ;ebx=numéros de secteur
+	      ;ch=nø de disque
+	      ;cl=nombre de secteur a lire 
+	      ;es:edi zone de destination
+
+
+
+infodisquesata:
+mov cl,1
+xor ebx,ebx
+call init_ahci
+cmp eax,0
+jne fin_infodisquesata
+
+;préparer FIS
+gs
+mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
+gs
+mov byte[esi+zsata_cfis+1],0    ;attribut
+gs
+mov byte[esi+zsata_cfis+2],0A0h ;commande 
+gs
+mov byte[esi+zsata_cfis+3],0    ;feature 1 
+gs 
+mov [esi+zsata_cfis+4],ebx      ;LBA  (0-23)
+gs
+mov byte[esi+zsata_cfis+7],0    ;device 
+shr ebx,24
+gs
+mov [esi+zsata_cfis+8],bl       ;LBA (24-31)
+gs
+mov bx,[esi+zsata_msb_adresse]
+gs
+mov dword[esi+zsata_msb_adresse],0
+gs
+mov [esi+zsata_cfis+9],bx       ;LBA (32-47)
+gs
+mov byte[esi+zsata_cfis+11],0   ;feature 2
+gs
+mov word[esi+zsata_cfis+12],0   ;count 
+gs
+mov byte[esi+zsata_cfis+14],0   ;ICC
+gs
+mov byte[esi+zsata_cfis+15],0   ;controle
+gs
+mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+
+;préparer table commande
+gs
+mov byte[esi+zsata_liste],84h ;prefetchable et 5dword de commande
+gs
+mov byte[esi+zsata_liste+1],0 ;
+gs
+mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
+gs
+mov dword[esi+zsata_liste+4],0 ;
+mov eax,esi
+add eax,100000h+zsata_cfis
+gs
+mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+gs
+mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+gs
+mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+gs
+mov dword[esi+zsata_liste+20],0
+gs
+mov dword[esi+zsata_liste+24],0
+gs
+mov dword[esi+zsata_liste+28],0
+
+
+
+call fin_ahci
+fin_infodisquesata:
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
