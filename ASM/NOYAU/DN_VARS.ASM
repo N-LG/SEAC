@@ -674,7 +674,7 @@ resy_texte equ 3Ah
 octet_ligne equ 3Ch
 bit_pixel equ 3Eh 
 octet_pixel equ 3Fh
-
+ad_res_console equ 100h  ;adresse reservé
 
 
 
@@ -688,19 +688,21 @@ zsata_nb_secteur equ 18h
 zsata_conv_secteur equ 20h
 zsata_msb_adresse equ 24h
 
-zsata_liste  equ 100h   ;liste de pointeur vers les commandes
-
-zsata_cfis   equ 500h   ;commande de base
-zsata_acmd   equ 540h   ;commanda atapi 
-zsata_prdt   equ 580h   ;physical region descriptor table
-
-zsata_recfis equ 800h
-
-zsata_data   equ 1000h
+zsata_recfis equ 110h
 
 
+zsata_liste  equ 210h   ;liste de pointeur vers les commandes
 
-ad_res_console equ 100h  ;adresse reservé
+
+zsata_cfis   equ 310h   ;commande de base
+zsata_acmd   equ 350h   ;commanda atapi 
+zsata_prdt   equ 390h   ;physical region descriptor table
+
+
+
+
+
+
 
 ;**********************************************************
 ;code d'erreur

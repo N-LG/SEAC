@@ -216,6 +216,9 @@ and eax,0FFFF0000h
 or  eax,000000006h
 out dx,eax
 
+;active ahci enable
+es
+or dword[esi+4],80000000h 
 
 ;test disponibilité port
 es
@@ -231,8 +234,8 @@ jz passe_test_port_ahci
 ;création espace port
 pushad
 push ebx
-mov ecx,1000h ;1Ko
-mov eax,007Fh 
+mov ecx,0FF0h ;4Ko-16
+mov eax,001FFh 
 call resmemg 
 mov edi,ebx
 pop ebx
@@ -248,13 +251,13 @@ es
 mov [edi+zsata_ad_port],ebx  ;enregistre l'adresse port de base de cette interface
 
 mov eax,edi
-add eax,zsata_liste   ;configure l'adresse de la liste de commande
+add eax,zsata_liste+100000h   ;configure l'adresse de la liste de commande
 es
 mov [ebx],eax
 es
 mov dword[ebx+04h],0
 mov eax,edi
-add eax,zsata_recfis  ;configure l'adresse de la receved fis
+add eax,zsata_recfis+100000h  ;configure l'adresse de la receved fis
 es
 mov [ebx+08h],eax
 es

@@ -16,7 +16,7 @@ jmp finfonctionfichiererr
 ;01h disquette
 ;10h à 17h disque ATA
 ;18h à 1Fh cdrom
-;20h à 3Fh disque ahci (projet) 
+;20h à 3Fh disque ahci
 ;40h à 5Fh disque USB 
 ;6Fh à 7Fh reserve (inutilisé)
 ;80h à BFh partition 
@@ -2554,7 +2554,7 @@ ret
 ;************************************
 sff_definis_vitesse_disque:
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
+jmp finfonctionfichiererr
 
 
 
@@ -2564,7 +2564,7 @@ sff_definis_vitesse_disque:
 
 
 ;*****************
-init_ahci:
+init_ahci:   ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
 push ebx
 
 ;determiner adresse du port
@@ -2584,6 +2584,7 @@ cmp eax,0
 jne init_ahci_256
 mov eax,100h
 init_ahci_256:
+mov bp,ax
 gs
 mov cl,[esi+zsata_conv_secteur]
 cmp cl,0
@@ -2593,62 +2594,25 @@ init_ahci_zero:
 shl eax,cl
 mov ecx,eax
 
-;charge la taille et l'adresse du segment ES
-xor ebx,ebx
-mov bx,es
-test bl,04h
-jz init_ahci_gdt 
-fs
-add ebx,[ad_tache_exec]
-add ebx,ldt_tache
-push gs
-jmp suite
-
-init_ahci_gdt:
-push gs
-mov ax,selgdt
-mov gs,ax
-
-suite:   
-and ebx,0FFFFFFF8h   ;gs:ebx pointe sur le descripteur de segment
+;reserver une ZT pour les data
+call resmem
+jc init_ahci_er2 
 gs
-mov al,[ebx+4]
-gs
-mov ah,[ebx+7]
-shl eax,16
-gs
-mov ax,[ebx+2]
-push eax
-
-gs
-mov al,[ebx+6]
-shl eax,16
-gs
-mov ax,[ebx]
-and eax,0FFFFFh
-test byte[ebx+6],80h
-jz gz
-shl eax,12
-or eax,0FFFh
-gz:
-
-pop ebx   ;ebx=adresse eax=taille du selecteur ES
-pop gs
-
-
-;transformer seg:offset en adresse de base
-
-
+mov dword[ebx+8],czm_ztlef
+mov edx,ebx
 
 
 ;préparer PRDT
-mov [esi+zsata_prdt],edi
+mov eax,edx
+add eax,100010h
+gs
+mov [esi+zsata_prdt],eax
+gs
 mov dword[esi+zsata_prdt+4],0
+gs
 mov dword[esi+zsata_prdt+8],0
+gs
 mov [esi+zsata_prdt+12],ecx
-
-
-
 xor eax,eax
 pop ebx
 ret
@@ -2659,7 +2623,7 @@ pop ebx
 ret
 
 init_ahci_er2:
-mov eax,cer_ano
+mov eax,cer_pasm
 pop ebx
 ret
 
@@ -2669,33 +2633,42 @@ ret
 
 ;**********************
 fin_ahci:
+push ebx
+push ecx
 ;activer execution première commande
 gs
 mov ebx,[esi+zsata_ad_port]
+gs
+or dword[ebx+18h],1
 gs
 mov dword[ebx+38h],1
 
 ;attendre fin execution
 fs
 mov ecx,[cptsf]
-add ecx,200
-
+add ecx,800
 boucle_fin_ahci:
 gs
 cmp dword[ebx+38h],0
 je ok_fin_ahci
+int 62h
 fs
 cmp ecx,[cptsf]
 ja boucle_fin_ahci
 
+gs
+mov dword[ebx+38h],0
+pop ecx
+pop ebx
 mov eax,cer_prd
 ret
 
 ok_fin_ahci:
 
-
 ;vérifie code d'erreur
 ;????????????????????????
+pop ecx
+pop ebx
 xor eax,eax
 ret
 
@@ -2723,7 +2696,7 @@ mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
 gs
 mov byte[esi+zsata_cfis+1],0    ;attribut
 gs
-mov byte[esi+zsata_cfis+2],0A0h ;commande 
+mov byte[esi+zsata_cfis+2],0ECh ;commande 
 gs
 mov byte[esi+zsata_cfis+3],0    ;feature 1 
 gs 
@@ -2753,9 +2726,9 @@ mov dword[esi+zsata_cfis+16],0   ;auxilliaire
 
 ;préparer table commande
 gs
-mov byte[esi+zsata_liste],84h ;prefetchable et 5dword de commande
+mov byte[esi+zsata_liste],85h ;prefetchable et 5dword de commande
 gs
-mov byte[esi+zsata_liste+1],0 ;
+mov byte[esi+zsata_liste+1],4h ;Clear Busy upon R_OK
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -2778,6 +2751,21 @@ mov dword[esi+zsata_liste+28],0
 
 
 call fin_ahci
+cmp eax,0
+jne fin2_infodisquesata
+
+;recopie les données
+mov ax,selramh
+mov ds,ax
+shr ecx,2
+mov esi,edx
+add esi,10h
+rep movsd
+
+
+fin2_infodisquesata:
+mov ebx,edx
+call libmem
 fin_infodisquesata:
 ret
 
