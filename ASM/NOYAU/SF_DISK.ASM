@@ -95,8 +95,8 @@ cmp al,18h
 je lecatapi
 mov al,ch
 and al,0E0h
-;cmp al,20h
-;je lecsata
+cmp al,20h
+je lecsata
 cmp al,40h
 je lecusb
 pop gs
@@ -313,6 +313,16 @@ mov [esp+28],eax
 popad
 ret
 
+lecsata:
+call liresecteursata
+pop gs
+pop fs
+pop es
+pop ds
+ss
+mov [esp+28],eax
+popad
+ret
 
 
 lecatapi:
@@ -685,8 +695,8 @@ cmp al,10h
 je ecrata
 cmp al,18h
 je ecratapi
-;cmp al,20h
-;je ecrsata
+cmp al,20h
+je ecrsata
 cmp al,40h
 je ecrusb
 pop gs
@@ -857,6 +867,17 @@ mov [esp+28],eax
 popad
 ret
 
+
+ecrsata:
+call ecriresecteursata
+pop gs
+pop fs
+pop es
+pop ds
+ss
+mov [esp+28],eax
+popad
+ret
 
 ecratapi:
 pop gs
@@ -2611,8 +2632,10 @@ gs
 mov dword[esi+zsata_prdt+4],0
 gs
 mov dword[esi+zsata_prdt+8],0
+dec ecx
 gs
 mov [esi+zsata_prdt+12],ecx
+inc ecx
 xor eax,eax
 pop ebx
 ret
@@ -2639,14 +2662,14 @@ push ecx
 gs
 mov ebx,[esi+zsata_ad_port]
 gs
-or dword[ebx+18h],1
+or dword[ebx+18h],11h
 gs
 mov dword[ebx+38h],1
 
 ;attendre fin execution
 fs
 mov ecx,[cptsf]
-add ecx,800
+add ecx,200
 boucle_fin_ahci:
 gs
 cmp dword[ebx+38h],0
@@ -2675,14 +2698,6 @@ ret
 
 
 ;**************************************************************
-
-	      ;ebx=numéros de secteur
-	      ;ch=nø de disque
-	      ;cl=nombre de secteur a lire 
-	      ;es:edi zone de destination
-
-
-
 infodisquesata:
 mov cl,1
 xor ebx,ebx
@@ -2690,13 +2705,14 @@ call init_ahci
 cmp eax,0
 jne fin_infodisquesata
 
+
 ;préparer FIS
 gs
 mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
 gs
-mov byte[esi+zsata_cfis+1],0    ;attribut
+mov byte[esi+zsata_cfis+1],80h    ;attribut
 gs
-mov byte[esi+zsata_cfis+2],0ECh ;commande 
+mov byte[esi+zsata_cfis+2],0ECh ;commande  ata=ECh atapi=A1h
 gs
 mov byte[esi+zsata_cfis+3],0    ;feature 1 
 gs 
@@ -2715,7 +2731,7 @@ mov [esi+zsata_cfis+9],bx       ;LBA (32-47)
 gs
 mov byte[esi+zsata_cfis+11],0   ;feature 2
 gs
-mov word[esi+zsata_cfis+12],0   ;count 
+mov word[esi+zsata_cfis+12],bp   ;count 
 gs
 mov byte[esi+zsata_cfis+14],0   ;ICC
 gs
@@ -2726,9 +2742,9 @@ mov dword[esi+zsata_cfis+16],0   ;auxilliaire
 
 ;préparer table commande
 gs
-mov byte[esi+zsata_liste],85h ;prefetchable et 5dword de commande
+mov byte[esi+zsata_liste],05h ;5dword de commande
 gs
-mov byte[esi+zsata_liste+1],4h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -2749,7 +2765,6 @@ gs
 mov dword[esi+zsata_liste+28],0
 
 
-
 call fin_ahci
 cmp eax,0
 jne fin2_infodisquesata
@@ -2761,12 +2776,103 @@ shr ecx,2
 mov esi,edx
 add esi,10h
 rep movsd
-
+xor eax,eax
 
 fin2_infodisquesata:
 mov ebx,edx
 call libmem
+
 fin_infodisquesata:
+ret
+
+
+
+
+
+;**************************************************************
+liresecteursata:
+call init_ahci
+cmp eax,0
+jne fin_liresecteursata
+
+
+;préparer FIS
+gs
+mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
+gs
+mov byte[esi+zsata_cfis+1],80h    ;attribut
+gs
+mov byte[esi+zsata_cfis+2],025h ;commande lecture 20h=pio 24h=pio48 c8h=dma28 25h=dma48  
+gs
+mov byte[esi+zsata_cfis+3],0    ;feature 1 
+gs 
+mov [esi+zsata_cfis+4],ebx      ;LBA  (0-23)
+gs
+mov byte[esi+zsata_cfis+7],0    ;device 
+shr ebx,24
+gs
+mov [esi+zsata_cfis+8],bl       ;LBA (24-31)
+gs
+mov bx,[esi+zsata_msb_adresse]
+gs
+mov dword[esi+zsata_msb_adresse],0
+gs
+mov [esi+zsata_cfis+9],bx       ;LBA (32-47)
+gs
+mov byte[esi+zsata_cfis+11],0   ;feature 2
+gs
+mov word[esi+zsata_cfis+12],bp   ;count 
+gs
+mov byte[esi+zsata_cfis+14],0   ;ICC
+gs
+mov byte[esi+zsata_cfis+15],0   ;controle
+gs
+mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+
+;préparer table commande
+gs
+mov byte[esi+zsata_liste],05h ;5dword de commande
+gs
+mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+gs
+mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
+gs
+mov dword[esi+zsata_liste+4],0 ;
+mov eax,esi
+add eax,100000h+zsata_cfis
+gs
+mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+gs
+mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+gs
+mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+gs
+mov dword[esi+zsata_liste+20],0
+gs
+mov dword[esi+zsata_liste+24],0
+gs
+mov dword[esi+zsata_liste+28],0
+
+
+call fin_ahci
+cmp eax,0
+jne fin2_liresecteursata
+
+;recopie les données
+mov ax,selramh
+mov ds,ax
+shr ecx,2
+mov esi,edx
+add esi,10h
+rep movsd
+xor eax,eax
+
+fin2_liresecteursata:
+mov ebx,edx
+call libmem
+
+fin_liresecteursata:
 ret
 
 
@@ -2775,9 +2881,99 @@ ret
 
 
 
+;**************************************************************
+ecriresecteursata:
+mov edi,esi
+call init_ahci
+cmp eax,0
+jne fin_ecriresecteursata
+
+
+;recopie les données
+push esi
+push es
+pop ds
+mov ax,selramh
+mov es,ax
+shr ecx,2
+mov esi,edi
+mov edi,edx
+add edi,10h
+rep movsd
+pop esi
+
+
+;préparer FIS
+gs
+mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
+gs
+mov byte[esi+zsata_cfis+1],80h    ;attribut
+gs
+mov byte[esi+zsata_cfis+2],035h ;commande ecriture  pio=30h pio48=34h dma=CAh dma48=35h
+gs
+mov byte[esi+zsata_cfis+3],0    ;feature 1 
+gs 
+mov [esi+zsata_cfis+4],ebx      ;LBA  (0-23)
+gs
+mov byte[esi+zsata_cfis+7],0    ;device 
+shr ebx,24
+gs
+mov [esi+zsata_cfis+8],bl       ;LBA (24-31)
+gs
+mov bx,[esi+zsata_msb_adresse]
+gs
+mov dword[esi+zsata_msb_adresse],0
+gs
+mov [esi+zsata_cfis+9],bx       ;LBA (32-47)
+gs
+mov byte[esi+zsata_cfis+11],0   ;feature 2
+gs
+mov word[esi+zsata_cfis+12],bp   ;count 
+gs
+mov byte[esi+zsata_cfis+14],0   ;ICC
+gs
+mov byte[esi+zsata_cfis+15],0   ;controle
+gs
+mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+
+;préparer table commande
+gs
+mov byte[esi+zsata_liste],0C5h ;prefetchable écriture et 5dword de commande
+gs
+mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+gs
+mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
+gs
+mov dword[esi+zsata_liste+4],0 ;
+mov eax,esi
+add eax,100000h+zsata_cfis
+gs
+mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+gs
+mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+gs
+mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+gs
+mov dword[esi+zsata_liste+20],0
+gs
+mov dword[esi+zsata_liste+24],0
+gs
+mov dword[esi+zsata_liste+28],0
+
+
+call fin_ahci
+cmp eax,0
+jne fin2_ecriresecteursata
 
 
 
+fin2_ecriresecteursata:
+mov ebx,edx
+call libmem
+
+fin_ecriresecteursata:
+ret
 
 
 

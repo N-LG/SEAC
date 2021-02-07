@@ -690,15 +690,11 @@ zsata_msb_adresse equ 24h
 
 zsata_recfis equ 110h
 
+zsata_cfis   equ 210h   ;commande de base
+zsata_acmd   equ 250h   ;commanda atapi 
+zsata_prdt   equ 290h   ;physical region descriptor table
 
-zsata_liste  equ 210h   ;liste de pointeur vers les commandes
-
-
-zsata_cfis   equ 310h   ;commande de base
-zsata_acmd   equ 350h   ;commanda atapi 
-zsata_prdt   equ 390h   ;physical region descriptor table
-
-
+zsata_liste  equ 410h   ;liste de pointeur vers les commandes
 
 
 

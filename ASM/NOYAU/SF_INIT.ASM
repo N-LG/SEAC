@@ -235,7 +235,7 @@ jz passe_test_port_ahci
 pushad
 push ebx
 mov ecx,0FF0h ;4Ko-16
-mov eax,001FFh 
+mov eax,003FFh 
 call resmemg 
 mov edi,ebx
 pop ebx
