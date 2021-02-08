@@ -142,33 +142,6 @@ jz boucle_detec_ata
 
 mov byte[trappe_tache0],7
 
-;***************************************************
-cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur n'as été detecté, on remplit les descripteur avec les adresses standard
-jne fin_detec_ata 
-
-mov ebx,ad_descd
-mov ax,1F0h
-mov dx,3F6h
-
-boucle_remplissage_ctrl_ata:
-mov word[ebx+dd_atribut],00h
-mov word[ebx+dd_atribut+32],10h
-mov [ebx+dd_adress_base],ax
-mov [ebx+dd_adress_base+32],ax
-mov [ebx+dd_adress_ctrl],dx
-mov [ebx+dd_adress_ctrl+32],dx
-mov word[ebx+dd_adress_dma],0
-mov word[ebx+dd_adress_dma+32],0
-
-sub ax,80h
-sub dx,80h
-add ebx,64
-cmp ebx,ad_descd+256
-jne boucle_remplissage_ctrl_ata
-
-
-fin_detec_ata:
-mov byte[trappe_tache0],8
 
 ;*****************************************************************************************************************************
 ;détecte les controleur ahci et leurs port ouverts
@@ -315,7 +288,46 @@ jmp boucle_liste_disque_ahci
 fin_liste_disque_ahci:
 
 
+mov byte[trappe_tache0],8
+
+
+
+
+;***************************************************
+mov ax,seldat 
+mov ds,ax
+cmp word[ad_descd+dd_adress_base],0 ;si aucun controleur ata n'as été detecté
+jne fin_detec_ata 
+cmp dword[po_zech_sata],0           ;et si aucun controleur ahci n'as été détecté, on remplit les descripteur avec les adresses standard
+jne fin_detec_ata 
+
+
+
+mov ebx,ad_descd
+mov ax,1F0h
+mov dx,3F6h
+
+boucle_remplissage_ctrl_ata:
+mov word[ebx+dd_atribut],00h
+mov word[ebx+dd_atribut+32],10h
+mov [ebx+dd_adress_base],ax
+mov [ebx+dd_adress_base+32],ax
+mov [ebx+dd_adress_ctrl],dx
+mov [ebx+dd_adress_ctrl+32],dx
+mov word[ebx+dd_adress_dma],0
+mov word[ebx+dd_adress_dma+32],0
+
+sub ax,80h
+sub dx,80h
+add ebx,64
+cmp ebx,ad_descd+256
+jne boucle_remplissage_ctrl_ata
+
+
+fin_detec_ata:
 mov byte[trappe_tache0],9
+
+
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
@@ -403,7 +415,51 @@ add esi,32
 cmp ch,18h
 jne boucle_init_infopart
 
+
+
+
+
+
+
+;*********************************************************************************************************************************************
+mov ax,selramh 
+mov ds,ax
+mov ax,seldat
+mov es,ax
+mov ch,20h
+mov esi,ad_descd
+
+boucle_init_infopart2:
+es
+cmp dword[esi],0
+je pasinfopart2
+mov al,10
+mov edi,bootsecteur
+push cx
+int 64h          ;charge les info disque
+pop cx
+cmp eax,0
+jne pasinfopart2
+
+;???????????
+
+
+init_infopart2:
+mov al,12
+int 64h
+
+
+pasinfopart2:
+inc ch
+add esi,8
+cmp ch,30h
+jne boucle_init_infopart2
+
+
+
+
 mov byte[trappe_tache0],10
+
 
 ;*********************************************************************************************************************************************
 ;code de detection  et de création des descripteur pour les controleur de bus USB 

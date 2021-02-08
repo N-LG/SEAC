@@ -2808,7 +2808,7 @@ mov byte[esi+zsata_cfis+3],0    ;feature 1
 gs 
 mov [esi+zsata_cfis+4],ebx      ;LBA  (0-23)
 gs
-mov byte[esi+zsata_cfis+7],0    ;device 
+mov byte[esi+zsata_cfis+7],40h  ;device (met a 1 le bit LBA)
 shr ebx,24
 gs
 mov [esi+zsata_cfis+8],bl       ;LBA (24-31)
@@ -2890,6 +2890,7 @@ jne fin_ecriresecteursata
 
 
 ;recopie les données
+push ecx
 push esi
 push es
 pop ds
@@ -2901,7 +2902,7 @@ mov edi,edx
 add edi,10h
 rep movsd
 pop esi
-
+pop ecx
 
 ;préparer FIS
 gs
@@ -2915,7 +2916,7 @@ mov byte[esi+zsata_cfis+3],0    ;feature 1
 gs 
 mov [esi+zsata_cfis+4],ebx      ;LBA  (0-23)
 gs
-mov byte[esi+zsata_cfis+7],0    ;device 
+mov byte[esi+zsata_cfis+7],40h  ;device (met a 1 le bit LBA)
 shr ebx,24
 gs
 mov [esi+zsata_cfis+8],bl       ;LBA (24-31)
