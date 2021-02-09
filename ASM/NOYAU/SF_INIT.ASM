@@ -422,16 +422,18 @@ jne boucle_init_infopart
 
 
 ;*********************************************************************************************************************************************
+;lit les info disque sata et met a jour les info de partitions
 mov ax,selramh 
 mov ds,ax
 mov ax,seldat
 mov es,ax
 mov ch,20h
-mov esi,ad_descd
+mov esi,po_zech_sata
 
 boucle_init_infopart2:
 es
-cmp dword[esi],0
+mov ebx,[esi]
+cmp ebx,0
 je pasinfopart2
 mov al,10
 mov edi,bootsecteur
@@ -441,7 +443,53 @@ pop cx
 cmp eax,0
 jne pasinfopart2
 
-;???????????
+mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
+mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
+cmp edx,0
+je init_infodisque_lba28
+test eax,0C0000000h
+jnz init_sata_taille
+
+mov eax,[bootsecteur+78h]   ;nombre de secteur en LBA28
+xor edx,edx
+cmp eax,0
+jne init_sata_taille
+
+mov eax,[bootsecteur+72h]   ;nombre de secteur en CHS
+xor edx,edx
+
+init_sata_taille:
+mov [ebx+zsata_nb_secteur],eax
+mov [ebx+zsata_nb_secteur+4],edx
+
+mov ax,[bootsecteur+0D4h]
+mov edx,[bootsecteur+0EAh]
+mov cl,9
+
+test ax,8000h
+jnz init_sata_conv_secteur 
+test ax,8000h
+jz init_sata_conv_secteur 
+test ax,1000h
+jz init_sata_conv_secteur
+
+mov cl,0
+boucle_init_sata_conv_secteur:
+inc cl
+shr edx,1
+cmp edx,1
+jne boucle_init_sata_conv_secteur 
+
+init_sata_conv_secteur:
+mov byte[ebx+zsata_conv_secteur],cl
+
+
+
+
+
+
+
+
 
 
 init_infopart2:

@@ -2598,6 +2598,16 @@ mov esi,[ebx+po_zech_sata]
 cmp esi,0
 je init_ahci_er1
 
+
+gs
+mov ebx,[esi+zsata_ad_port]
+gs
+test dword[ebx+28h],0Fh    ;test si quelque chose est connecté au port
+jz init_ahci_er1
+gs
+mov dword[ebx+30h],0    ;efface les erreurs
+
+
 ;calculer taille en octet
 xor eax,eax
 mov al,cl
@@ -2653,7 +2663,6 @@ ret
 
 
 
-
 ;**********************
 fin_ahci:
 push ebx
@@ -2687,13 +2696,19 @@ mov eax,cer_prd
 ret
 
 ok_fin_ahci:
-
-;vérifie code d'erreur
-;????????????????????????
 pop ecx
 pop ebx
-xor eax,eax
+;vérifie code d'erreur
+gs
+mov eax,[ebx+30h]
+cmp eax,0
+jne erreur_fin_ahci
 ret
+
+erreur_fin_ahci:
+mov eax,cer_ahci
+ret
+
 
 
 

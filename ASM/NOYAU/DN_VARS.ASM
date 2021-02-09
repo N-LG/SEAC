@@ -737,14 +737,16 @@ cer_uhci   equ 31 ;erreur controleur UHCI
 cer_ohci   equ 32 ;erreur controleur OHCI
 cer_ehci   equ 33 ;erreur controleur EHCI
 cer_xhci   equ 34 ;erreur controleur XHCI
-cer_efis   equ 35 ;exceptiojn du fpu
-cer_efia   equ 36 ;exceptiojn du fpu
-cer_efi    equ 37 ;exceptiojn du fpu
-cer_efd    equ 38 ;exceptiojn du fpu
-cer_efz    equ 39 ;exceptiojn du fpu
-cer_efo    equ 40 ;exceptiojn du fpu
-cer_efu    equ 41 ;exceptiojn du fpu
-cer_efp    equ 42 ;exceptiojn du fpu
+cer_efis   equ 35 ;exception du fpu
+cer_efia   equ 36 ;exception du fpu
+cer_efi    equ 37 ;exception du fpu
+cer_efd    equ 38 ;exception du fpu
+cer_efz    equ 39 ;exception du fpu
+cer_efo    equ 40 ;exception du fpu
+cer_efu    equ 41 ;exception du fpu
+cer_efp    equ 42 ;exception du fpu
+cer_ahci   equ 43 ;erreur controleur AHCI
+
 
 ;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 
