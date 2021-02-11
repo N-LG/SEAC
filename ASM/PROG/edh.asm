@@ -133,7 +133,7 @@ int 63h
 suite_ldp:
 pop ecx
 inc ch
-cmp ch,20h
+cmp ch,40h
 jne boucle_ldp
 
 
@@ -264,13 +264,19 @@ and al,0E0h
 cmp al,40h
 je chargement_partie_disque
 mov al,[num_disque]
-and al,18h
+and al,0F8h
 cmp al,0
 je chargement_partie_fichier
 cmp al,10h
 je chargement_partie_disque
 cmp al,18h
 je chargement_partie_cd
+mov al,[num_disque]
+and al,0F0h
+cmp al,20h
+je chargement_partie_disque
+cmp al,30h
+je chargement_partie_disque
 jmp affichage_menu
 
 
