@@ -61,7 +61,7 @@ zt_conversion_ucs equ 4000h  ;definition temporaire
 
 zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette et d'envoie de commande a une clef usb
 bootsecteur equ 4400h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
-zt_lminfo equ 4600h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier
+;???  4600h   
 secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 ad_msg_syst equ 5000h ;4ko
 ad_msg_erreur equ 6000h ;8Ko  
@@ -74,8 +74,9 @@ ad_tabclav_carac  equ 8800h     ;2 fois 2048
 ad_tabclav_chasse equ 9800h    ;2048 max
 
 
+zt_lminfo equ 0A000h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier
 
-;???  0A000h
+;???  0A800h
 
 ad_desc_periph_usb equ 0B000h 
 dc_desc_periph_usb equ 6 ;element de 64 octets

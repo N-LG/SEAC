@@ -6298,7 +6298,7 @@ boucle1_sff_lit_dossier_mem:             ;recherche le premier fichier a affiche
 cmp edx,0
 je boucle2_sff_lit_dossier_mem
 cmp byte[ebx+2],"F"
-je fin_sff_lit_dossier
+je nt_sff_lit_dossier
 cmp byte[ebx+2],"X"
 jne ignore1_sff_lit_dossier_mem
 
@@ -6355,7 +6355,8 @@ mov eax,cer_pasm
 mov ebx,edx
 jmp finfonctionfichierokebx
 
-
+nt_sff_lit_dossier:
+xor edx,edx
 fin_sff_lit_dossier:
 mov al,0
 stosb
@@ -6377,21 +6378,21 @@ mov di,seldat
 mov ds,si
 mov es,di
 mov eax,edx
-and eax,0FFFF0000h
+and eax,0FFFC0000h
 ds
 cmp eax,[ebp+16]
 je suite_charg_part_dossier
 
+ds
+mov [ebp+16],eax
 pushad
 push es
 mov di,selramh
-ds
-mov [ebp+16],eax
 mov es,di
 mov edi,ebp
 add edi,20h
-and edx,eax
-mov ecx,20000h
+mov edx,eax
+mov ecx,40800h
 call sflirefichier
 pop es
 ss
@@ -6410,11 +6411,11 @@ ret
 suite_charg_part_dossier:
 mov esi,ebp
 add esi,20h
-and edx,1FFFFh
+and edx,03FFFFh
 add esi,edx
 mov edi,zt_lminfo
-mov ecx,64
-rep movsb
+mov ecx,512
+rep movsd
 
 pop es
 pop ds
@@ -6433,7 +6434,7 @@ push ecx
 mov ax,selramh
 mov ds,ax
 mov es,ax
-mov ecx,20010h
+mov ecx,40810h
 call resmem
 sti
 pop ecx
@@ -6457,7 +6458,7 @@ dec ebx
 xor eax,eax
 mov al,[zt_lminfo] ;taille du descripteur de fichier
 cmp eax,0
-je fin_sff_lit_dossier_iso9660
+je nt_sff_lit_dossier_iso9660
 add edx,eax
 jmp boucle1_sff_lit_dossier_iso9660
 
@@ -6534,7 +6535,8 @@ stosb
 mov eax,cer_pasm
 jmp finfonctionfichierokebx
 
-
+nt_sff_lit_dossier_iso9660:
+xor ebx,ebx
 fin_sff_lit_dossier_iso9660:
 push ebx
 mov ebx,ebp
@@ -6574,7 +6576,7 @@ push ecx
 mov ax,selramh
 mov ds,ax
 mov es,ax
-mov ecx,20010h
+mov ecx,40810h
 call resmem
 sti
 pop ecx
@@ -6596,7 +6598,7 @@ cmp eax,0
 jne err_sff_lit_dossier_iso9660
 
 cmp byte[zt_lminfo],0
-je fin_sff_lit_dossier_iso9660
+je nt_sff_lit_dossier_iso9660
 cmp byte[zt_lminfo],02Eh
 je suite1_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
@@ -6609,8 +6611,6 @@ dec ebx
 suite1_sff_lit_dossier_fat:
 add edx,32
 jmp boucle1_sff_lit_dossier_fat
-
-
 
 
 boucle2_sff_lit_dossier_fat:             ;enregistre le nom de chaques fichier suivants
@@ -6720,7 +6720,7 @@ jmp boucle2_sff_lit_dossier_fat
 macro stob_utf8 {   ;macro de transformation en utf8
 cmp eax,0
 je fin_vfat_sff_lit_dossier_fat
-
+push ebx
 cmp eax,80h   ;-de 7 bit
 jb .stob_utf8_1
 cmp eax,800h  ;-de 11 bits
@@ -6780,7 +6780,8 @@ cmp edi,ecx
 je finzt_sff_lit_dossier_iso9660
 
 
-.fin_stob_utf8: 
+.fin_stob_utf8:
+pop ebx 
 }
 
 
@@ -6793,6 +6794,8 @@ jz suite2_sff_lit_dossier_fat
 and esi,3Fh
 shl esi,5
 add edx,esi
+cmp byte[esi+zt_lminfo],0E5h    ;verifie que le nom de fichier court n'est pas marqué effacé
+je suite2_sff_lit_dossier_fat
 sub esi,32
 add edx,32
 
