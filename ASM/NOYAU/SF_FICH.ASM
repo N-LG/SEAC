@@ -830,11 +830,12 @@ fs
 mov [po_descripteur_expdossier],eax
 
 ;reserve une zt pour la lecture du dossier
-mov ecx,4096
+mov ecx,40000h
 fs
 mov [to_ztexpdossier],ecx
+add ecx,2048
 call resmem
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§erreur d'allocation de mémoire
+jc errmemouvfichier ;erreur d'allocation de mémoire
 add ebx,10h
 fs
 mov [ad_ztexpdossier],ebx
@@ -872,17 +873,31 @@ push edx
 push es
 mov ax, selramh
 mov es,ax
+;efface la zt
 fs
 mov edi,[ad_ztexpdossier]
 fs
 mov ecx,[to_ztexpdossier]
+add ecx,2048
+xor eax,eax
+rep stosb
+
+
+;remplit la zt
+fs
+mov edi,[ad_ztexpdossier]
+fs
+mov ecx,[to_ztexpdossier]
+add ecx,2048
 fs
 mov edx,[po_ztexpdossier]
 call sflirefichier
+
 pop es
 pop edx
 cmp eax,0
 jne errouvfichier
+
 
 bouclerecherche_fichier:
 ;charge le nom et info du fichier dont le descripteur est pointé par "po_descripteur_expdossier" dans ad_nomfichier2
@@ -1308,7 +1323,7 @@ fs
 mov eax,[to_ztexpdossier]
 fs
 cmp [po_descripteur_expdossier],eax 
-ja charge_partie_dossier            ;si le descripteur est hors de la zt on recharge la zt
+jae charge_partie_dossier            ;si le descripteur est hors de la zt on recharge la zt
 jmp bouclerecherche_fichier
 
 
@@ -1317,7 +1332,6 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 ;met a jour les données du descripteur fichier avec celuis trouvé dans le dossier
 fs
@@ -1572,7 +1586,12 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+xor ebx,ebx
+jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
+
+
+errmemouvfichier:
+mov eax,cer_pasm
 xor ebx,ebx
 jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
