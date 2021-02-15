@@ -835,6 +835,7 @@ fs
 mov [to_ztexpdossier],ecx
 add ecx,2048
 call resmem
+sti
 jc errmemouvfichier ;erreur d'allocation de mémoire
 add ebx,10h
 fs
@@ -2004,6 +2005,7 @@ ret
 cree_fichier_mem:
 mov ecx,432
 call resmem
+sti
 jc err_cree_fichier_mem
 gs
 mov byte[ebx+2],"X"
@@ -3063,6 +3065,7 @@ push es
 mov ax,selramh
 mov es,ax
 call resmem
+sti
 jc errmem_supprime_dossier_fat 
 xor edx,edx
 
