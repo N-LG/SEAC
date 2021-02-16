@@ -105,6 +105,10 @@ suite_ldp:
 pop ecx
 inc ch
 cmp ch,18h
+jne finsata
+mov ch,20h
+finsata:
+cmp ch,30h
 jne boucle_ldp
 
 
@@ -1528,16 +1532,15 @@ jne erreur_chargementpart
 push ebx
 push ecx
 push edx
-mov al,9
 mov ch,[disque_choisie]
 mov cl,1
 mov esi,ZT512A
-int 64h
+call charge_secteur
 pop edx
 pop ecx
 pop ebx
 cmp eax,0
-jne erreur_chargementpart
+jne affiche_part
 
 
 
@@ -1652,15 +1655,13 @@ cmp eax,0
 mov word[ZT512B+1FEh],0AA55h
 
 sauvegarde_mbr:              ;sauvegarde le mbr
-mov al,9
 mov ch,[disque_choisie]
 mov cl,1
 mov esi,ZT512B
 mov ebx,0
-int 64h
+call charge_secteur
 cmp eax,0
-;jne XXXXXXXXXXXXXXXXx
-
+jne affiche_part
 
 mov al,12                  ;signal au systeme qu'il doit réactualiser sa liste
 mov ch,[disque_choisie]
@@ -1740,13 +1741,168 @@ ret
 
 
 
+;***********************************************
+lit_secteur:
+push ebx
+push ecx
+push edi
+mov al,8
+int 64h
+
+cmp eax,0
+jne erreur_lit_secteur
+pop edi
+pop ecx
+pop ebx
+ret
+
+
+erreur_lit_secteur:
+push eax
+call raz_ecr
+mov edx,msg_err3
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov eax,102
+xchg ebx,ecx
+mov edx,saisienum
+int 61h
+mov edx,saisienum
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov edx,msg_err1
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov eax,105
+mov cl,bh
+mov edx,saisienum
+int 61h
+mov byte[saisienum+2],0
+mov edx,saisienum
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov edx,msg_err2
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+demande_lit_secteur:
+mov eax,13
+mov cl,1
+mov ch,2
+mov bl,0
+mov bh,7
+int 63h
+
+cmp bh,44
+jne demande_lit_secteur
+cmp bl,1
+je abandon_lit_secteur
+
+pop eax
+pop esi
+pop ecx
+pop ebx
+jmp lit_secteur
+
+
+abandon_lit_secteur:
+pop eax
+pop esi
+pop ecx
+pop ebx
+ret
 
 
 
 
+;***********************************************
+charge_secteur:
+push ebx
+push ecx
+push esi
+mov al,9
+int 64h
+
+cmp eax,0
+jne erreur_charge_secteur
+pop esi
+pop ecx
+pop ebx
+ret
 
 
+erreur_charge_secteur:
+push eax
+call raz_ecr
+mov edx,msg_err4
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
 
+mov eax,102
+xchg ebx,ecx
+mov edx,saisienum
+int 61h
+mov edx,saisienum
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov edx,msg_err1
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov eax,105
+mov cl,bh
+mov edx,saisienum
+int 61h
+mov byte[saisienum+2],0
+mov edx,saisienum
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+mov edx,msg_err2
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+
+demande_charge_secteur:
+mov eax,13
+mov cl,1
+mov ch,2
+mov bl,0
+mov bh,7
+int 63h
+
+cmp bh,44
+jne demande_charge_secteur
+cmp bl,1
+je abandon_charge_secteur
+
+pop eax
+pop esi
+pop ecx
+pop ebx
+jmp charge_secteur
+
+
+abandon_charge_secteur:
+pop eax
+pop esi
+pop ecx
+pop ebx
+ret
 
 
 
@@ -1906,6 +2062,20 @@ db "cette fonction n'est pas encore active",0
 
 msg_attend:
 db "appuyez sur une touche pour continuer...",0
+
+
+
+
+msg_err1:
+db " du disque ",0
+msg_err2:
+db "h",13,"réessayer",13,"annuler",0
+msg_err3:
+db "erreur lors de la lecture du secteur ",0
+msg_err4:
+db "erreur lors de l'écriture du secteur ",0
+
+
 
 saisienum:
 dd 0,0,0,0
