@@ -2210,6 +2210,7 @@ add esi,ad_descp
 mov ax,seldat
 mov ds,ax
 mov ecx,20h
+cld
 rep movsb
 xor eax,eax
 jmp finfonctionfichiererr
@@ -2627,6 +2628,7 @@ mov ecx,eax
 
 ;reserver une ZT pour les data
 call resmem
+sti
 jc init_ahci_er2 
 gs
 mov dword[ebx+8],czm_ztlef
@@ -2790,12 +2792,14 @@ mov ds,ax
 shr ecx,2
 mov esi,edx
 add esi,10h
+cld
 rep movsd
 xor eax,eax
 
 fin2_infodisquesata:
 mov ebx,edx
 call libmem
+sti
 
 fin_infodisquesata:
 ret
@@ -2880,12 +2884,14 @@ mov ds,ax
 shr ecx,2
 mov esi,edx
 add esi,10h
+cld
 rep movsd
 xor eax,eax
 
 fin2_liresecteursata:
 mov ebx,edx
 call libmem
+sti
 
 fin_liresecteursata:
 ret
@@ -2915,6 +2921,7 @@ shr ecx,2
 mov esi,edi
 mov edi,edx
 add edi,10h
+cld
 rep movsd
 pop esi
 pop ecx
@@ -2987,7 +2994,7 @@ jne fin2_ecriresecteursata
 fin2_ecriresecteursata:
 mov ebx,edx
 call libmem
-
+sti
 fin_ecriresecteursata:
 ret
 

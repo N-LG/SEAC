@@ -845,8 +845,6 @@ mov [ad_ztexpdossier],ebx
 
 
 charge_partie_dossier:              ;charge une partie du dossier
-
-
 fs
 mov al,[at_fichier]
 and al,00111100b
@@ -881,6 +879,7 @@ fs
 mov ecx,[to_ztexpdossier]
 add ecx,2048
 xor eax,eax
+cld
 rep stosb
 
 
@@ -1031,8 +1030,6 @@ cld
 rep movsb
 pop es
 pop ds
-
-
 
 fs
 mov byte[at_fichier_expdossier],01b
@@ -1258,8 +1255,8 @@ fs
 mov dword[to_descripteur_expdossier],20h 
 mov esi,ebx
 
-extrait_fat:
 
+extrait_fat:
 xor eax,eax
 gs                  ;extrait l'adresse
 mov ax,[esi+1Ah]
@@ -1333,7 +1330,7 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
-
+sti
 ;met a jour les données du descripteur fichier avec celuis trouvé dans le dossier
 fs
 mov al,[at_fichier]   ;récupère les données du dossier
@@ -1410,7 +1407,6 @@ cmp eax,002E2Fh
 je finchainefichier
 cmp eax,002E5Ch
 jne debutslash 
-
 
 
 finchainefichier:
@@ -1587,6 +1583,7 @@ fs
 mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
+sti
 xor ebx,ebx
 jmp finfonctionfichierokebx   ;fin de la fonction en préservant eax et ebx
 
@@ -3104,6 +3101,7 @@ je boucle_verif_supprime_dossier_fat
 
 
 call libmem
+sti
 pop es
 pop ebx
 popad
@@ -3123,6 +3121,7 @@ jmp finfonctionfichiererr
 
 fin_verif_supprime_dossier_fat:
 call libmem
+sti
 pop es
 pop ebx
 
@@ -3183,6 +3182,7 @@ push ebx
 fs
 mov ebx,[ad_fichier]
 call libmem
+sti
 pop ebx
 jnc fermerfichier
 mov eax,cer_parami
@@ -3485,6 +3485,7 @@ fs
 mov esi,[ad_fichier]
 add esi,416
 add esi,edx
+cld
 rep movsb
 pop ds
 jmp finlirefichier 
@@ -5472,6 +5473,7 @@ fs
 mov ebx,[ad_zt_lecluster]
 sub ebx,10h
 call libmem
+sti
 
 fin_sfecrirefichier_erecr:
 mov eax,cer_ecr 
@@ -6437,6 +6439,7 @@ and edx,03FFFFh
 add esi,edx
 mov edi,zt_lminfo
 mov ecx,512
+cld
 rep movsd
 
 pop es
@@ -6539,6 +6542,7 @@ mov ds,bx
 mov ebx,ebp
 mov ebp,[ebx+12]
 call libmem
+sti
 pop ebx
 boucle_finzt_sff_lit_dossier_iso9660:
 dec edi
@@ -6563,6 +6567,7 @@ fin_sff_lit_dossier_iso9660:
 push ebx
 mov ebx,ebp
 call libmem
+sti
 pop ebx
 mov al,0
 stosb
@@ -6574,6 +6579,7 @@ err_sff_lit_dossier_iso9660:
 push ebx
 mov ebx,ebp
 call libmem
+sti
 pop ebx
 es
 mov byte[edi],0
@@ -6603,7 +6609,6 @@ call resmem
 sti
 pop ecx
 jc erm_sff_lit_dossier_iso9660
-mov [ebx+12],ebp
 mov dword[ebx+16],0FFFFh
 mov ebp,ebx
 pop es
