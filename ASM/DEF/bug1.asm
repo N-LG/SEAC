@@ -1,12 +1,12 @@
-qemu:   ;definition pour clavier ps2 pour le problème de mélange de touche avec qemu
+qemu:   ;definition pour clavier ps2 pour le problÃ¨me de mÃ©lange de touche avec qemu
 
 db "DEFC"
-dw touche_codeps2       ;adresse de la définition PS/2
-dw 0                    ;adresse de la définition usb
-dw 0                    ;adresse de la définition clavier principale
-dw 0                    ;adresse de la définition clavier secondaire
-dw 0                    ;adresse de la définition chasse
-db 0,0                  ;numéros de touches a employer avec la touche CTRL pour basculer d'un jeu de carractère a un autre
+dw touche_codeps2       ;adresse de la dÃ©finition PS/2
+dw 0                    ;adresse de la dÃ©finition usb
+dw 0                    ;adresse de la dÃ©finition clavier principale
+dw 0                    ;adresse de la dÃ©finition clavier secondaire
+dw 0                    ;adresse de la dÃ©finition chasse
+db 0,0                  ;numÃ©ros de touches a employer avec la touche CTRL pour basculer d'un jeu de carractÃ¨re a un autre
 
 
 
@@ -32,7 +32,7 @@ db 058h,000h,000h,000h  ;F12             #013
 db 0E0h,02Ah,0E0h,037h  ;impr ecran      #014
 db 046h,000h,000h,000h  ;stop defil      #015
 db 0E1h,01Dh,045h,000h  ;pause           #016
-db 028h,000h,000h,000h  ;²               #017
+db 028h,000h,000h,000h  ;Â²               #017
 db 002h,000h,000h,000h  ;1               #018
 db 003h,000h,000h,000h  ;2               #019
 db 004h,000h,000h,000h  ;3               #020
@@ -43,7 +43,7 @@ db 008h,000h,000h,000h  ;7               #024
 db 009h,000h,000h,000h  ;8               #025
 db 00Ah,000h,000h,000h  ;9               #026
 db 00Bh,000h,000h,000h  ;0               #027
-db 01Ah,000h,000h,000h  ;°               #028
+db 01Ah,000h,000h,000h  ;Â°               #028
 db 00Dh,000h,000h,000h  ;+               #029
 db 00Eh,000h,000h,000h  ;back            #030
 db 00Fh,000h,000h,000h  ;tab             #031
@@ -71,7 +71,7 @@ db 024h,000h,000h,000h  ;j               #052
 db 025h,000h,000h,000h  ;k               #053
 db 026h,000h,000h,000h  ;l               #054
 db 032h,000h,000h,000h  ;m               #055  
-db 029h,000h,000h,000h  ;ù               #056
+db 029h,000h,000h,000h  ;Ã¹               #056
 db 02Bh,000h,000h,000h  ;*               #057
 db 02Ah,000h,000h,000h  ;maj g           #058
 db 056h,000h,000h,000h  ;<               #059  ???
