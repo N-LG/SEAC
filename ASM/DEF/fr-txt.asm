@@ -1,4 +1,4 @@
-;fichier de définition message systeme en Français
+;fichier de dÃ©finition message systeme en FranÃ§ais
 
 org 0
 db "DEFL"
