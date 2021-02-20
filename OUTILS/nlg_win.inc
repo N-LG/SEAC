@@ -2,7 +2,7 @@ call	[ExitProcess]
 
 
 ;*****************************************************************************
-;sous fonctions gÃ©nÃ©rale
+;sous fonctions générale
 
 
 lire_arg: ;recopie l'argument cl (1er = 0) en ds:edx 
@@ -48,7 +48,7 @@ ret
 
 
 ouvre_fichier:
-;entrÃ©e: ds:edx=nom du fichier a ouvrir
+;entrée: ds:edx=nom du fichier a ouvrir
 ;sortie  eax=0 si ok   ebx=handle du fichier ouvert
 
 
@@ -57,7 +57,7 @@ push	dword 0              ;
 push	dword 3              ;open existing
 push	dword 0              ;
 push	dword 3              ;autorisation pour les autres programmes qui chercherait a ouvrir ce fichier pour le lire (toutes les autorisations)
-push	0C0000000h      ;accÃ¨s lecture + ecriture 
+push	0C0000000h      ;accès lecture + ecriture 
 push	edx
 call	[CreateFile]
 cmp	eax,-1
@@ -73,15 +73,15 @@ ret
 
 
 cree_fichier:
-;entrÃ©e: ds:edx=nom du fichier a crÃ©er
-;sortie  eax=0 si ok   ebx=handle du fichier crÃ©e
+;entrée: ds:edx=nom du fichier a créer
+;sortie  eax=0 si ok   ebx=handle du fichier crée
 
 push	dword 0              ;
 push	dword 0              ;
 push	dword 2              ;create always
 push	dword 0              ;
 push	dword 0              ;autorisation pour les autres programmes qui chercherait a ouvrir ce fichier
-push	40000000h      ;accÃ¨s (ecriture seule) 
+push	40000000h      ;accès (ecriture seule) 
 push	edx
 call	[CreateFile]
 cmp	eax,-1
@@ -101,7 +101,7 @@ ret
 
 lit_fichier:
 ;ebx=handle
-;ecx=quantitÃ©
+;ecx=quantité
 ;edx=offset dans le fichier
 ;edi=adresse de destination
 
@@ -115,9 +115,9 @@ call	[SetFilePointer]
 popad
 
 push	dword 0       ;null
-push	dword_temporaire ;adresse ou ecrire la quantitÃ© de donnÃ©es lue
-push	ecx     ;quantitÃ© de donnÃ©es a lire
-push	edi     ;adresse ou ecrire les donnÃ©es lue  
+push	dword_temporaire ;adresse ou ecrire la quantité de données lue
+push	ecx     ;quantité de données a lire
+push	edi     ;adresse ou ecrire les données lue  
 push	ebx     ;handle du fichier
 call	[ReadFile]
 or	eax,eax
@@ -127,7 +127,7 @@ ret
 
 ecr_fichier:
 ;ebx=handle
-;ecx=quantitÃ©
+;ecx=quantité
 ;edx=offset dans le fichier
 ;esi=adresse de source
 
@@ -141,9 +141,9 @@ call	[SetFilePointer]
 popad
 
 push	dword 0       ;null
-push	dword_temporaire ;adresse ou ecrire la quantitÃ© de donnÃ©es lue
-push	ecx     ;quantitÃ© de donnÃ©es a lire
-push	esi     ;adresse ou se trouve les donnÃ©es a ecrire lue  
+push	dword_temporaire ;adresse ou ecrire la quantité de données lue
+push	ecx     ;quantité de données a lire
+push	esi     ;adresse ou se trouve les données a ecrire lue  
 push	ebx     ;handle du fichier
 call	[WriteFile]
 or	eax,eax
@@ -167,9 +167,9 @@ ret
 
 
 
-affmsg: ;affiche la chaine asciiz pointÃ© par edx
+affmsg: ;affiche la chaine asciiz pointé par edx
 push	dword 0FFFFFFF5h
-call	[GetStdHandle]     ;rÃ©cupÃ¨re handle de la sortie console
+call	[GetStdHandle]     ;récupère handle de la sortie console
 mov	ebp,eax
 mov	edi,edx
 or	ecx,-1
@@ -180,7 +180,7 @@ sub	ecx,2
 push	0                 ;null 
 push	dword dword_temporaire ;sortie nombre de byte ecrit
 push	ecx               ;nb d'octet a ecrire
-push	edx               ;adresse ou lire les donnÃ©es a ecrire      
+push	edx               ;adresse ou lire les données a ecrire      
 push	ebp               ;handle du fichier ou ecrire 
 call	[WriteFile]
 ret
@@ -225,14 +225,14 @@ push dword 101h       ;version de winsock a initialiser (1.1 ici)
 call	[WSAStartup]  ;initialisation de winsock
 
 ss
-mov [esp+28],eax   ;prÃ©serve eax
+mov [esp+28],eax   ;préserve eax
 popad
 ret
 
 ;********************
-net_ecoute_tcp:    ;ouvre un port TCP en Ã©coute
-;entrÃ©e        bx=numÃ©ros de port
-;              edx=adresse de l'inteface sur laquel ouvrir le port ou adresse ip null (edx=0), pour ouvrir le port sur toutes les interface rÃ©seau
+net_ecoute_tcp:    ;ouvre un port TCP en écoute
+;entrée        bx=numéros de port
+;              edx=adresse de l'inteface sur laquel ouvrir le port ou adresse ip null (edx=0), pour ouvrir le port sur toutes les interface réseau
 ;sortie        eax=code d'erreur ebx=handle du nouveau port
 
 pushad
@@ -249,7 +249,7 @@ mov [addr_ip+12],ebx  ;zone toujour nul
 push dword 6       ;protocol 1=icmp(pour ipv4) 6=tcp 17=udp 58=icmp(pour ipv6)
 push dword 1   ;type de transmission (1 pour tcp et 2 pour udp)
 push dword 2   ;adresse family 2=IPV4 23=IPV6
-call [socket]  ;crÃ©e un socket
+call [socket]  ;crée un socket
 cmp eax,-1
 je net_erreur 
 
@@ -264,7 +264,7 @@ jne net_erreur
 
 push dword 100     ;nombre de connexion maximum
 push ebx
-call [listen]      ;met le socket en mode Ã©coute
+call [listen]      ;met le socket en mode écoute
 cmp eax,0
 jne net_erreur
 
@@ -277,7 +277,7 @@ cmp eax,0
 jne net_erreur
 
 ss
-mov [esp+16],ebx  ;prÃ©serve ebx
+mov [esp+16],ebx  ;préserve ebx
 popad
 xor eax,eax
 ret
@@ -296,7 +296,7 @@ ret
 
 ;********************
 net_connexion_tcp:    ;ouvre une connexion vers un port TCP
-;entrÃ©e        bx=numÃ©ros de port source
+;entrée        bx=numéros de port source
 ;              cx=port de destination
 ;              edx=adresse de desitnation
 ;sortie        eax=code d'erreur ebx=handle du nouveau port
@@ -307,7 +307,7 @@ mov word[addr_ip],2
 mov [addr_ip+2],bh
 mov [addr_ip+3],bl
 xor ebx,ebx
-mov [addr_ip+4],ebx  ;adresse ip null, pour ouvrir le port sur toutes les interface rÃ©seau sinon spÃ©cifier l'adresse de la seule carte qui doit ouvrir le port
+mov [addr_ip+4],ebx  ;adresse ip null, pour ouvrir le port sur toutes les interface réseau sinon spécifier l'adresse de la seule carte qui doit ouvrir le port
 mov [addr_ip+8],ebx   ;zone toujours nul
 mov [addr_ip+12],ebx  ;zone toujours nul
 
@@ -325,7 +325,7 @@ mov [addr_ip2+12],ebx  ;zone toujours nul
 push dword 6   ;protocol 1=icmp(pour ipv4) 6=tcp 17=udp 58=icmp(pour ipv6)
 push dword 1  ;type de transmission (1 pour tcp et 2 pour udp)
 push dword 2   ;adresse family 2=IPV4 23=IPV6
-call [socket]  ;crÃ©e un socket
+call [socket]  ;crée un socket
 cmp eax,-1
 je net_erreur 
 
@@ -392,13 +392,13 @@ ret
 
 
 ;********************
-net_lire_port_tcp:           ;recevoir donnÃ©es sur port tcp
-;entrÃ©e
-;ecx=quantitÃ© a reÃ§evoire
-;edi=zone ou ecrire les donnÃ©es
+net_lire_port_tcp:           ;recevoir données sur port tcp
+;entrée
+;ecx=quantité a reçevoire
+;edi=zone ou ecrire les données
 ;ebx= handle du port a lire
 ;sortie
-;ecx=nombre de donnÃ©es donnÃ©es lut
+;ecx=nombre de données données lut
 
 pushad
 
@@ -438,7 +438,7 @@ cmp eax,10035   ;code d'erreur "WSAEWOULDBLOCK"
 je aucune_donnee_lut
 
 ss
-mov [esp+16],eax  ;prÃ©serve ebx
+mov [esp+16],eax  ;préserve ebx
 popad
 mov eax,2
 ret 
@@ -456,9 +456,9 @@ ret
 
 ;********************
 net_ecrire_port_tcp:
-;envoyer donnÃ©es
-;ecx=quantitÃ© a envoyer
-;esi=zone ou se trouve les donnÃ©es a envoyer
+;envoyer données
+;ecx=quantité a envoyer
+;esi=zone ou se trouve les données a envoyer
 ;ebx=handle du port a lire
 
 pushad
@@ -494,8 +494,8 @@ ret
 
 ;*********************************************************************************
 net_ouvre_port_udp:
-;entrÃ©e        bx=numÃ©ros de port
-;              ebp=adresse de l'inteface sur laquel utiliser le port ou adresse ip null (ebp=0), pour ouvrir le port sur toutes les interface rÃ©seau
+;entrée        bx=numéros de port
+;              ebp=adresse de l'inteface sur laquel utiliser le port ou adresse ip null (ebp=0), pour ouvrir le port sur toutes les interface réseau
 ;sortie        eax=code d'erreur ebx=handle du nouveau port
 
 pushad
@@ -512,7 +512,7 @@ mov [addr_ip+12],eax  ;zone toujour nul
 push dword 17       ;protocol 1=icmp(pour ipv4) 6=tcp 17=udp 58=icmp(pour ipv6)
 push dword 2   ;type de transmission (1 pour tcp et 2 pour udp)
 push dword 2   ;adresse family 2=IPV4 23=IPV6
-call [socket]  ;crÃ©e un socket
+call [socket]  ;crée un socket
 cmp eax,-1
 je net_erreur 
 
@@ -545,13 +545,13 @@ ret
 
 
 ;****************************************************
-net_lire_port_udp:           ;recevoir donnÃ©es sur port udp
-;entrÃ©e
-;ecx=quantitÃ© a reÃ§evoire
-;edi=zone ou ecrire les donnÃ©es
+net_lire_port_udp:           ;recevoir données sur port udp
+;entrée
+;ecx=quantité a reçevoire
+;edi=zone ou ecrire les données
 ;ebx= handle du port a lire
 ;sortie
-;ecx=nombre de donnÃ©es donnÃ©es lut
+;ecx=nombre de données données lut
 ;edx=port ip d'origine de la trame
 ;ebp=adresse ip d'origine de la trame
 
@@ -601,10 +601,10 @@ ret
 
 ;********************************
 net_ecrire_port_udp:
-;dx= numÃ©ros de port
+;dx= numéros de port
 ;ebp=adresse
-;ecx=quantitÃ© a envoyer
-;esi=zone ou se trouve les donnÃ©es a envoyer
+;ecx=quantité a envoyer
+;esi=zone ou se trouve les données a envoyer
 ;ebx=handle du port a lire
 
 pushad
@@ -659,7 +659,7 @@ ret
 
 
 ;**************************************************************************
-;donnÃ©es de relocation des appels de sous fonctions
+;données de relocation des appels de sous fonctions
 
 section '.idata' import data readable writeable
 
@@ -780,7 +780,7 @@ section '.reloc' fixups data readable discardable
 
 
 ;***********************************************************
-;donnÃ©es du programme
+;données du programme
 
 section '.data' data readable writeable
 
@@ -797,7 +797,7 @@ dd 0
 WSADATA:
 addr_ip:
 dw 2       ;type d'adresse 2=adresse ip V4
-dw 0       ;port avec msb et lsb inversÃ©
+dw 0       ;port avec msb et lsb inversé
 db 0,0,0,0 ;adresse ip V4
 dd 0,0     ;toujours vide
 addr_ip2:
