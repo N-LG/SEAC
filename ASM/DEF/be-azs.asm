@@ -1,13 +1,13 @@
-;fichier de définition pour clavier belge simple
+;fichier de dÃ©finition pour clavier belge simple
 
 org 0
 db "DEFC"
-dw touche_codeps2       ;adresse de la définition PS/2
-dw 0                    ;adresse de la définition usb
-dw touche_carac         ;adresse de la définition clavier principale
-dw 0                    ;adresse de la définition clavier secondaire
-dw 0                    ;adresse de la définition chasse
-db 0,0                  ;numéros de touches a employer avec la touche CTRL pour basculer d'un jeu de carractère a un autre
+dw touche_codeps2       ;adresse de la dÃ©finition PS/2
+dw 0                    ;adresse de la dÃ©finition usb
+dw touche_carac         ;adresse de la dÃ©finition clavier principale
+dw 0                    ;adresse de la dÃ©finition clavier secondaire
+dw 0                    ;adresse de la dÃ©finition chasse
+db 0,0                  ;numÃ©ros de touches a employer avec la touche CTRL pour basculer d'un jeu de carractÃ¨re a un autre
 
 
 ;****************************************************************
@@ -30,7 +30,7 @@ db 058h,000h,000h,000h  ;F12             #013
 db 0E0h,02Ah,0E0h,037h  ;impr ecran      #014
 db 046h,000h,000h,000h  ;stop defil      #015
 db 0E1h,01Dh,045h,000h  ;pause           #016
-db 029h,000h,000h,000h  ;²               #017
+db 029h,000h,000h,000h  ;Â²               #017
 db 002h,000h,000h,000h  ;1               #018
 db 003h,000h,000h,000h  ;2               #019
 db 004h,000h,000h,000h  ;3               #020
@@ -41,7 +41,7 @@ db 008h,000h,000h,000h  ;7               #024
 db 009h,000h,000h,000h  ;8               #025
 db 00Ah,000h,000h,000h  ;9               #026
 db 00Bh,000h,000h,000h  ;0               #027
-db 00Ch,000h,000h,000h  ;°               #028
+db 00Ch,000h,000h,000h  ;Â°               #028
 db 00Dh,000h,000h,000h  ;+               #029
 db 00Eh,000h,000h,000h  ;back            #030
 db 00Fh,000h,000h,000h  ;tab             #031
@@ -69,7 +69,7 @@ db 024h,000h,000h,000h  ;j               #052
 db 025h,000h,000h,000h  ;k               #053
 db 026h,000h,000h,000h  ;l               #054
 db 027h,000h,000h,000h  ;m               #055
-db 028h,000h,000h,000h  ;ù               #056
+db 028h,000h,000h,000h  ;Ã¹               #056
 db 02Bh,000h,000h,000h  ;*               #057
 db 02Ah,000h,000h,000h  ;maj g           #058
 db 056h,000h,000h,000h  ;<               #059
@@ -151,8 +151,8 @@ db 000h,000h,000h,000h  ;                #128
 
 
 ;**********************************************************
-;liste des caractères utilisable par touche
-; caractère normal, caractère majuscule, caractère Alt, caractère Alt+majuscule
+;liste des caractÃ¨res utilisable par touche
+; caractÃ¨re normal, caractÃ¨re majuscule, caractÃ¨re Alt, caractÃ¨re Alt+majuscule
 touche_carac:
 dd 0,0,0,0                     ;esc             #001
 dd 0,0,0,0                     ;F1              #002
@@ -170,18 +170,18 @@ dd 0,0,0,0                     ;F12             #013
 dd 0,0,0,0                     ;impr ecran      #014
 dd 0,0,0,0                     ;stop defil      #015
 dd 0,0,0,0                     ;pause           #016
-dd "²",0,0,0                   ;²               #017
+dd "Â²",0,0,0                   ;Â²               #017
 dd "&","1","|",0               ;1               #018
-dd "é","2","@",0               ;2               #019
+dd "Ã©","2","@",0               ;2               #019
 dd 22h,"3","#",0               ;3               #020
 dd "'","4",0,0                 ;4               #021
 dd "(","5",0,0                 ;5               #022
 dd 0A7h,"6","^",0              ;6               #023
-dd "è","7",0,0                 ;7               #024
+dd "Ã¨","7",0,0                 ;7               #024
 dd "!","8",0,0                 ;8               #025
-dd "ç","9","{",0               ;9               #026    
-dd "à","0","}",0               ;0               #027
-dd ")","°",0,0                 ;°               #028
+dd "Ã§","9","{",0               ;9               #026    
+dd "Ã ","0","}",0               ;0               #027
+dd ")","Â°",0,0                 ;Â°               #028
 dd "-","_",0,0                 ;+               #029
 dd 0,0,0,0                     ;back            #030
 dd 0,0,0,0                     ;tab             #031
@@ -209,8 +209,8 @@ dd "j","J",0,0                 ;j               #052
 dd "k","K",0,0                 ;k               #053
 dd "l","L",0,0                 ;l               #054
 dd "m","M",0,0                 ;m               #055
-dd 0F9h,"%",0B4h,0             ;ù               #056
-dd 0B5h,0A3h,60h,0             ;µ               #057
+dd 0F9h,"%",0B4h,0             ;Ã¹               #056
+dd 0B5h,0A3h,60h,0             ;Âµ               #057
 dd 0,0,0,0                     ;maj g           #058
 dd "<",">","\",0               ;<               #059
 dd "w","W",0,0                 ;w               #060
