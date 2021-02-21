@@ -60,8 +60,7 @@ zt_maj_descp equ 3800h  ;zone tampon pour la mise a jour des descripteur des par
 zt_conversion_ucs equ 4000h  ;definition temporaire
 
 zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette et d'envoie de commande a une clef usb
-bootsecteur equ 4400h           ;zone tampon de lecture du MBR, du premier secteur d'une partition, et d'un decripteur de CD
-;???  4600h   
+bootsecteur equ 4400h           ;zone tampon de lecture du MBR et descripteur GPT, du premier secteur d'une partition, et d'un decripteur de CD
 secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
 ad_msg_syst equ 5000h ;4ko
 ad_msg_erreur equ 6000h ;8Ko  

@@ -2249,9 +2249,8 @@ cmp ebx,zt_maj_descp+2048
 jne bouclevide_maj_partiton
 
 mov edi,bootsecteur
-mov al,8
 push cx
-mov cl,1
+mov cl,2
 xor ebx,ebx
 call lsct
 pop cx
@@ -2259,19 +2258,59 @@ cmp eax,0
 jne finfonctionfichiererr
 
 
-;cmp byte[bootsecteur+1BEh],0EEh  ;on vérifie si la première partition est une partition de protection GPT
-;jne maj_partition_mbr
-;cmp byte[bootsecteur+1CEh],0    ; et si les autres partitions sont bien vide
-;jne maj_partition_mbr
-;cmp byte[bootsecteur+1DEh],0    ;sinon le partitionnement est reconnue comme MBR 
-;jne maj_partition_mbr
-;cmp byte[bootsecteur+1EEh],0
-;jne maj_partition_mbr
+cmp dword[bootsecteur+200h],"EFI "  ;on vérifie si la première partition est une partition de protection GPT
+jne maj_partition_mbr
+cmp dword[bootsecteur+204h],"PART"
+jne maj_partition_mbr
 
 ;***************************chargement des données de partitionnement de type GPT
-;§§§§§§§§§§§§§§§§§
-;jmp maj_partition_trie
+push ecx
+xor edx,edx
+mov ecx,[bootsecteur+250h]
+mov eax,[bootsecteur+254h]
+mul ecx
+mov ecx,eax
+add ecx,1FFh
+and ecx,0FFFFFE00h
+mov edx,ecx
+call resmem
+pop  ecx
+mov eax,cer_pasm
+jc finfonctionfichiererr
 
+push ebx   ;charge la gpt
+push es
+mov ax,gs
+mov es,ax
+shr edx,9
+mov cl,dl
+mov edi,ebx
+add edi,10h
+mov ebx,[bootsecteur+248h]
+call lsct
+pop es
+pop ebx
+cmp eax,0
+jne erreur_sff_maj_partition
+
+mov esi,ebx
+add esi,10h
+mov edi,zt_maj_descp
+mov edx,[bootsecteur+250h]
+mov eax,[bootsecteur+254h]
+boucle_maj_partition_gpt:
+call ex_part_gpt
+add esi,eax
+dec edx
+jnz boucle_maj_partition_gpt
+
+
+call libmem
+jmp maj_partition_trie
+
+erreur_sff_maj_partition:
+call libmem
+jmp finfonctionfichiererr
 
 ;***************************chargement des données de partitionnement de type MBR
 maj_partition_mbr:
@@ -2570,7 +2609,47 @@ mov [edi+3Ch],eax
 ret
 
 
+;*************************************************************************************************************************
+ex_part_gpt:  ;extrait les informations type, adresse et taille d'une partition a partir d'une entrée de la table mbr
+	      ;ds:esi=entrée de la table mbr de la partition
+	      ;ds:edi=descripteur
 
+pushad
+gs
+mov eax,[esi+20h]  ;adresse du premier secteur
+gs
+mov edx,[esi+24h]
+mov [edi+08h],eax
+mov [edi+0Ch],edx
+
+gs
+mov eax,[esi+28h]  ;adresse du dernier secteur
+gs
+mov edx,[esi+2Ch]
+add eax,1          ;+1
+adc edx,0
+gs
+sub eax,[esi+20h]  ;soustrait l'adresse du premier secteur
+gs
+sbb edx,[esi+24h]
+mov [edi+10h],eax  ;on obtient la taille
+mov [edi+14h],edx
+
+mov dword[edi+00h],0FF0002h ;type inconnue
+mov [edi+1],ch    ;lecteur de la partition
+mov [edi+04h],eax
+mov [edi+18h],eax
+mov [edi+1Ch],eax
+mov [edi+20h],eax
+mov [edi+24h],eax
+mov [edi+28h],eax
+mov [edi+2Ch],eax
+mov [edi+30h],eax
+mov [edi+34h],eax
+mov [edi+38h],eax
+mov [edi+3Ch],eax
+popad
+ret
 
 
 ;************************************
