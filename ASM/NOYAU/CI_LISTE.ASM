@@ -180,11 +180,81 @@ call affcj
 mov al," "
 call affcj
 partpasinconnue:
-mov eax,[esi+16]     ;et la taille de la partition
-shl eax,9            ;mul par 512
-call affnje
+
+test dword[esi+20],0FFFFFFF8h
+jnz partTebi
+test dword[esi+16],0FE000000h
+jnz partGibi
+test dword[esi+16],0FFFF8000h
+jnz partMebi
+test dword[esi+16],0FFFFFFE0h
+jnz partKibi
+
+mov eax,[esi+16]     ;et la taille de la partition en kibi
+shl eax,9
+call affnj
 mov cl,78
 call affmsgsyst
+mov al,13
+call affcj
+jmp paspartldp
+
+
+partKibi:
+mov eax,[esi+16]     ;et la taille de la partition en kibi
+shr eax,1
+call affnj
+mov al,"K"
+call affcj
+mov al,"i"
+call affcj
+mov al,"o"
+call affcj
+mov al,13
+call affcj
+jmp paspartldp
+
+partMebi:
+mov eax,[esi+17]     ;et la taille de la partition en mebi
+shr eax,3
+call affnj
+mov al,"M"
+call affcj
+mov al,"i"
+call affcj
+mov al,"o"
+call affcj
+mov al,13
+call affcj
+jmp paspartldp
+
+partGibi:
+mov eax,[esi+18]     ;et la taille de la partition en gibi
+shr eax,5
+call affnj
+mov al,"G"
+call affcj
+mov al,"i"
+call affcj
+mov al,"o"
+call affcj
+mov al,13
+call affcj
+jmp paspartldp
+
+partTebi:
+mov eax,[esi+19]     ;et la taille de la partition en tebi
+shr eax,7
+call affnj
+mov al,"T"
+call affcj
+mov al,"i"
+call affcj
+mov al,"o"
+call affcj
+mov al,13
+call affcj
+;jmp paspartldp
 
 paspartldp:
 add esi,20h
