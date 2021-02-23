@@ -2279,6 +2279,7 @@ mov eax,cer_pasm
 jc finfonctionfichiererr
 
 push ebx   ;charge la gpt
+push ecx
 push es
 mov ax,gs
 mov es,ax
@@ -2289,6 +2290,7 @@ add edi,10h
 mov ebx,[bootsecteur+248h]
 call lsct
 pop es
+pop ecx
 pop ebx
 cmp eax,0
 jne erreur_sff_maj_partition
@@ -2318,13 +2320,10 @@ mov esi,bootsecteur+1BEh
 mov edi,zt_maj_descp  
 call ex_part_mbr
 add esi,10h
-add edi,40h
 call ex_part_mbr
 add esi,10h
-add edi,40h
 call ex_part_mbr
 add esi,10h
-add edi,40h
 call ex_part_mbr
 
 
@@ -2480,109 +2479,22 @@ jmp finfonctionfichiererr
 
 
 
+
+
+
+
 ;*************************************************************************************************************************
 ex_part_mbr:  ;extrait les informations type, adresse et taille d'une partition a partir d'une entrée de la table mbr
-	      ;ds:esi=entrée de la table mbr de la partition
-	      ;ds:edi=descripteur		
-	       
+pushad	      ;ds:esi=entrée de la table mbr de la partition
+	      ;ds:edi=descripteur
 
-mov al,[esi+04h]
-cmp al,0
-je ex_part_mbr_vide
+mov al,[esi+04h]  ;al=04 06 0E 14 16 1E si fat16 
+cmp al,0          ;al=0C 0B 1C 1B si fat32
+je ex_part_vide
 
-cmp al,06h
-je ex_part_mbr_F16
-cmp al,04h                           ;al=04 06 0E 14 16 1E si fat16  
-je ex_part_mbr_F16                          
-cmp al,06h
-je ex_part_mbr_F16
-cmp al,0Eh
-je ex_part_mbr_F16
-cmp al,14h
-je ex_part_mbr_F16
-cmp al,16h
-je ex_part_mbr_F16
-cmp al,1Eh
-je ex_part_mbr_F16
-
-cmp al,0Bh
-je ex_part_mbr_F32                          ;al=0C 0B 1C 1B si fat32
-cmp al,0Ch
-je ex_part_mbr_F32
-cmp al,1Ch
-je ex_part_mbr_F32
-cmp al,1Bh
-je ex_part_mbr_F32
-
-;?????????
-;je ex_part_mbr_exFAT
-;?????????
-;je ex_part_mbr_ext2
-;?????????
-;je part_ext3
-
-cmp al,2Eh
-je ex_part_mbr_TOD
-
-cmp al,07h                      ;al=07 17 si ntfs
-je ex_part_mbr_NTFS
-cmp al,17h
-je ex_part_mbr_NTFS
-
-cmp al,42h
-je ex_part_mbr_SFS
-
-mov ah,al
-mov al,2 ;partition inconnue
-jmp ex_part_suite
-
-ex_part_mbr_vide:
-xor eax,eax
-mov [edi+0h],eax
-mov [edi+4h],eax
-mov [edi+8h],eax
-jmp ex_part_mbr_vide_fin
-
-ex_part_mbr_F12:
-mov ax,4 ;partition fat12
-jmp ex_part_suite
-
-ex_part_mbr_F16:
-mov ax,5 ;partition fat16
-jmp ex_part_suite
-
-ex_part_mbr_F32:
-mov ax,6 ;partition fat32
-jmp ex_part_suite
-
-ex_part_mbr_exFAT:
-mov ax,7 ;partition exFAT
-jmp ex_part_suite
-
-ex_part_mbr_ext2:
-mov ax,8 ;partition ext2
-jmp ex_part_suite
-
-ex_part_mbr_ext3:
-mov ax,9 ;partition ext3
-jmp ex_part_suite
-
-ex_part_mbr_TOD:
-mov ax,10 ;partition TOD
-jmp ex_part_suite
-
-ex_part_mbr_NTFS:
-mov ax,11 ;partition NTFS
-jmp ex_part_suite
-
-ex_part_mbr_SFS:
-mov ax,12 ;partition SFS
-jmp ex_part_suite
-
-ex_part_suite:  ;al=type de partition ah=0 ou le code trouvé dans le MBR si c'est inconnue
-mov [edi],al      ;type de la partition
+mov dword[edi+00h],02h ;type inconnue
 mov [edi+1],ch    ;lecteur de la partition
-mov [edi+2],ah    ;code MBR
+mov [edi+2],al    ;code MBR
 
 mov eax,[esi+08h]   ;adresse de base de la partition  
 mov [edi+08h],eax
@@ -2592,29 +2504,35 @@ mov eax,[esi+0Ch]   ;taille de la partition
 mov [edi+10h],eax
 mov dword[edi+14h],0
 
-xor eax,eax       ;on vide le reste des descripteurs
-mov [edi+3],al
-ex_part_mbr_vide_fin:
-mov [edi+04h],eax
-mov [edi+18h],eax
-mov [edi+1Ch],eax
-mov [edi+20h],eax
-mov [edi+24h],eax
-mov [edi+28h],eax
-mov [edi+2Ch],eax
-mov [edi+30h],eax
-mov [edi+34h],eax
-mov [edi+38h],eax
-mov [edi+3Ch],eax
-ret
+jmp ex_part_suite
+
 
 
 ;*************************************************************************************************************************
 ex_part_gpt:  ;extrait les informations type, adresse et taille d'une partition a partir d'une entrée de la table mbr
-	      ;ds:esi=entrée de la table mbr de la partition
+	      ;gs:esi=entrée de la table mbr de la partition
 	      ;ds:edi=descripteur
 
 pushad
+
+gs
+cmp dword[esi],0
+jne ok_part_gpt
+gs
+cmp dword[esi+4],0
+jne ok_part_gpt
+gs
+cmp dword[esi+8],0
+jne ok_part_gpt
+gs
+cmp dword[esi+12],0
+je ex_part_vide
+
+
+ok_part_gpt:
+mov dword[edi+00h],02h ;type inconnue
+mov [edi+1],ch    ;lecteur de la partition
+
 gs
 mov eax,[esi+20h]  ;adresse du premier secteur
 gs
@@ -2635,8 +2553,11 @@ sbb edx,[esi+24h]
 mov [edi+10h],eax  ;on obtient la taille
 mov [edi+14h],edx
 
-mov dword[edi+00h],0FF0002h ;type inconnue
-mov [edi+1],ch    ;lecteur de la partition
+
+;************************************************************
+;fin du remplissage du descripteur
+ex_part_suite:  
+xor eax,eax
 mov [edi+04h],eax
 mov [edi+18h],eax
 mov [edi+1Ch],eax
@@ -2648,9 +2569,54 @@ mov [edi+30h],eax
 mov [edi+34h],eax
 mov [edi+38h],eax
 mov [edi+3Ch],eax
+
+
+;chargement du premier secteur pour detecter le type de systeme de fichier
+mov ch,[edi+1]
+mov cl,1
+mov ebx,[edi+08h]
+push edi
+mov edi,bootsecteur+400h
+call lsct
+pop edi
+cmp eax,0
+jne ex_part_fin
+
+mov al,5
+cmp dword[bootsecteur+436h],"FAT1"
+jne ex_part_pafat16
+cmp dword[bootsecteur+43Ah],"6   "
+je ex_part_trouve
+ex_part_pafat16:
+
+mov al,6
+cmp dword[bootsecteur+452h],"FAT3"
+jne ex_part_pafat32
+cmp dword[bootsecteur+456h],"2   "
+je ex_part_trouve
+ex_part_pafat32:
+
+;4=partition fat12
+;7=partition exFAT
+;8=partition ext2
+;9=partition ext3
+;10=partition TOD
+;11=partition NTFS
+;12=partition SFS
+jmp ex_part_fin
+
+ex_part_trouve:
+mov byte[edi],al
+ex_part_fin:
 popad
+add edi,40h
 ret
 
+
+
+ex_part_vide:
+popad
+ret
 
 ;************************************
 sff_definis_vitesse_disque:
