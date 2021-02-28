@@ -235,3 +235,8 @@ démarre le pilote pour une carte Intel  ou compatible
        YYY = nom du fichier executable a créer
   ^
  /!\ sous SEAC, les nom des fichier executable doivent être en majuscule
+:kio:mio:gio:tio:
+ Kio = kibioctet = 1024 octets
+ Mio = mébioctet = 1024 Kio
+ Gio = gibioctet = 1024 Mio
+ Tio = tébioctet = 1024 Gio
