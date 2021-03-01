@@ -86,7 +86,7 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,20          ;attent 50ms avant d'arretet le reset
+add eax,22          ;attent 55ms avant d'arretet le reset
 mov [usb_tempo],eax
 mov byte[usb_action],2
 jmp fin_test_cnx_usb
@@ -94,17 +94,27 @@ jmp fin_test_cnx_usb
 
 ;*****************
 uhci_finreset1_adresse:
+mov ecx,[cptsf]
+add ecx,1200 ;3 secondes
 xor eax,eax
 out dx,ax
-int 62h
-mov ax,04h
-out dx,ax
-int 62h
+bc1_uhci_finreset1_adresse:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,02h
+jz bc1_uhci_finreset1_adresse 
 mov ax,06h
 out dx,ax
+bc2_uhci_finreset1_adresse:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,04h
+jz bc2_uhci_finreset1_adresse 
 
 mov eax,[cptsf]
-add eax,80           ;attent 200ms avant de chercher a lire le descripteur
+add eax,40           ;attent 100ms avant de chercher a lire le descripteur
 mov [usb_tempo],eax
 mov byte[usb_action],3
 jmp fin_test_cnx_usb
@@ -160,7 +170,7 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,20          ;attent 50ms avant d'arretet le reset
+add eax,22          ;attent 55ms avant d'arretet le reset
 mov [usb_tempo],eax
 mov byte[usb_action],4
 jmp fin_test_cnx_usb
@@ -169,17 +179,27 @@ jmp fin_test_cnx_usb
 
 ;*****************
 uhci_finreset2_adresse:
+mov ecx,[cptsf]
+add ecx,1200 ;3 secondes
 xor eax,eax
 out dx,ax
-int 62h
-mov ax,04h
-out dx,ax
-int 62h
+bc1_uhci_finreset2_adresse:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,02h
+jz bc1_uhci_finreset2_adresse 
 mov ax,06h
 out dx,ax
+bc2_uhci_finreset2_adresse:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,04h
+jz bc2_uhci_finreset2_adresse 
 
 mov eax,[cptsf]
-add eax,80           ;attent 200ms avant de chercher a affecter l'adresse
+add eax,40           ;attent 100ms avant de chercher a affecter l'adresse
 mov [usb_tempo],eax
 mov byte[usb_action],5
 jmp fin_test_cnx_usb
@@ -253,7 +273,7 @@ rep movsd
 
 
 mov eax,[cptsf]
-add eax,80           ;attent 200ms avant de chercher a affecter l'adresse
+add eax,200           ;attent 200ms avant de poursuivre
 mov [usb_tempo],eax
 mov byte[usb_action],6
 jmp fin_test_cnx_usb
@@ -484,6 +504,7 @@ mov [esi+dlu_interface],dl
 mov byte[esi+dlu_nboct],9  ;on vas supposer que les périphérique ont des secteur de 512 octet 
 mov dword[esi+dlu_msb_ad],0
 
+
 ;met a jour les partition du disque
 pushad
 mov ecx,esi
@@ -491,6 +512,11 @@ sub ecx,ad_desc_clef_usb
 shr ecx,6
 add ecx,40h
 mov ch,cl
+
+mov edi,usb_commande
+mov eax,10
+int 64h
+
 mov eax,12
 int 64h
 popad
@@ -509,12 +535,6 @@ jmp boucle_config_bulkonly_usb
 
 ;************************************
 global_erreur_connexionUSB:
-pushad    ;§§§§§§§§§§
-mov al,[usb_action]
-call affh0j
-popad ;§§§§§§§
-
-
 mov cl,102
 call affmsgsyst
 mov dword[usb_tempo],0

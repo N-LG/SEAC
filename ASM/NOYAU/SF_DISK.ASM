@@ -1949,7 +1949,7 @@ call infodisquesata
 jmp finfonctionfichiererr
 
 
-
+;*********************************
 info_usb:
 mov dl,ch
 and edx,1Fh
@@ -1966,13 +1966,130 @@ infousb_boscsi:
 mov ax,fs
 mov ds,ax
 mov esi,edi
-;efface la zone ou on vas recopier le descripteur
+;efface la zone ou on vas recopier les descripteur
 mov ecx,64 
 xor eax,eax
 cld
 rep stosd
 
-;prépare cbw
+
+;un petit reset pour bien commencer
+call reset_clef_bo
+
+;**********
+;prépare cbw (test unit ready)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],0    ;taille des données
+mov byte[zt_clefusb+0ch],00h   ;flag 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],00h  ;commande 
+mov dword[zt_clefusb+10h],0   ;vide
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+;mov al,[edx+dlu_adresse]
+;mov ah,[edx+dlu_endpout]
+;or ah,80h
+;mov ecx,31
+;mov edi,zt_clefusb
+;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;cmp eax,0
+;jne erreur_infousb_boscsi
+
+
+;reçois csw
+;mov al,[edx+dlu_adresse]
+;mov ah,[edx+dlu_endpin]
+;mov ecx,13
+;mov edi,zt_clefusb+32
+;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;cmp eax,0
+;jne erreur_infousb_boscsi
+
+
+;lit résultat opération
+;cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+;jne erreur_infousb_boscsi
+;mov eax,[zt_clefusb+4] 
+;cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+;jne erreur_infousb_boscsi
+;cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+;jne erreur_infousb_boscsi
+;cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+;jne erreur_infousb_boscsi
+
+
+;**********
+;prépare cbw (inquiry)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],36     ;taille des données
+mov byte[zt_clefusb+0ch],80h   ;flag (in) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],6   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],12h  ;commande 
+mov dword[zt_clefusb+10h],0   ;vide
+mov byte[zt_clefusb+13h],36  ;taille des données
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_infousb_boscsi
+
+;reçois donnée
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,36
+mov edi,zt_clefusb+72
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;on ignore les eventuelles erreur a ce moment la
+
+;reçois csw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_infousb_boscsi
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+jne erreur_infousb_boscsi
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_infousb_boscsi
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_infousb_boscsi
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_infousb_boscsi
+
+
+;**********
+;prépare cbw (read format capacity)
 inc dword[usb_tag]
 mov ecx,0C70EB49Dh
 xor ecx,[usb_tag]
@@ -2154,7 +2271,7 @@ call sfusb_commande
 
 ;clear le stall de l'endpoint in
 xor dh,dh
-mov dl,[esi+esi+dlu_endpin]
+mov dl,[esi+dlu_endpin]
 mov byte[zt_clefusb],02h    ;bmRequestType
 mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
 mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
@@ -2169,7 +2286,7 @@ call sfusb_commande
 
 ;clear le stall de l'endpoint out
 xor dh,dh
-mov dl,[esi+esi+dlu_endpout]
+mov dl,[esi+dlu_endpout]
 mov byte[zt_clefusb],02h    ;bmRequestType
 mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
 mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
@@ -2184,9 +2301,9 @@ call sfusb_commande
 ;reseter les enregistrement des toggle bit
 mov ax,1
 mov dx,1
-mov cl,[esi+esi+dlu_endpin]
+mov cl,[esi+dlu_endpin]
 shl ax,cl
-mov cl,[esi+esi+dlu_endpout]
+mov cl,[esi+dlu_endpout]
 shl dx,cl
 or ax,dx
 not ax

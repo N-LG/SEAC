@@ -1207,7 +1207,7 @@ mov esi,ebx
 add esi,uhci_bulkmem_td
 fs
 mov ecx,[cptsf]
-add ecx,400         ;attend 500ms max
+add ecx,2000         ;attend 5s max (certains périphériques sont lent a réveiller)
 
 boucle_att_bulk_uhci:
 fs
