@@ -63,13 +63,24 @@ mov [posx_souris],eax
 
 ;***************************************************
 majv_test_action:
+fs
+mov eax,[cptsf]
+fs
+cmp eax,[majv_dern]
+jb majv_juste_souris
+fs
+cmp byte[nb_zrc],0     
+jne majv_juste_souris
+add eax,25
+fs
+mov [majv_dern],eax
 fs                      ;test si on doit mettre a jour l'écran
 test byte[at_vid],01h
 jnz maj_complete
 fs
 test byte[at_vid],02h
 jnz majv_partielle      ;mise a jour partielle
-
+majv_juste_souris:
 fs
 test byte[atts1],01h
 jz fin_majv

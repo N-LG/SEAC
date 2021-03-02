@@ -93,8 +93,9 @@ zt_clefusb equ 0E000h
 
 po_zech_sata equ 0E200h
 
+usb_commande equ 0E400h
 
-;??? 0E400h
+;??? 0E600h
 
 
 ad_repertoire equ 13400h  ;adresse du repertoire courant
@@ -397,7 +398,7 @@ majv_precal_offsetx_image equ 568h
 majv_precal_finligne equ 56Ch
 majv_precal_debutligne equ 570h
 
-
+majv_dern equ 574h  ;prochaine valeur du compteur temps a partir duquel on pourrat faire la mise a jour écran
 
 
 
@@ -410,8 +411,7 @@ usb_port_test equ 601h     ;port suivant a tester
 usb_action    equ 602h     ;action a effectuer
 usb_adresse   equ 603h     ;adresse du périphérique sur lequel on travail
 usb_tempo     equ 604h     ;temporisation a attendre si action<>0
-usb_commande  equ 608h     ;zt utillisé pour l'envoie d'une commande (8 octets)
-usb_tag       equ 610h     ;tag (dword)
+usb_tag       equ 608h     ;tag (dword)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
