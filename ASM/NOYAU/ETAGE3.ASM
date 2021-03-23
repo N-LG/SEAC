@@ -940,141 +940,6 @@ mov byte[trappe_tache0],2
 
 
 
-;**********************************************************************
-;programme souris ps/2
-
-;commande au 8042: disable keyboard Interface
-mov al,0ADh     
-call env_8042_cmd
-
-;commande au 8042: disable Auxiliary Interface
-mov al,0A7h     
-call env_8042_cmd
-
-call vide_8042
-      
-;modifie le 8042 Command Byte
-mov al,20h
-call env_8042_cmd
-call lec_ps2
-;bts ax,0       ;enable l'interruption clavier
-bts ax,1       ;enable l'interruption auxilliaire
-;btr ax,4       ;met a zéro le bit "disable keyboard"
-;btr ax,5       ;met a zéro le bit "disable auxiliary device"
-mov bl, al
-mov al,60h
-call env_8042_cmd
-mov al,bl
-call env_8042_dat
-call lec_ps2
-
-;commande au 8042: enable keyboard Interface
-mov al,0AEh     
-call env_8042_cmd
-
-;commande au 8042: enable Auxiliary Interface
-mov al,0A8h     
-call env_8042_cmd
-
-;commande a la souris: set to default value
-mov al,0F6h
-call env_ps2
-
-;envoie la séquence d'activation de la molette par sequence de commandes set sample rate
-mov al, 0F3h   ;sample rate
-call env_ps2
-mov al, 200    ;a la valeur 200
-call env_ps2
-mov al, 0F3h    ;sample rate
-call env_ps2
-mov al, 100     ;a la valeur 100
-call env_ps2
-mov al, 0F3h    ;sample rate
-call env_ps2
-mov al, 80      ;a la valeur 80
-call env_ps2
-
-;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
-mov al, 0F3h
-call env_ps2
-mov al, 200
-call env_ps2
-mov al, 0F3h
-call env_ps2
-mov al,200
-call env_ps2
-mov al, 0F3h
-call env_ps2
-mov al,80
-call env_ps2
-
-
-;vérifie le type de la souris
-mov dx,seldat
-mov ds,dx
-mov al,0F2h
-call env_ps2
-call lec_ps2
-cmp al,0
-je souris_simple
-cmp al,3
-je souris_molette
-cmp al,4
-je souris_5boutons
-jmp fin_init_souris
-
-souris_simple:
-mov byte[atts1],1
-mov byte[nbts1],3
-mov byte[nbzt1],0 
-jmp suite_init_souris
-
-souris_molette:
-mov byte[atts1],1
-mov byte[nbts1],4
-mov byte[nbzt1],0 
-jmp suite_init_souris
-
-souris_5boutons:
-mov byte[atts1],3
-mov byte[nbts1],4
-mov byte[nbzt1],0 
-;jmp suite_init_souris
-
-
-
-;configure la souris et l'active
-suite_init_souris:
-mov al,0F3h    ;set sample rate
-call env_ps2
-mov al,200     ;échantillons par seconde, valeur possible: 10,20,40,60,80,100,200
-call env_ps2
-mov al,0E8h    ;set resolution
-call env_ps2
-mov al,3       ;valeur possible: 0,1,2,3
-call env_ps2
-mov al,0E6h    ;set scaling 1:1
-call env_ps2
-mov al,0F4h    ;enable
-call env_ps2
-
-;démasque l'irq 12
-mov dx,0A1h
-mov al,0EFh
-out dx,al
-call vide_8042
-
-;aquitte toutes irq en attente
-mov al,20h
-out 0A0h,al
-mov al,20h
-out 20h,al
-mov byte[nbzt1],0 
-
-
-fin_init_souris:
-mov byte[trappe_tache0],3
-
 
 ;**********************************************************************
 ;initialise les zones de taille variable
@@ -1196,6 +1061,7 @@ jne boucle_zt_rec_com
 ;mov dword[ad_ztusb],ebx
 ;mov dword[max_ztusb],ecx 
 
+mov byte[trappe_tache0],3
 call maj_console0
 jmp reserve_mem_isa
 
@@ -1243,7 +1109,7 @@ jmp infini_errallocmem
 ;******************************************************************
 ;reserve le trou de mémoire isa
 reserve_mem_isa:
-mov byte[trappe_tache0],5
+mov byte[trappe_tache0],4
 mov edx,0F00000h
 mov ecx,0100000h
 call resmemp
@@ -1253,6 +1119,160 @@ mov ax,selramh
 mov ds,ax
 mov dword[0DFFFF8h],czm_tmi
 pas_reserve_isa:
+
+
+
+
+
+
+
+
+;**********************************************************************
+;programme souris ps/2
+
+;commande au 8042: disable keyboard Interface
+mov al,0ADh     
+call env_8042_cmd
+
+;commande au 8042: disable Auxiliary Interface
+mov al,0A7h     
+call env_8042_cmd
+
+call vide_8042
+      
+;modifie le 8042 Command Byte
+mov al,20h
+call env_8042_cmd
+call lec_ps2
+;bts ax,0       ;enable l'interruption clavier
+bts ax,1       ;enable l'interruption auxilliaire
+;btr ax,4       ;met a zéro le bit "disable keyboard"
+;btr ax,5       ;met a zéro le bit "disable auxiliary device"
+mov bl, al
+mov al,60h
+call env_8042_cmd
+mov al,bl
+call env_8042_dat
+call lec_ps2
+
+;commande au 8042: disable keyboard Interface (pour pas envoyer de commande au clavier si il n'y as pas de souris)
+mov al,0ADh     
+call env_8042_cmd
+
+;commande au 8042: enable Auxiliary Interface
+mov al,0A8h     
+call env_8042_cmd
+
+;commande a la souris: set to default value
+mov al,0F6h
+call env_ps2
+
+;envoie la séquence d'activation de la molette par sequence de commandes set sample rate
+mov al, 0F3h   ;sample rate
+call env_ps2
+mov al, 200    ;a la valeur 200
+call env_ps2
+mov al, 0F3h    ;sample rate
+call env_ps2
+mov al, 100     ;a la valeur 100
+call env_ps2
+mov al, 0F3h    ;sample rate
+call env_ps2
+mov al, 80      ;a la valeur 80
+call env_ps2
+
+;envoie la séquence d'activation des 4eme et 5eme boutons par sequence de commandes set sample rate
+mov al, 0F3h
+call env_ps2
+mov al, 200
+call env_ps2
+mov al, 0F3h
+call env_ps2
+mov al,200
+call env_ps2
+mov al, 0F3h
+call env_ps2
+mov al,80
+call env_ps2
+
+
+;vérifie le type de la souris
+mov dx,seldat
+mov ds,dx
+mov al,0F2h
+call env_ps2
+call lec_ps2
+cmp al,0
+je souris_simple
+cmp al,3
+je souris_molette
+cmp al,4
+je souris_5boutons
+jmp fin_init_souris
+
+souris_simple:
+mov byte[atts1],1
+mov byte[nbts1],3
+mov byte[nbzt1],0 
+jmp suite_init_souris
+
+souris_molette:
+mov byte[atts1],1
+mov byte[nbts1],4
+mov byte[nbzt1],0 
+jmp suite_init_souris
+
+souris_5boutons:
+mov byte[atts1],3
+mov byte[nbts1],4
+mov byte[nbzt1],0 
+;jmp suite_init_souris
+
+
+
+;configure la souris et l'active
+suite_init_souris:
+mov al,0F3h    ;set sample rate
+call env_ps2
+mov al,200     ;échantillons par seconde, valeur possible: 10,20,40,60,80,100,200
+call env_ps2
+mov al,0E8h    ;set resolution
+call env_ps2
+mov al,3       ;valeur possible: 0,1,2,3
+call env_ps2
+mov al,0E6h    ;set scaling 1:1
+call env_ps2
+mov al,0F4h    ;enable
+call env_ps2
+
+;démasque l'irq 12
+mov dx,0A1h
+mov al,0EFh
+out dx,al
+fin_init_souris:
+
+
+;commande au 8042: enable keyboard Interface
+mov al,0AEh     
+call env_8042_cmd
+
+call vide_8042
+
+;aquitte toutes irq en attente
+mov al,20h
+out 0A0h,al
+mov al,20h
+out 20h,al
+mov byte[nbzt1],0 
+
+mov byte[trappe_tache0],5
+
+
+
+
+
+
+
 
 
 
@@ -1368,7 +1388,9 @@ mov gs,dx
 
 
 ;******************************************************
-;retour a l'affichage du tecop si la souris est en position 0:0
+;retour a l'affichage du tecop si la souris est en position 0:0 (sauf si il n'y as pas de souris)
+test byte[atts1],1
+jz pas_retour_tecop
 cmp dword[axs1],0
 jne pas_retour_tecop
 mov word[id_tache_af],0
@@ -4382,7 +4404,7 @@ in al,60h
 ;pop ax
 ;call affh0j
 ;popad
-cmp al,0FEh      ;? je ne me souviens plus pourquoi
+cmp al,0FEh      ;demande de réenvoie touche
 je finircl
 cmp al,0FAh
 jne nackcla
