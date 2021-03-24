@@ -31,7 +31,7 @@ jne pas_de_fichier
 ;agrandit la zone mémoire pour pouvoir contenir le fichier
 mov dx,sel_dat1
 mov ecx,[taille_bdd]
-add ecx,bdd+1
+add ecx,bdd+4
 mov al,8
 int 61h
 
@@ -244,6 +244,8 @@ boucle_recherche_progif:
 cmp [ebx],eax
 je affiche_progif
 cmp word[ebx],02E00h
+je findeligne
+cmp word[ebx],02B00h
 je findeligne
 inc ebx
 cmp ebx,ecx
