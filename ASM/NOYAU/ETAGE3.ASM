@@ -4970,8 +4970,15 @@ push ds
 mov bx,seldat
 mov ds,bx
 
-mov bl,[nbzt1]       ;charge le nombre d'octet déja reçu
 xor bh,bh
+mov bl,[nbzt1]       ;charge le nombre d'octet déja reçu
+mov esi,[cptsf]
+cmp [tps1],esi      ;si l'octet est reçu apres trop longtemps on reset la trame
+ja @f
+xor ebx,ebx
+@@:
+add esi,20h
+mov [tps1],esi
 mov si,bx
 inc bl
 mov [nbzt1],bl       ; et l'incrémente

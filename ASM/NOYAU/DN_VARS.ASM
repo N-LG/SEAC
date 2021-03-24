@@ -168,7 +168,8 @@ atts1 equ 5Ah    ;attribut souris 1
 		 ;bo=souris activé
 		 ;b1=touche 4 et 5 actives
 etbs1 equ 5Bh    ;etat précédent boutons souris
-zts1 equ 5Ch     ;zone tampon de la souris 1
+tps1 equ 5Ch     ;dernière valeur du compteur ou on as reçu
+zts1 equ 60h     ;zone tampon de la souris 1
 
 
 
