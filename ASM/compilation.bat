@@ -39,7 +39,7 @@ cd ../NOYAU
 ajarch ETAGE2_MBR.ASM ../../BIN/ETAGE4.BIN
 ajarch ETAGE4.ASM ../../BIN/ETAGE4.BIN
 cd ../BOOT
-fasm MBR_BIOS.ASM ../../BIN/MBR_BIOS.MBR
+fasm MBR_BIOS.ASM ../../BIN/BIOS.MBR
 cd ../DEF
 fasm bug1.asm ../../BIN/bug1.def
 fasm fr-txt.asm ../../BIN/fr-txt.def
@@ -59,6 +59,7 @@ ajarch EDH.FE ETAGE4.BIN
 ajarch EDG.FE ETAGE4.BIN
 ajarch PARTD.FE ETAGE4.BIN
 ajarch LC.FE ETAGE4.BIN
+ajarch PCICLASS.TXT ETAGE4.BIN
 ajarch TERM.FE ETAGE4.BIN
 ajarch CIRC.FE ETAGE4.BIN
 ajarch CDNS.FE ETAGE4.BIN
@@ -67,7 +68,7 @@ ajarch TRACE.FE ETAGE4.BIN
 ajarch EXPL.FE ETAGE4.BIN
 ajarch UTF8.FE ETAGE4.BIN
 ajarch CALC.FE ETAGE4.BIN
-ajarch MBR_BIOS.MBR ETAGE4.BIN
+ajarch BIOS.MBR ETAGE4.BIN
 ajarch IPCONFIG.FE ETAGE4.BIN
 ajarch SHTTP.FE ETAGE4.BIN
 ajarch STFTP.FE ETAGE4.BIN
@@ -92,11 +93,12 @@ ajarch F00u0.def ETAGE4.BIN
 cd ../ASM/NOYAU
 fasm ETAGE2_MBR.ASM ../../BIN/SEAC.BAZ
 fasm ETAGE2_IMB.ASM ../../BIN/SEAC.IMB
+fasm ETAGE2_EFI.ASM ../../BIN/SEAC.EFI
 fasm ETAGE1_DSQ.ASM ../../BIN/SEAC.IMG
 fasm ETAGE1_PXE.ASM ../../BIN/SEAC.PXE
-
+fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
 cd ../../BIN
-copy SEAC.PXE  ..\OUTILS\SYST.BIN
+copy SEAC.PXE  ..\OUTILS\syst.bin
 cd ../ASM
 
 
