@@ -1,11 +1,13 @@
 ﻿SF_INIT:           ;detection et initialisation des contoleur disquette, ATA et USB
 
+
+
 ;********************************************************************************************************************************
 ;réinitialise le controleur disquette
 mov ax,seldat
 mov es,ax
 mov ds,ax
-mov byte[trappe_tache0],6
+mov byte[trappe_tache0],31
 mov byte[pos_cyl_disq],0FFh  ;position de la tête indeterminé
 
 mov dx,3F7h ;mode 500000 bit/s
@@ -140,7 +142,7 @@ add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ata
 
-mov byte[trappe_tache0],7
+mov byte[trappe_tache0],32
 
 
 ;*****************************************************************************************************************************
@@ -148,8 +150,10 @@ mov byte[trappe_tache0],7
 ;jmp ignore_detect_ahci
 mov ax,seldat 
 mov ds,ax
+mov fs,ax
 mov ax,selramh 
 mov es,ax
+mov gs,ax
 mov ebx,80000008h
 
 boucle_detec_ahci:
@@ -173,7 +177,6 @@ mov eax,ebx
 add eax,28
 out dx,eax
 mov dx,0CFCh
-mov eax,esi
 in eax,dx
 sub eax,100000h
 mov esi,eax
@@ -186,8 +189,60 @@ out dx,eax
 mov dx,0CFCh
 in eax,dx
 and eax,0FFFF0000h
-or  eax,000000006h
+or  eax,000008016h
 out dx,eax
+
+;configure le cache line size et le master latency timer
+mov dx,0CF8h
+mov eax,ebx
+add eax,4
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+mov ax,8040h     ; master latency timer=128  cache line size=64 
+out dx,eax
+
+es
+test dword[esi+24h],1
+jz handoffbiosok
+
+es
+mov eax,[esi+28h] ;demande le controle
+test eax,2
+jz @f
+or al,8
+@@:
+or al,2
+es
+mov [esi+28h],eax
+mov ecx,[cptsf]
+add ecx,400
+
+@@:
+es
+test dword[esi+28h],1
+jz handoffbiosok
+cmp ecx,[cptsf]
+jb erreur_ctrl_ahci 
+jmp @b
+
+handoffbiosok:
+
+
+;effectue reset controleur
+es
+mov dword[esi+4],1
+mov ecx,[cptsf]
+add ecx,1200
+@@:
+es
+test dword[esi+4],1
+jz @f 
+cmp ecx,[cptsf]
+jb erreur_ctrl_ahci
+jmp @b
+
+@@:
 
 ;active ahci enable
 es
@@ -236,9 +291,7 @@ mov [ebx+08h],eax
 es
 mov dword[ebx+0Ch],0
 
-es
-mov dword[ebx+14h],0 ;désactive les interruptions
-
+call reset_ahci  ;reset et active le port (voir SF_DISK.ASM)
 
 erreur_port_ahci:
 popad
@@ -248,6 +301,9 @@ shr edx,1
 add ebx,80h
 cmp edx,0
 jnz boucle_test_port_ahci
+
+
+erreur_ctrl_ahci:
 popad
 
 
@@ -288,7 +344,7 @@ jmp boucle_liste_disque_ahci
 fin_liste_disque_ahci:
 
 
-mov byte[trappe_tache0],8
+mov byte[trappe_tache0],33
 
 
 
@@ -325,7 +381,7 @@ jne boucle_remplissage_ctrl_ata
 
 
 fin_detec_ata:
-mov byte[trappe_tache0],9
+mov byte[trappe_tache0],34
 
 
 
@@ -484,14 +540,6 @@ init_sata_conv_secteur:
 mov byte[ebx+zsata_conv_secteur],cl
 
 
-
-
-
-
-
-
-
-
 init_infopart2:
 mov al,12
 int 64h
@@ -506,7 +554,7 @@ jne boucle_init_infopart2
 
 
 
-mov byte[trappe_tache0],10
+mov byte[trappe_tache0],35
 
 
 ;*********************************************************************************************************************************************
@@ -581,7 +629,7 @@ add ebx,100010h   ;adresse physique
 mov [esi+dcu_mem],ebx
 pop ebx 
 
-call init_uhci    ;voir SF_USM.ASM
+call init_uhci    ;voir SF_USB.ASM
 jmp fin_init_ctrl
 
 

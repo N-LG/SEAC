@@ -438,10 +438,10 @@ jne boucle_setint1
 
 ;**************IRQ
 mov al,30h       ;ensuite les IRQ
-mov esi,irqtmp   ;l'irq d?clench? ar le PIT
+mov esi,irqtmp   ;l'irq déclenché ar le PIT
 call cridt 
 mov al,31h
-mov esi,irqcla   ;l'irq d?clench? par le clavier
+mov esi,irqcla   ;l'irq déclenché par le clavier
 call cridt 
 mov al,32h
 mov esi,irq2  ;l'irq déclenché par le PIC esclave, aquitement simple
@@ -474,7 +474,7 @@ mov al,3Bh
 mov esi,irqB
 call cridt 
 mov al,3Ch
-mov esi,irqsouris   ;l'irq d?clench? par la souris ps/2
+mov esi,irqsouris   ;l'irq déclenché par la souris ps/2
 call cridt 
 mov al,3Dh
 mov esi,irqUSB
@@ -598,10 +598,10 @@ int 10h
 
 cli                         ;programme le temporisateur
 mov dx,43h                  
-mov al,36h                  ;param?tres de comptage
+mov al,36h                  ;paramêtres de comptage
 out dx,al
 jmp $+2
-mov dx,40h                 ;diviseur de fr?quence de l'irq 0 (LSB en premier)
+mov dx,40h                 ;diviseur de fréquence de l'irq 0 (LSB en premier)
 mov ax,2983                ;1193200/f  ;11932: t=10ms  100Hz
 out dx,al                               ;5966: t=5ms    200Hz
 jmp $+2                                 ;2983: t=2.5ms  400Hz
@@ -648,7 +648,7 @@ out dx,al
 
 
 ;************************************
-;passage en mode prot?g?
+;passage en mode protégé
 
 mov ax,cs
 mov ds,ax
@@ -666,8 +666,8 @@ jmp selcod:0000h
 ;*************************************************************
 ;sous fonctions uttilisé par le lanceur
 
-crgdt:  ;cr?er ou modifie un descripteur de segment
-        ;ax=num?ros du d?scripteur (13bit)
+crgdt:  ;créer ou modifie un descripteur de segment
+        ;ax=numéros du descripteur (13bit)
         ;ds=selecteur du segment  ou se trouve la GDT
         ;ebx=adresse de base
         ;ecx=limite
@@ -708,8 +708,8 @@ mov [bx+5],dl
 ret
 
 
-cridt:  ;cr?er ou modifie un descripteur d'interruption
-        ;al=num?ros du d?scripteur (8bit)
+cridt:  ;créer ou modifie un descripteur d'interruption
+        ;al=numéros du descripteur (8bit)
         ;ds=selecteur du segment ou se trouve l'IDT
         ;es=selecteur de segment ou se trouve la routine a appeler
         ;esi=offset de la routine a appeler
@@ -742,7 +742,7 @@ jnz attporok
 ret
 
 modbg:  ;modifie la base d'un descripteur de segment
-        ;ax=num?ros du d?scripteur (13bit)
+        ;ax=numéros du descripteur (13bit)
         ;ds=selecteur du segment  ou se trouve la GDT
         ;ebx=adresse de base
 
@@ -755,8 +755,8 @@ mov [bx+4],al
 mov [bx+7],ah
 ret
 
-rcpbg:  ;r?cup?re la base d'un descripteur de segment
-        ;ax=num?ros du d?scripteur (13bit)
+rcpbg:  ;récupère la base d'un descripteur de segment
+        ;ax=num?ros du descripteur (13bit)
         ;ds=selecteur du segment  ou se trouve la GDT
         ;ebx=adresse de base
 
@@ -821,6 +821,8 @@ mov byte[trappe_tache0],1
 mov dx,selpil
 mov ss,dx
 mov esp,0FFF0h
+
+
 
 mov ax,seltss    ;définie la TSS global
 ltr ax     
@@ -930,11 +932,6 @@ avx_absent:
 
 cpuid_absent:
 mov byte[trappe_tache0],2
-
-
-
-
-
 
 
 
@@ -1125,7 +1122,7 @@ pas_reserve_isa:
 
 
 
-
+;jmp test1
 
 ;**********************************************************************
 ;programme souris ps/2
@@ -1256,7 +1253,7 @@ fin_init_souris:
 mov al,0AEh     
 call env_8042_cmd
 
-call vide_8042
+
 
 ;aquitte toutes irq en attente
 mov al,20h
@@ -1265,19 +1262,12 @@ mov al,20h
 out 20h,al
 mov byte[nbzt1],0 
 
+call vide_8042
+test1:
 mov byte[trappe_tache0],5
 
 
 
-
-
-
-
-
-
-
-;*********************************************************************
-include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
 
 
 
@@ -1290,7 +1280,7 @@ call affmsgsyst     ;rapel sur la version installé
 mov ax,seldat
 mov ds,ax
 mov es,ax
-mov byte[trappe_tache0],14
+mov byte[trappe_tache0],6
 xor eax,eax    ;effacement de la seconde moitié du segment de donnée systeme (pas effectué avant car cette partie contenait le code d'amorçage)
 mov ecx,08000h
 mov edi,20000h
@@ -1352,7 +1342,10 @@ mov word[id_tache_exec],0
 mov byte[cpttc],25
 mov byte[at_csl],0Eh ;signale que l'affichage complet de la console doit être mis a jour
 sti
-mov byte[trappe_tache0],15
+mov byte[trappe_tache0],7
+
+;*********************************************************************
+include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
 
 jmp btacheprincipale
 
@@ -3838,11 +3831,16 @@ ret
 
 
 vide_8042:
+mov ecx,10000
+@@:
+dec ecx
+jz @f
 in al,60h
 nop
 in al,64h
 test al,01h ;0=vide
-jnz vide_8042 
+jnz @b
+@@: 
 ret
 
 

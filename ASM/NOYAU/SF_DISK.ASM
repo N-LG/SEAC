@@ -2761,14 +2761,17 @@ mov esi,[ebx+po_zech_sata]
 cmp esi,0
 je init_ahci_er1
 
-
 gs
 mov ebx,[esi+zsata_ad_port]
 gs
-test dword[ebx+28h],0Fh    ;test si quelque chose est connecté au port
-jz init_ahci_er1
+mov eax,[ebx+28h]
+and al,0Fh
+cmp al,3    ;test si quelque chose est connecté au port
+jne init_ahci_er1
+
 gs
-mov dword[ebx+30h],0    ;efface les erreurs
+cmp dword[ebx+24h],101h   ;test la signature
+jne init_ahci_er1
 
 
 ;calculer taille en octet
@@ -2794,6 +2797,10 @@ sti
 jc init_ahci_er2 
 gs
 mov dword[ebx+8],czm_ztlef
+gs
+mov dword[ebx+16],0DEFAFECAh
+gs
+mov dword[ebx+20],012345678h
 mov edx,ebx
 
 
@@ -2830,50 +2837,192 @@ ret
 ;**********************
 fin_ahci:
 push ebx
-push ecx
+push edx
 ;activer execution première commande
 gs
 mov ebx,[esi+zsata_ad_port]
 gs
-or dword[ebx+18h],11h
-gs
 mov dword[ebx+38h],1
 
-;attendre fin execution
+
 fs
-mov ecx,[cptsf]
-add ecx,200
-boucle_fin_ahci:
+mov edx,[cptsf]
+add edx,600
+wbinvd
+@@:
 gs
-cmp dword[ebx+38h],0
-je ok_fin_ahci
+cmp dword[ebx+38h],0  ;attendre fin execution
+je @f
 int 62h
 fs
-cmp ecx,[cptsf]
-ja boucle_fin_ahci
+cmp edx,[cptsf]
+ja @b
 
-gs
-mov dword[ebx+38h],0
-pop ecx
+
+call reset_ahci
+pop edx
 pop ebx
 mov eax,cer_prd
 ret
 
 ok_fin_ahci:
-pop ecx
-pop ebx
-;vérifie code d'erreur
+@@:
 gs
-mov eax,[ebx+30h]
-cmp eax,0
-jne erreur_fin_ahci
+cmp[esi+zsata_liste+4],ecx  ;attend d'avoir envoyé/reçu les données
+je @f
+int 62h
+fs
+cmp edx,[cptsf]
+ja @b
+
+call reset_ahci
+pop edx
+pop ebx
+mov eax,cer_prd
+ret
+
+@@:
+
+pop edx
+pop ebx
+xor eax,eax
 ret
 
 erreur_fin_ahci:
+call reset_ahci
+pop edx
+pop ebx
 mov eax,cer_ahci
 ret
 
 
+
+
+
+
+;**********************
+reset_ahci:
+pushad
+sti
+gs
+and dword[ebx+18h],0FFFFFFEEh    ;arrete le port (stop commande fis et rec fis)
+gs
+or  dword[ebx+18h],06h         ;energise le port 
+
+
+;attend que l'arret soit effectif
+fs
+mov ecx,[cptsf]
+add ecx,800h
+@@:
+gs
+test dword[ebx+18h],0C000h
+jz @f
+fs
+cmp ecx,[cptsf] 
+ja @b
+popad
+mov eax,cer_prd
+ret
+
+@@:
+;envoie la commande de reset
+fs
+mov ecx,[cptsf]
+gs
+mov dword[ebx+2Ch],1
+@@:
+nop
+fs
+cmp ecx,[cptsf] ;attend au moins un changement de la valeur d'horloge
+je @b
+gs
+mov dword[ebx+2Ch],0
+
+
+;attend la fin du reset
+add ecx,800h
+@@:
+gs
+mov eax,[ebx+28h]
+and al,0Fh
+cmp al,3
+je fin_reset_ahci
+;cmp al,0
+;je erreur_reset_ahci
+fs
+cmp ecx,[cptsf] 
+ja @b
+erreur_reset_ahci:
+popad
+mov eax,cer_prd
+ret
+
+fin_reset_ahci:
+gs
+mov dword[ebx+14h],0             ;désactive les interruptions
+gs
+mov dword[ebx+10h],0FFFFFFFFh    ;aquitte les interruptions
+gs
+mov dword[ebx+30h],0FFFFFFFFh    ;efface les erreurs
+gs
+mov dword[ebx+38h],0             ;désactive toutes les commandes
+
+gs
+or dword[ebx+18h],010h ;enable rec fis
+
+
+;attend que que la rec fis soit démarré
+fs
+mov ecx,[cptsf]
+add ecx,800h
+@@:
+gs
+test dword[ebx+18h],04000h
+jnz @f
+fs
+cmp ecx,[cptsf] 
+ja @b
+popad
+mov eax,cer_prd
+ret
+
+;attend que bsy et drq soient a zéro
+@@:
+gs
+test dword[ebx+20h],088h
+jz @f
+fs
+cmp ecx,[cptsf] 
+ja @b
+popad
+mov eax,cer_prd
+ret
+
+@@:
+gs
+or dword[ebx+18h],01h ;enable commande fis 
+
+
+;attend que que la cmd fis soit démarré
+fs
+mov ecx,[cptsf]
+add ecx,800h
+@@:
+gs
+test dword[ebx+18h],08000h
+jnz @f
+fs
+cmp ecx,[cptsf] 
+ja @b
+popad
+mov eax,cer_prd
+ret
+
+@@:
+popad
+xor eax,eax
+ret
 
 
 ;**************************************************************
@@ -3088,6 +3237,7 @@ rep movsd
 pop esi
 pop ecx
 
+
 ;préparer FIS
 gs
 mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
@@ -3148,12 +3298,10 @@ mov dword[esi+zsata_liste+28],0
 
 
 call fin_ahci
-cmp eax,0
-jne fin2_ecriresecteursata
+;cmp eax,0
+;jne fin2_ecriresecteursata
 
-
-
-fin2_ecriresecteursata:
+;fin2_ecriresecteursata:
 mov ebx,edx
 call libmem
 sti
