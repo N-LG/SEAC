@@ -2,7 +2,7 @@ echo compilation du système
 cd NOYAU
 fasm ETAGE3.ASM ../../BIN/ETAGE3.BIN
 fasm ETAGE4.ASM ../../BIN/ETAGE4.BIN
-cd ../FASM/SELG
+cd ../FASM/SEAC
 fasm FASM_FR.ASM ../../../BIN/FASM.FE
 cd ../../PROG
 fasm date.asm ../../BIN/DATE.FE
