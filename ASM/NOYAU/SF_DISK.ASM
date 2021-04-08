@@ -2859,7 +2859,8 @@ cmp edx,[cptsf]
 ja @b
 
 
-call reset_ahci
+call reset_port_ahci
+call start_port_ahci
 pop edx
 pop ebx
 mov eax,cer_prd
@@ -2875,7 +2876,8 @@ fs
 cmp edx,[cptsf]
 ja @b
 
-call reset_ahci
+call reset_port_ahci
+call start_port_ahci
 pop edx
 pop ebx
 mov eax,cer_prd
@@ -2889,7 +2891,8 @@ xor eax,eax
 ret
 
 erreur_fin_ahci:
-call reset_ahci
+call reset_port_ahci
+call start_port_ahci
 pop edx
 pop ebx
 mov eax,cer_ahci
@@ -2901,7 +2904,7 @@ ret
 
 
 ;**********************
-reset_ahci:
+reset_port_ahci:
 pushad
 sti
 gs
@@ -2959,6 +2962,29 @@ mov eax,cer_prd
 ret
 
 fin_reset_ahci:
+popad
+ret
+
+
+
+
+;********************************
+start_port_ahci:
+push ecx
+sti
+gs
+mov ecx,[ebx+28h]
+and cl,0Fh
+cmp cl,0
+jne @f
+
+pop ecx
+mov eax,cer_lecnt
+ret
+
+
+@@:
+
 gs
 mov dword[ebx+14h],0             ;désactive les interruptions
 gs
@@ -2975,7 +3001,7 @@ or dword[ebx+18h],010h ;enable rec fis
 ;attend que que la rec fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,800h
+add ecx,200h
 @@:
 gs
 test dword[ebx+18h],04000h
@@ -2983,7 +3009,7 @@ jnz @f
 fs
 cmp ecx,[cptsf] 
 ja @b
-popad
+pop ecx
 mov eax,cer_prd
 ret
 
@@ -2995,7 +3021,7 @@ jz @f
 fs
 cmp ecx,[cptsf] 
 ja @b
-popad
+pop ecx
 mov eax,cer_prd
 ret
 
@@ -3007,7 +3033,7 @@ or dword[ebx+18h],01h ;enable commande fis
 ;attend que que la cmd fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,800h
+add ecx,200h
 @@:
 gs
 test dword[ebx+18h],08000h
@@ -3015,12 +3041,12 @@ jnz @f
 fs
 cmp ecx,[cptsf] 
 ja @b
-popad
+pop ecx
 mov eax,cer_prd
 ret
 
 @@:
-popad
+pop ecx
 xor eax,eax
 ret
 

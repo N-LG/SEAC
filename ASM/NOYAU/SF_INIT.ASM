@@ -291,7 +291,7 @@ mov [ebx+08h],eax
 es
 mov dword[ebx+0Ch],0
 
-call reset_ahci  ;reset et active le port (voir SF_DISK.ASM)
+call start_port_ahci  ;active le port (voir SF_DISK.ASM)
 
 erreur_port_ahci:
 popad
