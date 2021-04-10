@@ -10,7 +10,7 @@ mov ds,dx
 mov es,dx
 
 mov dx,sel_dat2
-mov ah,3   ;option=mode graphique+texte
+mov ah,7   ;option=mode graphique+texte+souris
 mov al,0   ;création console     
 int 63h
 cmp eax,0
@@ -565,6 +565,7 @@ cmp al,63
 je coller
 pas_touche_ctrl:
 
+
 cmp al,1
 je menu
 cmp al,79
@@ -582,6 +583,9 @@ cmp al,44
 je edition
 cmp al,100
 je edition
+
+cmp al,0F0h
+je clique_souris
 
 jmp touche_boucle
 
@@ -725,6 +729,83 @@ jmp aff_table
 
 
 
+clique_souris:
+mov byte[mode],0
+
+cmp ebx,40
+jb aff_table
+cmp ecx,40
+jb aff_table
+
+
+mov eax,[resx_carac]
+shl eax,5
+add eax,40
+cmp ebx,eax
+jae aff_table
+mov eax,[resy_carac]
+shl eax,4
+add eax,40
+cmp ecx,eax
+jae aff_table
+
+mov eax,[resx_carac]
+shl eax,4
+add eax,40
+cmp ebx,eax
+jae pix_souris
+
+
+selec_souris:
+sub ebx,40
+sub ecx,40
+shr ebx,3
+shr ecx,4
+mov [curx],ebx
+mov [cury],ecx
+jmp aff_table
+
+
+pix_souris:
+sub ebx,40
+mov eax,[resx_carac]
+shl eax,4
+sub ebx,eax
+sub ecx,40
+shr ebx,4
+shr ecx,4
+push ebx
+push ecx
+
+mov esi,data_carac
+mov eax,[cury]
+shl eax,4
+add eax,[curx]
+xor edx,edx
+mov ecx,[resx_carac]
+shr ecx,3
+mul ecx
+xor edx,edx
+mov ecx,[resy_carac]
+mul ecx
+add esi,eax
+
+pop eax
+mov ecx,[octet_par_ligne]
+xor edx,edx
+mul ecx
+add esi,eax
+
+mov edx,1
+mov cl,[resx_carac]
+pop eax
+sub cl,al
+dec cl
+shl edx,cl
+xor [esi],edx
+jmp aff_table
+
+
 
 ;***************************************
 edition:
@@ -822,6 +903,9 @@ cmp al,44
 je modif_pix
 cmp al,100
 je modif_pix
+
+cmp al,0F0h
+je clique_souris
 
 jmp touche_boucle2
 
