@@ -22,10 +22,6 @@
 %commande: ajarch XXX YYY
  avec XXX=nom du fichier a rajouter
       YYY=nom du fichier noyau
-:baz:noyau
-^Fichier NOYAU
- le fichier noyau (extension .BAZ) est un fichier qui est un executable conçu pour être chargé et executé a l'adresse 7C0h:0000h ou 5000h:0000h.
- le fichier as une granularité de 16 octets, il est possible de rajouter des fichier a cette archive qui seront chargé en fichier ram lors de l'amorçage avec la commande ~AJARCH~
 :calc
 ^CALC: calculatrice
 
@@ -151,7 +147,7 @@
  ":" la ligne est une liste de mot clef
  "^" affiche la ligne en vert clair (titre de la rubrique)
  "%" affiche la ligne en blanc clair (sous titre/information importante)
- une expression entouré de "~" indique qu'il s'agit d'un mot clef 
+ une expression entouré de ~~ indique qu'il s'agit d'un mot clef ou d'un lien 
 :shttp
 ^SHTTP
  serveur http
@@ -176,6 +172,7 @@
 :dossier systeme:systeme
 ^Dossier systeme
  le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
+ on définis le dossier systeme avec la commande ~fix~
 :seac
 ^SEac: systeme d'exploitation approximativement complet
  (plus d'explication a venir)
@@ -240,3 +237,16 @@ démarre le pilote pour une carte Intel  ou compatible
  Mio = mébioctet = 1024 Kio
  Gio = gibioctet = 1024 Mio
  Tio = tébioctet = 1024 Gio
+:term
+^TERM
+ client pour les connexions par liaison série ou TCP
+:utf8
+^UTF8
+ permet de visualiser les codages d'un caractère/glyphe Unicode en utf8
+
+%commande: utf8 XX YY
+ avec: XX = numéros du caractère/glyphe
+       YY = nombre de caractère a visualiser (paramètre optionnel, 1 par défaut)
+:lc
+^LC
+ permet de visualiser les périphériques branché sur le bus PCI et AGP
