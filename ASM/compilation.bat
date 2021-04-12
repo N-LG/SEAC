@@ -48,7 +48,6 @@ fasm be-azs.asm ../../BIN/be-azs.def
 fasm en-txt.asm ../../BIN/en-txt.def
 fasm en-qwi.asm ../../BIN/en-qwi.def
 fasm 0u0.asm  ../../BIN/0u0.def
-fasm 1u0.asm  ../../BIN/1u0.def
 fasm 25u0.asm  ../../BIN/25u0.def
 fasm F00u0.asm  ../../BIN/F00u0.def
 cd ../../BIN/
