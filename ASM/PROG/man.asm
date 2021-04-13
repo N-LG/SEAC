@@ -63,11 +63,12 @@ mov ah,1 ;fichier
 int 64h
 cmp eax,0
 jne aff_err_fichier
-add dword[taille],zt_recep
+
 
 ;agrandit la zone mémoire pour pouvoir contenir le fichier
 mov dx,sel_dat1
 mov ecx,[taille]
+add ecx,zt_recep+1
 mov al,8
 int 61h
 
@@ -83,20 +84,30 @@ cmp eax,0
 jne aff_err_fichier
 
 
+add dword[taille],zt_recep
+
 
 ;transforme cr et lf en zéros et ~ en marque de liens
+mov ecx,[taille]
 mov ebx,zt_recep
 mov al,13h
+;add ecx,ebx
+
 boucle_transf:
 cmp byte[ebx],10
 je transf_zero
 cmp byte[ebx],13
 je transf_zero
-cmp word[ebx],227Eh      ;~"
-je ignore_transf
+cmp word[ebx],7E7Eh      ;~~
+je doubletidle
 cmp byte[ebx],"~"
 je transf_tidle
 jmp ignore_transf
+
+doubletidle:
+mov word[ebx],177Eh
+jmp ignore_transf
+
 
 transf_tidle:
 mov byte[ebx],al
@@ -115,8 +126,9 @@ mov al,13h
 
 ignore_transf:
 inc ebx
-cmp [taille],ebx
+cmp ebx,ecx
 jne boucle_transf
+
 
 ;si c'est * le mot clef, on affiche la liste des mots clefs
 cmp word[motclef],"*"
