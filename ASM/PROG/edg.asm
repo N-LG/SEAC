@@ -183,17 +183,8 @@ jmp menubase
 
 ;****************************
 enregistrer_sous:
-;demande le nom du fichier sur lequel enregistrer
-mov edx,msg_sav1
-mov al,11
-mov ah,07h ;couleur
-int 63h 
-
-mov ah,07h
-mov edx,nom_fichier
-mov ecx,256
-mov al,6
-int 63h
+call sauvegarder_sous
+jmp menu
 
 
 
@@ -243,18 +234,51 @@ int 60h
 
 
 
+
+
+
+
+;**********************************
+sauvegarder_sous:
+
+;demande le nom du fichier sur lequel enregistrer
+mov edx,msg_sav1
+mov al,11
+mov ah,07h ;couleur
+int 63h 
+
+mov ah,07h
+mov edx,nom_fichier
+mov ecx,256
+mov al,6
+int 63h
+
+creation:
+call ferme_fichier
+mov eax,2
+mov ebx,0
+mov edx,nom_fichier
+int 64h
+cmp eax,cer_nfr
+je erreur_dejaex
+cmp eax,0
+jne erreur_creation
+mov [num_fichier],ebx
+
+
 ;**********************************
 sauvegarder:
 ;essaye d'ouvrir le fichier
+call ferme_fichier
 xor eax,eax
 mov ebx,0
 mov edx,nom_fichier
 int 64h
 cmp eax,0
-je suite1_sauvegarder
-ret
+jne erreur_ouverture
+mov [num_fichier],ebx
 
-suite1_sauvegarder:
+ecriture_fichier:
 ;remet la taille de fichier a zéro
 mov dword[zt_nombre],0
 mov dword[zt_nombre+4],0
@@ -264,10 +288,8 @@ mov ebx,[num_fichier]
 mov edx,zt_nombre
 int 64h
 cmp eax,0
-je suite2_sauvegarder
-ret
+jne erreur_ecriture
 
-suite2_sauvegarder:
 ;calcul la taille du fichier
 mov eax,[resx_carac]
 mov ecx,[resy_carac]
@@ -283,15 +305,160 @@ mov edx,0   ;offset dans le fichier
 mov esi,zone_tampon
 int 64h
 cmp eax,0
-je suite3_sauvegarder
+jne erreur_ecriture
+
+call ferme_fichier
 ret
 
-suite3_sauvegarder:
-;ferme le fichier
-mov eax,1
+
+
+
+
+
+ferme_fichier:
 mov ebx,[num_fichier]
+cmp ebx,0
+je @f
+mov eax,1
 int 64h
+@@:
+mov dword[num_fichier],0
 ret
+
+
+
+erreur_dejaex:
+call raz_ecr
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_errsauv0
+int 63h 
+
+mov al,13   ;menu
+mov cl,1    ;démarre a la ligne
+mov ch,2    ;sur ch ligne
+mov bl,0    ;
+mov bh,7    ;couleur
+int 63h
+
+cmp bl,0
+je sauvegarder_sous
+jmp ecriture_fichier 
+
+
+
+erreur_creation:
+call raz_ecr
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_errsauv1
+int 63h 
+
+mov al,13   ;menu
+mov cl,1    ;démarre a la ligne
+mov ch,2    ;sur ch ligne
+mov bl,0    ;
+mov bh,7    ;couleur
+int 63h
+
+cmp bl,0
+je creation
+cmp bl,1
+je sauvegarder_sous
+
+ret
+
+
+erreur_ouverture:
+call raz_ecr
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_errsauv2
+int 63h 
+
+mov al,13   ;menu
+mov cl,1    ;démarre a la ligne
+mov ch,2    ;sur ch ligne
+mov bl,0    ;
+mov bh,7    ;couleur
+int 63h
+
+cmp bl,0
+je creation
+cmp bl,1
+je sauvegarder_sous
+
+ret
+
+erreur_ecriture:
+call raz_ecr
+
+mov al,11
+mov ah,07h ;couleur
+mov edx,msg_errsauv3
+int 63h 
+
+mov al,13   ;menu
+mov cl,1    ;démarre a la ligne
+mov ch,2    ;sur ch ligne
+mov bl,0    ;
+mov bh,7    ;couleur
+int 63h
+
+cmp bl,0
+je creation
+cmp bl,1
+je sauvegarder_sous
+
+ret
+
+
+
+msg_errsauv0:
+db "le fichier existe déjà, voulez vous:",13
+db "choisir un autre nom?",13
+db "écraser le fichier?",13,0
+
+
+
+msg_errsauv1:
+db "erreur lors de la création du fichier, voulez vous:",13
+db "reéssayer?",13
+db "choisir un autre nom?",13
+db "annuler l'enregistrement?",13,0
+
+
+
+msg_errsauv2:
+db "impossible d'ouvrir le fichier car il est déja ouvert, voulez vous:",13
+db "reéssayer?",13
+db "créer le fichier?",13
+db "choisir un autre no ?",13
+
+db "annuler? ",13,0
+
+msg_errsauv3:
+db "erreur lors de l'écriture dans le fichier, voulez vous:",13
+db "reéssayer?",13
+db "annuler? ",13
+db "choisir un autre nom?",13,0
+
+
+
+mov ecx,eax   ;afficher le message d'erreur correspondnant a eax
+mov al,13
+mov ah,1
+mov ch,0
+mov edx,zt_nombre
+int 61h
+mov al,11
+mov ah,07h ;couleur
+mov edx,zt_nombre
+int 63h 
+
 
 
 ;***************************************
@@ -617,9 +784,6 @@ inc dword[curx]
 jmp aff_table
 
 
-touche_sauvegarder:
-call sauvegarder
-jmp touche_boucle
 
 couper:
 mov esi,data_carac
@@ -653,6 +817,7 @@ sub ecx,4
 jnz boucle_touche_couper
 
 jmp aff_table
+
 
 
 copier:
@@ -700,6 +865,11 @@ mov eax,16
 mov edx,esi
 int 61h 
 jmp aff_table
+
+
+touche_sauvegarder:
+call sauvegarder
+jmp touche_boucle
 
 
 touche_suppr:
@@ -1211,7 +1381,9 @@ db "continuer sans enregistrer?",13,0
 
 zt_nombre:
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 nom_fichier:
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
