@@ -144,13 +144,13 @@ cmp eax,0
 call eff_fichier
 
 ;demande le numéros du premier caractère de la table
-
+;%%%%%%%%%%%%%%%%%%%%%%%
 
 ;demande la largeur du caractère
-
+;%%%%%%%%%%%%%%%%%%%%%%%
 
 ;demande la hauteur du caractère
-
+;%%%%%%%%%%%%%%%%%%%%%%%
 
 jmp menu
 
@@ -259,11 +259,12 @@ mov eax,2
 mov ebx,0
 mov edx,nom_fichier
 int 64h
+mov [num_fichier],ebx
 cmp eax,cer_nfr
 je erreur_dejaex
 cmp eax,0
 jne erreur_creation
-mov [num_fichier],ebx
+
 
 
 ;**********************************
@@ -274,9 +275,9 @@ xor eax,eax
 mov ebx,0
 mov edx,nom_fichier
 int 64h
+mov [num_fichier],ebx
 cmp eax,0
 jne erreur_ouverture
-mov [num_fichier],ebx
 
 ecriture_fichier:
 ;remet la taille de fichier a zéro
@@ -312,9 +313,6 @@ ret
 
 
 
-
-
-
 ferme_fichier:
 mov ebx,[num_fichier]
 cmp ebx,0
@@ -328,7 +326,7 @@ ret
 
 
 erreur_dejaex:
-call raz_ecr
+call raz_txt
 
 mov al,11
 mov ah,07h ;couleur
@@ -344,12 +342,12 @@ int 63h
 
 cmp bl,0
 je sauvegarder_sous
-jmp ecriture_fichier 
+jmp sauvegarder
 
 
 
 erreur_creation:
-call raz_ecr
+call raz_txt
 
 mov al,11
 mov ah,07h ;couleur
@@ -358,7 +356,7 @@ int 63h
 
 mov al,13   ;menu
 mov cl,1    ;démarre a la ligne
-mov ch,2    ;sur ch ligne
+mov ch,3    ;sur ch ligne
 mov bl,0    ;
 mov bh,7    ;couleur
 int 63h
@@ -367,12 +365,11 @@ cmp bl,0
 je creation
 cmp bl,1
 je sauvegarder_sous
-
 ret
 
 
 erreur_ouverture:
-call raz_ecr
+call raz_txt
 
 mov al,11
 mov ah,07h ;couleur
@@ -381,20 +378,21 @@ int 63h
 
 mov al,13   ;menu
 mov cl,1    ;démarre a la ligne
-mov ch,2    ;sur ch ligne
+mov ch,3    ;sur ch ligne
 mov bl,0    ;
 mov bh,7    ;couleur
 int 63h
 
 cmp bl,0
-je creation
+je sauvegarder
 cmp bl,1
 je sauvegarder_sous
-
 ret
 
+
+
 erreur_ecriture:
-call raz_ecr
+call raz_txt
 
 mov al,11
 mov ah,07h ;couleur
@@ -403,61 +401,28 @@ int 63h
 
 mov al,13   ;menu
 mov cl,1    ;démarre a la ligne
-mov ch,2    ;sur ch ligne
+mov ch,3    ;sur ch ligne
 mov bl,0    ;
 mov bh,7    ;couleur
 int 63h
 
 cmp bl,0
-je creation
+je ecriture_fichier
 cmp bl,1
 je sauvegarder_sous
-
 ret
 
 
-
-msg_errsauv0:
-db "le fichier existe déjà, voulez vous:",13
-db "choisir un autre nom?",13
-db "écraser le fichier?",13,0
-
-
-
-msg_errsauv1:
-db "erreur lors de la création du fichier, voulez vous:",13
-db "reéssayer?",13
-db "choisir un autre nom?",13
-db "annuler l'enregistrement?",13,0
-
-
-
-msg_errsauv2:
-db "impossible d'ouvrir le fichier car il est déja ouvert, voulez vous:",13
-db "reéssayer?",13
-db "créer le fichier?",13
-db "choisir un autre no ?",13
-
-db "annuler? ",13,0
-
-msg_errsauv3:
-db "erreur lors de l'écriture dans le fichier, voulez vous:",13
-db "reéssayer?",13
-db "annuler? ",13
-db "choisir un autre nom?",13,0
-
-
-
-mov ecx,eax   ;afficher le message d'erreur correspondnant a eax
-mov al,13
-mov ah,1
-mov ch,0
-mov edx,zt_nombre
-int 61h
-mov al,11
-mov ah,07h ;couleur
-mov edx,zt_nombre
-int 63h 
+;mov ecx,eax   ;afficher le message d'erreur correspondnant a eax
+;mov al,13
+;mov ah,1
+;mov ch,0
+;mov edx,zt_nombre
+;int 61h
+;mov al,11
+;mov ah,07h ;couleur
+;mov edx,zt_nombre
+;int 63h 
 
 
 
@@ -1299,11 +1264,11 @@ db "ouvrir",13
 db "sauvegarder",13
 db "sauvegarder sous",13
 db "convertir",13
-db "quitter",0
+db "quitter",13,13,0
 msg_menu2:
 db "nouveau",13
 db "ouvrir",13
-db "quitter",0
+db "quitter",13,13,0
 
 
 
@@ -1332,8 +1297,28 @@ db "impossible d'ouvrir le fichier, il est déja en cours d'utilisation",0
 msg_sav1:
 db "sous quel nom voulez vous enregistrer le fichier?",13,0
 
-msg_sav2:
-db "erreur lors de l'écriture du fichier",0
+msg_errsauv0:
+db "le fichier existe déjà, voulez vous:",13
+db "choisir un autre nom?",13
+db "écraser le fichier?",13,0
+
+msg_errsauv1:
+db "erreur lors de la création du fichier, voulez vous:",13
+db "reéssayer?",13
+db "choisir un autre nom?",13
+db "annuler l'enregistrement?",13,0
+
+msg_errsauv2:
+db "impossible d'ouvrir le fichier, voulez vous:",13
+db "reéssayer?",13
+db "choisir un autre nom?",13
+db "annuler? ",13,0
+
+msg_errsauv3:
+db "erreur lors de l'écriture dans le fichier, voulez vous:",13
+db "reéssayer?",13
+db "choisir un autre nom?",13
+db "annuler? ",13,0
 
 
 
