@@ -2770,9 +2770,12 @@ cmp al,3    ;test si quelque chose est connecté au port
 jne init_ahci_er1
 
 gs
-cmp dword[ebx+24h],101h   ;test la signature
+cmp dword[ebx+24h],101h         ;test la signature (disque dur)
+je @f
+gs
+cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne init_ahci_er1
-
+@@:
 
 ;calculer taille en octet
 xor eax,eax
@@ -3067,6 +3070,16 @@ gs
 mov byte[esi+zsata_cfis+1],80h    ;attribut
 gs
 mov byte[esi+zsata_cfis+2],0ECh ;commande  ata=ECh atapi=A1h
+
+
+gs
+cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
+jne @f
+gs
+mov byte[esi+zsata_cfis+2],0A1h ;commande  ata=ECh atapi=A1h
+@@:
+
+
 gs
 mov byte[esi+zsata_cfis+3],0    ;feature 1 
 gs 
