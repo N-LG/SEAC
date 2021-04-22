@@ -3070,16 +3070,16 @@ gs
 mov byte[esi+zsata_cfis+1],80h    ;attribut
 gs
 mov byte[esi+zsata_cfis+2],0ECh ;commande  ata=ECh atapi=A1h
-
-
+push ebx
+gs
+mov ebx,[esi+zsata_ad_port]
 gs
 cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne @f
 gs
 mov byte[esi+zsata_cfis+2],0A1h ;commande  ata=ECh atapi=A1h
 @@:
-
-
+pop ebx
 gs
 mov byte[esi+zsata_cfis+3],0    ;feature 1 
 gs 
@@ -3164,6 +3164,13 @@ call init_ahci
 cmp eax,0
 jne fin_liresecteursata
 
+push ebx
+gs
+mov ebx,[esi+zsata_ad_port]
+gs
+cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
+je liresecteursatapi 
+pop ebx
 
 ;préparer FIS
 gs
@@ -3246,6 +3253,109 @@ sti
 fin_liresecteursata:
 ret
 
+
+
+
+
+
+
+liresecteursatapi: 
+pop ebx
+jmp fin2_liresecteursata   ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;préparer FIS
+gs
+mov byte[esi+zsata_cfis],27h     ;type de FIS: host to device
+gs
+mov byte[esi+zsata_cfis+1],80h   ;attribut     ????????????????????
+gs
+mov byte[esi+zsata_cfis+2],0A0h  ;commande  packet 
+gs
+mov byte[esi+zsata_cfis+3],1     ;feature 1 (transmit to host) 
+gs 
+mov byte[esi+zsata_cfis+4],0     ;LBA  (0-7)
+gs
+mov word[esi+zsata_cfis+12],16   ;LBA (8-23) nombre d'octet de la commande packet
+gs
+mov byte[esi+zsata_cfis+7],0     ;device
+gs
+mov byte[esi+zsata_cfis+8],0     ;LBA (24-31)
+gs
+mov word[esi+zsata_cfis+9],0     ;LBA (32-47)
+gs
+mov byte[esi+zsata_cfis+11],0    ;feature 2
+gs
+mov word[esi+zsata_cfis+12],0    ;count
+gs
+mov byte[esi+zsata_cfis+14],0    ;ICC
+gs
+mov byte[esi+zsata_cfis+15],0    ;controle
+gs
+mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+gs
+mov eax,[esi+zsata_msb_adresse]
+gs
+mov dword[esi+zsata_msb_adresse],0
+and ebp,00FFFFh
+bswap ebx
+bswap ebx
+bswap ebp
+
+gs
+mov byte[esi+zsata_acmd],88h     ;commande ATAPI lecture 16
+gs
+mov byte[esi+zsata_acmd+1],0     ;vide
+gs
+mov dword[esi+zsata_acmd+2],eax  ;adresse du secteur (MSB)
+gs
+mov dword[esi+zsata_acmd+6],ebx  ;adresse du secteur (LSB)
+gs
+mov dword[esi+zsata_acmd+10],ebp ;nb de secteur
+gs
+mov word[esi+zsata_acmd+14],0    ;vide
+
+
+;préparer table commande
+gs
+mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
+gs
+mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+gs
+mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
+gs
+mov dword[esi+zsata_liste+4],0 ;
+mov eax,esi
+add eax,100000h+zsata_cfis
+gs
+mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+gs
+mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+gs
+mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+gs
+mov dword[esi+zsata_liste+20],0
+gs
+mov dword[esi+zsata_liste+24],0
+gs
+mov dword[esi+zsata_liste+28],0
+
+
+call fin_ahci
+cmp eax,0
+jne fin2_liresecteursata
+
+;recopie les données
+mov ax,selramh
+mov ds,ax
+shr ecx,2
+mov esi,edx
+add esi,10h
+cld
+rep movsd
+xor eax,eax
+
+jmp fin2_liresecteursata
 
 
 
@@ -3346,7 +3456,6 @@ call libmem
 sti
 fin_ecriresecteursata:
 ret
-
 
 
 
