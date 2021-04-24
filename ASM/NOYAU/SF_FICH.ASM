@@ -17,14 +17,16 @@
 ;al=15 réserve espace pour fichier
 ;al=16 lit contenue répertoire
 ;al=17 lit disques disponible
+;al=18 lit nombre de secteur et taille secteur
 
 ;************************************
 
-pushad        ;sauvegarde les registres et initialise les segments de données
 push ds
 push es
 push fs
 push gs
+pushad        ;sauvegarde les registres et initialise les segments de données
+
 
 push eax
 mov ax,seldat
@@ -40,6 +42,8 @@ cli
 fs
 test byte[at_fc_fichier],01h
 jz fcfichierlibre
+fs
+or byte[at_fc_fichier],20h ;signal que l'on attend apres la liberation des fonctions fichier
 sti
 int 62h
 jmp testsifcfichierlibre
@@ -89,131 +93,98 @@ cmp al,16
 je sff_lit_dossier
 cmp al,17
 je sff_lit_disques
-
+cmp al,18
+je sff_lit_tailledisque
 
 errprmsf:   ;erreur de paramètres
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_parami
-iret
+jmp finabsoluefonctionfichier
+
 
 errsysf:    ;erreur du système de fichier
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_sysf
-iret
+jmp finabsoluefonctionfichier
+
 
 errlec:   ;erreur de lecture
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_lec
-iret
+jmp finabsoluefonctionfichier
+
 
 errecr:   ;erreur d'écriture
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_ecr
-iret
+jmp finabsoluefonctionfichier
+
 
 errlecnt:   ;lecteur non trouvé
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_lecnt
-iret
+jmp finabsoluefonctionfichier
+
 
 errpaderep:   ;pas de réponse disque
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_prd
-iret
+jmp finabsoluefonctionfichier
+
 
 errinterdit: ;action non autorisé
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 popad
 mov eax,cer_ano
-iret
+jmp finabsoluefonctionfichier
+
 
 finfonctionfichiererr:    ;préserve eax
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 ss
 mov [esp+28],eax
 popad
-iret
+jmp finabsoluefonctionfichier
+
 
 finfonctionfichierokebx:  ;préserve eax et ebx
-fs
-and byte[at_fc_fichier],0FEh
-int 62h
-pop gs
-pop fs
-pop es
-pop ds
 ss
 mov [esp+28],eax
 ss
 mov [esp+16],ebx
 popad
-iret
+jmp finabsoluefonctionfichier
+
+
+
+finfonctionfichieroktriple:  ;préserve ebx, ecx et edx
+ss
+mov [esp+24],ecx  ;taille des secteurs   
+ss
+mov [esp+20],edx  ;msb nb de secteur
+ss
+mov [esp+16],ebx  ;lsb nb de secteur
+popad
+xor eax,eax
+jmp finabsoluefonctionfichier
+
 
 finfonctionfichier:
+popad
+xor eax,eax
+
+finabsoluefonctionfichier:
 fs
-and byte[at_fc_fichier],0FEh
-int 62h
+test byte[at_fc_fichier],20h   ;test si une autre fonction a demandé le controle des fonctions fichier
+jz @f
+int 62h        ;si oui force la commutation
+@@:
+fs
+and byte[at_fc_fichier],0DEh
 pop gs
 pop fs
 pop es
 pop ds
-popad
-xor eax,eax
 iret
+
 
 
 

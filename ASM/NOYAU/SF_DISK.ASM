@@ -3459,11 +3459,59 @@ ret
 
 
 
+;*****************************************************************************************************************
+sff_lit_tailledisque:
+mov al,ch
+mov ah,ch
+cmp ch,1
+je sff_lit_tailledisque_dsq 
+and ax,0F0F8h
+cmp al,10h
+je sff_lit_tailledisque_ata 
+cmp al,18h
+je sff_lit_tailledisque_atapi
+cmp ah,20h
+je sff_lit_tailledisque_sata
+cmp ah,30h
+je sff_lit_tailledisque_sata
+cmp ah,40h
+je sff_lit_tailledisque_usb
+cmp ah,50h
+je sff_lit_tailledisque_usb
+jmp errlecnt
 
 
+sff_lit_tailledisque_dsq:
+mov ecx,512
+mov ebx,2880
+xor edx,edx
+jmp finfonctionfichieroktriple
 
 
+sff_lit_tailledisque_ata:
+sub ch,10h
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov ecx,512
+jmp finfonctionfichieroktriple
 
+
+sff_lit_tailledisque_atapi:
+sub ch,18h
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov ecx,2048
+jmp finfonctionfichieroktriple
+
+
+sff_lit_tailledisque_sata:
+sub ch,20h
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp finfonctionfichieroktriple
+
+
+sff_lit_tailledisque_usb:
+sub ch,40h
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp finfonctionfichieroktriple
 
 
 
