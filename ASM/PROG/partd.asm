@@ -930,14 +930,115 @@ int 63h
 cmp bh,1
 je affiche_part
 cmp bl,1
-je format_partition_fat16r_mbr
+je format_partition_efface
 cmp bl,2
-je format_partition_fat16c_mbr
+je format_partition_fat16r_mbr
 cmp bl,3
-je format_partition_fat32r_mbr
+je format_partition_fat16c_mbr
 cmp bl,4
+je format_partition_fat32r_mbr
+cmp bl,5
 je format_partition_fat32c_mbr
 jmp affiche_part
+
+
+
+;********************************
+format_partition_efface:
+
+
+;demande quel quantité de secteur sont a effacer
+mov edx,msg_format5
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov al,102
+mov ecx,[format_taille_totale]
+mov edx,saisienum
+int 61h
+
+mov ah,07h
+mov edx,saisienum
+mov ecx,12
+mov al,6
+int 63h
+
+mov al,100
+mov edx,saisienum
+int 61h
+
+cmp ecx,[format_taille_totale]
+ja @f
+mov [format_taille_totale],ecx
+@@:
+
+xor eax,eax
+mov edi,ZT512C
+mov ecx,16384
+cld
+rep stosd
+
+mov ebx,[format_offset_partition]
+mov ecx,[format_taille_totale]
+mov edi,[format_taille_totale]
+
+boucle_effacepart:
+cmp ecx,0
+je affiche_part
+cmp ecx,256
+jbe fin_partition_efface
+
+
+push ebx
+push ecx
+push edx
+mov al,9
+mov ch,[disque_choisie]
+mov cl,0
+mov esi,ZT512C
+int 64h
+pop edx
+pop ecx
+pop ebx
+;cmp eax,0
+;jne erreur_ecriture_formattage
+sub ecx,256
+add ebx,256
+
+
+;affiche une barre de progression
+push ebx
+push ecx
+push edx
+mov esi,edi ;edi=total
+sub esi,ecx  ;esi=index
+mov ebx,0   ;position en x du début de la barre de progression
+mov ecx,[resyt] 
+sub ecx,3   ;position en y du début de la barre de progression
+mov edx,[resxt] ;longueur de la barre de progression
+mov al,14
+int 63h
+pop edx
+pop ecx
+pop ebx
+jmp boucle_effacepart
+
+
+fin_partition_efface:
+mov al,9
+mov ch,[disque_choisie]
+mov cl,0
+mov esi,ZT512C
+int 64h
+jmp affiche_part
+
+
+
+
+
+
+
 
 
 ;**********************************
@@ -2025,15 +2126,21 @@ db "choisissez la partition a formatter (echap pour annuler)",0
 
 msg_format2:
 db "ne pas Formatter le disque",13
+db "effacer la partition",13
 db "Formattage rapide en FAT16(sans effacement contenu Cluster)",13
 db "Formattage complet en FAT16(avec effacement contenu Cluster)",13
 db "Formattage rapide en FAT32(sans effacement contenu Cluster)",13
 db "Formattage complet en FAT32(avec effacement contenu Cluster)",13,13,0
 
+
 msg_format3:
 db "combien de table FAT enregistré sur le disque? (2 à 8)",13,0
 msg_format4:
 db "valeur incorrecte, veuillez saisir un valeur dans les tolérance pour poursuivre (echap pour annuler)",13,0
+
+msg_format5:
+db "combien de secteur souhaitez vous effacer?",13,0
+
 
 msg_format_er1:
 db "erreur lors de l'écriture sur le disque",0
