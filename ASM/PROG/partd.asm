@@ -473,16 +473,127 @@ mov [bin_type],ecx
 cmp ecx,0
 je demande_type
 
-demande_taille:
+demande_adresse:
 mov al,12
 mov ebx,0
 mov ecx,[num_partition]
 add ecx,19
 int 63h
+mov edx,msg_cree_adresse
+mov al,11
+mov ah,0Fh ;couleur
+int 63h
+cmp byte[txt_adresse],0
+jne adresse_precharge
+
+mov ecx,1
+
+cmp byte[ZT512B+1C2h],0
+je @f
+mov edx,[ZT512B+1C6h]
+add edx,[ZT512B+1CAh]
+cmp ecx,edx
+ja @f
+mov ecx,edx
+@@:
+
+cmp byte[ZT512B+1D2h],0
+je @f
+mov edx,[ZT512B+1D6h]
+add edx,[ZT512B+1DAh]
+cmp ecx,edx
+ja @f
+mov ecx,edx
+@@:
+
+cmp byte[ZT512B+1E2h],0
+je @f
+mov edx,[ZT512B+1E6h]
+add edx,[ZT512B+1EAh]
+cmp ecx,edx
+ja @f
+mov ecx,edx
+@@:
+
+cmp byte[ZT512B+1F2h],0
+je @f
+mov edx,[ZT512B+1F6h]
+add edx,[ZT512B+1FAh]
+cmp ecx,edx
+ja @f
+mov ecx,edx
+@@:
+
+mov al,103
+mov edx,txt_adresse
+int 61h
+
+adresse_precharge:
+mov ah,07h
+mov edx,txt_adresse
+mov ecx,20
+mov al,6
+int 63h
+mov al,101
+mov edx,txt_adresse
+int 61h
+mov [bin_adresse],ecx
+cmp ecx,0
+je demande_adresse
+
+
+demande_taille:
+mov al,12
+mov ebx,0
+mov ecx,[num_partition]
+add ecx,20
+int 63h
 mov edx,msg_cree_taille
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
+cmp byte[txt_taille],0
+jne taille_precharge
+
+
+mov ecx,[taille_disque]
+mov edx,[bin_adresse]
+
+cmp byte[ZT512B+1C2h],0
+je @f
+cmp edx,[ZT512B+1C6h]
+ja @f
+mov ecx,[ZT512B+1C6h]
+@@:
+
+cmp byte[ZT512B+1D2h],0
+je @f
+cmp edx,[ZT512B+1D6h]
+ja @f
+mov ecx,[ZT512B+1D6h]
+@@:
+
+cmp byte[ZT512B+1E2h],0
+je @f
+cmp edx,[ZT512B+1E6h]
+ja @f
+mov ecx,[ZT512B+1E6h]
+@@:
+
+cmp byte[ZT512B+1F2h],0
+je @f
+cmp edx,[ZT512B+1F6h]
+ja @f
+mov ecx,[ZT512B+1F6h]
+@@:
+
+sub ecx,edx
+shr ecx,1
+mov al,102
+mov edx,txt_taille
+int 61h
+
+taille_precharge:
 mov ah,07h
 mov edx,txt_taille
 mov ecx,20
@@ -495,28 +606,6 @@ shl ecx,1
 mov [bin_taille],ecx
 cmp ecx,0
 je demande_taille
-
-demande_adresse:
-mov al,12
-mov ebx,0
-mov ecx,[num_partition]
-add ecx,20
-int 63h
-mov edx,msg_cree_adresse
-mov al,11
-mov ah,0Fh ;couleur
-int 63h
-mov ah,07h
-mov edx,txt_adresse
-mov ecx,20
-mov al,6
-int 63h
-mov al,101
-mov edx,txt_adresse
-int 61h
-mov [bin_adresse],ecx
-cmp ecx,0
-je demande_adresse
 
 
 ;verifie que la nouvelle partitoin rentre bien dans le disque
@@ -734,7 +823,13 @@ call trie_adresse
 mov esi,ZT512B+1DEh
 mov edi,ZT512B+1EEh
 call trie_adresse
-jmp sauvegarde_mbr
+
+
+mov eax,[bin_adresse]
+mov edx,[bin_taille]
+mov [format_offset_partition],eax
+mov [format_taille_totale],edx
+jmp menu_formatpart
 
 
 ;**************
@@ -914,6 +1009,7 @@ mov edx,[ebx+4]
 mov [format_offset_partition],eax
 mov [format_taille_totale],edx
 
+menu_formatpart:
 call raz_ecr
 mov edx,msg_format2
 mov al,11
@@ -924,11 +1020,11 @@ mov al,13
 mov bh,7 ;couleur
 mov bl,0
 mov cl,0
-mov ch,5
+mov ch,6
 int 63h
 
 cmp bh,1
-je affiche_part
+je sauvegarde_mbr
 cmp bl,1
 je format_partition_efface
 cmp bl,2
@@ -945,15 +1041,12 @@ jmp affiche_part
 
 ;********************************
 format_partition_efface:
-
-
-;demande quel quantité de secteur sont a effacer
-mov edx,msg_format5
+mov edx,msg_format5       ;demande quel quantité de secteur sont a effacer
 mov al,11
 mov ah,07h ;couleur
 int 63h
 
-mov al,102
+mov al,102                 ;par défaut selectionne tout les secteurs
 mov ecx,[format_taille_totale]
 mov edx,saisienum
 int 61h
@@ -968,7 +1061,7 @@ mov al,100
 mov edx,saisienum
 int 61h
 
-cmp ecx,[format_taille_totale]
+cmp ecx,[format_taille_totale]   ;on ne dépasse pas le max de la partition
 ja @f
 mov [format_taille_totale],ecx
 @@:
@@ -1031,13 +1124,7 @@ mov ch,[disque_choisie]
 mov cl,0
 mov esi,ZT512C
 int 64h
-jmp affiche_part
-
-
-
-
-
-
+jmp sauvegarde_mbr
 
 
 
@@ -1322,7 +1409,8 @@ mov esi,secteur_fat16
 int 64h
 cmp eax,0
 jne erreur_ecriture_formattage
-jmp affiche_part 
+jmp sauvegarde_mbr
+
 
 
 
@@ -1412,7 +1500,8 @@ mov cl,1
 mov esi,secteur_fat32
 int 64h
 cmp eax,0
-je affiche_part
+jne erreur_ecriture_formattage
+jmp sauvegarde_mbr
 
 
 ;******************************
@@ -1767,7 +1856,6 @@ jne affiche_part
 mov al,12                  ;signal au systeme qu'il doit réactualiser sa liste
 mov ch,[disque_choisie]
 int 64h
-
 jmp affiche_part
 
 
