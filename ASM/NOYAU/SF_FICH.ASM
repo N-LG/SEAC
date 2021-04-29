@@ -157,11 +157,11 @@ jmp finabsoluefonctionfichier
 
 finfonctionfichieroktriple:  ;préserve ebx, ecx et edx
 ss
-mov [esp+24],ecx  ;taille des secteurs   
+mov [esp+24],ecx  
 ss
-mov [esp+20],edx  ;msb nb de secteur
+mov [esp+20],edx
 ss
-mov [esp+16],ebx  ;lsb nb de secteur
+mov [esp+16],ebx
 popad
 xor eax,eax
 jmp finabsoluefonctionfichier

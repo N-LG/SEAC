@@ -1933,8 +1933,6 @@ cmp al,20h
 je info_sata
 cmp al,40h
 je info_usb
-cmp ch,80h
-jae info_partition
 mov eax,cer_parami
 jmp finfonctionfichiererr
 
@@ -2088,6 +2086,8 @@ cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
 jne erreur_infousb_boscsi
 
 
+
+
 ;**********
 ;prépare cbw (read format capacity)
 inc dword[usb_tag]
@@ -2213,10 +2213,6 @@ jmp finfonctionfichiererr
 
 
 
-
-
-
-
 ;génère un nom générique si pas de nom
 nomgenerique_infousb_boscsi:
 es
@@ -2315,22 +2311,6 @@ and [edx+dpu_togl],ax
 popad
 ret
 
-
-;**********************************
-info_partition:
-mov al,ch
-sub al,7Fh  ;-80h +1
-and eax,03Fh
-shl eax,5
-mov esi,eax
-add esi,ad_descp
-mov ax,seldat
-mov ds,ax
-mov ecx,20h
-cld
-rep movsb
-xor eax,eax
-jmp finfonctionfichiererr
 
 
 
@@ -3256,9 +3236,6 @@ ret
 
 
 
-
-
-
 liresecteursatapi: 
 pop ebx
 jmp fin2_liresecteursata   ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
@@ -3386,6 +3363,13 @@ rep movsd
 pop esi
 pop ecx
 
+push ebx
+gs
+mov ebx,[esi+zsata_ad_port]
+gs
+cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
+je ecriresecteursatapi 
+pop ebx
 
 ;préparer FIS
 gs
@@ -3450,7 +3434,7 @@ call fin_ahci
 ;cmp eax,0
 ;jne fin2_ecriresecteursata
 
-;fin2_ecriresecteursata:
+fin2_ecriresecteursata:
 mov ebx,edx
 call libmem
 sti
@@ -3459,7 +3443,15 @@ ret
 
 
 
-;*****************************************************************************************************************
+ecriresecteursatapi:
+mov eax,cer_ecr ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp fin2_ecriresecteursata
+
+
+;*********************************************************************************************************************
+;lit la taille des disque ch=numéros de disque
+;retour ecx=taille des secteurs edx=msb nb de secteur ebx=lsb nb de secteur
+
 sff_lit_tailledisque:
 mov al,ch
 mov ah,ch
@@ -3490,30 +3482,144 @@ jmp finfonctionfichieroktriple
 
 sff_lit_tailledisque_ata:
 sub ch,10h
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+xor ebx,ebx
+mov bl,ch
+shl ebx,6
+fs
+mov al,[ad_descd+ebx+dd_atribut]
+and al,7h
+cmp al,4
+je errlecnt 
+cmp al,0
+je errlecnt 
+fs
+mov ebx,[ad_descd+ebx+dd_taille]
+fs
+mov edx,[ad_descd+ebx+dd_taille+4]
+fs
+mov ecx,[ad_descd+ebx+dd_nb_octet_sec]
 mov ecx,512
 jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_atapi:
 sub ch,18h
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+xor ebx,ebx
+mov bl,ch
+shl ebx,6
+fs
+mov al,[ad_descd+ebx+dd_atribut]
+and al,7h
+cmp al,4
+jne errlecnt 
+mov ebx,0FFFFFFFFh
+mov edx,0FFFFFFFFh
 mov ecx,2048
 jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_sata:
-sub ch,20h
+call init_ahci    ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
+gs
+mov ebx,[esi+zsata_ad_port]
+
+
+
+
+
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp finfonctionfichieroktriple
+
+
+sff_lit_tailledisque_satapi:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp finfonctionfichieroktriple
+
+
+
+
 
 
 sff_lit_tailledisque_usb:
-sub ch,40h
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov dl,ch
+and edx,1Fh
+shl edx,dc_desc_clef_usb
+add edx,ad_desc_clef_usb
+fs
+cmp byte[edx+dlu_type],01
+je sff_lit_tailledisque_usb_boscsi 
+mov eax,cer_parami
+jmp finfonctionfichiererr 
+
+
+sff_lit_tailledisque_usb_boscsi:
+;prépare cbw (read format capacity)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],8     ;taille des données
+mov byte[zt_clefusb+0ch],80h   ;flag (in) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],25h  ;commande 
+mov dword[zt_clefusb+10h],0   ;vide
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb
+
+;reçois donnée
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,8
+mov edi,zt_clefusb+64
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;on ignore les eventuelles erreur a ce moment la
+
+;reçois csw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+jne erreur_lit_tailledisque_usb
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_lit_tailledisque_usb
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_lit_tailledisque_usb
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_lit_tailledisque_usb
+
+
+mov ebx,[zt_clefusb+64]
+mov ecx,[zt_clefusb+68]
+xor edx,edx
+bswap ebx
+bswap ecx
 jmp finfonctionfichieroktriple
 
 
-
-
+erreur_lit_tailledisque_usb:
+mov eax,cer_parami
+jmp finfonctionfichiererr
 
