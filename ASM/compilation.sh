@@ -32,11 +32,13 @@ fasm 3C90X.asm ../../BIN/3C90X.FE
 fasm I8254X.asm ../../BIN/I8254X.FE
 ajarch fe.inc ../../BIN/ETAGE4.BIN
 ajarch hello.asm ../../BIN/ETAGE4.BIN
+fasm jn1.asm ../../BIN/JN1.FE
 cd ../NOYAU
 ajarch ETAGE2_MBR.ASM ../../BIN/ETAGE4.BIN
 ajarch ETAGE4.ASM ../../BIN/ETAGE4.BIN
 cd ../BOOT
 fasm MBR_BIOS.ASM ../../BIN/BIOS.MBR
+fasm MBR_RELAIS.ASM ../../BIN/RELAIS.MBR
 cd ../DEF
 fasm bug1.asm ../../BIN/bug1.def
 fasm fr-txt.asm ../../BIN/fr-txt.def
@@ -65,6 +67,7 @@ ajarch EXPL.FE ETAGE4.BIN
 ajarch UTF8.FE ETAGE4.BIN
 ajarch CALC.FE ETAGE4.BIN
 ajarch BIOS.MBR ETAGE4.BIN
+ajarch RELAIS.MBR ETAGE4.BIN
 ajarch IPCONFIG.FE ETAGE4.BIN
 ajarch SHTTP.FE ETAGE4.BIN
 ajarch STFTP.FE ETAGE4.BIN
@@ -75,6 +78,7 @@ ajarch AJARCH.FE ETAGE4.BIN
 ajarch RTL8139.FE ETAGE4.BIN
 ajarch 3C90X.FE ETAGE4.BIN
 ajarch I8254X.FE ETAGE4.BIN
+ajarch JN1.FE ETAGE4.BIN
 ajarch MANUEL.TXT ETAGE4.BIN
 ajarch bug1.def ETAGE4.BIN
 ajarch fr-txt.def ETAGE4.BIN
