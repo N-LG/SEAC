@@ -14,10 +14,18 @@ mov dx,sel_dat2
 mov ah,10   ;option=mode video  + pas de rafraichissement automatique
 mov al,0   ;crÃ©ation console     
 int 63h
+cmp eax,0
+je @f
 
+
+mov edx,msg_err_init
+mov al,6
+int 61h
+int 60h
+
+@@:
 mov dx,sel_dat2
 mov fs,dx
-
 
 masse equ 0
 posx equ 10
@@ -399,7 +407,7 @@ jmp boucle
 
 
 sdata1:
-
+org 0
 tempo:
 rb 128
 
@@ -418,6 +426,8 @@ dd 90
 pousse:
 dd 0
 
+msg_err_init:
+db "JN1: impossible de démarrer, vous devez être en mode graphique",13,0
 
 
 sdata2:
