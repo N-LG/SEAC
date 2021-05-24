@@ -3332,10 +3332,27 @@ mov ax,selramh
 mov ds,ax
 
 boucle2_cmdaf:
-cmp byte[edi],13
-je ignore_boucle2_cmdaf
+cmp word[edi],0D0Ah
+je cmdaf_finligne_cpx
+cmp word[edi],0A0Dh
+je cmdaf_finligne_cpx
+cmp byte[edi],0Ah
+je cmdaf_finligne_sim
+cmp byte[edi],0Dh
+je cmdaf_finligne_sim
 cmp byte[edi],32
-jae ignore_boucle2_cmdaf
+jb cmdaf_decale
+jmp ignore_boucle2_cmdaf
+
+cmdaf_finligne_sim:
+mov byte[edi],0Dh
+jmp ignore_boucle2_cmdaf
+
+
+cmdaf_finligne_cpx:
+mov byte[edi+1],0Dh
+
+cmdaf_decale:
 push ecx
 push edi
 mov esi,edi
