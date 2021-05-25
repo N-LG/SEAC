@@ -499,6 +499,8 @@ determine_debut:
 call charge_carac
 cmp eax,13        ;caractère = saut de ligne?
 je affiche_saut
+cmp eax,10        ;caractère = saut de ligne?
+je affiche_saut
 cmp eax,0         ;caractère = fin de document
 je affiche_fin
 dec edx
@@ -511,6 +513,8 @@ ignore_determine_debut:
 boucle_carac:
 call charge_carac
 cmp eax,13        ;caractère = saut de ligne?
+je affiche_saut
+cmp eax,10        ;caractère = saut de ligne?
 je affiche_saut
 cmp eax,0        ;caractère = fin de document
 je affiche_fin
@@ -1921,6 +1925,8 @@ mov edi,esi
 call charge_carac
 cmp eax,13
 je ajoute_espace
+cmp eax,10
+je ajoute_espace
 cmp eax,0
 je ajoute_espace
 dec ebx
@@ -2120,7 +2126,6 @@ cmp eax,0
 jne echec_ecriture
 
 mov byte[data_modif],0  
-
 ;ferme le fichier
 mov eax,1
 mov ebx,[num_fichier]
@@ -2226,29 +2231,31 @@ cmp ecx,0
 je fin_rech_ligne
 boucle_rech_ligne:
 es
-mov al,[esi]
+mov ax,[esi]
 inc esi
 cmp al,0
-je sp1fin_rech_ligne
+je fin_rech_ligne
+inc esi
+cmp ax,0D0Ah
+je rech_ligne_f2
+cmp ax,0A0Dh
+je rech_ligne_f2
+cmp al,10
+je rech_ligne_f1
 cmp al,13
-jne boucle_rech_ligne
+je rech_ligne_f1
+jmp boucle_rech_ligne
+rech_ligne_f2:
+inc esi
+rech_ligne_f1:
 inc edx
 dec ecx
 jnz boucle_rech_ligne
 
 fin_rech_ligne:
-es
-cmp byte[esi],10
-je sp2fin_rech_ligne
 ret
 
-sp1fin_rech_ligne:
-dec esi
-ret
 
-sp2fin_rech_ligne:
-inc esi
-ret
 
 
 ;*********************************************
