@@ -3988,7 +3988,7 @@ fs
 mov eax,[to_fat]
 shl eax,9    ;mul par 512
 cmp ebx,eax
-jae errliredwordfat
+jae err3liredwordfat
 
 fs
 mov al,[no_part]
@@ -4074,12 +4074,6 @@ mov byte[dsq_fat1],0FFh
 xor ebx,ebx
 ret
 
-errliredwordfat:
-mov eax,cer_parami
-xor ebx,ebx
-ret
-
-
 utfat2:
 ;test si le dword voulue est en mémoire
 fs
@@ -4150,7 +4144,10 @@ mov byte[dsq_fat2],0FFh
 xor ebx,ebx
 ret
 
-
+err3liredwordfat:
+mov eax,cer_pasm
+xor ebx,ebx
+ret
 
 
 ;*****************************************************
@@ -4903,6 +4900,8 @@ jmp finfonctionfichiererr
 
 err_ecrire_meta_fichier_fat:
 pop edx
+ss
+mov [esp+28],eax
 popad
 jmp finfonctionfichiererr
 
