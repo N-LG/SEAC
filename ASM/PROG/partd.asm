@@ -1198,54 +1198,30 @@ mov eax,[format_taille_totale]
 sub eax,[format_taille_reserve]
 mov [format_taille_utile],eax
 
-
-;determine taille minimum d'un cluster en fonction du nombre maximum et du nombre de fat souhaité
-mov eax,[format_nombre_max_cluster]
-mov ecx,[format_nombre_fat]
 xor edx,edx
-mul ecx
+mov eax,[format_nombre_max_cluster]
 mov ecx,[format_cluster_par_secteur_fat]
 div ecx
-cmp edx,0
-je ok1
-inc eax
-ok1:
-mov ecx,[format_taille_utile]
-sub ecx,eax
-mov eax,ecx
-mov ecx,[format_nombre_max_cluster]
-xor edx,edx
-div ecx
-cmp edx,0
-je ok2
-inc eax
-ok2: ;eax=nombre de secteur minimum par cluster
+mov ebp,eax ;ebp= nombre maximum de secteur utilisable par fat 
 
-;détermine la taille de cluster en fonction de la taille minimum
-mov ecx,1
-boucle3:
-cmp ecx,eax
-jae ok3
-shl cl,1
-inc ch
-jmp boucle3
-ok3:     ;cl=taille_cluster ch=decalage
-mov [format_taille_cluster],cl
+mov ebx,1  ;nombre de secteur par cluster
+mov ecx,[format_cluster_par_secteur_fat]
+add ecx,[format_nombre_fat]  ;ecx=nombre de secteur occupé par les clusteur indiqué par un seul secteur de la table fat
 
-;determine nombre réel de cluster en fonction de la taille cluster
-mov eax,[format_cluster_par_secteur_fat]
-xor edx,edx
-mul ecx
-inc eax
-mov ecx,eax  ;ecx=taille occupé par autant de cluster qu'il y en as dans un secteur de fat
+@@:
 mov eax,[format_taille_utile]
 xor edx,edx
-div ecx  ;eax=nombre de secteur par fat
+div ecx
+cmp eax,ebp
+jbe @f
+shl ebx,1
+shl ecx,1
+jmp @b
+
+@@:
+mov [format_taille_cluster],bl
 mov [format_taille_fat],eax
-xor edx,edx
-mov ecx,[format_cluster_par_secteur_fat]
-mul ecx   ;eax=nombre de cluster
-mov [format_nb_cluster],eax
+
 
 
 ;efface les données demandé
@@ -1255,7 +1231,6 @@ mov dword[ebx],0
 add ebx,4
 cmp ebx,ZT512C+8192
 jne boucle_effacezt
-
 
 
 cmp byte[format_type],'R'
@@ -2356,8 +2331,6 @@ dd 2
 format_taille_utile:
 dd 0
 format_taille_cluster:
-db 0
-format_nb_cluster:
 db 0
 format_taille_fat:
 dd 0
