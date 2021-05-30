@@ -250,3 +250,9 @@ démarre le pilote pour une carte Intel  ou compatible
 :lc
 ^LC
  permet de visualiser les périphériques branché sur le bus PCI et AGP
+:zip
+^ZIP
+ décompresse les archives qui sont au format PKzip
+
+%commande: zip XXX 
+ avec: XXX = nom de l'archive a décompresser
