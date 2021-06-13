@@ -1,4 +1,4 @@
-﻿bidon:
+﻿stftp:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "Serveur TFTP"
@@ -6,6 +6,13 @@ scode:
 org 0
 
 ;données du segment CS
+
+
+taille_transfert equ 100000h
+mov al,8
+mov ecx,zt_transfert+taille_transfert
+mov dx,sel_dat1
+int 61h
 
 mov ax,sel_dat1
 mov ds,ax
@@ -404,6 +411,9 @@ wrq:       ;requete d'ecriture
 cmp dword[dossier_ecriture],0
 je erreur_demande_interdite
 
+mov dword[adresse_transfert],0
+mov dword[adresse_fichier],0
+
 ;vérifie la conformité des options
 call verif_req
 jc boucle
@@ -512,20 +522,30 @@ jne boucle_wrq
 sub ecx,22+4
 
 push ecx
+mov edi,zt_transfert
+mov esi,code_oper+4
+add edi,[adresse_transfert]
+rep movsb
+pop ecx
+add [adresse_transfert],ecx
+cmp dword[adresse_transfert],taille_transfert
+jb zt_transfert_pasplein
+
+push ecx
 mov al,5
 mov ebx,[num_fichier]
-xor edx,edx
-mov dx,[acq_attendu]
-dec edx
-shl edx,9
-mov esi,code_oper+4
+mov ecx,[adresse_transfert]
+mov edx,[adresse_fichier]
+add [adresse_fichier],ecx
+mov esi,zt_transfert
 int 64h
 pop ecx
 cmp eax,0
 jne erreur_ecriture
+mov dword[adresse_transfert],0
 
 
-
+zt_transfert_pasplein:
 cmp ecx,512
 jne fin_wrq
 
@@ -557,6 +577,20 @@ jmp boucle
 
 
 fin_wrq:
+push ecx
+mov al,5
+mov ebx,[num_fichier]
+mov ecx,[adresse_transfert]
+mov edx,[adresse_fichier]
+add [adresse_fichier],ecx
+mov esi,zt_transfert
+int 64h
+pop ecx
+cmp eax,0
+jne erreur_ecriture
+mov dword[adresse_transfert],0
+mov dword[adresse_fichier],0
+
 mov byte[nb_emission],5
 
 boucle_fin_wrq:
@@ -922,6 +956,12 @@ msgcoder6:
 db "Le fichier est d",233,"j",224," pr",233,"sent",0
 
 
+
+adresse_transfert:
+dd 0
+adresse_fichier:
+dd 0
+
 client:
 dw 0
 dd 0
@@ -937,11 +977,8 @@ adresse_ipv6:
 dd 0,0,0,0
 code_oper:
 dw 0
-
-
- 
-rb 2047
-db 0
+rb 2048
+zt_transfert:
 
 sdata2:
 org 0
