@@ -173,12 +173,14 @@ xor eax,eax
 
 finabsoluefonctionfichier:
 fs
+and byte[at_fc_fichier],0FEh
+fs
 test byte[at_fc_fichier],20h   ;test si une autre fonction a demandé le controle des fonctions fichier
 jz @f
 int 62h        ;si oui force la commutation
 @@:
 fs
-and byte[at_fc_fichier],0DEh
+and byte[at_fc_fichier],0DFh
 pop gs
 pop fs
 pop es
