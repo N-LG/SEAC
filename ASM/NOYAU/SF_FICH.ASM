@@ -4779,6 +4779,91 @@ pop edi
 pop ebx
 ret
 
+
+
+
+
+;*********************************************************
+ajnx_cluster:               ;ajoute un ou plusieurs nouveaux cluster 
+;entrée: edx=dernier cluster du fichier
+;        ecx=nombre de données 
+;sortie: edx=cluster juste apres le dernier cluster avant la modif
+
+push ebx                      ;on verifie d'abord si le cluster suivant est disponible 
+push ecx
+push edi
+push edx
+
+recommence_ajnx_cluster: 
+mov edi,edx     ;edi=sauvegarde du précédent cluster
+inc edx
+mov ebx,edx
+call lireindexfat
+cmp eax,0
+jne finerr_ajnx_cluster
+cmp ebx,0
+je trouve_rech_nouvx_cluster 
+
+mov edx,2                      ;sinon on recommence depuis le début
+boucle1_rech_nouvx_cluster:
+mov ebx,edx
+call lireindexfat
+cmp eax,0
+jne finerr_ajnx_cluster
+cmp ebx,0
+je trouve_rech_nouvx_cluster 
+inc edx
+jmp boucle1_rech_nouvx_cluster  
+
+trouve_rech_nouvx_cluster: 
+mov ebx,edx
+mov eax,0FFFFFFF8h
+call ecrireindexfat_sp
+cmp eax,0
+jne finerr_ajnx_cluster
+
+cmp edi,0
+je suite_ajnx_cluster  ;si le précédent cluster n'existait pas on ignore cette étape
+mov eax,edx
+mov ebx,edi
+call ecrireindexfat_sp
+cmp eax,0
+jne finerr_ajnx_cluster
+
+suite_ajnx_cluster:
+fs
+cmp ecx,[to_1cluster]
+jbe finabs_ajnx_cluster
+fs
+sub ecx,[to_1cluster]
+jmp recommence_ajnx_cluster
+
+finabs_ajnx_cluster:
+call sauvegarde_zt_fat
+pop ebx
+call lireindexfat
+cmp eax,0
+jne finerr2_ajnx_cluster
+mov edx,ebx
+pop edi
+pop ecx
+pop ebx
+ret
+
+finerr_ajnx_cluster:
+pop eax
+xor edx,edx
+finerr2_ajnx_cluster:
+push eax
+call sauvegarde_zt_fat
+pop eax
+pop edi
+pop ecx
+pop ebx
+ret
+
+
+
 ;*******************************************************************************
 ;                                                   ****************************
 ecrirefichier:
@@ -5259,7 +5344,7 @@ cmp edx,[to_1cluster]
 jne fin_sfecrirefichier_ersyf
 
 mov edx,ebp
-call ajn_cluster
+call ajnx_cluster
 mov ebx,edx 
 xor edx,edx
 cmp eax,0
@@ -5382,7 +5467,7 @@ cmp ebx,0FFFFFFF7h ;défaillant
 je fin_sfecrirefichier_erecr   
 cmp ebx,0FFFFFFF8h ;fin de fichier
 jne cluster_ecr_najcluster   
-call ajn_cluster 
+call ajnx_cluster 
 cmp eax,0
 jne fin_sfecrirefichier_err
 mov ebx,edx
