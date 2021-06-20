@@ -7,7 +7,7 @@ org 0
 
 ;choses encore a faire:
 ;demande mot de passe a la connexion
-
+;affichage de l'adresse
 
 taille_journal equ 10000h
 
@@ -393,9 +393,16 @@ mov al,7
 int 65h
 pop esi
 pop ecx
-cmp eax,0
+
+cmp eax,0               ;si erreur on ferme le canal
 je suite_envoie_massif
+cmp eax,cer_ztp
+je suite_envoie_massif
+mov ebx,[edi]
+mov al,1
+int 65h
 mov dword[edi],0 
+
 suite_envoie_massif:
 add edi,4
 cmp edi,zt_cnx+512
