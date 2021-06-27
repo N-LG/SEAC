@@ -691,14 +691,19 @@ je suite1_lec_cdrom
 cmp byte [edx+3],0
 jne errprmsf
 suite1_lec_cdrom:
+xor eax,eax
 mov al,[edx+2]
 sub al,"1"  ;numéros de disque
 test al,0F8h
 jnz errprmsf
-add al,18h      ;on obtient le numéros correcte du disque
+add eax,table_cdrom      
+fs
+mov ch,[eax]  ;on obtient le numéros correcte du disque ch=nø de disque
+cmp ch,0
+je errprmsf
+
 
 ;on charge le secteur 16 du disque
-mov ch,al  ;ch=nø de disque
 mov cl,1   ;cl=nombre de secteur a lire
 mov ebx,16 ;ebx=numéros de secteur
 push es
@@ -6954,8 +6959,8 @@ sff_lit_disques:   ;lit les disques installé   ds:edx pointeur ou copier le bitm
 					       ;octet 20 a 23 sata
 					       ;octet 24 a 28 reservé
  					       ;octet 29 = b0-b6 reservé b7= disquette 
- 					       ;octet 30 = atapi 
- 					       ;octet 31 = ata  
+ 					       ;octet 30 = cdrom (ide+sata)
+ 					       ;octet 31 = ata/atapi  
 mov dword[edx+00],0
 mov dword[edx+04],0
 mov dword[edx+08],0
@@ -6976,7 +6981,7 @@ sff_lit_disques_pasdisquette:
 
 
 
-;lit la présence de disque ata et atapi
+;lit la présence de disque ide
 mov esi,ad_descd
 mov cl,1
 sff_lit_disques_boucleata:
@@ -6984,24 +6989,33 @@ fs
 mov al,[esi]
 and al,07h
 
-cmp al,1
-je sff_lit_disques_ata
-cmp al,2
-je sff_lit_disques_ata
-cmp al,3
-jne sff_lit_disques_pasata
-sff_lit_disques_ata:
+cmp al,0
+je sff_lit_disques_pasata
 or [edx+31],cl
 sff_lit_disques_pasata:
-cmp al,4
-jne sff_lit_disques_pasatapi
-or [edx+30],cl
-sff_lit_disques_pasatapi:
 
 add esi,32
 shl cl,1
 cmp esi,ad_descd+100h
 jne sff_lit_disques_boucleata
+
+
+
+;lit la présence de cdrom
+mov esi,table_cdrom
+mov cl,1
+sff_lit_disques_bouclecd:
+fs
+cmp byte[esi],0
+je sff_lit_disques_pascd
+or [edx+30],cl
+sff_lit_disques_pascd:
+
+inc esi
+shl cl,1
+cmp esi,table_cdrom+8
+jne sff_lit_disques_bouclecd
+
 
 
 ;lit la présence de partition

@@ -390,8 +390,9 @@ mov byte[trappe_tache0],34
 mov ax,seldat 
 mov ds,ax
 mov es,ax
-mov ch,10h
+mov ch,8h
 mov esi,ad_descd
+
 
 boucle_init_infopart:
 mov al,10
@@ -401,28 +402,14 @@ int 64h          ;charge les info disque
 pop cx
 cmp eax,0
 je init_infodisque_ata
-
-
-mov al,10
-mov edi,bootsecteur
-push cx
-add ch,8
-int 64h          ;si ça ne fonctionne pas on réessaye en ATAPI
-pop cx
-cmp eax,0
-je init_infodisque_atapi
-
-
 or byte[esi+dd_atribut],7
 jmp pasinfopart
 
 
-init_infodisque_atapi:
-or byte[esi+dd_atribut],4
-jmp pasinfopart
-
-
 init_infodisque_ata:
+test byte[bootsecteur+1],080h   ;test si le périphérique est atapi
+jnz init_infodisque_atapi
+
 mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
 mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
 cmp edx,0
@@ -459,20 +446,30 @@ mul ecx
 mov [esi+dd_sec_par_cyl],eax       ;nombre de secteur par cylindre
 pop ecx
 
-
 init_infopart:
 mov al,12
 int 64h
+jmp pasinfopart
 
+
+init_infodisque_atapi:
+or byte[esi+dd_atribut],4
+mov edi,table_cdrom
+@@:
+cmp byte[edi],0 
+je @f
+inc edi
+cmp edi,table_cdrom+8
+je pasinfopart
+jmp @b
+@@:
+mov [edi],ch
 
 pasinfopart:
 inc ch
 add esi,32
-cmp ch,18h
+cmp ch,10h
 jne boucle_init_infopart
-
-
-
 
 
 
@@ -498,6 +495,11 @@ int 64h          ;charge les info disque
 pop cx
 cmp eax,0
 jne pasinfopart2
+
+
+test byte[bootsecteur+1],080h   ;test si le périphérique est atapi
+jnz init_infodisque_atapi2
+
 
 mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
 mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
@@ -543,6 +545,23 @@ mov byte[ebx+zsata_conv_secteur],cl
 init_infopart2:
 mov al,12
 int 64h
+jmp pasinfopart2
+
+
+init_infodisque_atapi2:
+
+mov edi,table_cdrom
+@@:
+es
+cmp byte[edi],0 
+je @f
+inc edi
+cmp edi,table_cdrom+8
+je pasinfopart2
+jmp @b
+@@:
+es
+mov [edi],ch
 
 
 pasinfopart2:

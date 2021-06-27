@@ -261,15 +261,15 @@ add esi,20h
 cmp esi,ad_descp+1000h
 jne boucleldp
 
-;**********
-mov ch,18h
-mov esi,ad_descd
 
-boucleldc:      ;affichage des lecteurs de cdrom présent
-mov al,[esi+dd_atribut]
-and al,07h
-cmp al,4
-jne pascdldp
+
+;affichage des lecteurs de cdrom présent
+mov esi,table_cdrom
+
+boucleldc:      
+mov ch,[esi]
+cmp ch,0
+je pascdldp
 
 mov al,10
 mov edi,bootsecteur
@@ -284,9 +284,8 @@ mov al,"c"
 call affcj
 mov al,"d"
 call affcj
-mov al,ch
-and eax,0FFh
-sub eax,17h
+mov eax,esi
+sub eax,table_cdrom-1
 call affnje
 mov al," "
 call affcj
@@ -311,9 +310,8 @@ call affcj
 pop ecx
 
 pascdldp:
-inc ch 
-add esi,32
-cmp ch,20h
+add esi,1
+cmp esi,table_cdrom+8
 jne boucleldc
 
 jmp pascommande

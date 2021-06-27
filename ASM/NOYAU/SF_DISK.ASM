@@ -14,8 +14,7 @@ jmp finfonctionfichiererr
 ;***********************************************
 ;numéros de disque:
 ;01h disquette
-;10h à 17h disque ATA
-;18h à 1Fh cdrom
+;08h à 07h disque ide
 ;20h à 3Fh disque ahci
 ;40h à 5Fh disque USB 
 ;6Fh à 7Fh reserve (inutilisé)
@@ -85,14 +84,10 @@ push fs
 push gs
 cmp ch,01h
 je lecdsq
-cmp ch,0Fh
-je lecdbios
 mov al,ch
 and al,0F8h
-cmp al,10h
+cmp al,08h
 je lecata
-cmp al,18h
-je lecatapi
 mov al,ch
 and al,0E0h
 cmp al,20h
@@ -262,45 +257,6 @@ popad
 mov eax,cer_lec
 ret
 
-lecdbios:
-call bios_liresec
-cmp ax,0
-jne errlecdbios
-
-;recopie le secteur lu a sa destination
-push ecx
-push ds
-mov si,seldat
-mov ds,si
-mov esi,zt_disquette
-mov ecx,128
-cld
-rep movsd    ;(128dword=512byte)
-pop ds
-pop ecx
-
-inc ebx
-dec cl
-jnz lecdbios
-
-pop gs
-pop fs
-pop es
-pop ds
-popad
-xor eax,eax
-ret
-
-errlecdbios:
-pop gs
-pop fs
-pop es
-pop ds
-popad                         
-mov eax,cer_lec
-ret
-
-
 
 lecata:
 call liresecteurata
@@ -313,6 +269,7 @@ mov [esp+28],eax
 popad
 ret
 
+
 lecsata:
 call liresecteursata
 pop gs
@@ -323,181 +280,6 @@ ss
 mov [esp+28],eax
 popad
 ret
-
-
-lecatapi:
-mov esi,edi
-
-sub ch,18h
-mov edi,ecx
-and edi,0FF00h
-shr edi,3       ;div par 256 mul par 32
-add edi,ad_descd
-
-fs
-mov al,[edi]
-and al,07h
-cmp al,4
-je lecatapi_ok
-
-pop gs
-pop fs
-pop es
-pop ds
-popad
-mov eax,cer_parami
-ret
-
-
-lecatapi_ok:
-call selection_ata
-jc erdnt24
-
-xor al,al         ;parametres vides
-fs
-mov dx,[edi+dd_adress_base]
-inc dx
-out dx,al
-inc dx
-out dx,al
-inc dx
-out dx,al
-
-inc dx
-mov al,12     ;taille de la commande packet(LSB)
-out dx,al
-
-xor al,al     ;taille de la commande packet(MSB)
-inc dx
-out dx,al
-
-mov al,0A0h        ;envoye la commande
-add dx,2
-out dx,al
-
-push ecx
-mov ecx,200
-call attdok
-pop ecx        ;attend pour savoir si c'est bon!
-jc ernrf24
-
-;envoie commande packet
-fs
-mov dx,[edi+dd_adress_base]
-mov ax,00A8h
-out dx,ax    ;1
-push bx
-shr ebx,16
-mov ax,bx
-xchg al,ah
-out dx,ax   ;2
-pop ax
-xchg al,ah
-out dx,ax   ;3
-xor ax,ax
-out dx,ax   ;4
-mov ah,cl
-out dx,ax  ;5
-xor ax,ax
-out dx,ax  ;6
-
-xor ebx,ebx
-mov bl,cl
-shl ebx,10    ;ebx=nombre de mot a transferer
-
-
-tdf24i:
-push ecx
-mov ecx,4000
-call attdok
-pop ecx        ;attend pour savoir si c'est bon!
-jc ernrf24
-
-fs
-mov dx,[edi+dd_adress_base]
-add dx,2
-in al,dx
-and al,3
-cmp al,2
-jne erlecf24    ;si ce n'est pas "out data"
-
-add dx,2
-xor ecx,ecx
-in al,dx
-mov cl,al
-inc dx
-in al,dx
-mov ch,al
-shr ecx,1  ;nombre de mot a transferer = Nb de d'octet/2
-
-fs
-mov dx,[edi+dd_adress_base]
-recomf24i:
-in ax,dx
-es
-mov [esi],ax
-dec ebx
-add esi,2
-dec ecx    
-jnz recomf24i   ;un secteur est passé  
-
-cmp ebx,0
-jne tdf24i
-
-
-
-
-fs
-mov dx,[edi+dd_adress_base]
-add dx,7
-in al,dx
-test al,1
-jnz erlecf24
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-xor eax,eax
-ret
-
-
-
-erlecf24:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_lec
-ret
-erdnt24:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_lecnt
-ret
-ernrf24:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_prd
-ret
-erokupf24:
-pop gs
-pop fs
-pop es
-pop ds
-popad 
-mov eax,cer_do
-ret
-
-
-
 
 
 lecusb:
@@ -689,12 +471,12 @@ push fs
 push gs
 cmp ch,01h
 je ecrdsq
+
+
 mov al,ch
 and al,0F8h
-cmp al,10h
+cmp al,08h
 je ecrata
-cmp al,18h
-je ecratapi
 cmp al,20h
 je ecrsata
 cmp al,40h
@@ -887,8 +669,6 @@ pop ds
 popad 
 mov eax,cer_parami
 ret
-
-
 
 
 ecrusb:
@@ -1276,11 +1056,17 @@ liresecteurata:
 
 mov esi,edi
 
-sub ch,10h
+sub ch,8
 mov edi,ecx
 and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
+fs
+mov al,[edi]
+and al,7
+cmp al,4
+je liresecteurata_atapi   
+
 ;fs
 ;test byte[edi],08h
 ;je liresecteurata_dma
@@ -1375,14 +1161,157 @@ ret
 
 
 
+liresecteurata_atapi:
+call selection_ata
+jc erdnt24
+
+xor al,al         ;parametres vides
+fs
+mov dx,[edi+dd_adress_base]
+inc dx
+out dx,al
+inc dx
+out dx,al
+inc dx
+out dx,al
+
+inc dx
+mov al,12     ;taille de la commande packet(LSB)
+out dx,al
+
+xor al,al     ;taille de la commande packet(MSB)
+inc dx
+out dx,al
+
+mov al,0A0h        ;envoye la commande
+add dx,2
+out dx,al
+
+push ecx
+mov ecx,200
+call attdok
+pop ecx        ;attend pour savoir si c'est bon!
+jc ernrf24
+
+;envoie commande packet
+fs
+mov dx,[edi+dd_adress_base]
+mov ax,00A8h
+out dx,ax    ;1
+push bx
+shr ebx,16
+mov ax,bx
+xchg al,ah
+out dx,ax   ;2
+pop ax
+xchg al,ah
+out dx,ax   ;3
+xor ax,ax
+out dx,ax   ;4
+mov ah,cl
+out dx,ax  ;5
+xor ax,ax
+out dx,ax  ;6
+
+xor ebx,ebx
+mov bl,cl
+shl ebx,10    ;ebx=nombre de mot a transferer
+
+
+tdf24i:
+push ecx
+mov ecx,4000
+call attdok
+pop ecx        ;attend pour savoir si c'est bon!
+jc ernrf24
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,2
+in al,dx
+and al,3
+cmp al,2
+jne erlecf24    ;si ce n'est pas "out data"
+
+add dx,2
+xor ecx,ecx
+in al,dx
+mov cl,al
+inc dx
+in al,dx
+mov ch,al
+shr ecx,1  ;nombre de mot a transferer = Nb de d'octet/2
+
+fs
+mov dx,[edi+dd_adress_base]
+recomf24i:
+in ax,dx
+es
+mov [esi],ax
+dec ebx
+add esi,2
+dec ecx    
+jnz recomf24i   ;un secteur est passé  
+
+cmp ebx,0
+jne tdf24i
+
+
+
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
+in al,dx
+test al,1
+jnz erlecf24
+xor eax,eax
+ret
+
+
+
+erlecf24:
+mov eax,cer_lec
+ret
+
+erdnt24:
+mov eax,cer_lecnt
+ret
+
+ernrf24:
+mov eax,cer_prd
+ret
+
+erokupf24:
+mov eax,cer_do
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;*************************************************************************
 ecriresecteurata:
-sub ch,10h
+sub ch,8
 mov edi,ecx
 and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
+fs
+mov al,[edi]
+and al,7
+cmp al,4
+je erparamsecteurata
+
 fs
 test byte[edi],08h
 ;je ecriresecteurata_dma
@@ -1441,13 +1370,6 @@ ret
 
 ;*************************************************************************
 infodisqueata:
-mov esi,edi
-
-sub ch,10h
-mov edi,ecx
-and edi,0FF00h
-shr edi,3       ;div par 256 mul par 32
-add edi,ad_descd
 
 call selection_ata
 jc eroqpsecteurata
@@ -1488,13 +1410,6 @@ ret
 
 ;****************************************************************************
 infodisqueatapi:
-mov esi,edi
-
-sub ch,18h
-mov edi,ecx
-and edi,0FF00h
-shr edi,3       ;div par 256 mul par 32
-add edi,ad_descd
 
 call selection_ata
 jc eroqpsecteurata
@@ -1917,16 +1832,14 @@ ret
 
 
 ;*********************************************************************************************************
-infodisque_ata_atapi:   ;ch =numéros de disque ata/cdrom (10h a 1Fh)
+infodisque_ata_atapi:   ;ch =numéros de disque ata/cdrom (08h a 0Fh)
                         ;information disque es:edi=cible
 
 
 mov al,ch
 and al,0F8h
-cmp al,10h
+cmp al,8h
 je info_ata
-cmp al,18h
-je info_atapi
 mov al,ch
 and al,0E0h
 cmp al,20h
@@ -1937,11 +1850,37 @@ mov eax,cer_parami
 jmp finfonctionfichiererr
 
 info_ata:
+mov esi,edi
+sub ch,8
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
+fs
+mov al,[edi]
+and al,7
+cmp al,4
+je @f 
+
+push esi
+push edi
 call infodisqueata
-jmp finfonctionfichiererr
-info_atapi:
+pop edi
+pop esi
+cmp eax,0
+je finfonctionfichiererr
+fs
+mov cl,[edi]
+and cl,7
+cmp cl,0
+jne finfonctionfichiererr
+
+
+@@:
 call infodisqueatapi
 jmp finfonctionfichiererr
+
+
 info_sata:
 call infodisquesata
 jmp finfonctionfichiererr
@@ -3523,18 +3462,23 @@ call init_ahci    ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=
 gs
 mov ebx,[esi+zsata_ad_port]
 
+je sff_lit_tailledisque_satapi
 
 
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov ebx,[esi+zsata_nb_secteur]
+mov edx,[esi+zsata_nb_secteur+4]
+mov eax,1
+mov cl,[esi+zsata_conv_secteur]
+shl eax,cl
+mov ecx,eax
 jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_satapi:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov ebx,0FFFFFFFFh
+mov edx,0FFFFFFFFh
+mov ecx,2048
 jmp finfonctionfichieroktriple
-
 
 
 

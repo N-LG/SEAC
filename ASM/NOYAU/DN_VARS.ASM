@@ -279,7 +279,6 @@ ad_partition equ 128h   ;adresse premier secteur de la partition
 to_partition equ 130h   ;nombre de secteur de la partition
 
 
-
 ad_fat equ 140h         ;adresse des fat 
 to_fat equ 144h         ;taille des fat
 ad_cluster0 equ 148h    ;adresse du cluster 0  
@@ -355,6 +354,10 @@ index_fat2 equ 218h
 
 
 ad_zt_lecluster equ 21Ch   ;adresse de la zone tampon de lecture cluster
+
+
+
+table_cdrom equ 220h    ;table des 8 numéros de disque des lecteurs cdroms
 
 
 ;*************************************************************************
