@@ -496,31 +496,34 @@ pop cx
 cmp eax,0
 jne pasinfopart2
 
-
+es
 test byte[bootsecteur+1],080h   ;test si le périphérique est atapi
 jnz init_infodisque_atapi2
 
-
+es
 mov eax,[bootsecteur+0C8h]   ;LSB nombre de secteur en LBA48 
+es
 mov edx,[bootsecteur+0CCh]   ;MSB nombre de secteur en LBA48 
 cmp edx,0
-je init_infodisque_lba28
+je init_infodisque2_lba28
 test eax,0C0000000h
 jnz init_sata_taille
-
+init_infodisque2_lba28:
+es
 mov eax,[bootsecteur+78h]   ;nombre de secteur en LBA28
 xor edx,edx
 cmp eax,0
 jne init_sata_taille
-
+es
 mov eax,[bootsecteur+72h]   ;nombre de secteur en CHS
 xor edx,edx
 
 init_sata_taille:
 mov [ebx+zsata_nb_secteur],eax
 mov [ebx+zsata_nb_secteur+4],edx
-
+es
 mov ax,[bootsecteur+0D4h]
+es
 mov edx,[bootsecteur+0EAh]
 mov cl,9
 
@@ -549,7 +552,6 @@ jmp pasinfopart2
 
 
 init_infodisque_atapi2:
-
 mov edi,table_cdrom
 @@:
 es
@@ -562,7 +564,6 @@ jmp @b
 @@:
 es
 mov [edi],ch
-
 
 pasinfopart2:
 inc ch

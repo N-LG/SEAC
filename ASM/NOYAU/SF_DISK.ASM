@@ -3055,6 +3055,7 @@ call fin_ahci
 cmp eax,0
 jne fin2_infodisquesata
 
+
 ;recopie les données
 mov ax,selramh
 mov ds,ax
@@ -3177,7 +3178,6 @@ ret
 
 liresecteursatapi: 
 pop ebx
-jmp fin2_liresecteursata   ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 ;préparer FIS
 gs
