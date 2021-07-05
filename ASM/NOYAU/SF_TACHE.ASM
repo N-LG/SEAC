@@ -85,9 +85,77 @@ jne cretache_erlc
 ;verifie si le format est correcte
 mov ebx,[ad_tache_cree]
 es
-cmp dword[ebx+type_fe],"FE 1"
+cmp dword[ebx+type_fe],"FE 1"   ;si c'est le format executable spécifique SEAC
+je cretache_fe1
+cmp dword[ebx+type_fe],464C457Fh   ;si c'est le format executable ELF
+je cretache_elf
+jmp cretache_erfc
+
+
+
+
+
+cretache_elf:
+es
+cmp word[ebx+type_fe+4], 0101h  ;vérifie les options de l'executable (32 bits, litle endian)
+jne cretache_erfc
+es
+cmp dword[ebx+type_fe+10h], 030002h  ;vérifie les options de l'executable (executable x86)
 jne cretache_erfc
 
+es
+cmp word[ebx+type_fe+28h], 52  ;vérifie que le header as la bonne taille
+jne cretache_erfc
+
+
+
+;??????????????????????????????????????????????????????????
+;reserve une zone pour la lecture du program header table
+xor eax,eax
+xor ecx,ecx
+xor edx,edx
+es
+mov ax,[ebx+2Ah]
+es
+mov cx,[ebx+2Ch]
+mul ecx
+mov ecx,eax
+push ebx
+call resmem
+mov esi,ebx
+pop ebx
+jc cretache_ermm2
+
+;charge le program header table
+mov edi,esi
+add edi,10h
+es
+mov edx,[ebx+1Ch]
+mov ebx,[num_fichier_tache]
+mov al,4
+int 64h
+cmp eax,0
+jne cretache_erlc
+
+
+;parcour le program header table
+mov ebx,esi
+add ebx,10h
+
+;??????????????????????????????????????????????????????????
+
+mov ebx,esi
+call libmem
+
+mov ebx,[num_fichier_tache]  
+mov al,1
+int 64h
+jmp suite_crea_tache
+
+
+
+
+cretache_fe1:
 ;vérifie que la taille de la pile est superieur ou égale a 4ko
 es
 cmp dword[ebx+to_pile_fe],1000h
@@ -189,7 +257,11 @@ call modtm
 jc cretache_ermm1
 mov [ad_tache_cree],ebx
 
-
+;initialise certaines valeurs d'origine
+es
+mov dword[eip_initial],0
+es
+mov dword[ds_initial],sel_codet
 
 ;recopie de la commande
 mov esi,ad_zdc
@@ -383,7 +455,11 @@ mov [ebx+ad_data3_dt],eax
 es
 mov [ebx+ad_data4_dt],eax
 
-
+;initialise certaines valeurs d'origine
+es
+mov dword[eip_initial],0
+es
+mov dword[ds_initial],sel_codet
 
 ;remplissage de la zones de code
 mov edi,ebx
@@ -414,6 +490,8 @@ cld
 rep movsb
 
 mov esi,ebx
+
+
 
 ;*************************************************************************************
 ;recherche emplacement disponible et création d'un segment pour la LDT dans la GDT
@@ -501,7 +579,9 @@ mov [edi],eax        ;pushfd
 sub edi,4
 mov dword[edi],sel_codet  ;push cs (32 bits)
 sub edi,4
-mov dword[edi],0         ;push eip
+es
+mov eax,[eip_initial]
+mov dword[edi],eax         ;push eip
 
 sub edi,4
 mov dword[edi],0   
@@ -524,7 +604,8 @@ mov dword[edi],0       ;edi
 sub edi,4
 mov dword[edi],0       ;ebp
 
-mov eax,sel_codet
+es
+mov eax,[ds_initial]   
 sub edi,4
 mov [edi],eax        ;ds
 sub edi,4
@@ -1364,3 +1445,61 @@ rep movsd
 nepas_deplace_tache:
 popad
 ret
+
+
+
+
+
+
+
+
+
+
+;*********************************signale que le processus n'utilisera plus des registre fpu ou simd
+int_70:
+pushad
+push ds
+push es
+mov ax,selramh
+mov dx,seldat
+mov ds,ax
+mov es,dx
+es
+mov ebx,[ad_tache_exec]
+and byte[ebx+conf_tache],0FEh
+finit
+pop es
+pop ds
+popad
+iret
+
+
+
+
+;*********************************signale que le processus vas utiliser des registre fpu ou simd
+int_71:
+pushad
+push ds
+push es
+mov ax,selramh
+mov dx,seldat
+mov ds,ax
+mov es,dx
+
+
+
+
+;??????????????????????????????????????????????????????
+
+
+
+es
+mov ebx,[ad_tache_exec]
+or byte[ebx+conf_tache],01h
+finit
+pop es
+pop ds
+popad
+iret
+
+

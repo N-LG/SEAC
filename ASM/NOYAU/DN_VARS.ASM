@@ -514,6 +514,8 @@ ad_pile2_dt equ 0C8h
 ad_pile3_dt equ 0CCh
 
 ad_code_dt equ 0D0h
+eip_initial equ 0D4h
+ds_initial equ 0D8h
 
 sauv_esp0 equ 0E0h     ;sauvegarde du pointeur de la pile lors d'une commutation
 sauv_esp1 equ 0E4h
