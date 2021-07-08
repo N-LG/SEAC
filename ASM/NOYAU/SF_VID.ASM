@@ -1706,18 +1706,13 @@ pop eax
 call conv_univ
 
 ;ajustement des coordonné du rectangle
-;and ebx,07FFFh
-;and ecx,07FFFh
-;and edi,07FFFh
-;and esi,07FFFh
-
-test ebx,8000h
+test ebx,0FFFF8000h
 jnz parami_sfv_dessine_rec
-test ecx,8000h
+test ecx,0FFFF8000h
 jnz parami_sfv_dessine_rec
-test esi,8000h
+test esi,0FFFF8000h
 jnz parami_sfv_dessine_rec
-test edi,8000h
+test edi,0FFFF8000h
 jnz parami_sfv_dessine_rec
 
 cmp ebx,esi
@@ -1955,6 +1950,17 @@ pushad
 push es
 push fs
 
+
+;vérifie si les coordonné sont acceptables
+test ebx,0FFFF8000h
+jnz parami_sfv_dessine_rec
+test ecx,0FFFF8000h
+jnz parami_sfv_dessine_rec
+test esi,0FFFF8000h
+jnz parami_sfv_dessine_rec
+test edi,0FFFF8000h
+jnz parami_sfv_dessine_rec
+
 ;initialise les selecteurs de segments
 push eax
 push ebx
@@ -2115,7 +2121,7 @@ inc ecx
 cmp ecx,edi
 jne boucle_quadrant4_dessine_seg
 call place_pix
-jmp fin_sfv_dessine_seg
+;jmp fin_sfv_dessine_seg
 
 
 

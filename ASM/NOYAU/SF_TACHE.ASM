@@ -1,4 +1,4 @@
-;sous fonction de création, d'arret de tache a partir de programme *.FPM
+;sous fonction de création, d'arret de tache a partir de programme *.FE
 ; et sous fonction de commutation de tache
 
 
@@ -75,7 +75,7 @@ mov es,ax
 mov edi,[ad_tache_cree]
 add edi,10h
 mov ebx,[num_fichier_tache]
-mov ecx,60h  ;taille de l'en-tête fichier
+mov ecx,data_tache  ;taille minimum d'une zone tache
 xor edx,edx
 mov al,4
 int 64h
@@ -87,14 +87,14 @@ mov ebx,[ad_tache_cree]
 es
 cmp dword[ebx+type_fe],"FE 1"   ;si c'est le format executable spécifique SEAC
 je cretache_fe1
+es
 cmp dword[ebx+type_fe],464C457Fh   ;si c'est le format executable ELF
 je cretache_elf
 jmp cretache_erfc
 
 
 
-
-
+;************************************************************************************
 cretache_elf:
 es
 cmp word[ebx+type_fe+4], 0101h  ;vérifie les options de l'executable (32 bits, litle endian)
@@ -108,29 +108,36 @@ cmp word[ebx+type_fe+28h], 52  ;vérifie que le header as la bonne taille
 jne cretache_erfc
 
 
+es
+mov eax,[ebx+type_fe+18h]
+es
+mov [ebx+eip_initial],eax
+es
+mov dword[ebx+ds_initial],sel_dat1
 
-;??????????????????????????????????????????????????????????
+
+
 ;reserve une zone pour la lecture du program header table
 xor eax,eax
 xor ecx,ecx
 xor edx,edx
 es
-mov ax,[ebx+2Ah]
+mov ax,[ebx+type_fe+2Ah]  ;taille d'une entrée
 es
-mov cx,[ebx+2Ch]
+mov cx,[ebx+type_fe+2Ch]  ;nombre d'entréee
 mul ecx
 mov ecx,eax
 push ebx
 call resmem
 mov esi,ebx
 pop ebx
-jc cretache_ermm2
+jc cretache_ermm1 
 
 ;charge le program header table
 mov edi,esi
 add edi,10h
 es
-mov edx,[ebx+1Ch]
+mov edx,[ebx+type_fe+1Ch]   ;position dans la table
 mov ebx,[num_fichier_tache]
 mov al,4
 int 64h
@@ -138,14 +145,205 @@ cmp eax,0
 jne cretache_erlc
 
 
-;parcour le program header table
+;parcour le program header table pour déterminer la taille des segment de code et de donnée
+xor eax,eax
+xor ecx,ecx
+mov ebx,[ad_tache_cree]
+es
+mov ax,[ebx+type_fe+2Ah]  ;taille d'une entrée
+es
+mov cx,[ebx+type_fe+2Ch]  ;nombre d'entréee
+mov ebx,esi
+add ebx,10h
+xor edx,edx
+xor ebp,ebp
+
+boucle1_cretache_elf:
+es
+cmp dword[ebx],1
+jne ignore1_cretache_elf
+push eax
+es
+mov eax,[ebx+08h] ;adresse du segment en mémoire
+es
+add eax,[ebx+14h] ;taille du segment en mémoire
+
+es
+test dword[ebx+18h],1
+jz @f
+cmp ebp,eax
+ja @f
+mov ebp,eax
+@@:
+
+es
+test dword[ebx+18h],6
+jz @f
+cmp edx,eax
+ja @f
+mov edx,eax
+@@:
+
+pop eax
+ignore1_cretache_elf:
+add ebx,eax
+dec ecx
+jnz boucle1_cretache_elf
+
+
+;initialise les tailles des segments
+mov ebx,[ad_tache_cree]
+es
+mov [ebx+to_code_fe],ebp
+es
+mov dword[ebx+to_pile_fe],1000h
+es
+mov [ebx+tt_data2_dt],edx
+es
+mov dword[ebx+tt_data2_dt],0
+es
+mov dword[ebx+tt_data3_dt],0
+es
+mov dword[ebx+tt_data4_dt],0
+
+
+;calcul des adresse (relative au debut de la zone mémoire) des différent zone mémoire
+mov eax,data_tache
+es
+mov [ebx+ad_pile0_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile1_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile2_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_pile3_dt],eax
+es
+add eax,[ebx+to_pile_fe]
+es
+mov [ebx+ad_code_dt],eax
+es
+add eax,[ebx+to_code_fe]
+es
+mov [ebx+ad_data1_dt],eax
+es
+add eax,[ebx+tt_data1_dt]
+es
+mov [ebx+ad_data2_dt],eax
+es
+add eax,[ebx+tt_data2_dt]
+es
+mov [ebx+ad_data3_dt],eax
+es
+add eax,[ebx+tt_data3_dt]
+es
+mov [ebx+ad_data4_dt],eax
+
+;calcul de la taille mémoire totale nécessaire a la tache
+es
+add eax,[ebx+tt_data4_dt]
+mov ecx,eax
+
+;agrandissement de la mémoire pour s'adapter aux besoins
+mov ebx,[ad_tache_cree]
+and ecx,0FFFFFFF0h
+add ecx,10h       ;pour avoir une granularité de 16octets
+call modtm
+jc cretache_ermm1
+mov [ad_tache_cree],ebx
+
+
+
+;charge les données des segments
+xor eax,eax
+xor ecx,ecx
+mov ebx,[ad_tache_cree]
+es
+mov ax,[ebx+type_fe+2Ah]  ;taille d'une entrée
+es
+mov cx,[ebx+type_fe+2Ch]  ;nombre d'entréee
 mov ebx,esi
 add ebx,10h
 
-;??????????????????????????????????????????????????????????
+boucle2_cretache_elf:
+es
+cmp dword[ebx],1
+jne ignore2_cretache_elf
+push eax
+es
+test dword[ebx+18h],1
+jz @f
+es                                
+mov ecx,[ebx+10h]
+es
+mov edx,[ebx+04h]
+mov edi,[ad_tache_cree]
+es
+mov eax,[edi+ad_code_dt]
+push ebx
+mov ebx,[num_fichier_tache]  
+mov al,4
+int 64h
+pop ebx
+cmp eax,0
+jne cretache_erlc
+@@:
+
+es
+test dword[ebx+18h],6
+jz @f
+es                                
+mov ecx,[ebx+10h]
+es
+mov edx,[ebx+04h]
+mov edi,[ad_tache_cree]
+es
+mov eax,[edi+ad_data1_dt]
+push ebx
+mov ebx,[num_fichier_tache]  
+mov al,4
+int 64h
+pop ebx
+cmp eax,0
+jne cretache_erlc
+@@:
+
+
+pop eax
+
+ignore2_cretache_elf:
+add ebx,eax
+dec ecx
+jnz boucle2_cretache_elf
 
 mov ebx,esi
 call libmem
+
+
+;recopie de la commande
+mov esi,ad_zdc
+mov edi,recop_commande
+add edi,ebx
+mov ecx,512
+cld
+rep movsb
+
+
+;recopie la commande dans le descriptif de la tache
+mov esi,ad_zdc
+mov edi,descriptif_tache
+add edi,ebx
+mov ecx,256
+cld
+rep movsb
+es
+mov byte[descriptif_tache+255],0
+
 
 mov ebx,[num_fichier_tache]  
 mov al,1
@@ -154,7 +352,7 @@ jmp suite_crea_tache
 
 
 
-
+;************************************************************************************
 cretache_fe1:
 ;vérifie que la taille de la pile est superieur ou égale a 4ko
 es
@@ -259,9 +457,9 @@ mov [ad_tache_cree],ebx
 
 ;initialise certaines valeurs d'origine
 es
-mov dword[eip_initial],0
+mov dword[ebx+eip_initial],0
 es
-mov dword[ds_initial],sel_codet
+mov dword[ebx+ds_initial],sel_codet
 
 ;recopie de la commande
 mov esi,ad_zdc
@@ -457,9 +655,9 @@ mov [ebx+ad_data4_dt],eax
 
 ;initialise certaines valeurs d'origine
 es
-mov dword[eip_initial],0
+mov dword[ebx+eip_initial],0
 es
-mov dword[ds_initial],sel_codet
+mov dword[ebx+ds_initial],sel_codet
 
 ;remplissage de la zones de code
 mov edi,ebx

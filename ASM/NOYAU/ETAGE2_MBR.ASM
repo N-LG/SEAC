@@ -12,7 +12,8 @@ use16
 
 
 ;***************************************************
-;masque les irq
+;désactive et masque les irq
+cli
 mov al,0FFh
 out 021h,al
 out 0A1h,al

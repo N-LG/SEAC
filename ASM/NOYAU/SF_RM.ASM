@@ -3,65 +3,6 @@
 ;(le mode protégé du VESA 3.0 étant trop buggé sur certaine carte et pas supporté sur d'autres)
 
 
-;***********************************************************
-bios_liresec:
-push ebx
-push ecx
-push edx
-push esi
-push edi
-push ebp
-push ds
-push es
-push fs
-push gs
-
-mov ax,seldat      ;remplissage du Disk Address Packet
-mov ds,ax
-mov byte[zt_dapbios],10h             ;taille de la zone dap
-mov byte[zt_dapbios+1],0h            ;vide
-mov word[zt_dapbios+2],1             ;nombre de secteur a lire
-mov word[zt_dapbios+4],zt_disquette  ;offset ou seront copié les données
-mov word[zt_dapbios+6],segdat        ;segment ou seront copié les données
-mov dword[zt_dapbios+8],ebx          ;lsb de l'adresse a charger
-mov dword[zt_dapbios+12],0           ;msb de l'adresse a charger
-
-mov ax,4200h
-mov dl,80h
-mov si,zt_dapbios
-
-jmp selcod16:appel_mode_reel_bios
-
-
-;***********************************************************
-bios_ecrsec:
-push ebx
-push ecx
-push edx
-push esi
-push edi
-push ebp
-push ds
-push es
-push fs
-push gs
-
-mov ax,seldat      ;remplissage du Disk Address Packet
-mov ds,ax
-mov byte[zt_dapbios],10h             ;taille de la zone dap
-mov byte[zt_dapbios+1],0h            ;vide
-mov word[zt_dapbios+2],1             ;nombre de secteur a lire
-mov word[zt_dapbios+4],zt_disquette  ;offset ou seront copié les données
-mov word[zt_dapbios+6],segdat        ;segment ou seront copié les données
-mov dword[zt_dapbios+8],ebx          ;lsb de l'adresse a charger
-mov dword[zt_dapbios+12],0           ;msb de l'adresse a charger
-
-mov ax,4300h
-mov dl,80h
-mov si,zt_dapbios
-
-jmp selcod16:appel_mode_reel_bios
-
 
 
 ;************************************************************

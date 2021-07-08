@@ -150,7 +150,7 @@ int 60h
 affiche_ligne_dir:
 inc ecx
 pushad
-
+;jmp affiche_ligne_dir_ouvert
 xor eax,eax
 mov ebx,[cmddir_handle_dossier]
 int 64h             ;ouvre le fichier

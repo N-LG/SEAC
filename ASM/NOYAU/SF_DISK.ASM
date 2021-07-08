@@ -2719,10 +2719,6 @@ sti
 jc init_ahci_er2 
 gs
 mov dword[ebx+8],czm_ztlef
-gs
-mov dword[ebx+16],0DEFAFECAh
-gs
-mov dword[ebx+20],012345678h
 mov edx,ebx
 
 
@@ -3174,24 +3170,34 @@ fin_liresecteursata:
 ret
 
 
-
-
+;****************
 liresecteursatapi: 
 pop ebx
+
+
+;réajuste la PRDT car les secteur font 2048octet et pas 512
+gs
+mov eax,[esi+zsata_prdt+12]
+inc eax
+shl eax,2
+dec eax
+gs
+mov [esi+zsata_prdt+12],eax
+shl ecx,2
 
 ;préparer FIS
 gs
 mov byte[esi+zsata_cfis],27h     ;type de FIS: host to device
 gs
-mov byte[esi+zsata_cfis+1],80h   ;attribut     ????????????????????
+mov byte[esi+zsata_cfis+1],000h   ;attribut     ????????????????????
 gs
 mov byte[esi+zsata_cfis+2],0A0h  ;commande  packet 
 gs
-mov byte[esi+zsata_cfis+3],1     ;feature 1 (transmit to host) 
+mov byte[esi+zsata_cfis+3],0     ;feature 1 ????????????????? 
 gs 
 mov byte[esi+zsata_cfis+4],0     ;LBA  (0-7)
 gs
-mov word[esi+zsata_cfis+12],16   ;LBA (8-23) nombre d'octet de la commande packet
+mov word[esi+zsata_cfis+5],2048   ;LBA (8-23) nombre d'octet de la commande packet
 gs
 mov byte[esi+zsata_cfis+7],0     ;device
 gs
@@ -3214,27 +3220,38 @@ mov eax,[esi+zsata_msb_adresse]
 gs
 mov dword[esi+zsata_msb_adresse],0
 and ebp,00FFFFh
-bswap ebx
+bswap eax
 bswap ebx
 bswap ebp
 
+;gs
+;mov byte[esi+zsata_acmd],88h     ;commande ATAPI lecture 16
+;gs
+;mov byte[esi+zsata_acmd+1],0     ;vide
+;gs
+;mov dword[esi+zsata_acmd+2],eax  ;adresse du secteur (MSB)
+;gs
+;mov dword[esi+zsata_acmd+6],ebx  ;adresse du secteur (LSB)
+;gs
+;mov dword[esi+zsata_acmd+10],ebp ;nb de secteur
+;gs
+;mov word[esi+zsata_acmd+14],0    ;vide
+
 gs
-mov byte[esi+zsata_acmd],88h     ;commande ATAPI lecture 16
+mov byte[esi+zsata_acmd],0A8h     ;commande ATAPI lecture 16
 gs
 mov byte[esi+zsata_acmd+1],0     ;vide
 gs
-mov dword[esi+zsata_acmd+2],eax  ;adresse du secteur (MSB)
+mov dword[esi+zsata_acmd+2],ebx  ;adresse du secteur (LSB)
 gs
-mov dword[esi+zsata_acmd+6],ebx  ;adresse du secteur (LSB)
+mov dword[esi+zsata_acmd+6],ebp ;nb de secteur
 gs
-mov dword[esi+zsata_acmd+10],ebp ;nb de secteur
-gs
-mov word[esi+zsata_acmd+14],0    ;vide
+mov word[esi+zsata_acmd+10],0    ;vide
 
 
 ;préparer table commande
 gs
-mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
+mov byte[esi+zsata_liste],065h ;5dword de commande+ATAPI
 gs
 mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
 gs
@@ -3259,7 +3276,8 @@ mov dword[esi+zsata_liste+28],0
 
 call fin_ahci
 cmp eax,0
-jne fin2_liresecteursata
+jne tempotrappe
+;jne fin2_liresecteursata
 
 ;recopie les données
 mov ax,selramh
@@ -3274,8 +3292,55 @@ xor eax,eax
 jmp fin2_liresecteursata
 
 
+tempotrappe:
+pushad
+mov al,"+"
+call affcj
+gs
+mov ebx,[esi+zsata_ad_port]
+gs
+mov eax,[ebx+18h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+20h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+24h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+28h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+2Ch]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+30h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+34h]
+call affh2j
+mov al,"+"
+call affcj
+gs
+mov eax,[ebx+38h]
+call affh2j
 
-
+mov al,13
+call affcj
+popad
+jmp fin2_liresecteursata
 
 
 ;**************************************************************
