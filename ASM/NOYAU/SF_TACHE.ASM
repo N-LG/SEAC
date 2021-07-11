@@ -64,7 +64,7 @@ jmp pascommande
 fichier_exec_ok:        ;si fichier trouvé, sauvegarde de l'index
 mov [num_fichier_tache],ebx
 
-mov ecx,500h             ;réservation d'un espace mémoire 
+mov ecx,data_tache            ;réservation d'un espace mémoire 
 call resmem
 jc cretache_ermm2
 mov [ad_tache_cree],ebx
@@ -75,7 +75,7 @@ mov es,ax
 mov edi,[ad_tache_cree]
 add edi,10h
 mov ebx,[num_fichier_tache]
-mov ecx,data_tache  ;taille minimum d'une zone tache
+mov ecx,60h  ;taille minimum d'une entête
 xor edx,edx
 mov al,4
 int 64h
@@ -102,7 +102,6 @@ jne cretache_erfc
 es
 cmp dword[ebx+type_fe+10h], 030002h  ;vérifie les options de l'executable (executable x86)
 jne cretache_erfc
-
 es
 cmp word[ebx+type_fe+28h], 52  ;vérifie que le header as la bonne taille
 jne cretache_erfc
@@ -116,7 +115,6 @@ es
 mov dword[ebx+ds_initial],sel_dat1
 
 
-
 ;reserve une zone pour la lecture du program header table
 xor eax,eax
 xor ecx,ecx
@@ -127,6 +125,8 @@ es
 mov cx,[ebx+type_fe+2Ch]  ;nombre d'entréee
 mul ecx
 mov ecx,eax
+add ecx,15
+and ecx,0FFFFFFF0h
 push ebx
 call resmem
 mov esi,ebx
@@ -198,7 +198,7 @@ mov [ebx+to_code_fe],ebp
 es
 mov dword[ebx+to_pile_fe],1000h
 es
-mov [ebx+tt_data2_dt],edx
+mov [ebx+tt_data1_dt],edx
 es
 mov dword[ebx+tt_data2_dt],0
 es
@@ -259,6 +259,9 @@ mov [ad_tache_cree],ebx
 
 
 
+
+
+
 ;charge les données des segments
 xor eax,eax
 xor ecx,ecx
@@ -275,6 +278,8 @@ es
 cmp dword[ebx],1
 jne ignore2_cretache_elf
 push eax
+push ecx
+
 es
 test dword[ebx+18h],1
 jz @f
@@ -285,6 +290,9 @@ mov edx,[ebx+04h]
 mov edi,[ad_tache_cree]
 es
 mov eax,[edi+ad_code_dt]
+add edi,eax
+es
+add edi,[ebx+08h]
 push ebx
 mov ebx,[num_fichier_tache]  
 mov al,4
@@ -304,6 +312,10 @@ mov edx,[ebx+04h]
 mov edi,[ad_tache_cree]
 es
 mov eax,[edi+ad_data1_dt]
+add edi,eax
+es
+add edi,[ebx+08h]
+
 push ebx
 mov ebx,[num_fichier_tache]  
 mov al,4
@@ -313,9 +325,8 @@ cmp eax,0
 jne cretache_erlc
 @@:
 
-
+pop ecx
 pop eax
-
 ignore2_cretache_elf:
 add ebx,eax
 dec ecx
@@ -325,7 +336,10 @@ mov ebx,esi
 call libmem
 
 
+
+
 ;recopie de la commande
+mov ebx,[ad_tache_cree]
 mov esi,ad_zdc
 mov edi,recop_commande
 add edi,ebx
@@ -342,7 +356,19 @@ mov ecx,256
 cld
 rep movsb
 es
-mov byte[descriptif_tache+255],0
+mov byte[ebx+descriptif_tache+255],0
+
+es
+mov esi,[ebx+eip_initial]
+es
+add esi,[ebx+ad_code_dt]
+add esi,ebx
+;es
+;mov word[esi],60CDh 
+;mov al,"!"
+;call affcj
+;mov al,13
+;call affcj
 
 
 mov ebx,[num_fichier_tache]  
@@ -468,8 +494,6 @@ add edi,ebx
 mov ecx,512
 cld
 rep movsb
-
-
 
 ;recopie du descriptif de la tache
 mov esi,[ad_tache_cree]
@@ -599,7 +623,6 @@ jmp suite_crea_tache
 ;************************************************************************************
 creation_tache_interne:         ;cs:esi=code de l'application  ecx=nombre d'octet du code
 
-
 push ecx   ;calcul espace nécessaire
 add ecx,16384
 add ecx,data_tache 
@@ -669,7 +692,6 @@ pop ds
 rep movsb
 pop ds
 
-
 ;recopie de la commande dans le descriptif
 mov esi,ad_zdc
 mov edi,descriptif_tache
@@ -677,7 +699,6 @@ add edi,ebx
 mov ecx,256
 cld
 rep movsb
-
 
 ;recopie la commande
 mov esi,ad_zdc
@@ -687,13 +708,11 @@ mov ecx,512
 cld
 rep movsb
 
-mov esi,ebx
-
-
 
 ;*************************************************************************************
 ;recherche emplacement disponible et création d'un segment pour la LDT dans la GDT
 suite_crea_tache:
+mov esi,[ad_tache_cree]
 mov ax,selgdt
 mov ds,ax
 mov ebx,8        ;on ne remplace pas le descripteur nul
@@ -716,7 +735,7 @@ mov [esi+sel_ldt_tache],bx     ;selecteur de segment qui coresspond a la LDT de 
 ;créer les descripteur de secteur   
 mov ax,seldat
 mov ds,ax
-mov esi,[ad_tache_cree]             
+mov esi,[ad_tache_cree]            
 mov ax,selramh
 mov ds,ax
 call maj_ldtache
@@ -753,7 +772,6 @@ mov ds,ax
 es
 mov [esi+sauv_esp1],edi     ;sauvegarde pointeur de la pile
 
-
 ;initialisation de la pile 0 de la tache
 es
 mov edi,[esi+to_pile_fe]
@@ -778,13 +796,14 @@ sub edi,4
 mov dword[edi],sel_codet  ;push cs (32 bits)
 sub edi,4
 es
-mov eax,[eip_initial]
+mov eax,[esi+eip_initial]
 mov dword[edi],eax         ;push eip
-
 sub edi,4
 mov dword[edi],0   
 sub edi,4
-mov dword[edi],sel_codet
+es
+mov eax,[esi+ds_initial]
+mov dword[edi],eax       ;ds
 
 ;sauvegarde sur la pile de toute les valeurs initiales
 sub edi,4
@@ -803,7 +822,7 @@ sub edi,4
 mov dword[edi],0       ;ebp
 
 es
-mov eax,[ds_initial]   
+mov eax,[esi+ds_initial]
 sub edi,4
 mov [edi],eax        ;ds
 sub edi,4
@@ -856,6 +875,7 @@ mov [esi+id_maitre],dx
 ;marquer la zone mémoire comme une tache
 es
 mov byte[esi+type_dm],"T"
+
 
 ;et pour finir l'ajouter a la liste des taches
 mov ebx,[max_table_exec]
