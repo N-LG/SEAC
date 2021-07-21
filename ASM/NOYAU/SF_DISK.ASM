@@ -2,12 +2,12 @@
 ;****************************************************************************
 ;lire et ecrire un secteur                       ****************************
 liresecteur:
-call aj_acces_disque
+;call aj_acces_disque
 call lsct
 jmp finfonctionfichiererr
 
 ecriresecteur:
-call aj_acces_disque
+;call aj_acces_disque
 call esct
 jmp finfonctionfichiererr
 
@@ -3462,10 +3462,8 @@ mov ah,ch
 cmp ch,1
 je sff_lit_tailledisque_dsq 
 and ax,0F0F8h
-cmp al,10h
+cmp al,08h
 je sff_lit_tailledisque_ata 
-cmp al,18h
-je sff_lit_tailledisque_atapi
 cmp ah,20h
 je sff_lit_tailledisque_sata
 cmp ah,30h
@@ -3485,7 +3483,7 @@ jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_ata:
-sub ch,10h
+sub ch,08h
 xor ebx,ebx
 mov bl,ch
 shl ebx,6
@@ -3493,7 +3491,7 @@ fs
 mov al,[ad_descd+ebx+dd_atribut]
 and al,7h
 cmp al,4
-je errlecnt 
+je sff_lit_tailledisque_atapi
 cmp al,0
 je errlecnt 
 fs
@@ -3507,15 +3505,7 @@ jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_atapi:
-sub ch,18h
-xor ebx,ebx
-mov bl,ch
-shl ebx,6
-fs
-mov al,[ad_descd+ebx+dd_atribut]
-and al,7h
-cmp al,4
-jne errlecnt 
+;??????????????????????????????????????????????????????????????
 mov ebx,0FFFFFFFFh
 mov edx,0FFFFFFFFh
 mov ecx,2048
@@ -3526,13 +3516,15 @@ sff_lit_tailledisque_sata:
 call init_ahci    ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
 gs
 mov ebx,[esi+zsata_ad_port]
-
+gs
+cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 je sff_lit_tailledisque_satapi
-
-
+gs
 mov ebx,[esi+zsata_nb_secteur]
+gs
 mov edx,[esi+zsata_nb_secteur+4]
 mov eax,1
+gs
 mov cl,[esi+zsata_conv_secteur]
 shl eax,cl
 mov ecx,eax
@@ -3540,6 +3532,7 @@ jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_satapi:
+;??????????????????????????????????????????????????????????????
 mov ebx,0FFFFFFFFh
 mov edx,0FFFFFFFFh
 mov ecx,2048
