@@ -69,9 +69,10 @@ int 63h
 mov byte[esi],01
 inc esi
 
-;listing des diques présent
-mov ch,10h
+;listing des disques présent
+mov ch,8h
 boucle_ldp:
+push ecx
 push ecx
 mov al,10
 mov edi,zone_tampon
@@ -105,9 +106,14 @@ mov ah,07h ;couleur
 int 63h
 
 ;affiche la capacité
-mov ecx,[zone_tampon+72h]
-cmp ecx,0
-je lecteurcd
+pop ecx
+mov al,18
+int 64h
+cmp eax,0
+jne ldp_erreur_taille
+
+
+mov ecx,ebx
 shr ecx,1
 mov edx,saisienum
 mov al,102
@@ -124,7 +130,7 @@ mov ah,07h ;couleur
 int 63h
 jmp suite_ldp
 
-lecteurcd:
+ldp_erreur_taille:
 mov edx,msg_choix_disque4
 mov al,11
 mov ah,07h ;couleur
@@ -133,57 +139,11 @@ int 63h
 suite_ldp:
 pop ecx
 inc ch
-cmp ch,40h
+cmp ch,80h
 jne boucle_ldp
 
 
-;******************************
-;affiche les clef usb
-mov ch,40h
-boucle_lcp:
-push ecx
-mov al,10
-mov edi,zone_tampon
-int 64h
-cmp eax,0
-jne suite_lcp
 
-mov al,11
-mov ah,07h ;couleur
-mov edx,zone_tampon+64
-int 63h
-
-mov ecx,[zone_tampon]
-shr ecx,1
-mov edx,saisienum
-mov al,102
-int 61h
-
-mov al,11
-mov ah,07h ;couleur
-mov edx,msg_choix_disque2
-int 63h
-
-mov edx,saisienum
-mov al,11
-mov ah,07h ;couleur
-int 63h
-
-mov al,11
-mov ah,07h ;couleur
-mov edx,msg_choix_disque3
-int 63h
-
-pop ecx
-mov [esi],ch ;sauvegarde le numéros de disque
-inc esi
-push ecx
-
-suite_lcp:
-pop ecx
-inc ch
-cmp ch,60h
-jne boucle_lcp
 
 ;****************************
 sub esi,petite_zt
@@ -237,8 +197,11 @@ xor eax,eax
 mov bx,0
 mov edx,nom_fichier
 int 64h
+cmp eax,12
+je ok
 cmp eax,0
 jne choix_fichier
+ok:
 mov [num_fichier],ebx
 mov byte[num_disque],0
 
@@ -259,25 +222,50 @@ mov dword[offset_curseur],0
 
 ;***************************************
 chargement_partie:     ;charge la zt par 128ko de données
-mov al,[num_disque]
-and al,0E0h
-cmp al,40h
-je chargement_partie_disque
-mov al,[num_disque]
-and al,0F8h
-cmp al,0
+cmp byte[num_disque],0
 je chargement_partie_fichier
-cmp al,10h
-je chargement_partie_disque
-cmp al,18h
-je chargement_partie_cd
-mov al,[num_disque]
-and al,0F0h
-cmp al,20h
-je chargement_partie_disque
-cmp al,30h
-je chargement_partie_disque
-jmp affichage_menu
+
+
+mov eax,8
+mov ebx,[num_secteur]
+mov cl,0   ;0=256
+mov ch,[num_disque]
+mov edi,zone_tampon
+int 64h
+call erreur_lecture
+cmp eax,1
+je chargement_partie 
+cmp eax,2
+je affichage_menu
+
+mov eax,18
+mov ch,[num_disque]
+int 64h
+call erreur_lecture
+cmp eax,1
+je chargement_partie 
+cmp eax,2
+je affichage_menu
+
+xor al,al
+mov ebx,ecx
+
+@@:
+cmp ebx,0
+je affichage_menu
+cmp ebx,1
+je @f
+shr ebx,1
+inc al
+jmp @b
+@@:
+
+mov byte[decalage],al
+dec ecx
+mov [masque_affichage],ecx
+mov dword[masque_affichage+4],0
+mov byte[secteur_modif],0
+jmp affichage
 
 
 chargement_partie_fichier:
@@ -296,46 +284,7 @@ mov byte[secteur_modif],0
 mov byte[decalage],0
 mov dword[masque_affichage],0FFFFFFFFh
 mov dword[masque_affichage+4],0FFFFFFFFh
-jmp affichage
-
-
-chargement_partie_disque:
-mov eax,8
-mov ebx,[num_secteur]
-mov cl,0   ;0=256
-mov ch,[num_disque]
-mov edi,zone_tampon
-int 64h
-call erreur_lecture
-cmp eax,1
-je chargement_partie_disque 
-cmp eax,2
-je affichage_menu
-mov byte[secteur_modif],0
-mov byte[decalage],9
-mov dword[masque_affichage],01FFh
-mov dword[masque_affichage+4],0
-jmp affichage
-
-
-chargement_partie_cd:
-mov eax,8
-mov ebx,[num_secteur]
-mov cl,64
-mov ch,[num_disque]
-mov edi,zone_tampon
-int 64h
-call erreur_lecture
-cmp eax,1
-je chargement_partie_disque 
-cmp eax,2
-je affichage_menu
-mov byte[secteur_modif],0
-mov byte[decalage],11
-mov dword[masque_affichage],07FFh
-mov dword[masque_affichage+4],0
 ;jmp affichage
-
 
 ;************************************************************
 affichage:
@@ -658,17 +607,7 @@ jmp affichage
 ;*************************************************
 moin_change:
 call sauvegarde
-mov al,[num_disque]
-and al,0F8h
-cmp al,0
-je moin_change_fichier
-cmp al,10h
-je moin_change_dd
-cmp al,18h
-je moin_change_cd
-jmp touche_boucle
 
-moin_change_fichier:
 mov edx,[offset_curseur]
 add edx,[offset_affichage]
 add [adresse_base],edx
@@ -678,20 +617,10 @@ adc dword[adresse_base+4],0
 sub [adresse_base],eax
 sbb dword[adresse_base+4],0          ;??????????????????????
 
-jmp chargement_partie_fichier
-
-
-moin_change_dd:
-jmp touche_boucle
-
-jmp chargement_partie_disque
+jmp chargement_partie
 
 
 
-moin_change_cd:
-jmp touche_boucle
-
-jmp chargement_partie_cd
 
 
 
