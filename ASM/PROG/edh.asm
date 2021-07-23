@@ -11,7 +11,7 @@ org 0
 ;sauvegarde
 
 ;limite fin de fichier
-;nombre de secteur disque (impossible en atapi?)
+
 
 
 
@@ -567,7 +567,7 @@ jmp affichage
 moin1_decal:
 mov eax,1
 cmp dword[offset_affichage],0h
-je moin_change
+je moinmoin_decal
 sub dword[offset_affichage],10h
 add dword[offset_curseur],0Fh
 jmp affichage
@@ -584,7 +584,7 @@ jmp affichage
 moin16_decal:
 mov eax,10h
 cmp dword[offset_affichage],0h
-je moin_change
+je moinmoin_decal
 sub dword[offset_affichage],10h
 jmp affichage
 
@@ -592,35 +592,36 @@ jmp affichage
 ;*************************************************
 moinmoin:
 mov eax,[max_affichable]
-cmp dword[offset_curseur],eax
-jb moinmoindecal
-sub dword[offset_curseur],eax
-jmp affichage
-
-moinmoindecal:
 cmp dword[offset_affichage],eax
-jb moin_change
+jb moinmoin_decal
 sub dword[offset_affichage],eax
 jmp affichage
 
 
-;*************************************************
-moin_change:
+moinmoin_decal:
+cmp dword[adresse_base],10000h
+jb moinmoin_zero
+
+push eax
 call sauvegarde
-
-mov edx,[offset_curseur]
-add edx,[offset_affichage]
-add [adresse_base],edx
-adc dword[adresse_base+4],0
-
-
-sub [adresse_base],eax
-sbb dword[adresse_base+4],0          ;??????????????????????
-
+pop eax
+mov edx,[offset_affichage]
+add edx,10000h
+sub edx,eax
+mov eax,edx
+and edx,0FFFFFFF0h
+and eax,0Fh
+mov [offset_affichage],edx
+add [offset_curseur],eax
+sub dword[adresse_base],10000h
+sbb dword[adresse_base+4],0       
 jmp chargement_partie
 
 
-
+moinmoin_zero:
+mov dword[offset_curseur],0
+mov dword[offset_affichage],0
+jmp affichage
 
 
 
@@ -670,10 +671,6 @@ mov [offset_affichage],eax
 jmp affichage
 
 
-;************************************
-superplus:
-;§§§§§§§§§§§§§§§§§§§§§§§
-jmp affichage
 
 
 
