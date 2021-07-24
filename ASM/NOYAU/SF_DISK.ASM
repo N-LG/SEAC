@@ -14,10 +14,10 @@ jmp finfonctionfichiererr
 ;***********************************************
 ;numéros de disque:
 ;01h disquette
-;08h à 07h disque ide
+;08h à 0Fh disque ide
 ;20h à 3Fh disque ahci
 ;40h à 5Fh disque USB 
-;6Fh à 7Fh reserve (inutilisé)
+;60h à 7Fh reserve (inutilisé)
 ;80h à BFh partition 
 
 
@@ -1165,6 +1165,12 @@ liresecteurata_atapi:
 call selection_ata
 jc erdnt24
 
+xor ch,ch
+cmp cl,0
+jne @f
+inc ch
+@@:
+
 xor al,al         ;parametres vides
 fs
 mov dx,[edi+dd_adress_base]
@@ -1206,15 +1212,17 @@ out dx,ax   ;2
 pop ax
 xchg al,ah
 out dx,ax   ;3
-xor ax,ax
+xor ah,ah
+mov al,ch
 out dx,ax   ;4
+xor al,al
 mov ah,cl
 out dx,ax  ;5
 xor ax,ax
 out dx,ax  ;6
 
 xor ebx,ebx
-mov bl,cl
+mov bx,cx
 shl ebx,10    ;ebx=nombre de mot a transferer
 
 
@@ -3488,19 +3496,20 @@ xor ebx,ebx
 mov bl,ch
 shl ebx,6
 fs
-mov al,[ad_descd+ebx+dd_atribut]
+mov al,[ebx+ad_descd+dd_atribut]
 and al,7h
 cmp al,4
 je sff_lit_tailledisque_atapi
 cmp al,0
 je errlecnt 
 fs
-mov ebx,[ad_descd+ebx+dd_taille]
+mov eax,[ebx+ad_descd+dd_taille]
 fs
-mov edx,[ad_descd+ebx+dd_taille+4]
-fs
-mov ecx,[ad_descd+ebx+dd_nb_octet_sec]
-mov ecx,512
+mov edx,[ebx+ad_descd+dd_taille+4]
+;fs
+;mov ecx,[ebx+ad_descd+dd_nb_octet_sec]
+mov ecx,512   ;????????????????????????????????????????
+mov ebx,eax
 jmp finfonctionfichieroktriple
 
 
