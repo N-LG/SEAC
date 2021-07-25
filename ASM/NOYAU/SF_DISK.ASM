@@ -3494,7 +3494,7 @@ sff_lit_tailledisque_ata:
 sub ch,08h
 xor ebx,ebx
 mov bl,ch
-shl ebx,6
+shl ebx,5
 fs
 mov al,[ebx+ad_descd+dd_atribut]
 and al,7h
@@ -3506,10 +3506,12 @@ fs
 mov eax,[ebx+ad_descd+dd_taille]
 fs
 mov edx,[ebx+ad_descd+dd_taille+4]
-;fs
-;mov ecx,[ebx+ad_descd+dd_nb_octet_sec]
-mov ecx,512   ;????????????????????????????????????????
+fs
+mov cl,[ebx+ad_descd+dd_nb_octet_sec]
 mov ebx,eax
+mov eax,1
+shl eax,cl
+mov ecx,eax
 jmp finfonctionfichieroktriple
 
 

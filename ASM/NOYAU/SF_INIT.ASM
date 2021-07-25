@@ -447,6 +447,45 @@ mov [esi+dd_sec_par_cyl],eax       ;nombre de secteur par cylindre
 pop ecx
 
 init_infopart:
+mov ax,[bootsecteur+0D4h]
+mov edx,[bootsecteur+0EAh]
+mov cl,9
+
+test ax,8000h
+jnz init_ata_conv_secteur 
+test ax,8000h
+jz init_ata_conv_secteur 
+test ax,1000h
+jz init_ata_conv_secteur
+
+mov cl,0
+boucle_init_ata_conv_secteur:
+inc cl
+shr edx,1
+cmp edx,1
+jne boucle_init_ata_conv_secteur 
+
+init_ata_conv_secteur:
+mov byte[esi+dd_nb_octet_sec],cl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 mov al,12
 int 64h
 jmp pasinfopart
@@ -544,8 +583,6 @@ jne boucle_init_sata_conv_secteur
 init_sata_conv_secteur:
 mov byte[ebx+zsata_conv_secteur],cl
 
-
-init_infopart2:
 mov al,12
 int 64h
 jmp pasinfopart2
