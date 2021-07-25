@@ -1062,10 +1062,14 @@ and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
 fs
-mov al,[edi]
+mov al,[edi+dd_atribut]
 and al,7
 cmp al,4
 je liresecteurata_atapi   
+cmp al,0
+je errlecnt 
+cmp al,7
+je errlecnt 
 
 ;fs
 ;test byte[edi],08h
@@ -1298,15 +1302,6 @@ ret
 
 
 
-
-
-
-
-
-
-
-
-
 ;*************************************************************************
 ecriresecteurata:
 sub ch,8
@@ -1315,10 +1310,15 @@ and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
 fs
-mov al,[edi]
+mov al,[edi+dd_atribut]
 and al,7
 cmp al,4
 je erparamsecteurata
+cmp al,0
+je errlecnt 
+cmp al,7
+je errlecnt 
+
 
 fs
 test byte[edi],08h
@@ -1865,10 +1865,12 @@ and edi,0FF00h
 shr edi,3       ;div par 256 mul par 32
 add edi,ad_descd
 fs
-mov al,[edi]
+mov al,[edi+dd_atribut]
 and al,7
 cmp al,4
 je @f 
+cmp al,7
+je errlecnt
 
 push esi
 push edi

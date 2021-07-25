@@ -433,9 +433,10 @@ at_processeur equ 700h
 ;************************************************************************************************************
 ;descripteur de disque
 dd_atribut       equ 00h     
-;b0-2 0=absent 1=chs 2=lba28 3=lba48 4=ATAPI
+;b0-2 0=non testé 1=chs 2=lba28 3=lba48 4=ATAPI 7=absent
 ;b3   0=pio 1=dma
 ;b4   0=master 1=slave
+
 
 dd_sec_par_piste equ 02h
 dd_sec_par_cyl   equ 04h

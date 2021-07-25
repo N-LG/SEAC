@@ -468,24 +468,6 @@ jne boucle_init_ata_conv_secteur
 init_ata_conv_secteur:
 mov byte[esi+dd_nb_octet_sec],cl
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 mov al,12
 int 64h
 jmp pasinfopart
