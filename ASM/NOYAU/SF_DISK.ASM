@@ -1914,7 +1914,7 @@ mov ax,fs
 mov ds,ax
 mov esi,edi
 ;efface la zone ou on vas recopier les descripteur
-mov ecx,64 
+mov ecx,128
 xor eax,eax
 cld
 rep stosd
@@ -2096,19 +2096,27 @@ cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
 jne erreur_infousb_boscsi
 
 
-mov eax,[zt_clefusb+64]
-mov ecx,[zt_clefusb+68]
+mov eax,[zt_clefusb+64] ;lsb taille
+mov ecx,[zt_clefusb+68]  ;taille secteur
 bswap eax
 bswap ecx
+es
+mov [esi+120],eax
+es
+mov [esi+200],eax
+es
+mov dword[esi+204],0
 
 es
-mov [esi],eax
+mov word[esi+212],40h
+cmp ecx,512
+je @f
+shr ecx,1
 es
-mov [esi+8],ecx
+mov word[esi+212],50h
 es
-mov dword[esi+12],0
-add esi,64
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§simuler les autres options?
+mov [esi+234],ecx
+@@:
 
 
 
@@ -2150,35 +2158,71 @@ jbe pastronque_infousb_boscsi
 mov byte[zt_clefusb],82
 pastronque_infousb_boscsi:
 push esi
+push esi
 mov esi,zt_clefusb
 mov edi,zt_clefusb+128
 call conv_chaine_usb
 pop edi
 mov esi,zt_clefusb+128
+add edi,54
 cld
 repnz movsb
+pop esi
 xor eax,eax
-jmp finfonctionfichiererr
+jmp @f
 
 
 
 ;génère un nom générique si pas de nom
 nomgenerique_infousb_boscsi:
 es
-mov dword[esi],"Clef"
+mov dword[esi+54],"Clef"
 es
-mov dword[esi+4]," USB"
+mov dword[esi+58]," USB"
 es
-mov dword[esi+8],0B0C24E20h  ;" N°" en utf8
+mov dword[esi+62],0B0C24E20h  ;" N°" en utf8
 
 xor ecx,ecx
 mov eax,102
 mov cl,[edx+dlu_adresse]
 mov edx,esi
-add edx,12
+add edx,66
 push es
 pop ds
 int 61h
+
+
+@@:
+
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§?????????????????????????????????????????
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§?????????????????????????????????????????
+
+
+
+
+
+
+
+
+
+; inverse les caractère des chaine 2 par 2
+add esi,20
+mov ecx,37
+@@:
+es
+mov ax,[esi]
+xchg al,ah
+es
+mov [esi],ax
+add esi,2
+dec ecx
+jnz @b
 xor eax,eax
 jmp finfonctionfichiererr
 
@@ -2189,7 +2233,10 @@ mov eax,cer_lec
 jmp finfonctionfichiererr
 
 
-
+;nom: I=15     A=54 T=40
+;manuf: I=14   A=?
+;firmw num I=12 (BCD X.X)  A=46 T=8
+;serie: I=16   A=20 T=20
 
 
 ;**********************************
