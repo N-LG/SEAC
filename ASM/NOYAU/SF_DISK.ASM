@@ -1916,197 +1916,23 @@ mov esi,edi
 ;efface la zone ou on vas recopier les descripteur
 mov ecx,128
 xor eax,eax
-cld
-rep stosd
+;cld
+;rep stosd
 
 
 ;un petit reset pour bien commencer
 call reset_clef_bo
 
-;**********
-;prépare cbw (test unit ready)
-inc dword[usb_tag]
-mov ecx,0C70EB49Dh
-xor ecx,[usb_tag]
-mov dword[zt_clefusb],43425355h ;mot magique "USBC"
-mov [zt_clefusb+4],ecx ;tag
-mov dword[zt_clefusb+8],0    ;taille des données
-mov byte[zt_clefusb+0ch],00h   ;flag 
-mov al,[edx+dlu_lun]
-mov [zt_clefusb+0Dh],al   ;lun
-mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
-mov byte[zt_clefusb+0Fh],00h  ;commande 
-mov dword[zt_clefusb+10h],0   ;vide
-mov dword[zt_clefusb+14h],0   ;vide
-mov dword[zt_clefusb+18h],0   ;vide
-mov dword[zt_clefusb+1Ch],0   ;vide
-mov dword[zt_clefusb+20h],0   ;vide
-
-;envoie cbw
-;mov al,[edx+dlu_adresse]
-;mov ah,[edx+dlu_endpout]
-;or ah,80h
-;mov ecx,31
-;mov edi,zt_clefusb
-;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;cmp eax,0
-;jne erreur_infousb_boscsi
-
-
-;reçois csw
-;mov al,[edx+dlu_adresse]
-;mov ah,[edx+dlu_endpin]
-;mov ecx,13
-;mov edi,zt_clefusb+32
-;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;cmp eax,0
-;jne erreur_infousb_boscsi
-
-
-;lit résultat opération
-;cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
-;jne erreur_infousb_boscsi
-;mov eax,[zt_clefusb+4] 
-;cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
-;jne erreur_infousb_boscsi
-;cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
-;jne erreur_infousb_boscsi
-;cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-;jne erreur_infousb_boscsi
-
-
-;**********
-;prépare cbw (inquiry)
-inc dword[usb_tag]
-mov ecx,0C70EB49Dh
-xor ecx,[usb_tag]
-mov dword[zt_clefusb],43425355h ;mot magique "USBC"
-mov [zt_clefusb+4],ecx ;tag
-mov dword[zt_clefusb+8],36     ;taille des données
-mov byte[zt_clefusb+0ch],80h   ;flag (in) 
-mov al,[edx+dlu_lun]
-mov [zt_clefusb+0Dh],al   ;lun
-mov byte[zt_clefusb+0Eh],6   ;taille de la commande 
-mov byte[zt_clefusb+0Fh],12h  ;commande 
-mov dword[zt_clefusb+10h],0   ;vide
-mov byte[zt_clefusb+13h],36  ;taille des données
-mov dword[zt_clefusb+14h],0   ;vide
-mov dword[zt_clefusb+18h],0   ;vide
-mov dword[zt_clefusb+1Ch],0   ;vide
-mov dword[zt_clefusb+20h],0   ;vide
-
-;envoie cbw
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpout]
-or ah,80h
-mov ecx,31
-mov edi,zt_clefusb
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-cmp eax,0
-jne erreur_infousb_boscsi
-
-;reçois donnée
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpin]
-mov ecx,36
-mov edi,zt_clefusb+72
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;on ignore les eventuelles erreur a ce moment la
-
-;reçois csw
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpin]
-mov ecx,13
-mov edi,zt_clefusb+32
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-cmp eax,0
-jne erreur_infousb_boscsi
-
-
-;lit résultat opération
-cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
-jne erreur_infousb_boscsi
-mov eax,[zt_clefusb+4] 
-cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
-jne erreur_infousb_boscsi
-cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
-jne erreur_infousb_boscsi
-cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-jne erreur_infousb_boscsi
-
-
-
-
-;**********
-;prépare cbw (read format capacity)
-inc dword[usb_tag]
-mov ecx,0C70EB49Dh
-xor ecx,[usb_tag]
-mov dword[zt_clefusb],43425355h ;mot magique "USBC"
-mov [zt_clefusb+4],ecx ;tag
-mov dword[zt_clefusb+8],8     ;taille des données
-mov byte[zt_clefusb+0ch],80h   ;flag (in) 
-mov al,[edx+dlu_lun]
-mov [zt_clefusb+0Dh],al   ;lun
-mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
-mov byte[zt_clefusb+0Fh],25h  ;commande 
-mov dword[zt_clefusb+10h],0   ;vide
-mov dword[zt_clefusb+14h],0   ;vide
-mov dword[zt_clefusb+18h],0   ;vide
-mov dword[zt_clefusb+1Ch],0   ;vide
-mov dword[zt_clefusb+20h],0   ;vide
-
-;envoie cbw
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpout]
-or ah,80h
-mov ecx,31
-mov edi,zt_clefusb
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-cmp eax,0
-jne erreur_infousb_boscsi
-
-;reçois donnée
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpin]
-mov ecx,8
-mov edi,zt_clefusb+64
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;on ignore les eventuelles erreur a ce moment la
-
-;reçois csw
-mov al,[edx+dlu_adresse]
-mov ah,[edx+dlu_endpin]
-mov ecx,13
-mov edi,zt_clefusb+32
-call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-cmp eax,0
-jne erreur_infousb_boscsi
-
-
-;lit résultat opération
-cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
-jne erreur_infousb_boscsi
-mov eax,[zt_clefusb+4] 
-cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
-jne erreur_infousb_boscsi
-cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
-jne erreur_infousb_boscsi
-cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-jne erreur_infousb_boscsi
-
-
-mov eax,[zt_clefusb+64] ;lsb taille
-mov ecx,[zt_clefusb+68]  ;taille secteur
-bswap eax
-bswap ecx
+push edx
+call sff_lit_tailledisque_usb_boscsisf
 es
-mov [esi+120],eax
+mov [esi+114],ebx
 es
-mov [esi+200],eax
+mov [esi+120],ebx
 es
-mov dword[esi+204],0
-
+mov [esi+200],ebx
+es
+mov [esi+204],edx
 es
 mov word[esi+212],40h
 cmp ecx,512
@@ -2117,8 +1943,9 @@ mov word[esi+212],50h
 es
 mov [esi+234],ecx
 @@:
-
-
+pop edx
+cmp eax,0
+jne finfonctionfichiererr 
 
 ;charge le descripteur du périphérique
 push edx
@@ -3603,6 +3430,8 @@ jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_usb:
+mov ax,fs
+mov ds,ax
 mov dl,ch
 and edx,1Fh
 shl edx,dc_desc_clef_usb
@@ -3615,6 +3444,129 @@ jmp finfonctionfichiererr
 
 
 sff_lit_tailledisque_usb_boscsi:
+call sff_lit_tailledisque_usb_boscsisf
+jmp finfonctionfichieroktriple
+
+
+
+
+;****************************************
+sff_lit_tailledisque_usb_boscsisf:   ;ds:edx=descripteur de la clef
+;**********
+;prépare cbw (test unit ready)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],0    ;taille des données
+mov byte[zt_clefusb+0ch],00h   ;flag 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],00h  ;commande 
+mov dword[zt_clefusb+10h],0   ;vide
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+;mov al,[edx+dlu_adresse]
+;mov ah,[edx+dlu_endpout]
+;or ah,80h
+;mov ecx,31
+;mov edi,zt_clefusb
+;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;cmp eax,0
+;jne erreur_lit_tailledisque_usb_boscsisf
+
+
+;reçois csw
+;mov al,[edx+dlu_adresse]
+;mov ah,[edx+dlu_endpin]
+;mov ecx,13
+;mov edi,zt_clefusb+32
+;call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;cmp eax,0
+;jne erreur_lit_tailledisque_usb_boscsisf
+
+
+;lit résultat opération
+;cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+;jne erreur_lit_tailledisque_usb_boscsisf
+;mov eax,[zt_clefusb+4] 
+;cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+;jne erreur_lit_tailledisque_usb_boscsisf
+;cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+;jne erreur_lit_tailledisque_usb_boscsisf
+;cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+;jne erreur_lit_tailledisque_usb_boscsisf
+
+
+;**********
+;prépare cbw (inquiry)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],36     ;taille des données
+mov byte[zt_clefusb+0ch],80h   ;flag (in) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],6   ;taille de la commande 
+mov byte[zt_clefusb+0Fh],12h  ;commande 
+mov dword[zt_clefusb+10h],0   ;vide
+mov byte[zt_clefusb+13h],36  ;taille des données
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+;envoie cbw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb_boscsisf
+
+;reçois donnée
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,36
+mov edi,zt_clefusb+72
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+;on ignore les eventuelles erreur a ce moment la
+
+;reçois csw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb_boscsisf
+
+
+;lit résultat opération
+cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
+jne erreur_lit_tailledisque_usb_boscsisf
+mov eax,[zt_clefusb+4] 
+cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
+jne erreur_lit_tailledisque_usb_boscsisf
+cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
+jne erreur_lit_tailledisque_usb_boscsisf
+cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
+jne erreur_lit_tailledisque_usb_boscsisf
+
+
+
+
+;**********
 ;prépare cbw (read format capacity)
 inc dword[usb_tag]
 mov ecx,0C70EB49Dh
@@ -3641,7 +3593,7 @@ mov ecx,31
 mov edi,zt_clefusb
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 
 ;reçois donnée
 mov al,[edx+dlu_adresse]
@@ -3658,30 +3610,35 @@ mov ecx,13
 mov edi,zt_clefusb+32
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 
 
 ;lit résultat opération
 cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 mov eax,[zt_clefusb+4] 
 cmp  dword[zt_clefusb+36],eax ;est ce le bon tag?
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
-jne erreur_lit_tailledisque_usb
+jne erreur_lit_tailledisque_usb_boscsisf
 
 
-mov ebx,[zt_clefusb+64]
-mov ecx,[zt_clefusb+68]
+
+
+mov ebx,[zt_clefusb+64] ;lsb taille
+mov ecx,[zt_clefusb+68]  ;taille secteur
+xor eax,eax
 xor edx,edx
 bswap ebx
 bswap ecx
-jmp finfonctionfichieroktriple
+ret
 
 
-erreur_lit_tailledisque_usb:
+
+erreur_lit_tailledisque_usb_boscsisf:
 mov eax,cer_parami
-jmp finfonctionfichiererr
+ret
+
 
