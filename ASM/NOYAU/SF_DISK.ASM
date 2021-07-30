@@ -1916,9 +1916,11 @@ mov esi,edi
 ;efface la zone ou on vas recopier les descripteur
 mov ecx,128
 xor eax,eax
-;cld
-;rep stosd
-
+cld
+rep stosd
+;signale que le descripteur n'est ni ATA ni ATAPI
+es
+mov word[esi],0FFFFh
 
 ;un petit reset pour bien commencer
 call reset_clef_bo
@@ -1947,6 +1949,7 @@ pop edx
 cmp eax,0
 jne finfonctionfichiererr 
 
+
 ;charge le descripteur du périphérique
 push edx
 mov eax,2
@@ -1970,7 +1973,7 @@ mov bl,[edx+dlu_adresse] ;adresse
 mov bh,0 ;endpoint
 mov dh,3   ;type de descripteur (chaine)
 mov dl,[zt_clefusb+15]  ;index
-mov edi,zt_clefusb
+mov edi,zt_clefusb+20
 int 68h
 pop edx
 cmp eax,0
@@ -1978,22 +1981,40 @@ jne finfonctionfichiererr
 
 
 ;recopie maximum 64 caractère du nom au format utf8
-cmp byte[zt_clefusb],10       ;si 4 ou moins on inscrit le nom générique
+cmp byte[zt_clefusb+20],10       ;si 4 ou moins on inscrit le nom générique
 jbe nomgenerique_infousb_boscsi
-cmp byte[zt_clefusb],82      ;si 40 ou plus on tronque le nom
+cmp byte[zt_clefusb+20],82      ;si 40 ou plus on tronque le nom
 jbe pastronque_infousb_boscsi
-mov byte[zt_clefusb],82
+mov byte[zt_clefusb+20],82
 pastronque_infousb_boscsi:
 push esi
 push esi
-mov esi,zt_clefusb
+mov esi,zt_clefusb+20
 mov edi,zt_clefusb+128
 call conv_chaine_usb
+
+;génère des espaces a la fin du nom
+mov esi,zt_clefusb+128
+mov ah,0
+bouclenom_infousb_boscsi:
+cmp byte[esi],0
+jne @f
+mov ah,1
+@@:
+cmp ah,1
+jne @f
+mov byte[esi]," "
+@@:
+inc esi
+cmp esi,zt_clefusb+168
+jne bouclenom_infousb_boscsi
+
 pop edi
 mov esi,zt_clefusb+128
 add edi,54
+mov ecx,10
 cld
-repnz movsb
+rep movsd
 pop esi
 xor eax,eax
 jmp @f
@@ -2008,37 +2029,133 @@ es
 mov dword[esi+58]," USB"
 es
 mov dword[esi+62],0B0C24E20h  ;" N°" en utf8
+es
+mov dword[esi+66],"    "
+es
+mov dword[esi+70],"    "
+es
+mov dword[esi+74],"    "
+es
+mov dword[esi+78],"    "
+es
+mov dword[esi+82],"    "
+es
+mov dword[esi+86],"    "
+es
+mov dword[esi+90],"    "
 
 xor ecx,ecx
 mov eax,102
 mov cl,[edx+dlu_adresse]
 mov edx,esi
 add edx,66
+push ds
 push es
 pop ds
 int 61h
+pop ds
 
+@@:
+
+
+;créer une chaine a partir de la version
+es
+mov dword[esi+46],"  . "
+es
+mov dword[esi+50],"    "
+mov ax,[zt_clefusb+12] 
+and ax,0F0Fh
+add ax,3030h
+es
+mov [esi+47],al
+es
+mov [esi+50],ah
+mov ax,[zt_clefusb+12] 
+shr ax,4
+and ax,0F0Fh
+add ax,3030h
+es
+mov [esi+46],al
+es
+mov [esi+49],ah
+
+
+cmp byte[zt_clefusb+16],0
+je seriegenerique_infousb_boscsi
+
+;charge le descripteur de chaine
+push edx
+mov eax,2
+mov bl,[edx+dlu_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dh,3   ;type de descripteur (chaine)
+mov dl,[zt_clefusb+16]  ;index
+mov edi,zt_clefusb+20
+int 68h
+pop edx
+cmp eax,0
+jne finfonctionfichiererr 
+
+
+;recopie maximum 20 caractère du nom au format utf8
+cmp byte[zt_clefusb+20],10       ;si 4 ou moins on inscrit le numéros de série générique
+jbe seriegenerique_infousb_boscsi
+cmp byte[zt_clefusb+20],42      ;si 20 ou plus on tronque le nom
+jbe pastronqueserie_infousb_boscsi
+mov byte[zt_clefusb+20],42
+pastronqueserie_infousb_boscsi:
+push esi
+push esi
+mov esi,zt_clefusb+20
+mov edi,zt_clefusb+128
+call conv_chaine_usb
+
+;génère des espaces a la fin du nom
+mov esi,zt_clefusb+128
+mov ah,0
+boucleserial_infousb_boscsi:
+cmp byte[esi],0
+jne @f
+mov ah,1
+@@:
+cmp ah,1
+jne @f
+mov byte[esi]," "
+@@:
+inc esi
+cmp esi,zt_clefusb+168
+jne boucleserial_infousb_boscsi
+
+pop edi
+mov esi,zt_clefusb+128
+add edi,20
+mov ecx,5
+cld
+rep movsd
+pop esi
+xor eax,eax
+jmp @f
+
+
+
+;génère un num de série générique si pas de nom
+seriegenerique_infousb_boscsi:
+es
+mov dword[esi+20],"    "
+es
+mov dword[esi+24],"    "
+es
+mov dword[esi+28],"    "
+es
+mov dword[esi+32],"    "
+es
+mov dword[esi+36],"    "
 
 @@:
 
 
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§?????????????????????????????????????????
-
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§?????????????????????????????????????????
-
-
-
-
-
-
-
-
-
-; inverse les caractère des chaine 2 par 2
+;inverse les caractère des chaine 2 par 2
 add esi,20
 mov ecx,37
 @@:
@@ -2059,11 +2176,6 @@ call reset_clef_bo
 mov eax,cer_lec
 jmp finfonctionfichiererr
 
-
-;nom: I=15     A=54 T=40
-;manuf: I=14   A=?
-;firmw num I=12 (BCD X.X)  A=46 T=8
-;serie: I=16   A=20 T=20
 
 
 ;**********************************
