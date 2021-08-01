@@ -18,7 +18,7 @@ jmp finfonctionfichiererr
 ;20h à 3Fh disque ahci
 ;40h à 5Fh disque USB 
 ;60h à 7Fh reserve (inutilisé)
-;80h à BFh partition 
+;80h à BFh partition
 
 
 
@@ -1388,32 +1388,9 @@ add dx,7
 mov al,0ECh        ;envoye la commande
 out dx,al
 
-mov bx,256     ;bx=nombre de mot a transferer
+jmp suiteinfodisqueata
 
-push ecx
-mov ecx,100
-call attdok
-pop ecx
-jc ernrpsecteurata
 
-fs
-mov dx,[edi+dd_adress_base]
-infodisqueata_1word:
-in ax,dx
-es
-mov [esi],ax
-add esi,2
-dec bx
-jnz infodisqueata_1word
-
-fs
-mov dx,[edi+dd_adress_base]
-add dx,7
-in al,dx
-test al,1
-jnz erlecsecteurata
-xor eax,eax
-ret
 
 
 ;****************************************************************************
@@ -1428,6 +1405,8 @@ add dx,7
 mov al,0A1h        ;envoye la commande
 out dx,al
 
+
+suiteinfodisqueata:
 mov bx,256     ;bx=nombre de mot a transferer
 
 
@@ -1439,6 +1418,7 @@ jc ernrpsecteurata
 
 fs
 mov dx,[edi+dd_adress_base]
+push esi
 infodisqueatapi_1word:
 in ax,dx
 es
@@ -1446,6 +1426,7 @@ mov [esi],ax
 add esi,2
 dec bx
 jnz infodisqueatapi_1word
+pop esi
 
 fs
 mov dx,[edi+dd_adress_base]
@@ -1453,8 +1434,52 @@ add dx,7
 in al,dx
 test al,1
 jnz erlecsecteurata
+
+;test si il faut envoyer la commande de démarrage
+es
+cmp word[esi+4],37C8h
+je @f
+es
+cmp word[esi+4],738Ch
+je @f
 xor eax,eax
 ret
+
+;envoie la commande  de démarrage
+@@:
+mov al,"?"   ;fonction désactivé tant que j'ai pas une machine ou la tester
+call affcj
+mov al,"S"
+call affcj
+mov al,"F"
+call affcj
+mov al,"D"
+call affcj
+
+mov al,"?"
+call affcj
+mov al,13
+call affcj
+
+
+;fs
+;mov dx,[edi+dd_adress_base]
+;inc dx
+;mov al,7          ;numéros de fonctionnalité "Power-Up In Standby feature set device spin-up"
+;out dx,al
+;add dx,6
+;mov al,0EFh        ;envoye la commande set feature
+;out dx,al
+
+;push ecx
+;mov ecx,100
+;call attdok
+;pop ecx
+;jc ernrpsecteurata
+
+xor eax,eax
+ret
+
 
 erparamsecteurata:  ;erreur parametre
 mov eax,cer_parami
@@ -3049,6 +3074,7 @@ jne fin2_infodisquesata
 
 
 ;recopie les données
+push esi
 mov ax,selramh
 mov ds,ax
 shr ecx,2
@@ -3056,7 +3082,16 @@ mov esi,edx
 add esi,10h
 cld
 rep movsd
+pop esi
 xor eax,eax
+
+
+;test si il faut envoyer la commande de démarrage
+cmp word[edx+14h],37C8h
+je @f
+cmp word[edx+14h],738Ch
+je @f
+
 
 fin2_infodisquesata:
 mov ebx,edx
@@ -3068,6 +3103,92 @@ ret
 
 
 
+
+@@:
+mov al,"?"   ;fonction désactivé tant que j'ai pas une machine ou la tester
+call affcj
+mov al,"S"
+call affcj
+mov al,"F"
+call affcj
+mov al,"D"
+call affcj
+
+mov al,"?"
+call affcj
+mov al,13
+call affcj
+xor eax,eax
+
+
+;effacer PRDT
+;gs
+;mov dword[esi+zsata_prdt],0
+;gs
+;mov dword[esi+zsata_prdt+4],0
+;gs
+;mov dword[esi+zsata_prdt+8],0
+;gs
+;mov dword[esi+zsata_prdt+12],0
+;xor ecx,ecx
+
+
+;préparer FIS
+;gs
+;mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
+;gs
+;mov byte[esi+zsata_cfis+1],80h    ;attribut
+;gs
+;mov byte[esi+zsata_cfis+2],0EFh ;commande set feature 
+;gs
+;mov byte[esi+zsata_cfis+3],7    ;feature 1: fonctionnalité "Power-Up In Standby feature set device spin-up"
+;gs 
+;mov dword[esi+zsata_cfis+4],0     ;LBA  (0-23)
+;gs
+;mov byte[esi+zsata_cfis+7],0    ;device 
+;gs
+;mov byte[esi+zsata_cfis+8],0       ;LBA (24-31)
+;gs
+;mov word[esi+zsata_cfis+9],0       ;LBA (32-47)
+;gs
+;mov byte[esi+zsata_cfis+11],0   ;feature 2
+;gs
+;mov word[esi+zsata_cfis+12],0   ;count 
+;gs
+;mov byte[esi+zsata_cfis+14],0   ;ICC
+;gs
+;mov byte[esi+zsata_cfis+15],0   ;controle
+;gs
+;mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+
+;préparer table commande
+;gs
+;mov byte[esi+zsata_liste],05h ;5dword de commande
+;gs
+;mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+;gs
+;mov word[esi+zsata_liste+2],0 ;nombre d'entrée dans la PRDT
+;gs
+;mov dword[esi+zsata_liste+4],0 ;
+;mov eax,esi
+;add eax,100000h+zsata_cfis
+;gs
+;mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+;gs
+;mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+;gs
+;mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+;gs
+;mov dword[esi+zsata_liste+20],0
+;gs
+;mov dword[esi+zsata_liste+24],0
+;gs
+;mov dword[esi+zsata_liste+28],0
+
+
+;call fin_ahci
+jmp fin2_infodisquesata
 
 
 ;**************************************************************
