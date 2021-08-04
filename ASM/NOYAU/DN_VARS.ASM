@@ -89,7 +89,7 @@ ad_desc_clef_usb equ 0D800h
 dc_desc_clef_usb equ 6   ;element de 64 octets
 nb_desc_clef_usb equ 32  ;32 elements
 
-zt_clefusb equ 0E000h
+zt_clefusb equ 0E000h  ;utilisé aussi pour l'envoie de commande atapi
 
 po_zech_sata equ 0E200h
 

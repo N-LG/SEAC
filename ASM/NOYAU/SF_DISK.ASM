@@ -1162,19 +1162,71 @@ ret
 
 
 
-
-
-
+;********************************
 liresecteurata_atapi:
 call selection_ata
-jc erdnt24
+jc erdnt_liresecteurata_atapi
 
-xor ch,ch
+and ecx,0FFh
 cmp cl,0
 jne @f
 inc ch
 @@:
 
+push ecx
+fs
+mov byte[zt_clefusb],0A8h  ;commande read(12)
+fs
+mov byte[zt_clefusb+1],0   ;réservé
+bswap ebx
+fs
+mov [zt_clefusb+2],ebx   ;numéros de secteur
+bswap ecx
+fs
+mov [zt_clefusb+6],ecx   ;nombre de secteur
+fs
+mov word[zt_clefusb+10],0   ;réservé
+
+mov ecx,12
+call envoie_cmd_atapi
+pop ecx
+jc ernrf_liresecteurata_atapi
+
+shl ecx,11
+call lit_bloc_atapi
+jc erlecf_liresecteurata_atapi
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
+in al,dx
+test al,1
+jnz erlecf_liresecteurata_atapi
+xor eax,eax
+ret
+
+
+erlecf_liresecteurata_atapi:
+mov eax,cer_lec
+ret
+
+erdnt_liresecteurata_atapi:
+mov eax,cer_lecnt
+ret
+
+ernrf_liresecteurata_atapi:
+mov eax,cer_prd
+ret
+
+
+
+;*****************************************************************
+;sous fonction ATAPI
+
+
+
+envoie_cmd_atapi:  ;ecx=taille de la commande fs:edi=adresse du descripteur
+pushad
 xor al,al         ;parametres vides
 fs
 mov dx,[edi+dd_adress_base]
@@ -1184,121 +1236,89 @@ inc dx
 out dx,al
 inc dx
 out dx,al
-
-inc dx
-mov al,12     ;taille de la commande packet(LSB)
-out dx,al
-
-xor al,al     ;taille de la commande packet(MSB)
 inc dx
 out dx,al
-
+inc dx
+out dx,al
 mov al,0A0h        ;envoye la commande
 add dx,2
 out dx,al
+
 
 push ecx
 mov ecx,200
 call attdok
 pop ecx        ;attend pour savoir si c'est bon!
-jc ernrf24
+jc fin_envoie_cmd_atapi
+
 
 ;envoie commande packet
 fs
 mov dx,[edi+dd_adress_base]
-mov ax,00A8h
-out dx,ax    ;1
-push bx
-shr ebx,16
-mov ax,bx
-xchg al,ah
-out dx,ax   ;2
-pop ax
-xchg al,ah
-out dx,ax   ;3
-xor ah,ah
-mov al,ch
-out dx,ax   ;4
-xor al,al
-mov ah,cl
-out dx,ax  ;5
-xor ax,ax
-out dx,ax  ;6
+mov esi,zt_clefusb
+boucle_envoie_cmd_atapi:
+fs
+mov ax,[esi]
+out dx,ax
+add esi,2
+sub ecx,2
+jnz boucle_envoie_cmd_atapi
+clc
+fin_envoie_cmd_atapi:
 
-xor ebx,ebx
-mov bx,cx
-shl ebx,10    ;ebx=nombre de mot a transferer
+popad
+ret
 
 
-tdf24i:
+;******************
+lit_bloc_atapi:
 push ecx
-mov ecx,4000
-call attdok
-pop ecx        ;attend pour savoir si c'est bon!
-jc ernrf24
+mov ecx,2000
+call attdok          ;attend pour savoir si c'est bon!
+pop ecx
+jnc @f
+stc
+ret
 
+@@:
 fs
 mov dx,[edi+dd_adress_base]
 add dx,2
 in al,dx
 and al,3
 cmp al,2
-jne erlecf24    ;si ce n'est pas "out data"
+je @f    ;si ce n'est pas "out data"
+stc
+;pop ecx
+ret
 
+@@:
 add dx,2
-xor ecx,ecx
+xor ebx,ebx
 in al,dx
-mov cl,al
+mov bl,al
 inc dx
 in al,dx
-mov ch,al
-shr ecx,1  ;nombre de mot a transferer = Nb de d'octet/2
+mov bh,al
+sub ecx,ebx
+shr ebx,1
 
 fs
 mov dx,[edi+dd_adress_base]
-recomf24i:
+@@:
 in ax,dx
 es
 mov [esi],ax
-dec ebx
 add esi,2
-dec ecx    
-jnz recomf24i   ;un secteur est passé  
-
-cmp ebx,0
-jne tdf24i
-
+dec ebx    
+jnz @b   ;un secteur est passé  
+cmp ecx,0
+jne lit_bloc_atapi
 
 
-
-fs
-mov dx,[edi+dd_adress_base]
-add dx,7
-in al,dx
-test al,1
-jnz erlecf24
-xor eax,eax
+clc
+;pop ecx
 ret
-
-
-
-erlecf24:
-mov eax,cer_lec
-ret
-
-erdnt24:
-mov eax,cer_lecnt
-ret
-
-ernrf24:
-mov eax,cer_prd
-ret
-
-erokupf24:
-mov eax,cer_do
-ret
-
-
 
 
 
@@ -2204,7 +2224,7 @@ jmp finfonctionfichiererr
 
 
 ;**********************************
-;reset la cle usb bulk only (obligatoire apres une erreur)
+;reset la clef usb bulk only (obligatoire apres une erreur)
 reset_clef_bo:
 pushad
 mov esi,edx
@@ -3314,7 +3334,7 @@ mov byte[esi+zsata_cfis+3],0     ;feature 1 ?????????????????
 gs 
 mov byte[esi+zsata_cfis+4],0     ;LBA  (0-7)
 gs
-mov word[esi+zsata_cfis+5],2048   ;LBA (8-23) nombre d'octet de la commande packet
+mov word[esi+zsata_cfis+5],0   ;LBA (8-23)
 gs
 mov byte[esi+zsata_cfis+7],0     ;device
 gs
