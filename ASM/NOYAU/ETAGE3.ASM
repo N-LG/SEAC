@@ -3083,13 +3083,15 @@ mov ecx,[ad_chaine_travail+16]
 cmp edx,ecx
 ja erreur_cmddef_structure
 sub ecx,edx
+cmp ecx,3FFCh
+ja erreur_cmddef_structure
 
 ;efface l'ancienne definition de chasse
 push ecx
 push edx
 xor eax,eax
 mov edi,ad_tabclav_chasse
-mov ecx,1024
+mov ecx,1000h
 cld
 rep stosd
 pop edx
@@ -4778,7 +4780,7 @@ chasse_suivante:
 cmp dword[ebx],0
 je correspondance_chasse_pastrouve
 add ebx,12
-cmp ebx,ad_tabclav_chasse+1020
+cmp ebx,ad_tabclav_chasse+3FFCh
 jne boucle_recherche_correspondance_chasse
 
 correspondance_chasse_pastrouve:
@@ -4818,7 +4820,7 @@ mov [sv_chas],eax
 jmp bougled
 pas_chasse_trouve:
 add ebx,12
-cmp ebx,ad_tabclav_chasse+1020
+cmp ebx,ad_tabclav_chasse+3FFCh
 jne boucle_recherche_chasse
 
 ajoute_carac_zt:

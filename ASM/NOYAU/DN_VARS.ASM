@@ -40,42 +40,25 @@ seltss equ 83h   ;16
 
 
 
-ad_chaine_travail equ 2000h ;zt de travail des commandes internes, gestion usb, et de la création de tache
 
-ad_nomfichier1 equ 2200h  ;zt uttilisé par la fonction d'ouverture de fichier
-ad_nomfichier2 equ 2400h ;zt uttilisé par la fonction d'ouverture de fichier
+ad_msg_syst equ 1000h ;4ko
+ad_msg_erreur equ 2000h ;8Ko  
 
-index_tabcar equ 2600h ;index des 32 tables de caractères (dword)
-
-index_ecran equ 2700h ;index des 64 ecranS (word)
-
-;???
-
-ad_tabcoul equ 3000h ;1024 octets table de correspondance pour les 256 couleurs
-infovesa equ 3400h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
-
-;???
-
-zt_maj_descp equ 3800h  ;zone tampon pour la mise a jour des descripteur des partitions
-zt_conversion_ucs equ 4000h  ;definition temporaire
-
-zt_disquette equ 4200h          ;zone tampon pour la lecture de secteur sur la disquette et d'envoie de commande a une clef usb
-bootsecteur equ 4400h           ;zone tampon de lecture du MBR et descripteur GPT, du premier secteur d'une partition, et d'un decripteur de CD
-secteurcd equ 4800h             ;zt pour la lecture partielle de secteur CD
-ad_msg_syst equ 5000h ;4ko
-ad_msg_erreur equ 6000h ;8Ko  
-
-
+ad_tabclav_chasse equ 4000h    ;16Kibi max max
 ad_tabclav_code   equ 8000h   ;512 octet
 ;ad_tabclav_usb   equ 8200h    ;inconnu (128 estimé)
 ad_curseur_defaut equ 8600h   ;256 octets
 ad_tabclav_carac  equ 8800h     ;2 fois 2048
-ad_tabclav_chasse equ 9800h    ;2048 max
+
+zt_lminfo equ 09800h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier
 
 
-zt_lminfo equ 0A000h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier
+ad_tabcoul equ 0A000h ;1024 octets table de correspondance pour les 256 couleurs
 
-;???  0A800h
+
+infovesa equ 0A400h ;zone tampon utillisé par les fonction VESA pour y charger les info de la carte ou des modes
+
+;???
 
 ad_desc_periph_usb equ 0B000h 
 dc_desc_periph_usb equ 6 ;element de 64 octets
@@ -98,13 +81,54 @@ usb_commande equ 0E400h
 ;??? 0E600h
 
 
-ad_repertoire equ 13400h  ;adresse du repertoire courant
-ad_repsys     equ 13600h      ;adresse du repertoire système
-zt_rcl        equ 13800h  ;zone de réception touche
-ad_cce        equ 13900h  ;256 octet
-ad_zdc        equ 13A00h  ;512 octet 
-ad_descd      equ 13C00h  ;512 octets
-ad_tss        equ 13E00h ;TSS et IO map (512 + 8196)  2200h
+
+ad_tss        equ 0F200h ;TSS et IO map (512 + 8196)  2200h
+ad_repertoire equ 11400h  ;adresse du repertoire courant
+ad_repsys     equ 11600h      ;adresse du repertoire système
+zt_rcl        equ 11800h  ;zone de réception touche
+ad_cce        equ 11900h  ;256 octet
+ad_zdc        equ 11A00h  ;512 octet 
+ad_descd      equ 11C00h  ;512 octets
+;ad_tabclav_chasse equ 12000h    ;16Kibi max max
+
+
+
+
+ad_chaine_travail equ 12000h ;zt de travail des commandes internes, gestion usb, et de la création de tache
+
+ad_nomfichier1 equ 12200h  ;zt uttilisé par la fonction d'ouverture de fichier
+ad_nomfichier2 equ 12400h ;zt uttilisé par la fonction d'ouverture de fichier
+
+index_tabcar equ 12600h ;index des 32 tables de caractères (dword)
+
+index_ecran equ 12700h ;index des 64 ecranS (word)
+
+;???
+
+
+
+
+zt_maj_descp equ 13800h  ;zone tampon pour la mise a jour des descripteur des partitions
+zt_conversion_ucs equ 14000h  ;definition temporaire
+
+zt_disquette equ 14200h          ;zone tampon pour la lecture de secteur sur la disquette et d'envoie de commande a une clef usb
+bootsecteur equ 14400h           ;zone tampon de lecture du MBR et descripteur GPT, du premier secteur d'une partition, et d'un decripteur de CD
+secteurcd equ 14800h             ;zt pour la lecture partielle de secteur CD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ad_descp      equ 16000h ;8kibi 128*64
 
 
