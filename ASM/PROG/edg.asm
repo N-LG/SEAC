@@ -568,6 +568,23 @@ mov eax,0A19h
 int 63h
 
 
+;affiche le fond de l'espace d'édition
+mov ebx,[resx_carac]
+shl ebx,4
+add ebx,40
+mov ecx,40
+mov esi,ebx
+mov edi,ecx
+mov eax,[resx_carac]
+shl eax,4
+add esi,eax
+mov eax,[resy_carac]
+shl eax,4
+add edi,eax
+mov edx,3 ;bleu
+mov eax,0816h
+int 63h
+
 ;affiche le caractère en grand
 mov esi,data_carac
 mov eax,[cury]
@@ -581,7 +598,6 @@ xor edx,edx
 mov ecx,[resy_carac]
 mul ecx
 add esi,eax
-
 
 mov ebx,[resx_carac]
 shl ebx,5
@@ -597,22 +613,30 @@ mov [pixel_ligne],eax
 mov edx,[esi]
 
 boucle_ligne2:
+mov eax,0
 test edx,1
-jz pas_pixel2
+jz @f
+mov eax,7
+@@:
+push ebx
+push ecx
 push edx
 push esi
 push edi
-mov edx,7
+mov edx,eax
 mov eax,0816h
 mov esi,ebx
 mov edi,ecx
-add esi,16
-add edi,16
+add esi,15
+add edi,15
+inc ebx
+inc ecx
 int 63h
 pop edi
 pop esi
 pop edx
-pas_pixel2:
+pop ecx
+pop ebx
 sub ebx,16
 shr edx,1
 dec dword[pixel_ligne]
@@ -717,7 +741,9 @@ cmp al,100
 je edition
 
 cmp al,0F0h
-je clique_souris
+je clique_souris1
+cmp al,0F2h
+je clique_souris2
 
 jmp touche_boucle
 
@@ -864,7 +890,7 @@ jmp aff_table
 
 
 
-clique_souris:
+clique_souris1:
 mov byte[mode],0
 
 cmp ebx,40
@@ -937,7 +963,84 @@ pop eax
 sub cl,al
 dec cl
 shl edx,cl
-xor [esi],edx
+or [esi],edx
+jmp aff_table
+
+
+
+
+
+
+
+
+
+
+clique_souris2:
+
+mov byte[mode],0
+
+cmp ebx,40
+jb aff_table
+cmp ecx,40
+jb aff_table
+
+
+mov eax,[resx_carac]
+shl eax,5
+add eax,40
+cmp ebx,eax
+jae aff_table
+mov eax,[resy_carac]
+shl eax,4
+add eax,40
+cmp ecx,eax
+jae aff_table
+
+mov eax,[resx_carac]
+shl eax,4
+add eax,40
+cmp ebx,eax
+jb aff_table
+
+
+
+sub ebx,40
+mov eax,[resx_carac]
+shl eax,4
+sub ebx,eax
+sub ecx,40
+shr ebx,4
+shr ecx,4
+push ebx
+push ecx
+
+mov esi,data_carac
+mov eax,[cury]
+shl eax,4
+add eax,[curx]
+xor edx,edx
+mov ecx,[resx_carac]
+shr ecx,3
+mul ecx
+xor edx,edx
+mov ecx,[resy_carac]
+mul ecx
+add esi,eax
+
+pop eax
+mov ecx,[octet_par_ligne]
+xor edx,edx
+mul ecx
+add esi,eax
+
+mov edx,1
+mov cl,[resx_carac]
+pop eax
+sub cl,al
+dec cl
+shl edx,cl
+not edx
+and [esi],edx
 jmp aff_table
 
 
@@ -1040,8 +1143,9 @@ cmp al,100
 je modif_pix
 
 cmp al,0F0h
-je clique_souris
-
+je clique_souris1
+cmp al,0F2h
+je clique_souris2
 jmp touche_boucle2
 
 
