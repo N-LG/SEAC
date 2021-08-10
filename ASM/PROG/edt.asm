@@ -861,7 +861,7 @@ je ignore_insert4carac
 mov edi,[taille_fichier]
 mov esi,edi
 dec esi
-add edi,4
+add edi,3
 mov ax,sel_dat2
 mov ds,ax
 std  ;-
@@ -1977,26 +1977,10 @@ cmp eax,0
 jne echec_lecture
 
 
-mov eax,[taille_fichier]
-shr eax,2 ;div par 4
-add eax,[taille_fichier]
-cmp eax,2048
-jae pas_taille_mini
-mov eax,2048
-pas_taille_mini:
-mov [taille_zone],eax     ;calcul la taille de la ZT nécessaire (+25% par rapport a la taille du fichier)
-
-
 ;determine si la taille du fichier n'est pas trop importante
+;???????????????????????????????????
 
-;change la taille du sel_dat2 pour qu'elle corresponde a la taille du fichier
-mov dx,sel_dat2
-mov ecx,[taille_zone]
-mov al,8
-int 61h
-cmp eax,0
-jne fin_err_mem
-
+call verif_zt
 
 ;lire fichier
 mov ebx,[num_fichier]
@@ -2175,9 +2159,10 @@ add eax,[taille_fichier]
 cmp [taille_zone],eax 
 jae fin_verif_zt    
 
-;calcul la taille de la ZT nécessaire (+25% par rapport a la taille du fichier)
+;calcul la taille de la ZT nécessaire (+25% par rapport a la taille du fichier +4Ko)
 mov eax,[taille_fichier]
 shr eax,2 ;div par 4
+add eax,4096
 add eax,[taille_fichier]
 mov [taille_zone],eax 
 
@@ -2189,6 +2174,10 @@ int 61h
 fin_verif_zt:
 popad
 ret
+
+
+
+
 
 
 ;******************************************
@@ -2235,7 +2224,6 @@ mov ax,[esi]
 inc esi
 cmp al,0
 je fin_rech_ligne
-inc esi
 cmp ax,0D0Ah
 je rech_ligne_f2
 cmp ax,0A0Dh
