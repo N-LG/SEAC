@@ -22,6 +22,44 @@ int 61h
 cmp byte[recherche],0
 je erreur_param
 
+
+;lit le nom du serveur a interroger spécifiquement (param optionel)
+mov al,5
+mov ah,"s" 
+mov cl,0 ;0=256 octet max
+mov edx,tempo
+mov byte[tempo],0
+int 61h
+cmp byte[tempo],0
+je @f
+
+mov al,109  
+mov edx,tempo
+mov ecx,serveurs_dns
+int 61h
+mov dword[serveurs_dns+4],0
+@@:
+
+
+;lit le numéros du type de requete (param optionel)
+mov al,5
+mov ah,"t" 
+mov cl,0 ;0=256 octet max
+mov edx,tempo
+mov byte[tempo],0
+int 61h
+cmp byte[tempo],0
+je @f
+
+mov al,100  
+mov edx,tempo
+int 61h
+;cmp ecx,0
+;je @f
+mov [no_requete],cx
+@@:
+
+
 ;génère un numéros de port local pseudo aléatoirement
 mov eax,9
 int 61h
@@ -121,6 +159,8 @@ boucle_test_different_serveur:
 mov word[port_out],53
 mov ebx,[index_serveur]
 mov eax,[ebx]
+cmp eax,0
+je fin
 mov [ipv4_out],eax
 
 
@@ -165,8 +205,11 @@ mov [esi],al
 mov byte[edi],0
 inc edi
 
-mov word[edi],100h       ;type (ordre inversé)
-mov word[edi+2],100h     ;classe (ordre inversé)
+mov ax,[no_requete]
+xchg al,ah
+mov word[edi],ax       ;type (ordre inversé)
+mov word[edi+2],100h     ;classe internet(ordre inversé)
+
 
 
 ;envoie la requete dns
@@ -183,11 +226,10 @@ jne erreur_ouv_port
 ;attend serveur réponse
 mov al,9
 mov ebx,[adresse_canal]
-mov ecx,200
+mov ecx,300
 int 65h
 cmp eax,cer_ddi
 je okdata
-
 
 
 ;si temps écoulé renvoie la demande a un autre serveur
@@ -218,11 +260,9 @@ int 61h
 
 
 add dword[index_serveur],4
-cmp dword[index_serveur],fin_serveurs_dns
-jne boucle_test_different_serveur
+jmp boucle_test_different_serveur
 
-;si tout serveur passé fin
-int 60h
+
 
 ;***********************
 erreur_ouv_port:
@@ -239,6 +279,18 @@ mov al,6
 int 61h
 int 60h
 
+
+
+;***********
+fin:
+int 60h
+
+
+
+
+
+
+
 ;************************
 ;lecture et affichage info réponse
 okdata:
@@ -250,6 +302,11 @@ int 65h
 cmp eax,0
 jne erreur_ouv_port
 
+
+
+mov ax,[qdcount]   ;remet dans l'ordre le qdswer count
+xchg al,ah
+mov [qdcount],ax
 
 mov ax,[ancount]   ;remet dans l'ordre le answer count
 xchg al,ah
@@ -282,16 +339,231 @@ mov al,6
 int 61h
 
 mov ebx,requete_dns+12
+@@:    ;on passe les question
 call passer_nom_rr
-add ebx,4   ;on passe la question
-
+add ebx,4   
+dec word [qdcount]
+jnz @b
 
 boucle_affichage:    ;affichage des réponses
 mov edx,ebx
 call passer_nom_rr
 cmp dword[ebx],1000100h
-jne suite_boucle_affichage
+je affichage_ipv4
+cmp dword[ebx],1001C00h
+je affichage_ipv6
+cmp dword[ebx],1000200h
+je affichage_ns
+cmp dword[ebx],1000F00h
+je affichage_mx
+cmp dword[ebx],1001000h
+je affichage_txt
+cmp dword[ebx],1000500h
+je affichage_cname
+cmp dword[ebx],1000600h
+je affichage_soa
 
+
+
+
+;affiche les RR inconnus
+call affiche_nom_rr
+
+mov edx,msg_rep6
+mov al,6        
+int 61h
+
+xor ecx,ecx
+mov cx,[ebx]
+xchg cl,ch
+mov edx,tempo
+mov al,102
+int 61h
+mov edx,tempo
+mov al,6
+int 61h
+
+mov edx,msg_rep7
+mov al,6        
+int 61h
+
+xor ecx,ecx
+mov esi,ebx
+mov cx,[ebx+8]
+add esi,10
+xchg cl,ch
+
+@@:
+push ecx
+mov cl,[esi]
+mov edx,tempo
+mov al,105
+int 61h
+mov edx,tempo
+mov al,6
+int 61h
+mov edx,msg_espace
+mov al,6
+int 61h
+pop ecx
+inc esi
+dec ecx
+jnz @b
+
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+
+;**************
+affichage_ns:
+call affiche_nom_rr
+
+mov edx,msg_rep_ns
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,10
+call affiche_nom_rr
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+;**************
+affichage_mx:
+call affiche_nom_rr
+
+mov edx,msg_rep_mx
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,12
+call affiche_nom_rr
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+;**************
+affichage_txt:
+call affiche_nom_rr
+
+mov edx,msg_rep_txt
+mov al,6        
+int 61h
+
+xor ecx,ecx
+mov edx,ebx
+add edx,10
+mov esi,edx
+mov edi,edx
+inc esi
+mov cl,[edx]
+cld
+rep movsb
+mov byte[edi],0
+
+mov al,6        
+int 61h
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+;**************
+affichage_soa:
+call affiche_nom_rr
+
+mov edx,msg_rep_soa
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,10
+call affiche_nom_rr
+
+mov edx,msg_espace
+mov al,6        
+int 61h
+
+push ebx
+add ebx,10
+call passer_nom_rr
+mov edx,ebx
+pop ebx
+call affiche_nom_email
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+
+;**************
+affichage_cname:
+call affiche_nom_rr
+
+mov edx,msg_rep_cname
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,10
+call affiche_nom_rr
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+
+
+;**************
+affichage_ipv6:
+call affiche_nom_rr
+
+mov edx,msg_rep4
+mov al,6        
+int 61h
+
+mov ecx,ebx
+add ecx,10
+mov edx,tempo
+mov al,113
+int 61h
+mov edx,tempo
+mov al,6
+int 61h
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+;*****************
+affichage_ipv4:
 call affiche_nom_rr
 
 mov edx,msg_rep4
@@ -311,6 +583,8 @@ mov edx,msg_rep5
 mov al,6        
 int 61h
 
+
+;********************
 suite_boucle_affichage:
 xor eax,eax
 add ebx,8
@@ -395,8 +669,70 @@ jmp boucle_afficher_nom
 
 
 fin_afficher_nom:
+mov eax,ebx
+inc eax
 pop ebx
 ret
+
+
+
+;************************
+affiche_nom_email:
+push ebx
+mov ebx,edx
+
+boucle_afficher_email:
+mov al,[ebx]
+cmp al,0
+je fin_afficher_email
+and al,0C0h
+cmp al,0C0h
+je saut_afficher_email
+xor eax,eax
+mov al,[ebx]
+inc ebx
+mov edx,ebx
+add ebx,eax
+mov ah,0
+
+xchg [ebx],ah
+push eax
+mov al,6        
+int 61h
+pop eax
+xchg [ebx],ah
+
+cmp byte[ebx],0
+je fin_afficher_email
+mov edx,msg_point
+mov al,6
+int 61h
+jmp boucle_afficher_email
+
+
+saut_afficher_email:
+mov ax,[ebx]
+xchg al,ah
+and eax,03FFFh
+mov ebx,requete_dns
+add ebx,eax
+jmp boucle_afficher_email
+
+
+fin_afficher_email:
+mov eax,ebx
+inc eax
+pop ebx
+ret
+
+
+
+
+
+
+
+
+
 
 
 
@@ -411,12 +747,14 @@ index_serveur:
 dd 0
 local_port:
 dw 0
+no_requete:
+dw 255
 
 
 msg_err1:
 db "CDNS: erreur lors de l'ouverture du port UDP",13,0
 msg_err2:
-db "CDNS: erreur dans la commande, sytaxe correct: cdns X YYYY",13
+db "CDNS: erreur dans la commande, sytaxe correct: cdns X YYY",13
 db "X   = numéros de l'interface réseau",13
 db "YYY = nom de domaine recherché",13,0
 
@@ -438,8 +776,33 @@ db " = ",0
 msg_rep5:
 db 13,0
 
+msg_rep6:
+db " [",0
+msg_rep7:
+db "] ",0
+
+
+msg_rep_hinfo:
+db " [HINFO] ",0
+msg_rep_ns:
+db " [NS] ",0
+msg_rep_mx:
+db " [MX] ",0
+msg_rep_txt:
+db " [TXT] ",0
+msg_rep_soa:
+db " [SOA] ",0
+msg_rep_caa:
+db " [CAA] ",0
+msg_rep_cname:
+db " [CNAME] ",0
+
+
+
 msg_point:
 db ".",0
+msg_espace:
+db "  ",0
 
 msg_nrep1:
 db "CDNS: le serveur ",0
@@ -460,7 +823,7 @@ db 64,6,65,6
 ;fdn
 db 80,67,169,12
 db 80,67,169,40
-fin_serveurs_dns:
+db 0,0,0,0
 
 
 
