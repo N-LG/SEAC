@@ -288,6 +288,10 @@ cmp byte[ebx]," "
 jne suite_sfs_obt_optn
 cmp byte[ebx+1]," "
 je suite_sfs_obt_optn
+cmp byte[ebx+1],34  ;code ascii du "
+je suite2_sfs_obt_optn
+cmp byte[ebx+1],"-"
+je suite3_sfs_obt_optn
 cmp ah,0
 je opt_sfs_obt_optn
 dec ah
@@ -307,10 +311,37 @@ pop ebx
 mov eax,cer_parami
 iret
 
+
+suite2_sfs_obt_optn:
+cmp ah,0
+je opt_sfs_obt_optn
+dec ah
+add ebx,2
+boucle4_sfs_obt_optn:
+cmp byte[ebx],34  ;code ascii du "
+je suite_sfs_obt_optn
+cmp byte[ebx],0
+je erprm__sfs_obt_optn
+inc ebx
+jmp boucle4_sfs_obt_optn
+
+
+suite3_sfs_obt_optn:
+cmp ah,0
+je opt_sfs_obt_optn
+dec ah
+cmp byte[ebx+1]," "
+je suite_sfs_obt_optn
+cmp word[ebx+2],223Ah   ;code ascii du :"
+je suite_sfs_obt_optn
+add ebx,4
+jmp boucle4_sfs_obt_optn
+
+
 opt_sfs_obt_optn:
 inc ebx
 dec cl
-cmp byte[ebx],22h
+cmp byte[ebx],34  ;code ascii du "
 je apost_sfs_obt_optn
 
 
@@ -408,8 +439,27 @@ cmp byte[ebx]," "
 je fin_sfs_obt_optl
 cmp byte[ebx],":"
 jne erreur_sfs_obt_optl
+inc ebx
+cmp byte[ebx],34   ;code ascii du "
+jne boucle3_sfs_obt_optl
+inc ebx
 
 boucle2_sfs_obt_optl:
+mov al,[ebx]
+cmp al,0
+je fin_sfs_obt_optl
+cmp al,34  ;code ascci du "
+je fin_sfs_obt_optl
+es
+mov [edx],al
+inc ebx
+inc edx
+dec cl
+jnz boucle2_sfs_obt_optl
+jmp fin_sfs_obt_optl
+
+
+boucle3_sfs_obt_optl:
 mov al,[ebx]
 cmp al,0
 je fin_sfs_obt_optl
@@ -420,7 +470,7 @@ mov [edx],al
 inc ebx
 inc edx
 dec cl
-jnz boucle2_sfs_obt_optl
+jnz boucle3_sfs_obt_optl
 
 fin_sfs_obt_optl:
 es
