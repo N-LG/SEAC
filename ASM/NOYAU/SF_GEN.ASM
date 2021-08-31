@@ -286,6 +286,8 @@ add esi,200h
 boucle1_sfs_obt_optn:
 cmp byte[ebx]," "
 jne suite_sfs_obt_optn
+cmp byte[ebx+1],0
+je erprm__sfs_obt_optn
 cmp byte[ebx+1]," "
 je suite_sfs_obt_optn
 cmp byte[ebx+1],34  ;code ascii du "
@@ -330,11 +332,11 @@ suite3_sfs_obt_optn:
 cmp ah,0
 je opt_sfs_obt_optn
 dec ah
-cmp byte[ebx+1]," "
+cmp byte[ebx+2]," "
 je suite_sfs_obt_optn
-cmp word[ebx+2],223Ah   ;code ascii du :"
-je suite_sfs_obt_optn
-add ebx,4
+cmp word[ebx+3],223Ah   ;code ascii du :"
+jne suite_sfs_obt_optn
+add ebx,5
 jmp boucle4_sfs_obt_optn
 
 
@@ -343,14 +345,19 @@ inc ebx
 dec cl
 cmp byte[ebx],34  ;code ascii du "
 je apost_sfs_obt_optn
-
+cmp byte[ebx],"-"
+jne boucle2_sfs_obt_optn
+cmp byte[ebx+1]," "
+je boucle2_sfs_obt_optn
+cmp word[ebx+2],223Ah   ;code ascii du :"
+je lettre_sfs_obt_optn
 
 boucle2_sfs_obt_optn:
 mov al,[ebx]
 cmp al,0
-je fin__sfs_obt_optn
+je fin_sfs_obt_optn
 cmp al," "
-je fin__sfs_obt_optn
+je fin_sfs_obt_optn
 es
 mov [edx],al
 inc ebx
@@ -358,7 +365,7 @@ inc edx
 dec cl
 jnz boucle2_sfs_obt_optn
 
-fin__sfs_obt_optn:
+fin_sfs_obt_optn:
 es
 mov byte[edx],0
 pop es
@@ -371,24 +378,43 @@ xor eax,eax
 iret
 
 
-apost_sfs_obt_optn:   ;option entres guillement
+apost_sfs_obt_optn:   ;option entre guillement
 inc ebx
 boucle3_sfs_obt_optn:
 mov al,[ebx]
 cmp al,0
-je erprm__sfs_obt_optn
+je fin_sfs_obt_optn
 cmp al,22h
-je fin__sfs_obt_optn
+je fin_sfs_obt_optn
 es
 mov [edx],al
 inc ebx
 inc edx
 dec cl
 jnz boucle3_sfs_obt_optn
-jmp fin__sfs_obt_optn 
+jmp fin_sfs_obt_optn 
 
 
 
+lettre_sfs_obt_optn:   ;option avec lettre et entre guillement
+mov eax,[ebx]
+es
+mov [edx],eax
+add ebx,4
+add edx,4
+boucle5_sfs_obt_optn:
+mov al,[ebx]
+cmp al,0
+je fin_sfs_obt_optn
+es
+mov [edx],al
+inc ebx
+inc edx
+cmp al,22h
+je fin_sfs_obt_optn
+dec cl
+jnz boucle5_sfs_obt_optn
+jmp fin_sfs_obt_optn 
 
 
 
@@ -416,8 +442,13 @@ add esi,200h
 mov al,"-"
 
 boucle1_sfs_obt_optl:
-cmp [ebx],ax
+cmp byte[ebx],34  ;code ascci du "
+je ignore_sfs_obt_optl
+cmp byte[ebx]," "
+jne @f
+cmp [ebx+1],ax
 je opt_sfs_obt_optl
+@@:
 inc ebx
 cmp ebx,esi
 jne boucle1_sfs_obt_optl
@@ -428,11 +459,21 @@ pop esi
 pop edx
 pop ecx
 pop ebx
-xor eax,eax
+mov eax,cer_parami
 iret
 
+ignore_sfs_obt_optl:
+inc ebx
+cmp byte[ebx],0
+je erreur_sfs_obt_optl
+cmp byte[ebx],34  ;code ascci du "
+jne ignore_sfs_obt_optl
+inc ebx
+jmp boucle1_sfs_obt_optl
+
+
 opt_sfs_obt_optl:
-add ebx,2
+add ebx,3
 cmp byte[ebx],0
 je fin_sfs_obt_optl
 cmp byte[ebx]," "
