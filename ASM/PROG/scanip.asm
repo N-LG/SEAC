@@ -1,7 +1,7 @@
-﻿bidon:
+﻿scanip:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
-db "Trace route ICMP"
+db "scanner par ping ICMP"
 scode:
 org 0
 
@@ -33,7 +33,7 @@ mov edx,zt_recep
 int 61h
 xor ebx,ebx
 cmp eax,0
-jne @f
+je @f
 
 mov al,100  
 mov edx,zt_recep
@@ -56,7 +56,7 @@ mov [id_tache],ax
 
 
 ;**************************************************************
-;determine ip cible
+;determine ip cible debut
 mov byte[zt_recep],0
 
 mov al,4   
@@ -71,44 +71,40 @@ je err_param
 
 mov al,109  
 mov edx,zt_recep
-mov ecx,adresse_cible
+mov ecx,adresse_cible_debut
 int 61h
 
-cmp dword[adresse_cible],0
+cmp dword[adresse_cible_debut],0
 je err_param
 
 
 
 ;**************************************************************
-;determine le nombre de sauts maximum
+;determine ip cible fin
 mov byte[zt_recep],0
 
-mov al,5   
-mov ah,"s"   ;lettre de l'option de commande a lire
+mov al,4   
+mov ah,1   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-cmp eax,0
-jne ignore_param2
+
+cmp byte[zt_recep],0
+je err_param
 
 
-mov al,100  
+mov al,109  
 mov edx,zt_recep
+mov ecx,adresse_cible_fin
 int 61h
 
-cmp ecx,0
+cmp dword[adresse_cible_fin],0
 je err_param
-test ecx,0FFFFFF00h
-jnz err_param
-
-mov [nb_saut],cl
-
-ignore_param2:
 
 
 
 ;**************************************************************
-;determine le nombre d'essaies par étape
+;determine nombre de ping
 mov byte[zt_recep],0
 
 mov al,5   
@@ -117,8 +113,7 @@ mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
 cmp eax,0
-jne ignore_param3
-
+jne ignore_param2
 
 mov al,100  
 mov edx,zt_recep
@@ -129,11 +124,9 @@ je err_param
 test ecx,0FFFFFF00h
 jnz err_param
 
-mov [nb_essais],cl
-mov [ping_erreur],cl
-ignore_param3:
+mov [nb_ping],cl
 
-
+ignore_param2:
 
 ;***********************************************************
 ;etablire une connexion
@@ -146,7 +139,7 @@ mov edi,2000
 int 65h
 mov [adresse_canal],ebx
 
-;configure
+;configure 69
 mov byte[zt_recep],9
 
 mov al,5
@@ -187,7 +180,7 @@ mov edx,msg0a
 int 61h
 
 mov al,112
-mov ecx,adresse_cible
+mov ecx,adresse_cible_debut
 mov edx,tempo
 int 61h
 mov al,6        
@@ -198,6 +191,30 @@ mov al,6
 mov edx,msg0b
 int 61h
 
+mov al,112
+mov ecx,adresse_cible_fin
+mov edx,tempo
+int 61h
+mov al,6        
+mov edx,tempo
+int 61h
+
+mov al,6
+mov edx,msg0c
+int 61h
+
+
+
+
+mov eax,[adresse_cible_debut]
+mov [adresse_actuelle],eax
+
+
+
+
+
+
+
 
 
 ;**************************************************************
@@ -205,10 +222,8 @@ int 61h
 boucle_principale:
 
 ;prépare commande
-mov al,[no_saut]
-mov [zt_recep],al        ;ttl
-mov byte[zt_recep+1],0
-mov eax,[adresse_cible]
+mov word[zt_recep],128        ;ttl
+mov eax,[adresse_actuelle]
 mov [zt_recep+2],eax           ;adresse ipv4
 mov dword[zt_recep+6],0        ;adresse ipv6
 mov dword[zt_recep+10],0
@@ -231,13 +246,6 @@ mov dword[zt_recep+54],"ITAT"
 mov dword[zt_recep+58],"ION "
 mov dword[zt_recep+62],"SEaC"
 
-
-;lit le compteur temp
-mov eax,12          
-int 61h
-mov[cptsf],eax
-
-
 ;envoie le message
 mov al,7
 mov ebx,[adresse_canal]
@@ -246,14 +254,14 @@ mov esi,zt_recep
 int 65h
 
 
+
 ;attend la réponse
-mov ecx,600
-continue_attente:
+mov ecx,25
 mov al,9
 mov ebx,[adresse_canal]
 int 65h
 cmp eax,cer_ddi
-jne erreur_ping
+jne suite_boucle
 
 
 ;lit la réponse
@@ -265,30 +273,11 @@ int 65h
 
 
 ;vérifie validité du résultat
-mov ecx,600
-mov eax,12          
-int 61h
-sub eax,[cptsf]
-sub ecx,eax
-cmp word[zt_recep+22],0   ;si c'est une réponse a un echo c'est la fin
-je destination_trouve 
-cmp word[zt_recep+22],11   ;si c'est un timeout c'est pour nous
-jne continue_attente
-mov eax,[adresse_cible]   ;si c'était bien pour la destination c'est ok
-cmp [zt_recep+30+16],eax
-jne continue_attente
+cmp word[zt_recep+22],0
+jne suite_boucle
 
 
 ;affiche le résultat
-mov al,102
-xor ecx,ecx
-mov cl,[no_saut]
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
 mov al,6
 mov edx,msg1a
 int 61h
@@ -302,75 +291,47 @@ mov edx,tempo
 int 61h
 
 mov al,6
-mov edx,msg_crlf
+mov edx,msg1b
 int 61h
+
+
+
 
 
 
 suite_boucle:
-mov al,[nb_essais]
-mov [ping_erreur],al
-mov al,[nb_saut]
-inc al
-inc byte[no_saut]
+mov al,[nb_ping]
+inc byte[ping_effectue]
 inc word[sequence]
-cmp byte[no_saut],al
+cmp byte[ping_effectue],al
 jne boucle_principale
+mov eax,[adresse_actuelle]
+cmp eax,[adresse_cible_fin]
+je suite_operation 
+mov eax,[adresse_actuelle]
+bswap eax
+inc eax
+bswap eax
+mov [adresse_actuelle],eax
+mov byte[ping_effectue],0
+jmp boucle_principale
 
 
+suite_operation:
+mov eax,12          
+int 61h
+add eax,800
+mov [cptsf],eax
+
+
+boucle_secondaire:
+
+
+
+;affiche la synthèse
 mov al,6
-mov edx,msg_fin
+mov edx,msg2a
 int 61h
-
-int 60h
-
-;si pas de réponse affiche un message d'erreur
-erreur_ping:  
-mov al,102
-xor ecx,ecx
-mov cl,[no_saut]
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov al,6
-mov edx,msg2
-int 61h
-dec byte[ping_erreur]
-jnz boucle_principale
-jmp suite_boucle
-
-
-;on est arrivé au destinataire final
-destination_trouve:
-mov al,102
-xor ecx,ecx
-mov cl,[no_saut]
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov al,6
-mov edx,msg3a
-int 61h
-
-mov al,112
-mov ecx,zt_recep+2
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov al,6
-mov edx,msg_crlf
-int 61h
-
-
 
 int 60h
 
@@ -396,57 +357,53 @@ id_tache:
 dw 0
 adresse_canal:
 dd 0
-adresse_cible:
+adresse_cible_debut:
 dd 0
-nb_saut:
-db 40
-nb_essais:
-db 4
+adresse_cible_fin:
+dd 0
+adresse_actuelle:
+dd 0
+
 sequence:
 dw 0
 cptsf:
 dd 0
-no_saut:
+
+nb_ping:
 db 1
-ping_erreur:
-db 4
+ping_effectue:
+db 0
 
 
 msg0a:
-db 13,"TRACE: test du chemin de connexion vers ",0
+db 13,"SCANIP: début du balayage de l'adresse ",0
 msg0b:
+db " à l'adresse ",0
+msg0c:
 db 13,0
-
-msg2:
-db " Délais d'attente de réponse dépassé",13,0
-
-
 
 msg1a:
-db " intermédiaire ",0
-
-msg3a:
-db " destinataire! ",0
-
-
-msg_crlf:
+db "Réponse de l'adresse ",0
+msg1b:
 db 13,0
 
+msg2a:
+db "SCANIP: fin du balayage",13,0
 
-msg_fin:
-db "TRACE: la destination n'as pas put être atteinte",13,0
+
 
 
 msg_err1:
-db "TRACE: erreur dans la commande, sytaxe correct: trace [nom] [-c:X] [-s:X] [-t:X] ",13
-db "[nom]  nom du serveur a rechercher",13 
+db "SCANIP: erreur de parametres, syntaxe correcte: scanip [nom] [-c:X] [-s:X] [-t:X] ",13
+db "[adresse debut]  adresse du début de la plage d'adresse a tester",13
+db "[adresse fin]  adresse de la fin de la plage d'adresse a tester",13 
 db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-s:X] nombre de saut maximum (champ optionnel, 40 par défaut)",13
-db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0 
+db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0  
+
 
 
 msg_err2:
-db "TRACE: erreur lors de la communication avec l'interface réseau",13,0
+db "SCANIP: erreur lors de la communication avec l'interface réseau",13,0
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0

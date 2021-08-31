@@ -24,20 +24,21 @@ mov es,ax
 ;determine l'id du service ethernet
 mov byte[zt_recep],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-cmp byte[zt_recep],0
-je aff_err_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,zt_recep
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
+@@:
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
@@ -57,7 +58,7 @@ mov [id_tache],ax
 mov byte[zt_recep],0
 
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
@@ -78,26 +79,19 @@ mov [dossier_lecture],ebx
 
 
 ;**************************************************************
-;ouvre dossier d'écriture
+;test si l'écriture est autorisé
 mov byte[zt_recep],0
 
-mov al,4   
-mov ah,2   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"w"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
+cmp eax,0
+jne ignore_ecriture
 
-cmp byte[zt_recep],0
-je ignore_ecriture
-
-xor eax,eax
-mov bx,0
-mov edx,zt_recep
-int 64h
-cmp eax,cer_dov
-jne aff_err_ouve
-
-mov [dossier_ecriture],ebx
+mov eax,[dossier_lecture]
+mov [dossier_ecriture],eax
 
 ignore_ecriture:
 
@@ -926,10 +920,10 @@ db 13,"STFTP: impossible d'ouvrir le dossier d'écriture",13,0
 
 msgaide:
 db "format de la commande SFTP:",13
-db "STFTP [X] [repertoire lecture] [repertoire ecriture]",13
-db "[X] numéros de l'interface sur laquelle brancher le serveur TFTP",13
-db "[repertoire lecture]  contient fichier disponible a la lecture",13 
-db "[repertoire écriture] contient fichier qui seront reçu (champ optionnel)",13,0 
+db "STFTP [repertoire] [-c:X] [-w] ",13
+db "[repertoire]  contient fichier disponible a la lecture",13 
+db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
+db "[-w] autorise aussi l'écriture de fichier(champ optionnel)",13,0 
 
 
 msgcoder0A:

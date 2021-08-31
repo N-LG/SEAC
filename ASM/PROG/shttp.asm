@@ -45,20 +45,21 @@ int 61h
 ;determine l'id du service ethernet
 mov byte[zt_decode],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_decode
 int 61h
-
-cmp byte[zt_decode],0
-je aff_err_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,zt_decode
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
+@@:
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
@@ -76,7 +77,7 @@ mov [id_tache],ax
 mov byte[zt_decode],0
 
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_decode
 int 61h
@@ -845,7 +846,12 @@ db "SHTTP: serveur HTTP démarré",13,0
 
 msg_er0:
 db "SHTTP: erreur dans la sytaxe de la ligne de commande",13
-db "format correcte: SHTTP [numéros d'interface reseau] [adresse du dossier des fichier]",0
+db "format correcte: SHTTP [repertoire] [-c:X]",13
+db "[repertoire]  contient les fichier du site a afficher",13 
+db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13,0
+
+
+
 
 msg_er1:
 db "SHTTP: erreur lors de l'ouverture du dossier des fichier du site",13,0

@@ -27,8 +27,8 @@ int 61h
 ;selectionne port a utiliser
 mov byte[zt_transfert],0
 
-mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"p"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_transfert
 int 61h
@@ -54,20 +54,21 @@ ignore_choix_port:
 ;determine l'id du service ethernet
 mov byte[zt_transfert],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_transfert
 int 61h
-
-cmp byte[zt_transfert],0
-je erreur_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,zt_transfert
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
+@@:
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
@@ -561,14 +562,14 @@ jmp suite_formatage
 ;***********************************
 erreur_init:
 mov edx,msgnok1
-mov al,6        
+mov al,6
 int 61h
 int 60h
 
 
 erreur_param:
 mov edx,msgnok2
-mov al,6        
+mov al,6
 int 61h
 int 60h
 
@@ -605,10 +606,8 @@ db "STLNT: connexion par ",0
 msgnok1:
 db "STLNT: erreur lors de l'ouverture du port",13,0
 msgnok2:
-db "STLNT: erreur dans les parametre de la ligne de commande, format correcte:",13
-db "STFTP [X] [Y]",13
-db "[X] numéros de l'interface sur laquelle brancher le serveur TFTP",13
-db "[Y] numéros du port a ouvrir (optionnel, si différent du port standard 23)",13,0 
+db "STLNT: numéros de port selectionné incorrecte",13,0
+
 
 debut_cmd:
 db "-->"

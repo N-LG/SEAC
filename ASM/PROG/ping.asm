@@ -26,19 +26,20 @@ mov [sequence],ax
 ;determine l'id du service ethernet
 mov byte[zt_recep],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-cmp byte[zt_recep],0
-je err_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,zt_recep
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
+@@:
 
 mov al,11
 mov ah,6     ;code service 
@@ -59,13 +60,12 @@ mov [id_tache],ax
 mov byte[zt_recep],0
 
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-cmp byte[zt_recep],0
-je err_param
+cmp eax,0
+jne err_param
 
 
 mov al,109  
@@ -82,14 +82,13 @@ je err_param
 ;determine nombre de ping
 mov byte[zt_recep],0
 
-mov al,4   
-mov ah,2   ;numéros de l'option de commande a lire
+mov al,5
+mov ah,"t"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-cmp byte[zt_recep],0
-je ignore_param2
+cmp eax,0
+jne ignore_param2
 
 
 mov al,100  
@@ -430,10 +429,10 @@ db 13,0
 
 
 msg_err1:
-db "PING: erreur de parametres, syntaxe correcte: ping X YYY ZZ",13
-db "X   = numéros de l'interface réseau",13
-db "YYY = adresse de la cible",13
-db "ZZ  = nombre de test a effectuer",13,0
+db "PING: erreur de parametres, syntaxe correcte: ping [nom] [-c:X] [-s:X] [-t:X] ",13
+db "[nom]  nom du serveur a joindre",13 
+db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
+db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0 
 
 msg_err2:
 db "PING: erreur lors de la communication avec l'interface réseau",13,0

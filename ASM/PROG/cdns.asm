@@ -15,7 +15,7 @@ mov es,ax
 
 ;lit le nom du destinataire a rechercher
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,recherche
 int 61h
@@ -77,20 +77,21 @@ mov [requete_dns],ax   ;et un numéros de requete
 ;determine l'id du service ethernet
 mov byte[data_dns],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,data_dns
 int 61h
-
-cmp byte[data_dns],0
-je erreur_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,data_dns
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
+@@:
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
@@ -754,14 +755,11 @@ dw 255
 msg_err1:
 db "CDNS: erreur lors de l'ouverture du port UDP",13,0
 msg_err2:
-db "CDNS: erreur dans la commande, sytaxe correct: cdns X YYY",13
-db "X   = numéros de l'interface réseau",13
-db "YYY = nom de domaine recherché",13,0
-
-
-
-
-
+db "CDNS: erreur dans la commande, sytaxe correct: cdns [nom] [-c:X] [-s:X] [-t:X] ",13
+db "[nom]  nom du serveur a rechercher",13 
+db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
+db "[-s:X] serveur a interroger (champ optionnel, liste interne par défaut)",13
+db "[-t:X] type de RR demandé (champ optionnel, ANY/255 par défaut)",13,0 
 
 
 

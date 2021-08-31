@@ -28,20 +28,21 @@ mov [port_local],ax
 ;determine l'id du service ethernet
 mov byte[zt_recep],0
 
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
+mov al,5   
+mov ah,"c"   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
-
-cmp byte[zt_recep],0
-je aff_err_param
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,zt_recep
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
+@@:
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
@@ -61,7 +62,7 @@ mov [id_tache],ax
 mov byte[zt_recep],0
 
 mov al,4   
-mov ah,1   ;numéros de l'option de commande a lire
+mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
@@ -85,7 +86,7 @@ je aff_err_param
 mov byte[zt_recep],0
 
 mov al,4   
-mov ah,2   ;numéros de l'option de commande a lire
+mov ah,1   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,zt_recep
 int 61h
@@ -823,11 +824,10 @@ msg2:
 db 13,"aller sur quel salon? ",0
 
 msg_err1:
-db "CIRC: erreur de parametres, syntaxe correcte: circ X YYY ZZ",13
-db "X   = numéros de l'interface réseau",13
-db "YYY = adresse du serveur",13
-db "ZZ  = port du serveur",13,0
-
+db "CIRC: erreur de parametres, syntaxe correcte: circ [adresse] [port] [-c:X]",13
+db "[adresse]  adresse du serveur IRC",13
+db "[port] port du serveur IRC",13 
+db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13,0
 msg_err2:
 db "CIRC: erreur lors de la connexion avec le serveur",13,0
 
