@@ -17,8 +17,12 @@ fasm lc.asm ../../BIN/LC.FE
 fasm term.asm ../../BIN/TERM.FE
 fasm circ.asm ../../BIN/CIRC.FE
 fasm cdns.asm ../../BIN/CDNS.FE
+fasm chttp.asm ../../BIN/CHTTP.FE
+fasm cftp.asm ../../BIN/CFTP.FE
+fasm sdns.asm ../../BIN/SDNS.FE
 fasm ping.asm ../../BIN/PING.FE
 fasm trace.asm ../../BIN/TRACE.FE
+fasm scanip.asm ../../BIN/SCANIP.FE
 fasm expl.asm ../../BIN/EXPL.FE
 fasm utf8.asm ../../BIN/UTF8.FE
 fasm calc.asm ../../BIN/CALC.FE
@@ -30,6 +34,7 @@ fasm sdhcp.asm ../../BIN/SDHCP.FE
 fasm snif.asm ../../BIN/SNIF.FE
 fasm man.asm ../../BIN/MAN.FE
 fasm ajarch.asm ../../BIN/AJARCH.FE
+fasm dcp.asm ../../BIN/DCP.FE
 fasm RTL8139.asm ../../BIN/RTL8139.FE
 fasm 3C90X.asm ../../BIN/3C90X.FE
 fasm I8254X.asm ../../BIN/I8254X.FE
@@ -46,6 +51,7 @@ cd ../DEF
 fasm bug1.asm ../../BIN/bug1.def
 fasm fr-txt.asm ../../BIN/fr-txt.def
 fasm fr-aza.asm ../../BIN/fr-aza.def
+fasm fr-bpo.asm ../../BIN/fr-bpo.def
 fasm be-azs.asm ../../BIN/be-azs.def
 fasm en-txt.asm ../../BIN/en-txt.def
 fasm en-qwi.asm ../../BIN/en-qwi.def
@@ -64,8 +70,12 @@ ajarch PCICLASS.TXT ETAGE4.BIN
 ajarch TERM.FE ETAGE4.BIN
 ajarch CIRC.FE ETAGE4.BIN
 ajarch CDNS.FE ETAGE4.BIN
+ajarch CHTTP.FE ETAGE4.BIN
+ajarch CFTP.FE ETAGE4.BIN
+ajarch SDNS.FE ETAGE4.BIN
 ajarch PING.FE ETAGE4.BIN
 ajarch TRACE.FE ETAGE4.BIN
+ajarch SCANIP.FE ETAGE4.BIN
 ajarch EXPL.FE ETAGE4.BIN
 ajarch UTF8.FE ETAGE4.BIN
 ajarch CALC.FE ETAGE4.BIN
@@ -78,6 +88,7 @@ ajarch STLNT.FE ETAGE4.BIN
 ajarch MAN.FE ETAGE4.BIN
 ajarch SNIF.FE ETAGE4.BIN
 ajarch AJARCH.FE ETAGE4.BIN
+ajarch DCP.FE ETAGE4.BIN
 ajarch RTL8139.FE ETAGE4.BIN
 ajarch 3C90X.FE ETAGE4.BIN
 ajarch I8254X.FE ETAGE4.BIN
@@ -86,6 +97,7 @@ ajarch MANUEL.TXT ETAGE4.BIN
 ajarch bug1.def ETAGE4.BIN
 ajarch fr-txt.def ETAGE4.BIN
 ajarch fr-aza.def ETAGE4.BIN
+ajarch fr-bpo.def ETAGE4.BIN
 ajarch be-azs.def ETAGE4.BIN
 ajarch en-txt.def ETAGE4.BIN
 ajarch en-qwi.def ETAGE4.BIN
