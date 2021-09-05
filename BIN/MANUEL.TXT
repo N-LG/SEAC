@@ -13,6 +13,7 @@
    ~RTL8139~ ~3C90X~ ~I8254X~
 %-Utilisation réseau:
    ~IPCONFIG~ ~PING~ ~CDNS~ ~TRACE~ ~CIRC~ ~SNIF~ ~SCANIP~
+   ~CHTTP~ ~CFTP~
 %-Serveurs: 
    ~SHTTP~ ~STFTP~ ~STLNT~ 
 :ajarch
@@ -152,29 +153,39 @@
 ^SHTTP
  serveur http
 
-%commande: shttp X YYY
- avec: X = numéros de l'interface réseau a utiliser
-       YYY = nom du dossier des fichiers du site que l'on peut consulter
+%commande: shttp XXX YYYY
+ avec: XXX = nom du dossier des fichiers du site que l'on peut consulter
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
 :stftp
 ^STFTP
  serveur tftp
 
  %commande: stftp X YYY
- avec: X = numéros de l'interface réseau a utiliser
-       YYY = nom du dossier des fichiers du site que l'on peut télecharger
-       ZZZ = nom du dossier ou seront écrit les fichier reçu (paramètre optionnel)
+ avec: XXX = nom du dossier des fichiers du site que l'on peut télecharger
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -w     autorise l'écriture de fichier
+
 :stlnt
 ^STLNT: serveur telnet
 
- %commande: stlnt X YY
- avec: X = numéros de l'interface réseau a utiliser
-       YY = numéros de port a utiliser (paramètre optionel, 23 par défaut)
+ %commande: stlnt XXXX
+ avec: XXXX = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -p:XXX numéros de port a utiliser (23 par défaut)      
 :dossier systeme:systeme
 ^Dossier systeme
  le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
  on définis le dossier systeme avec la commande ~fix~
 :seac
-^SEac: systeme d'exploitation approximativement complet
+^SEaC: systeme d'exploitation approximativement complet
  (plus d'explication a venir)
 :snif
 ^SNIF
@@ -186,30 +197,38 @@
 ^PING
  test de liaison par demande d'echo avec le protocole ICMP
 
-%commande: ping X YYY
- avec: X   = numéros de l'interface réseau a utiliser
-       YYY = adresse de la machine que l'on cherche a tester
+%commande: ping XXX YYYY
+ avec: XXX = adresse de la machine que l'on cherche a tester
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -t:XXX nombre de tentative de ping (4 par défaut)
 :trace
 ^TRACE
  permet de determiner le chemin emprunté par les paquet transmis a une machine sur réseau IP
 
-%commande: trace X YYY ZZ WW
- avec: X   = numéros de l'interface réseau a utiliser
+%commande: trace XXX YYYY
+ avec: 
        YYY = adresse la machine cible
-       zZ  = nombre de saut maximum (paramètre optionnel, 40 par défaut)
-       WW  = nombre de tentative en cas d'absence de réponse (paramètre optionnel, 4 par défaut)
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser  (0 par défaut)
+ -s:XXX nombre de saut maximum (40 par défaut)
+ -t:XXX nombre de tentative en cas d'absence de réponse (4 par défaut)
 :cdns
 ^CDNS
  résolveur DNS, permet d'obtenir les info de la machine en fonction du nom
 
-%commande: cdns X YYY ZZZZ
- avec: X    = numéros de l'interface réseau a utiliser
-       YYY  = nom de la machine
-       ZZZZ = paramètres optionnels
+%commande: cdns XXX YYYY
+ avec: XXX  = nom de la machine
+       YYYY = paramètres optionnels
 
  paramètres optionnels:
- -s:XXX sélectionne un serveur DNS particuler 
- -t:XXX selectionne un type de RR particulier
+ -s:XXX sélectionne un serveur DNS particuler (liste interne par défaut)
+ -t:XXX selectionne un type de RR particulier (ANY/255 par défaut)
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
 
  types de RR reconnue:
  A (1) adresse IPv4
@@ -225,10 +244,13 @@
 ^CIRC
  client pour systeme de messagerie utilisant le protocole IRC
 
-%commande: circ X YYY ZZ
- avec: X   = numéros de l'interface réseau a utiliser
-       YYY = adresse du serveur
-       ZZ  = port du serveur
+%commande: circ XXX YY ZZZZ
+ avec: XXX = adresse du serveur
+       YY  = port du serveur
+       ZZZZ = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
 :rtl8139:3c90x:i8254x:ethernet:ip
 ^Pilotes pour carte ethernet/ip
 
@@ -276,7 +298,45 @@ démarre le pilote pour une carte Intel  ou compatible
 ^SCANIP
  envoie des ping ICMP a une plage d'adresse ip pour tester leur présence
 
-%commande: scanip XXX YYY Z
- avec: XXX = adresse de la première machine de la plage a tester
-       YYY = adresse de la dernière machine de la plage a tester
-       Z   = nombre de ping ICMP a effectuer par adresse (paramètre optionnel, 1 par défaut)
+%commande: scanip XXX YYY ZZZZ
+ avec: XXX  = adresse de la première machine de la plage a tester
+       YYY  = adresse de la dernière machine de la plage a tester
+       ZZZZ = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -n:XXX nombre de ping a rester par adresse
+:chttp
+^CHTTP
+ téléchargeur de ressource avec le protocole HTTP
+
+%commande: chttp XXX YYYY
+ avec: XXX  = adresse de laressource
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -o:XXX nom du fichier ou copier la ressource
+ -e     autorise d'écraser le fichier de destination
+ -a:XXX adresse ip du serveur de la ressource
+:cftp
+^CFTP
+ téléchargeur de ressource avec le protocole FTP
+
+%commande: cftp XXX YYYY
+ avec: XXX  = adresse de laressource
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -o:XXX nom du fichier ou copier la ressource
+ -e     autorise d'écraser le fichier de destination
+ -a:XXX adresse ip du serveur de la ressource
+ -u:XXX nom pour le login
+ -p:XXX mot de passe pour le login
+
+
+
+
+
+
