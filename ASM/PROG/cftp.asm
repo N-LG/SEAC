@@ -10,10 +10,17 @@ org 0
 
 
 ;données du segment CS
-
 mov ax,sel_dat1
 mov ds,ax
 mov es,ax
+
+
+;agrandit la zone mémoire
+mov al,8
+mov ecx,zt_decode+20000h
+mov dx,sel_dat1
+int 61h
+
 
 
 ;génère un numéros de port local pseudo aléatoirement
@@ -140,7 +147,7 @@ int 61h
 mov [port_serveur],ecx
 
 
-
+;convertit l'adresse/port pour la commande de connexion
 mov al,5   
 mov ah,"a"   ;lettre de l'option de commande a lire
 mov cl,32 
@@ -155,6 +162,30 @@ mov edx,zt_host
 mov al,109
 mov ecx,ip_serveur
 int 61h
+
+
+
+
+;**************************************************************
+;extrait le nom d'utilisateur
+
+mov al,5   
+mov ah,"u"   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,zt_user
+int 61h
+
+;et le mot de passe
+mov al,5   
+mov ah,"p"   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,zt_pass
+int 61h
+
+
+
+
+
 
 
 
@@ -220,8 +251,6 @@ mov edx,ftp_reqf
 call envoie_utf8z
 call attend1ligne
 
-;cmp byte[zt_decode],"2"
-;je @f
 
 mov edx,ftp_req2
 call envoie_utf8z
@@ -230,18 +259,27 @@ call envoie_utf8z
 mov edx,ftp_reqf
 call envoie_utf8z
 call attend1ligne
-;@@:
+cmp byte[zt_decode],"2"  
+jne aff_err_srv
 
+
+
+;******************************
+;passe en binaire et mode passif avancé
 ;comande type i
 mov edx,ftp_req3
 call envoie_utf8z
 call attend1ligne
+cmp byte[zt_decode],"2"  
+jne aff_err_srv
+
 
 ;commande epsv
 mov edx,ftp_req4
 call envoie_utf8z
 call attend1ligne
-
+cmp byte[zt_decode],"2"  
+jne aff_err_srv
 
 ;extrait numéros de port §§§§§§§§§§§§§a devoir ameliorer je pense
 mov edx,zt_decode
@@ -249,7 +287,7 @@ mov edx,zt_decode
 boucle_num_port:
 cmp dword[edx],"(|||"
 je ok_num_port
-cmp word[edx],0A0Dh
+cmp byte[edx],0Dh
 je aff_err_exe
 inc edx
 jmp boucle_num_port
@@ -268,8 +306,8 @@ mov al,0
 mov bx,[id_tache]
 mov ecx,64
 mov edx,1
-mov esi,2000
-mov edi,2000
+mov esi,400
+mov edi,20000h
 int 65h
 mov [adresse_canal2],ebx
 
@@ -334,15 +372,10 @@ mov edx,zt_ressource
 call envoie_utf8z
 mov edx,ftp_reqf
 call envoie_utf8z
-
-
 call attend1ligne
-cmp byte[zt_decode],"1"
+cmp byte[zt_decode],"1"  ;attend le signal que le téléchargement as bien commencé
 jne aff_err_srv
 
-;call attend1ligne
-;cmp byte[zt_decode],"2"
-;jne aff_err_srv
 
 
 
@@ -387,7 +420,12 @@ jne aff_err_ouv
 ok_fichier:
 mov [handle_fichier],ebx
 
-;?????????????????prépare la taille du fichier
+mov ecx,[taille_totale]  ;réserve l'espace pour le fichier fichier
+cmp ecx,0
+je @f
+mov al,15
+int 64h
+@@:
 
 
 ;******************************
@@ -399,7 +437,7 @@ int 61h
 
 boucle_enregistre_resultat:
 mov al,6
-mov ecx,1024
+mov ecx,20000h
 mov edi,zt_decode
 mov ebx,[adresse_canal2]
 int 65h
@@ -429,7 +467,7 @@ int 61h
 
 boucle_affiche_resultat:
 mov al,6
-mov ecx,1024
+mov ecx,1FFFFh
 mov edi,zt_decode
 mov ebx,[adresse_canal2]
 int 65h
@@ -607,12 +645,12 @@ jne aff_err_com
 cmp ecx,0
 je boucle_attend1ligne
 add [offset],ecx
-
-;cmp dword[offset],3
-;jbe boucle_attend1ligne
+test_attend1ligne:
+cmp dword[offset],2
+jb boucle_attend1ligne
 
 ;recherche si fin d'en_tête 
-mov edi,zt_decode
+mov edi,zt_decode-1
 mov esi,zt_decode
 add edi,[offset]
 @@:
@@ -625,16 +663,31 @@ jmp boucle_attend1ligne
 
 
 fin_attend1ligne:
-
-mov ecx,[offset]
-mov byte[zt_decode-1+ecx],0
-;mov edx,zt_decode
-;mov al,6
-;int 61h
+mov byte[esi+1],0
+;mov edx,zt_decode  ;pour debug
+;mov al,6           ;pour debug
+;int 61h            ;pour debug
 
 cmp byte[zt_decode+3],"-"
-je attend1ligne
+je @f 
 ret
+
+@@:
+add esi,2
+mov ecx,[offset]
+add ecx,zt_decode
+sub ecx,esi
+mov [offset],ecx
+cmp ecx,0
+je boucle_attend1ligne
+
+mov edi,zt_decode
+cld
+rep movsb
+jmp test_attend1ligne
+
+
+
 
 
 
@@ -739,22 +792,20 @@ db "anonymous"
 rb 256
 zt_pass:
 rb 256
-
 zt_adresse:
 rb 32
 nom_fichier:
 rb 256
 zt_port:
 rb 10
-zt_decode:
-rb 256
 zt_url:
 rb 256
 zt_host:
 rb 256
 zt_ressource:
 rb 256
-db 0
+zt_decode:
+
 
 sdata2:
 org 0
