@@ -16,6 +16,13 @@ mov ds,ax
 mov es,ax
 
 
+;agrandit la zone mémoire
+mov al,8
+mov ecx,zt_decode+20000h
+mov dx,sel_dat1
+int 61h
+
+
 ;génère un numéros de port local pseudo aléatoirement
 mov eax,9
 int 61h
@@ -166,7 +173,7 @@ mov bx,[id_tache]
 mov ecx,64
 mov edx,1
 mov esi,2000
-mov edi,2000
+mov edi,20000h
 int 65h
 mov [adresse_canal],ebx
 
@@ -289,15 +296,54 @@ int 60h
 ;*****************************
 ;extrait taille donnée
 ok_chargement:
+;mov byte[esi+2],0  ;DEBUG
+;mov edx,zt_decode  ;DEBUG
+;mov al,6           ;DEBUG
+;int 61h            ;DEBUG
+mov edx,zt_decode  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
+mov edi,mot_taille
 
 
-;cherche "content lenght" dans l'en-tête
+boucle1_cherche_taille:
+push edx
+push edi
+mov ecx,16
 
-;?????????????????
+boucle2_cherche_taille:
+mov al,[edx]
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+cmp al,[edi]
+jne suivant_cherche_taille
+inc edx
+inc edi
+dec ecx
+jnz boucle2_cherche_taille
+pop edi
+pop edx
+add edx,16
+mov al,100
+int 61h
+mov [taille_totale],ecx
+jmp @f
 
-;mov al,100
+
+suivant_cherche_taille:
+
+;mov [msg_tmp],al
+;mov edx,msg_tmp
+;mov al,6
 ;int 61h
-;mov [taille_totale],ecx
+
+pop edi
+pop edx
+inc edx
+cmp edx,esi
+jne boucle1_cherche_taille
 @@:
 
 
@@ -342,7 +388,12 @@ jne aff_err_ouv
 ok_fichier:
 mov [handle_fichier],ebx
 
-;?????????????????prépare la taille du fichier
+mov ecx,[taille_totale]  ;réserve l'espace pour le fichier fichier
+cmp ecx,0
+je @f
+mov al,15
+int 64h
+@@:
 
 
 ;******************************
@@ -365,7 +416,7 @@ add [taille_telec],ecx
 
 boucle_enregistre_resultat:
 mov al,6
-mov ecx,1024
+mov ecx,20000h
 mov edi,zt_decode
 mov ebx,[adresse_canal]
 int 65h
@@ -382,7 +433,11 @@ int 64h
 cmp eax,0
 jne aff_err_ecr
 add [taille_telec],ecx
-jmp boucle_enregistre_resultat 
+
+mov ecx,[taille_telec]
+cmp ecx,[taille_totale]
+jb boucle_enregistre_resultat 
+jmp fin_telechargement
 
 
 ;************************************
@@ -402,7 +457,7 @@ int 61h
 
 boucle_affiche_resultat:
 mov al,6
-mov ecx,1024
+mov ecx,1FFFFh
 mov edi,zt_decode
 mov ebx,[adresse_canal]
 int 65h
@@ -411,17 +466,18 @@ jne fin_telechargement
 cmp ecx,0
 je boucle_affiche_resultat
 
-
 mov byte[ecx+zt_decode],0
 mov edx,zt_decode
 mov al,6
 int 61h
 add [taille_telec],ecx
 
-jmp boucle_affiche_resultat
+mov ecx,[taille_telec]
+cmp ecx,[taille_totale]
+jb boucle_affiche_resultat
 
 
-
+;***************************
 fin_telechargement:
 cmp dword[taille_totale],0
 je fin_inconnue
@@ -580,7 +636,8 @@ db "CHTTP: impossible d'écrire dans le fichier",13,0
 
 
 
-
+msg_tmp:
+db "-",0
 
 
 
@@ -615,8 +672,8 @@ dd 0,0,0,0
 index_recep:
 dd 0
 
-
-
+mot_taille:
+db "content-length: "
 
 
 http_req1:
@@ -633,15 +690,15 @@ nom_fichier:
 rb 256
 zt_port:
 rb 10
-zt_decode:
-rb 256
 zt_url:
 rb 256
 zt_host:
 rb 256
 zt_ressource:
 rb 256
-db 0
+zt_decode:
+
+
 
 sdata2:
 org 0

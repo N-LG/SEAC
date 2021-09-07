@@ -454,7 +454,11 @@ int 64h
 cmp eax,0
 jne aff_err_ecr
 add [taille_telec],ecx
-jmp boucle_enregistre_resultat 
+
+mov ecx,[taille_telec]
+cmp ecx,[taille_totale]
+jb boucle_enregistre_resultat 
+jmp fin_telechargement
 
 
 ;************************************
@@ -482,7 +486,11 @@ mov edx,zt_decode
 mov al,6
 int 61h
 add [taille_telec],ecx
-jmp boucle_affiche_resultat
+
+mov ecx,[taille_telec]
+cmp ecx,[taille_totale]
+jb boucle_affiche_resultat
+
 
 
 
