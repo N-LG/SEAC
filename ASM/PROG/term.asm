@@ -365,8 +365,8 @@ cmp al,2
 je changer_port
 ;cmp al,3
 ;je config_port
-;cmp al,4
-;je config_affichage
+cmp al,4
+je config_affichage
 
 cmp al,44
 je touche_entre
@@ -435,6 +435,8 @@ mov [carac],cl
 
 ;******************************************affichage données reçu
 affichage_rec:
+cmp byte[carac],8
+je back_affichage_rec
 cmp byte[carac],13
 je ok_affichage_rec
 cmp byte[carac],20h
@@ -449,6 +451,10 @@ int 63h
 jmp boucle
 
 
+back_affichage_rec:
+fs
+sub dword[ad_curseur_texte],4
+jmp boucle
 
 
 ;**************************************** envoie les donnée via la connexion TCP
