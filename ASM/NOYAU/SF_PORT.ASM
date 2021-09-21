@@ -35,23 +35,26 @@ cmp ah,15
 ja sf_port_fin_parami
  
 xor ebx,ebx  ;charge adresse de base du contoleur port dans di et la base dans ebx
-mov bl,ah
+xchg bl,ah
 shl ebx,2
 mov di,[port_com_base+ebx]
 cmp di,0
 je sf_port_fin_parami
 
 ;verifie que le port n'est pas reservé et si la tache qui l'as reservé existe bien toujours
-mov dx,[port_com_idr+ebx]
-cmp dx,0
+push esi
+mov si,[port_com_idr+ebx]
+cmp si,0
 je sf_port_okid
-cmp dx,[id_tache_exec]
+cmp si,[id_tache_exec]
 je sf_port_okid
+pop esi
 mov eax,cer_ano  ;action non autorisé
 xor ecx,ecx
 jmp sf_port_fin
 
 sf_port_okid:
+pop esi
 cmp al,0
 je sf_port_env1
 cmp al,1
@@ -114,6 +117,10 @@ sf_port_env2:      ;envoie une chaine d'octet sur port série et parallèle
                    ;retour eax=erreur
 mov edx,ecx
 mov ch,ah
+xor eax,eax
+cmp edx,0
+je sf_port_fin
+
 boucle_sf_port_env2: 
 es
 mov cl,[esi]
@@ -381,7 +388,7 @@ jmp sf_port_fin
 sf_port_conf:    ;configure le port com
                  ;ah=n°du port (0 à 7)
                  ;ecx=vitesse du port (max 115200bit/s)
-                 ;bl=config:
+                 ;dl=config:
 ;4|3|2|1|0|  
 ;| | | | `-- 0 = 7 bits par caractère 1 = 8bit par caractère
 ;| | | `---- innutilisé
@@ -394,16 +401,14 @@ ja sf_port_fin_parami
 cmp ecx,115200
 ja sf_port_fin_parami
 
+mov bl,dl
+and bl,1Dh    ;complete l'option de config pour obtenir le LCR(line controle register)
+or  bl,02h
 
-and ah,1Dh    ;complete l'option de config pour obtenir le LCR(line controle register)
-or  ah,02h
-
-push eax
 xor edx,edx
 mov eax,115200  ;1843200/16
 div ecx
 mov ecx,eax      ;ecx=diviseur
-pop eax
 cmp edx,0
 jne sf_port_fin_parami    ;le reste doit être 0
 
@@ -419,7 +424,7 @@ inc dx    ;dx=base+1
 mov al,ch      ;msb diviseur
 out dx,al
 add dx,2  ;dx=base+3
-mov al,ah     ;line control register
+mov al,bl     ;line control register
 out dx,al
 mov dx,di ;dx=base+1
 inc dx
@@ -479,6 +484,7 @@ irqcom: ;interruption par un controleur de port COM
 cli
 push eax
 push ebx
+push ecx
 push edx
 push edi
 push ds
@@ -488,17 +494,18 @@ mov ds,bx
 mov bx,selramh
 mov es,bx
 
-
 xor ebx,ebx
 cherche_origine_irq_com:
 mov dx,[ebx+port_com_base]
+cmp dx,0
+je suite_origine_irq_com 
 add dx,2    ;adress du Interrupt Identification Register
 in al,dx
 
 and al,07h   ;on test si une interruption données disponible est en cours sur le controleur
 cmp al,04h 
-;test al,1
 je trouve_origine_irq_com
+suite_origine_irq_com:
 add ebx,4
 cmp ebx,20h
 jne cherche_origine_irq_com
@@ -530,6 +537,7 @@ pop es
 pop ds
 pop edi
 pop edx
+pop ecx
 pop ebx
 pop eax
 sti

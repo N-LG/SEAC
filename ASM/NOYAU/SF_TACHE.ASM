@@ -257,11 +257,6 @@ call modtm
 jc cretache_ermm1
 mov [ad_tache_cree],ebx
 
-
-
-
-
-
 ;charge les données des segments
 xor eax,eax
 xor ecx,ecx
@@ -299,7 +294,7 @@ mov al,4
 int 64h
 pop ebx
 cmp eax,0
-jne cretache_erlc
+jne cretache_erlc_elf
 @@:
 
 es
@@ -315,14 +310,13 @@ mov eax,[edi+ad_data1_dt]
 add edi,eax
 es
 add edi,[ebx+08h]
-
 push ebx
 mov ebx,[num_fichier_tache]  
 mov al,4
 int 64h
 pop ebx
 cmp eax,0
-jne cretache_erlc
+jne cretache_erlc_elf
 @@:
 
 pop ecx
@@ -334,9 +328,6 @@ jnz boucle2_cretache_elf
 
 mov ebx,esi
 call libmem
-
-
-
 
 ;recopie de la commande
 mov ebx,[ad_tache_cree]
@@ -363,13 +354,6 @@ mov esi,[ebx+eip_initial]
 es
 add esi,[ebx+ad_code_dt]
 add esi,ebx
-;es
-;mov word[esi],60CDh 
-;mov al,"!"
-;call affcj
-;mov al,13
-;call affcj
-
 
 mov ebx,[num_fichier_tache]  
 mov al,1
@@ -887,6 +871,12 @@ jmp pascommande
 
 
 ;********************************
+cretache_erlc_elf: ;fin erreur lecture de fichier pandant lecture section ELF
+pop eax
+pop eax
+mov ebx,esi
+call libmem
+
 cretache_erlc:      ;fin erreur lecture de fichier
 mov ebx,[ad_tache_cree]
 call libmem

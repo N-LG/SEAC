@@ -1289,7 +1289,6 @@ and al,3
 cmp al,2
 je @f    ;si ce n'est pas "out data"
 stc
-;pop ecx
 ret
 
 @@:
@@ -1300,6 +1299,10 @@ mov bl,al
 inc dx
 in al,dx
 mov bh,al
+cmp ecx,ebx
+jae @f
+mov ebx,ecx
+@@:
 sub ecx,ebx
 shr ebx,1
 
@@ -1315,9 +1318,7 @@ jnz @b   ;un secteur est passé
 cmp ecx,0
 jne lit_bloc_atapi
 
-
 clc
-;pop ecx
 ret
 
 
@@ -3620,35 +3621,98 @@ jmp finfonctionfichieroktriple
 
 
 sff_lit_tailledisque_ata:
-sub ch,08h
-xor ebx,ebx
-mov bl,ch
-shl ebx,5
+sub ch,8
+mov edi,ecx
+and edi,0FF00h
+shr edi,3       ;div par 256 mul par 32
+add edi,ad_descd
 fs
-mov al,[ebx+ad_descd+dd_atribut]
+mov al,[edi+dd_atribut]
 and al,7h
 cmp al,4
 je sff_lit_tailledisque_atapi
 cmp al,0
 je errlecnt 
 fs
-mov eax,[ebx+ad_descd+dd_taille]
+mov eax,[edi+dd_taille]
 fs
-mov edx,[ebx+ad_descd+dd_taille+4]
+mov edx,[edi+dd_taille+4]
 fs
-mov cl,[ebx+ad_descd+dd_nb_octet_sec]
+mov cl,[edi+dd_nb_octet_sec]
 mov ebx,eax
 mov eax,1
 shl eax,cl
 mov ecx,eax
 jmp finfonctionfichieroktriple
 
-
+;************
 sff_lit_tailledisque_atapi:
-;??????????????????????????????????????????????????????????????
-mov ebx,0FFFFFFFFh
-mov edx,0FFFFFFFFh
-mov ecx,2048
+;mov ebx,0FFFFFFFFh
+;mov edx,0FFFFFFFFh
+;mov ecx,2048
+;jmp finfonctionfichieroktriple
+
+call selection_ata
+jc errlecnt
+
+mov al,"A"
+call affcj
+
+;fs
+;mov byte[zt_clefusb],025h  ;commande read format capacity
+;fs
+;mov byte[zt_clefusb+1],0   ;réservé
+;fs
+;mov dword[zt_clefusb+2],0   ;réservé
+;fs
+;mov dword[zt_clefusb+6],0   ;réservé
+
+
+fs
+mov byte[zt_clefusb],012h  ;commande inquiry
+fs
+mov dword[zt_clefusb+1],0   ;réservé
+fs
+mov byte[zt_clefusb+4],36   ;réservé
+fs
+mov dword[zt_clefusb+5],0   ;réservé
+
+
+mov ecx,6
+call envoie_cmd_atapi
+jc errlecnt;????
+
+mov al,"B"
+call affcj
+
+mov ax,seldat
+mov es,ax
+mov ecx,36
+mov esi,zt_clefusb+64
+call lit_bloc_atapi
+jc errlecnt;????
+
+mov al,"C"
+call affcj
+
+fs
+mov dx,[edi+dd_adress_base]
+add dx,7
+in al,dx
+test al,1
+jnz errlecnt;????
+
+mov al,"D"
+call affcj
+
+fs
+mov ebx,[zt_clefusb+64] ;lsb taille
+fs
+mov ecx,[zt_clefusb+68]  ;taille secteur
+xor eax,eax
+xor edx,edx
+bswap ebx
+bswap ecx
 jmp finfonctionfichieroktriple
 
 
