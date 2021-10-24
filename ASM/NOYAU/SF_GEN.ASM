@@ -41,6 +41,15 @@
 ;al=117 convertir données binaires en base64 
 ;al=118 convertir données binaires en base64url
 
+
+
+
+;al=150 calcul un crc16
+;al=151 calcul un crc32
+;al=152 décompresse une zone compressé par deflate
+
+
+
 cmp al,0
 je sfs_envoie_cmd
 cmp al,1
@@ -122,6 +131,14 @@ je conv_bin_b64
 cmp al,118
 je conv_bin_b64url
 cmp al,119
+
+
+cmp al,150
+je sfs_crc16
+cmp al,151
+je sfs_crc32
+cmp al,152
+je sfs_inflate
 
 mov eax,cer_parami
 iret
@@ -2344,6 +2361,1161 @@ mov al,"_"
 ret
 
 
+
+
+
+;***********************************************************************************************
+sfs_crc16:
+
+
+
+
+;Les argument ax et dx change suivant le domaine d'uttilisation du crc
+;pour l'instant je ne suis sûr que des valeurs uttilisé par le crc du protocole modbus: ax=0FFFFh et dx=0A001h
+
+
+;l'argument de départ dx est appellé "polynome" avec des guillemets parce que ça ne correspond pas exactement aux valeurs des polynome donné dans les différente documentation que j'ai put lire, j'ai toutefois l'impression qu'il s'agit des polynomes mais tronqué du bit N°16, celui ci étant a 1 dans les différent exemple que j'ai vu ça ne m'étonne pas beaucoup surtout 
+;si le crc est bien une division binaire
+
+
+
+;ds:esi=début de la chaine
+
+;ecx=Nb d'octet de la chaine
+
+;ax=valeur initiale du CRC
+
+;dx="polynome"
+
+;sortie: ax=valeur du CRC
+
+
+
+boucle_sfs_crc16:
+xor al,[esi]
+
+
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+shr ax,1
+
+jnc @f
+xor ax,dx
+
+@@:
+inc esi
+
+dec ecx
+
+jnz boucle_sfs_crc16
+
+iret
+
+
+
+
+
+
+
+sfs_crc32:
+
+
+
+boucle_sfs_crc32:
+xor al,[esi]
+
+
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+shr eax,1
+
+jnc @f
+xor eax,edx
+
+@@:
+inc esi
+
+dec ecx
+
+jnz boucle_sfs_crc32
+
+iret
+
+
+;****************************************************************************************************
+
+
+
+
+macro av_bit val
+{
+add cl,val
+test cl,0F8h
+jz @f
+push ecx
+shr ecx,3
+and ecx,1Fh
+add esi,ecx
+pop ecx
+@@:
+and cl,7 
+}
+
+
+macro sfs_inflate_litarbre val
+{
+mov eax,[esi]
+shr eax,cl
+and eax,07h
+av_bit 3
+fs
+mov [ebx+arbre_inflate_tailles+val],al
+dec dl
+jz sfs_inflate_finpermute
+}
+
+
+
+arbre_inflate_tailles      equ 10h
+arbre_inflate_literal      equ 200h
+arbre_inflate_dist         equ 204h
+arbre_inflate_bloc         equ 208h
+arbre_inflate_HLIT         equ 20Ch
+arbre_inflate_HDIST        equ 210h
+arbre_inflate_taillechaine equ 214h
+
+arbre_inflate_tables_literal  equ 220h
+arbre_inflate_valeurs_literal equ 320h
+arbre_inflate_tables_dist     equ 620h
+arbre_inflate_valeurs_dist    equ 720h
+
+arbre_inflate_index equ 4
+arbre_inflate_min   equ 8
+arbre_inflate_max   equ 12
+
+
+;**********************************************************************************************************************
+sfs_inflate:        ;décompresse déflate ds:esi vers es:edi   
+pushad
+push fs
+mov ax,selramh 
+mov fs,ax
+
+mov ecx,4096
+call resmem
+jnc @f
+
+pop fs
+popad
+mov eax,cer_pasm
+iret
+
+
+@@: ;fs:ebx=zone tampon pour l'arbre de décodage
+xor ecx,ecx   ;cl=index de bit
+
+sfs_inflate_bloc_suivant:
+mov eax,[esi]
+shr eax,cl
+fs
+mov [ebx+arbre_inflate_bloc],eax
+and al,6
+cmp al,0
+je sfs_inflate_bloc_00
+cmp al,2
+je sfs_inflate_bloc_01
+cmp al,4
+je sfs_inflate_bloc_10
+
+sfs_inflate_erreur:
+call libmem
+pop fs
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+
+;***********************************
+sfs_inflate_bloc_00:   ;sans compression
+xor ecx,ecx
+mov cx,[esi+1]
+add esi,3
+cld
+rep movsb
+xor ecx,ecx
+jmp sfs_inflate_bloc_fin
+
+;***********************************
+sfs_inflate_bloc_01:    ;arbre de hufman fixe
+av_bit 3
+push ecx          ;génération de l'arbre fixe (suite de nombre de bit uttilisé pour chaque point de code)
+push edi
+push es
+mov ax,fs
+mov es,ax
+mov edi,ebx
+add edi,arbre_inflate_tailles
+cld
+mov al,8       ;arbre littéral
+mov ecx,144
+rep stosb
+mov al,9
+mov ecx,112
+rep stosb
+mov al,7
+mov ecx,24
+rep stosb
+mov al,8
+mov ecx,8
+rep stosb
+mov al,5       ;arbre de distance
+mov ecx,32
+rep stosb
+pop es
+pop edi
+pop ecx
+
+fs
+mov dword[ebx+arbre_inflate_literal],288  
+fs
+mov dword[ebx+arbre_inflate_dist],32
+call sfs_inflate_gen_arbre
+jmp sfs_inflate_parcour_bloc
+
+;***********************************
+sfs_inflate_bloc_10:    ;arbre de huffman dynamique
+av_bit 3
+mov eax,[esi]             ;extrait les valeurs de base
+shr eax,cl
+and eax,1Fh
+add eax,257
+av_bit 5
+fs
+mov [ebx+arbre_inflate_HLIT],eax
+
+mov eax,[esi]
+shr eax,cl
+and eax,1Fh
+inc eax
+av_bit 5
+fs
+mov [ebx+arbre_inflate_HDIST],eax   ;HDIST
+
+mov eax,[esi]
+shr eax,cl
+and eax,0Fh
+add eax,4
+av_bit 4
+mov dl,al      ;HCLEN
+
+
+xor eax,eax                    ;efface la table des tailles
+fs
+mov [ebx+arbre_inflate_tailles],eax
+fs
+mov [ebx+arbre_inflate_tailles+4],eax
+fs
+mov [ebx+arbre_inflate_tailles+8],eax
+fs
+mov [ebx+arbre_inflate_tailles+12],eax
+fs
+mov [ebx+arbre_inflate_tailles+16],eax
+
+
+sfs_inflate_litarbre 16         ;lit la valeur des arbres et replace ça suivant la table de permutation
+sfs_inflate_litarbre 17
+sfs_inflate_litarbre 18
+sfs_inflate_litarbre 0 
+sfs_inflate_litarbre 8 
+sfs_inflate_litarbre 7 
+sfs_inflate_litarbre 9 
+sfs_inflate_litarbre 6 
+sfs_inflate_litarbre 10 
+sfs_inflate_litarbre 5 
+sfs_inflate_litarbre 11
+sfs_inflate_litarbre 4 
+sfs_inflate_litarbre 12 
+sfs_inflate_litarbre 3 
+sfs_inflate_litarbre 13 
+sfs_inflate_litarbre 2 
+sfs_inflate_litarbre 14 
+sfs_inflate_litarbre 1
+sfs_inflate_litarbre 15
+sfs_inflate_finpermute: 
+
+fs
+mov dword[ebx+arbre_inflate_literal],19
+fs
+mov dword[ebx+arbre_inflate_dist],0   
+call sfs_inflate_gen_arbre
+
+fs
+mov eax,[ebx+arbre_inflate_HLIT]        
+fs
+add eax,[ebx+arbre_inflate_HDIST]   ;HLIT+HDIST
+fs
+mov [ebx+arbre_inflate_literal],eax        
+
+
+push edi
+push es
+mov ax,fs
+mov es,ax
+mov edi,ebx
+add edi,arbre_inflate_tailles
+
+
+sfs_inflate_decomp_arbre: 
+fs
+cmp dword[ebx+arbre_inflate_literal],0
+je sfs_inflate_decomp_arbre_fin
+jb sfs_inflate_erreur_arbre  
+mov ch,16
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_literal-10h
+xor ebp,ebp
+
+
+sfs_inflate_boucle_decodage_arbre:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur_arbre
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_arbre
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_arbre
+;cmp [edx+arbre_inflate_min],ebp
+;jb sfs_inflate_boucle_decodage_arbre
+
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+fs
+mov eax,[edx+arbre_inflate_index]
+add ebp,eax
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_literal]
+pop ebx
+
+
+cmp ax,16
+je sfs_inflate_decomp_arbre_suite1
+cmp ax,17
+je sfs_inflate_decomp_arbre_suite2
+cmp ax,18
+je sfs_inflate_decomp_arbre_suite3
+test ax,0FFF0h
+jnz sfs_inflate_erreur_arbre
+cld
+stosb
+fs
+dec dword[ebx+arbre_inflate_literal]
+jmp sfs_inflate_decomp_arbre   
+
+sfs_inflate_erreur_arbre:
+pop es
+pop edi
+jmp sfs_inflate_erreur
+
+sfs_inflate_decomp_arbre_suite1:   
+dec edi
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+push ecx
+mov ecx,eax
+and ecx,3h
+es
+mov al,[edi]
+add ecx,3
+cld
+stosb
+fs
+sub [ebx+arbre_inflate_literal],ecx       
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_suite2:   
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+push ecx
+mov ecx,eax
+and ecx,07h
+mov al,0
+add ecx,3
+fs
+sub [ebx+arbre_inflate_literal],ecx       
+cld
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_suite3:   
+mov eax,[esi]
+shr eax,cl
+av_bit 7
+push ecx
+mov ecx,eax
+and ecx,7Fh
+mov al,0
+add ecx,11
+fs
+sub [ebx+arbre_inflate_literal],ecx 
+cld      
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_fin: 
+pop es
+pop edi
+
+
+
+fs
+mov eax,[ebx+arbre_inflate_HLIT]
+fs
+mov edx,[ebx+arbre_inflate_HDIST]
+fs
+mov [ebx+arbre_inflate_literal],eax
+fs
+mov [ebx+arbre_inflate_dist],edx
+call sfs_inflate_gen_arbre
+
+
+
+;**************************************************************
+sfs_inflate_parcour_bloc:
+mov ch,16
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_literal-10h
+xor ebp,ebp
+
+
+sfs_inflate_boucle_decodage_litteral:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_litteral
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_litteral
+;cmp [edx+arbre_inflate_min],ebp
+;jb sfs_inflate_boucle_decodage_litteral
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+fs
+add ebp,[edx+arbre_inflate_index]
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_literal]
+pop ebx
+
+cmp ah,0             ;code littéral
+jne @f 
+cld
+stosb
+jmp sfs_inflate_parcour_bloc   
+
+@@:
+cmp ax,256            ;fin de bloc 
+je sfs_inflate_bloc_fin
+
+
+cmp ax,265            ;code de longueur
+jb sfs_inflate_longueur0
+cmp ax,269
+jb sfs_inflate_longueur1
+cmp ax,273
+jb sfs_inflate_longueur2
+cmp ax,277
+jb sfs_inflate_longueur3
+cmp ax,281
+jb sfs_inflate_longueur4
+cmp ax,285
+jb sfs_inflate_longueur5
+cmp ax,285
+je sfs_inflate_longueur6
+jmp sfs_inflate_erreur
+
+sfs_inflate_longueur0:
+and eax,0FFFFh
+sub eax,254   ;-257+3
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur1:
+xor edx,edx
+mov dx,ax
+sub edx,265   ;-265
+shl edx,1
+add edx,11  ;+11
+mov eax,[esi]
+shr eax,cl
+av_bit 1
+and eax,1h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur2:
+xor edx,edx
+mov dx,ax
+sub edx,269   ;-269
+shl edx,2
+add edx,19  ;+19
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+and eax,3h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur3:
+xor edx,edx
+mov dx,ax
+sub edx,273   ;-273
+shl edx,3
+add edx,35  ;+35
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+and eax,7h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur4:
+xor edx,edx
+mov dx,ax
+sub edx,277   ;-277
+shl edx,4
+add edx,67  ;+67
+mov eax,[esi]
+shr eax,cl
+av_bit 4
+and eax,0Fh
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur5:
+xor edx,edx
+mov dx,ax
+sub edx,281   ;-281
+shl edx,5
+add edx,131  ;+131
+mov eax,[esi]
+shr eax,cl
+av_bit 5
+and eax,1Fh
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur6:
+mov eax,258
+
+suite2_sfs_inflate_longueur: 
+fs
+mov [ebx+arbre_inflate_taillechaine],eax
+
+
+
+mov ch,16                   ;décodage des distance suivant un arbre spécifique
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_dist-10h
+xor ebp,ebp
+
+sfs_inflate_boucle_decodage_distance:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_distance
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_distance
+;cmp [edx+arbre_inflate_min],ebp
+;jb sfs_inflate_boucle_decodage_distance
+
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+xor eax,eax
+fs
+mov ax,[edx+arbre_inflate_index]
+add ebp,eax
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_dist]
+pop ebx
+
+
+cmp al,4
+jb sfs_inflate_distance0
+cmp al,6
+jb sfs_inflate_distance1
+cmp al,8
+jb sfs_inflate_distance2
+cmp al,10
+jb sfs_inflate_distance3
+cmp al,12
+jb sfs_inflate_distance4
+cmp al,14
+jb sfs_inflate_distance5
+cmp al,16
+jb sfs_inflate_distance6
+cmp al,18
+jb sfs_inflate_distance7
+cmp al,20
+jb sfs_inflate_distance8
+cmp al,22
+jb sfs_inflate_distance9
+cmp al,24
+jb sfs_inflate_distance10
+cmp al,26
+jb sfs_inflate_distance11
+cmp al,28
+jb sfs_inflate_distance12
+cmp al,30
+jb sfs_inflate_distance13
+jmp sfs_inflate_erreur
+
+sfs_inflate_distance0:
+and eax,0FFh
+inc eax
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance1:
+xor edx,edx
+mov dl,al
+sub edx,4
+shl edx,1
+add edx,5
+mov eax,[esi]
+shr eax,cl
+av_bit 1
+and eax,1h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance2:
+xor edx,edx
+mov dl,al
+sub edx,6
+shl edx,2
+add edx,9
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+and eax,3h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance3:
+xor edx,edx
+mov dl,al
+sub edx,8
+shl edx,3
+add edx,17
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+and eax,7h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance4:
+xor edx,edx
+mov dl,al
+sub edx,10
+shl edx,4
+add edx,33
+mov eax,[esi]
+shr eax,cl
+av_bit 4
+and eax,0Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance5:
+xor edx,edx
+mov dl,al
+sub edx,12
+shl edx,5
+add edx,65
+mov eax,[esi]
+shr eax,cl
+av_bit 5
+and eax,1Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance6:
+xor edx,edx
+mov dl,al
+sub edx,14
+shl edx,6
+add edx,129
+mov eax,[esi]
+shr eax,cl
+av_bit 6
+and eax,3Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance7:
+xor edx,edx
+mov dl,al
+sub edx,16
+shl edx,7
+add edx,257
+mov eax,[esi]
+shr eax,cl
+av_bit 7
+and eax,7Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance8:
+xor edx,edx
+mov dl,al
+sub edx,18
+shl edx,8
+add edx,513
+mov eax,[esi]
+shr eax,cl
+av_bit 8
+and eax,0FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance9:
+xor edx,edx
+mov dl,al
+sub edx,20
+shl edx,9
+add edx,1025
+mov eax,[esi]
+shr eax,cl
+av_bit 9
+and eax,1FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance10:
+xor edx,edx
+mov dl,al
+sub edx,22
+shl edx,10
+add edx,2049
+mov eax,[esi]
+shr eax,cl
+av_bit 10
+and eax,3FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance11:
+xor edx,edx
+mov dl,al
+sub edx,24
+shl edx,11
+add edx,4097
+mov eax,[esi]
+shr eax,cl
+av_bit 11
+and eax,7FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance12:
+xor edx,edx
+mov dl,al
+sub edx,26
+shl edx,12
+add edx,8193
+mov eax,[esi]
+shr eax,cl
+av_bit 12
+and eax,0FFFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance13:
+xor edx,edx
+mov dl,al
+sub edx,28
+shl edx,13
+add edx,16385
+mov eax,[esi]
+shr eax,cl
+av_bit 13
+and eax,1FFFh
+add eax,edx
+
+suite_sfs_inflate_distance:
+push ecx
+push esi
+push ds
+mov dx,es
+mov ds,dx
+mov esi,edi
+sub esi,eax
+fs
+mov ecx,[ebx+arbre_inflate_taillechaine]
+cld
+rep movsb
+pop ds
+pop esi
+pop ecx
+jmp sfs_inflate_parcour_bloc
+
+
+sfs_inflate_bloc_fin:
+fs
+mov eax,[ebx+arbre_inflate_bloc]
+test eax,1      ;si le bit de fin de bloc du bloc précédent n'était pas a 1 on continue
+jz sfs_inflate_bloc_suivant
+
+call libmem
+pop fs
+popad
+xor eax,eax
+iret
+
+
+
+
+;************************************************************************************************
+sfs_inflate_gen_arbre:          ;génération complet de la table de décodage a partir des suites
+push ebx
+push ecx
+push esi
+push edi
+push es
+
+
+mov esi,ebx                    ;trie des point de code par nombre de bit utillisé
+mov edi,ebx
+mov edx,ebx
+add esi,arbre_inflate_tailles          ;taille des points de code
+add edi,arbre_inflate_valeurs_literal  ;table des tailles
+add edx,arbre_inflate_tables_literal   ;index de la table
+mov cl,1
+xor eax,eax
+fs
+mov dword[edx],0
+fs
+mov dword[edx+4],0
+fs
+mov dword[edx+8],0
+fs
+mov dword[edx+12],0
+
+
+sfs_inflate_gen_arbre_literal1:
+fs
+cmp [esi],cl
+jne @f
+fs
+mov [edi],ax
+add edi,2
+fs
+inc dword[edx]
+@@:
+inc ax
+inc esi
+fs
+cmp ax,[ebx+arbre_inflate_literal]
+jne sfs_inflate_gen_arbre_literal1
+
+mov esi,ebx
+inc cl
+add esi,arbre_inflate_tailles
+add edx,16
+
+xor eax,eax
+cmp cl,16
+je @f 
+
+
+fs
+mov dword[edx],0
+fs
+mov dword[edx+4],0
+fs
+mov dword[edx+8],0
+fs
+mov dword[edx+12],0
+jmp sfs_inflate_gen_arbre_literal1
+ 
+
+@@:
+
+
+fs
+cmp dword[ebx+arbre_inflate_dist],0
+je sfs_inflate_ignore_distance1
+                  
+
+
+mov esi,ebx                    ;trie des point de code par nombre de bit utillisé
+mov edi,ebx
+mov edx,ebx
+add esi,arbre_inflate_tailles          ;taille des points de code
+add edi,arbre_inflate_valeurs_dist  ;table des tailles
+add edx,arbre_inflate_tables_dist   ;index de la table
+fs
+add esi,[ebx+arbre_inflate_literal]
+mov cl,1
+xor eax,eax
+fs
+mov dword[edx],0
+fs
+mov dword[edx+4],0
+fs
+mov dword[edx+8],0
+fs
+mov dword[edx+12],0
+
+
+sfs_inflate_gen_arbre_dist1:
+fs
+cmp [esi],cl
+jne @f
+fs
+mov [edi],ax
+add edi,2
+fs
+inc word[edx]
+@@:
+inc ax
+inc esi
+fs
+cmp ax,[ebx+arbre_inflate_dist]
+jne sfs_inflate_gen_arbre_dist1
+
+mov esi,ebx
+inc cl
+add esi,arbre_inflate_tailles
+fs
+add esi,[ebx+arbre_inflate_literal]
+add edx,16
+
+xor eax,eax
+cmp cl,16
+je @f 
+
+
+fs
+mov dword[edx],0
+fs
+mov dword[edx+4],0
+fs
+mov dword[edx+8],0
+fs
+mov dword[edx+12],0
+jmp sfs_inflate_gen_arbre_dist1
+
+@@:
+
+
+sfs_inflate_ignore_distance1:
+
+
+
+
+
+
+xor eax,eax       ;génération des codes et des pointeurs associé aux branches de l'arbre littéral
+xor ebp,ebp
+mov edx,ebx
+mov esi,ebx
+add esi,arbre_inflate_tables_literal
+add edx,arbre_inflate_tables_literal+100h
+
+sfs_inflate_boucle_arbre_litteral2:
+fs
+mov ecx,[esi]
+cmp ecx,0
+je @f
+
+fs
+mov [esi+arbre_inflate_index],ebp
+add ebp,ecx
+fs
+mov [esi+arbre_inflate_min],eax
+add eax,ecx
+dec eax
+fs
+mov [esi+arbre_inflate_max],eax
+inc eax
+@@:
+shl eax,1
+add esi,10h
+cmp esi,edx
+jne sfs_inflate_boucle_arbre_litteral2
+
+
+
+
+fs
+cmp dword[ebx+arbre_inflate_dist],0
+je sfs_inflate_ignore_distance2
+
+
+xor eax,eax       ;génération des codes et des pointeurs associé aux branches de l'arbre des distances
+xor ebp,ebp
+mov edx,ebx
+mov esi,ebx
+add esi,arbre_inflate_tables_dist
+add edx,arbre_inflate_tables_dist+100h
+
+
+sfs_inflate_boucle_arbre_distance2:
+fs
+mov ecx,[esi]
+cmp ecx,0
+je @f
+
+fs
+mov [esi+arbre_inflate_index],ebp
+add ebp,ecx
+fs
+mov [esi+arbre_inflate_min],eax
+add eax,ecx
+dec eax
+fs
+mov [esi+arbre_inflate_max],eax
+inc eax
+@@:
+shl eax,1
+add esi,10h
+cmp esi,edx
+jne sfs_inflate_boucle_arbre_distance2
+
+
+sfs_inflate_ignore_distance2:
+pop es
+pop edi
+pop esi
+pop ecx
+pop ebx
+
+ret
 
 
 
