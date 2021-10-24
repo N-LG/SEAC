@@ -19,6 +19,36 @@ mov al,00h
 out dx,al
 
 
+
+;************************************************************************************************
+;désactive les périphériques PCI
+mov ebx,80000000h
+boucle_stop_pci:
+mov dx,0CF8h
+mov eax,ebx
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+cmp eax,0FFFFFFFFh
+je @f
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,4
+out dx,eax
+mov dx,0CFCh
+mov eax,0   ;command + status register
+out dx,eax
+
+@@:
+add ebx,100h
+test ebx,7F000000h
+jz boucle_stop_pci
+
+
+
+
+
 ;***********************************************************************************************************************************
 ;detecte les contolleur ATA sur le bus PCI et enregistre les adresses
 mov ebx,80000008h
