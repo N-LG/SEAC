@@ -4778,9 +4778,11 @@ cmp edi,0
 je fin_ajn_cluster  ;si le précédent cluster n'existait pas on ignore cette étape
 mov eax,edx
 mov ebx,edi
+push eax
 push ebx
 call lireindexfat
 pop ebx
+pop eax
 call ecrireindexfat
 
 fin_ajn_cluster:
@@ -4835,9 +4837,11 @@ cmp edi,0
 je suite_ajnx_cluster  ;si le précédent cluster n'existait pas on ignore cette étape
 mov eax,edx
 mov ebx,edi
+push eax
 push ebx
 call lireindexfat
 pop ebx
+pop eax
 call ecrireindexfat_sp
 
 cmp eax,0
