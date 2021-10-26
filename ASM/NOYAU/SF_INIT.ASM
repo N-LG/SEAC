@@ -34,6 +34,22 @@ je @f
 
 mov dx,0CF8h
 mov eax,ebx
+add eax,8
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+shr eax,24
+cmp al,03h    ;sauf les cartes video
+je @f
+cmp al,06h    ;et les bridges
+je @f
+cmp al,08h    ;et les périphériques de base
+je @f
+cmp al,0Ch    ;et les controleurs USB
+je @f
+
+mov dx,0CF8h
+mov eax,ebx
 add eax,4
 out dx,eax
 mov dx,0CFCh
