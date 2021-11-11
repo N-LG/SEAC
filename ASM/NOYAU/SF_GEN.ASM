@@ -2622,7 +2622,7 @@ iret
 sfs_inflate_bloc_00:   ;sans compression
 xor ecx,ecx
 mov cx,[esi+1]
-add esi,3
+add esi,5
 cld
 rep movsb
 xor ecx,ecx
@@ -2658,12 +2658,15 @@ pop es
 pop edi
 pop ecx
 
+
 fs
 mov dword[ebx+arbre_inflate_literal],288  
 fs
 mov dword[ebx+arbre_inflate_dist],32
 call sfs_inflate_gen_arbre
 jmp sfs_inflate_parcour_bloc
+
+
 
 ;***********************************
 sfs_inflate_bloc_10:    ;arbre de huffman dynamique
