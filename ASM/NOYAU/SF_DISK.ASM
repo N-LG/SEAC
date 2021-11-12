@@ -2464,6 +2464,7 @@ cmp esi,zt_maj_descp +2048
 jne boucle2_maj_partition
 
 ;si la partition n'existe plus dans les nouvelles partition on ferme tout les fichier ouverts sur cette partition 
+push ecx
 mov eax,edi
 sub eax,ad_descp
 shr eax,6     ;div par 64
@@ -2496,7 +2497,7 @@ maj_partition_pasfermer:
 add ebx,32
 cmp ebx,ecx
 jne boucle3_maj_partition
-
+pop ecx
 
 
 ;et on efface le descripteur de partition
