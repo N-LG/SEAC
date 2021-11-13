@@ -966,7 +966,7 @@ rep movsb      ;ds:esi vers es:edi
 pop ds
 
 
-mov ecx,8000h
+mov ecx,80000h
 call resmem
 jc errallocmem
 es
@@ -995,7 +995,16 @@ add ebx,10h             ;ne pas oublier de ne pas compter sur le descripteur
 mov dword[ad_ficho],ebx
 mov dword[max_ficho],ecx  
 
+
 mov ecx,8000h  ;32ko
+cmp dword[nb_ram],800000h ;si inf a 8Mo zt de fat de 32Ko
+jb @f
+mov ecx,20000h  ;128ko
+cmp dword[nb_ram],4000000h  ;si inf a 64Mo zt de fat de 128Ko
+jb @f
+mov ecx,80000h  ;512ko
+@@:
+
 call resmem
 jc errallocmem
 es
@@ -1005,7 +1014,6 @@ mov dword[ad_fat1],ebx
 mov dword[max_fat1],ecx
 mov byte[dsq_fat1],0FFh  
 
-mov ecx,8000h  ;32ko
 call resmem
 jc errallocmem
 es
@@ -2728,8 +2736,9 @@ ja cmdmodv_ok_positionlfb
 and dword[infovesa],07Fh ;met a zéro le bit de disponibilité du linear frame buffer
 mov cx,[mdvc]
 jmp pasdelinear             ;si non on passe en mode banked
-cmdmodv_ok_positionlfb:
 
+
+cmdmodv_ok_positionlfb:
 push ds
 mov eax,sellfb
 mov ecx,0FFFFFFFFh  ;limite   
@@ -2740,6 +2749,7 @@ call creeds
 pop ds
 jmp fin_cmdmodv
 
+
 cmdmodv_texte:
 mov ax,[infovesa+12h]    ;maj des resolutions
 mov bx,[infovesa+14h]
@@ -2749,7 +2759,6 @@ mov [resy],bx
 mov [resyt],bx
 mov byte[bitpp],00
 jmp fin_cmdmodv
-
 
 
 banked_cmdmodv:
@@ -2763,6 +2772,7 @@ mov ds,dx
 mov dl,02h       ;segment de données ring 0
 call creeds
 pop ds
+
 
 fin_cmdmodv:
 mov ax,[resx]   ;met la souris au centre
@@ -5311,6 +5321,8 @@ iret
                                                  ;**************************
 
 ;int_60 -> voir sf_tache.asm  arret de la tache (pas d'argument)
+
+
 
 
 int_61:  ;fonctions système générale
