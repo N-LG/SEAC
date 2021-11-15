@@ -2877,9 +2877,16 @@ je boucle_sfv_aff_img_24_16
 cmp ax,2018h   ;24->32
 je boucle_sfv_aff_img_24_32
 
+
+cmp ax,0820h   ;32->8
+je boucle_sfv_aff_img_32_8
+cmp ax,0F20h   ;32->15
+je boucle_sfv_aff_img_32_15
+cmp ax,1020h   ;32->16
+je boucle_sfv_aff_img_32_16
 cmp ax,1820h   ;32->24
 je boucle_sfv_aff_img_32_24
-;????????????????????????????????
+
 
 call sigmajv
 pop fs
@@ -3275,18 +3282,127 @@ jnz boucle_sfv_aff_img_24_32
 jmp fin_sfv_aff_img
 
 
-boucle_sfv_aff_img_32_24:
+boucle_sfv_aff_img_32_8:
 push ecx
 push edx
 push esi
 push edi
 
 
+boucle2_sfv_aff_img_32_8:
+es
+mov al,[edi]
+call conv8_24
+mov edx,eax
+mov eax,[esi]
+call conv32_24
+call conv24_8
+es
+mov [edi],al
+add esi,4
+add edi,1
+dec ecx
+jnz boucle2_sfv_aff_img_32_8
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_32_8
+jmp fin_sfv_aff_img
+
+
+
+boucle_sfv_aff_img_32_15:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_32_15:
+es
+mov ax,[edi]
+call conv15_24
+mov edx,eax
+mov eax,[esi]
+call conv32_24
+call conv24_15
+es
+mov [edi],ax
+add esi,4
+add edi,2
+dec ecx
+jnz boucle2_sfv_aff_img_32_15
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_32_15
+jmp fin_sfv_aff_img
+
+
+boucle_sfv_aff_img_32_16:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_32_16:
+es
+mov ax,[edi]
+call conv16_24
+mov edx,eax
+mov eax,[esi]
+call conv32_24
+call conv24_16
+es
+mov [edi],ax
+add esi,4
+add edi,2
+dec ecx
+jnz boucle2_sfv_aff_img_32_16
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_32_16
+jmp fin_sfv_aff_img
+
+
+
+boucle_sfv_aff_img_32_24:
+push ecx
+push edx
+push esi
+push edi
+
 boucle2_sfv_aff_img_32_24:
 mov eax,[esi]
 es
 mov edx,[edi]
-call conv_32_24
+call conv32_24
 es
 mov [edi],ax
 shr eax,16
@@ -3317,12 +3433,11 @@ push edx
 push esi
 push edi
 
-
 boucle2_sfv_aff_img_32_32:
 mov eax,[esi]
 es
 mov edx,[edi]
-call conv_32_24
+call conv32_24
 es
 mov [edi],eax
 add esi,4
@@ -3541,20 +3656,20 @@ pop ebx
 ret
 
 
-conv_32_24:   ;gère la transparence edx=couleur du fond (24bit)
+conv32_24:   ;gère la transparence edx=couleur du fond (24bit)
 push ebx
 push ecx
 push edx
 push esi
 push edi
 push ebp
-mov esi,edx
-mov edi,eax
+mov esi,edx   ;couleur de fond (24bit)
+mov edi,eax   ;couleur de l'image
 
 mov ecx,eax
-shr ecx,24
+shr ecx,24    ;coefficient image
 mov ebx,0FFh
-sub ebx,ecx
+sub ebx,ecx   ;coefficient fond 
 
 and eax,0FFh
 mul ecx
@@ -3563,7 +3678,7 @@ mov eax,esi
 and eax,0FFh
 mul ebx
 add ebp,eax
-push ebp
+push ebp      ;calcule couleur Rouge
 
 shr esi,8
 shr edi,8
@@ -3575,7 +3690,7 @@ mov eax,esi
 and eax,0FFh
 mul ebx
 add ebp,eax
-push ebp
+push ebp    ;calcule couleur Verte
 
 shr esi,8
 shr edi,8
@@ -3586,10 +3701,11 @@ mov ebp,eax
 mov eax,esi
 and eax,0FFh
 mul ebx
-add eax,ebp
+add eax,ebp   ;calcule couleur Bleu
 
-shr eax,8
-cmp eax,0FFh
+              ;réassemble les 3 couleurs
+shr eax,8     ;divise par 256
+cmp eax,0FFh  ;écrète si la valeur dépasse 255
 jbe @f
 mov eax,0FFh
 @@:
