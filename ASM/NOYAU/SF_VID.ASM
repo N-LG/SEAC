@@ -24,6 +24,12 @@
 ;26=ecrire une chaine a la position x y suivant une largeur maximale
 ;27=ecrire une image a la position x y 
 
+;50=crée une image vide
+;51=lit les carac d'un fichier image
+;52=lit l'image d'un fichier image
+;53=déplace une image ave réadaptation de la taille
+;54=déplace un fragment d'image
+;55=insère une image dans une autre
 
 
 cmp al,0
@@ -34,8 +40,6 @@ cmp al,2
 je sfv_info_ecran
 cmp al,3
 je sfv_choix_console
-
-
 
 cmp al,5
 je sfv_obt_clav
@@ -73,6 +77,20 @@ cmp al,26
 je sfv_chaine_pix2
 cmp al,27
 je sfv_aff_img
+
+
+cmp al,50
+je sfv_cre_img
+cmp al,51
+je sfv_carac_fich
+cmp al,52
+je sfv_lit_fich
+;cmp al,53
+;je sfv_?
+;cmp al,54
+;je sfv_?
+;cmp al,55
+;je sfv_?
 
 
 mov eax,cer_parami
@@ -2832,6 +2850,9 @@ test byte[esi+1],01h
 jnz sfv_aff_img_transparence
 add esi,14
 
+
+cmp ax,2020h   ;32->32
+je boucle_sfv_aff_img_32_32
 cmp al,ah   
 je boucle_sfv_aff_img_mc   ;même couleur 
 
@@ -2855,6 +2876,10 @@ cmp ax,1018h   ;24->16
 je boucle_sfv_aff_img_24_16
 cmp ax,2018h   ;24->32
 je boucle_sfv_aff_img_24_32
+
+cmp ax,1820h   ;32->24
+je boucle_sfv_aff_img_32_24
+;????????????????????????????????
 
 call sigmajv
 pop fs
@@ -3247,6 +3272,76 @@ mov ax,[octpl]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_24_32
+jmp fin_sfv_aff_img
+
+
+boucle_sfv_aff_img_32_24:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_32_24:
+mov eax,[esi]
+es
+mov edx,[edi]
+call conv_32_24
+es
+mov [edi],ax
+shr eax,16
+es
+mov [edi+2],al
+add esi,4
+add edi,3
+dec ecx
+jnz boucle2_sfv_aff_img_32_24
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_32_24
+jmp fin_sfv_aff_img
+
+
+boucle_sfv_aff_img_32_32:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_32_32:
+mov eax,[esi]
+es
+mov edx,[edi]
+call conv_32_24
+es
+mov [edi],eax
+add esi,4
+add edi,4
+dec ecx
+jnz boucle2_sfv_aff_img_32_32
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_32_32
+
 
 
 fin_sfv_aff_img:
@@ -3445,6 +3540,87 @@ pop edx
 pop ebx
 ret
 
+
+conv_32_24:   ;gère la transparence edx=couleur du fond (24bit)
+push ebx
+push ecx
+push edx
+push esi
+push edi
+push ebp
+mov esi,edx
+mov edi,eax
+
+mov ecx,eax
+shr ecx,24
+mov ebx,0FFh
+sub ebx,ecx
+
+and eax,0FFh
+mul ecx
+mov ebp,eax
+mov eax,esi
+and eax,0FFh
+mul ebx
+add ebp,eax
+push ebp
+
+shr esi,8
+shr edi,8
+mov eax,edi
+and eax,0FFh
+mul ecx
+mov ebp,eax
+mov eax,esi
+and eax,0FFh
+mul ebx
+add ebp,eax
+push ebp
+
+shr esi,8
+shr edi,8
+mov eax,edi
+and eax,0FFh
+mul ecx
+mov ebp,eax
+mov eax,esi
+and eax,0FFh
+mul ebx
+add eax,ebp
+
+shr eax,8
+cmp eax,0FFh
+jbe @f
+mov eax,0FFh
+@@:
+shl eax,8
+pop ebx
+shr ebx,8
+cmp ebx,0FFh
+jbe @f
+mov ebx,0FFh
+@@:
+mov al,bl
+shl eax,8
+pop ebx
+shr ebx,8
+cmp ebx,0FFh
+jbe @f
+mov ebx,0FFh
+@@:
+mov al,bl
+
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+ret
+
+
+
+
 ;************************************************
 conv_univ:    ;convertiseur de couleur en fonction de ah (nombre de bit par couleur en entrée)
 	      ;et la resolution actuelle de l'écran. edx contient la couleur
@@ -3604,4 +3780,220 @@ call conv24_16
 mov edx,eax
 pop eax
 ret
+
+
+
+
+
+
+;*************************************************************************************************************
+sfv_cre_img:
+;ah=nombre de bit par couleur
+;ebx=largeur de l'image
+;ecx=hauteur de l'image
+;edx=couleur de l'image
+;ds:edi=position de l'image
+
+test ebx,0FFFF0000h
+jnz @f
+test ecx,0FFFF0000h
+jnz @f
+cmp ah,8
+je sfv_cre_img8
+cmp ah,15
+je sfv_cre_img16
+cmp ah,16
+je sfv_cre_img16
+cmp ah,24
+je sfv_cre_img24
+cmp ah,32
+je sfv_cre_img32
+@@:
+mov eax,cer_parami
+iret
+
+
+
+
+sfv_cre_img8:
+pushad
+;enregistrement parm de base
+mov [edi+objimage_bpp],ah
+mov byte[edi+objimage_att],0
+mov [edi+objimage_x],bx
+mov [edi+objimage_y],cx
+mov [edi+objimage_ctp],edx
+;calcul taille ligne 
+add ebx,3
+and ebx,0FFFFFFFCh
+mov [edi+objimage_opl],ebx
+
+;remplissage de la zone
+shr ebx,2
+add edi,objimage_dat
+
+and edx,0FFh
+mov eax,edx
+shl eax,8
+or  eax,edx
+shl eax,8
+or  eax,edx
+shl eax,8
+or  eax,edx
+
+push eax
+xor edx,edx
+mov eax,edx
+mul ecx
+mov ecx,eax
+pop eax
+
+push es
+mov dx,ds
+mov es,dx
+rep stosd
+pop es
+
+popad
+xor eax,eax
+iret
+
+
+sfv_cre_img16:
+pushad
+;enregistrement parm de base
+mov [edi+objimage_bpp],ah
+mov byte[edi+objimage_att],0
+mov [edi+objimage_x],bx
+mov [edi+objimage_y],cx
+mov [edi+objimage_ctp],edx
+;calcul taille ligne 
+shl ebx,1
+add ebx,3
+and ebx,0FFFFFFFCh
+mov [edi+objimage_opl],ebx
+
+;remplissage de la zone
+shr ebx,2
+add edi,objimage_dat
+
+and edx,0FFFFh
+mov eax,edx
+shl eax,16
+or  eax,edx
+
+push eax
+xor edx,edx
+mov eax,edx
+mul ecx
+mov ecx,eax
+pop eax
+
+push es
+mov dx,ds
+mov es,dx
+rep stosd
+pop es
+
+popad
+xor eax,eax
+iret
+
+
+sfv_cre_img24:
+pushad
+;enregistrement parm de base
+mov [edi+objimage_bpp],ah
+mov byte[edi+objimage_att],0
+mov [edi+objimage_x],bx
+mov [edi+objimage_y],cx
+mov [edi+objimage_ctp],edx
+;calcul taille ligne 
+mov eax,ebx
+shl ebx,1
+add ebx,eax
+add ebx,3
+and ebx,0FFFFFFFCh
+mov [edi+objimage_opl],ebx
+
+;remplissage de la zone
+xor ebx,ebx
+xor ecx,ecx
+mov bx,[edi+objimage_x]
+mov cx,[edi+objimage_y]
+mov edx,[edi+objimage_opl]
+add edi,objimage_dat
+
+boucle_sfv_cre_img24:
+push ebx
+push edi
+@@:
+mov [edi],eax
+add edi,3
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jne boucle_sfv_cre_img24
+
+
+popad
+xor eax,eax
+iret
+
+
+
+sfv_cre_img32:
+pushad
+;enregistrement parm de base
+mov [edi+objimage_bpp],ah
+mov byte[edi+objimage_att],0
+mov [edi+objimage_x],bx
+mov [edi+objimage_y],cx
+mov [edi+objimage_ctp],edx
+;calcul taille ligne 
+shl ebx,2
+mov [edi+objimage_opl],ebx
+
+;remplissage de la zone
+shr ebx,2
+add edi,objimage_dat
+
+push eax
+xor edx,edx
+mov eax,edx
+mul ecx
+mov ecx,eax
+pop eax
+
+push es
+mov dx,ds
+mov es,dx
+rep stosd
+pop es
+
+popad
+xor eax,eax
+iret
+
+
+;*************************************************************************************************************
+sfv_carac_fich:
+;§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+
+
+;*************************************************************************************************************
+sfv_lit_fich:
+;§§§§§§§§§§§§§§§§§§§§§
+iret
+
+
+
+
+
 
