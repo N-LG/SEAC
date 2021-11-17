@@ -82,9 +82,9 @@ je sfv_aff_img
 cmp al,50
 je sfv_cre_img
 cmp al,51
-je sfv_carac_fich
+je sfv_carac_image
 cmp al,52
-je sfv_lit_fich
+je sfv_lire_image
 ;cmp al,53
 ;je sfv_?
 ;cmp al,54
@@ -4095,18 +4095,1177 @@ xor eax,eax
 iret
 
 
-;*************************************************************************************************************
-sfv_carac_fich:
-;§§§§§§§§§§§§§§§§§§§§§
+;***********************************************
+sfv_carac_image:
+call sfv_carac_image2
+iret
+
+sfv_carac_image2:
+push ds
+push es
+push edi
+mov ax,selramh
+mov ds,ax
+mov es,ax
+mov fs,ax
+push ebx
+mov ecx,4096
+call resmem
+mov edx,ebx
+pop ebx
+
+
+push edx
+mov edi,edx
+add edi,10h
+xor edx,edx
+mov edx,0
+mov ecx,640
+mov eax,4
+int 64h
+pop edx
+cmp eax,0
+je @f
+pop edi
+pop es
+pop ds
+ret
+@@:
+
+
+cmp dword[edx+10h],474E5089h
+jne @f
+cmp dword[edx+14h],0A1A0A0Dh ;signature PNG
+je sfv_carac_image_png 
+@@:
+ 
+sfv_carac_image_erreur:
+mov ebx,edx
+call libmem
+pop edi
+pop es
+pop ds
+xor ebx,ebx
+xor ecx,ecx
+xor edx,edx
+mov eax,cer_parami
+ret
+
+
+
+
+sfv_carac_image_png:
+cmp dword[edx+1Ch],"IHDR"
+jne sfv_carac_image_erreur
+cmp word[edx+2Ah],0    ;méthode de compression et filtrage a zéro
+jne sfv_carac_image_erreur
+
+;calcul du nombre de bit par pixel au final
+cmp word[edx+28h],610h ;4 canaux 16bit
+je sfv_carac_image_png64
+cmp word[edx+28h],608h ;4 canaux 8bit
+je sfv_carac_image_png32
+cmp word[edx+28h],210h ;3 canaux 16bit
+je sfv_carac_image_png48
+cmp word[edx+28h],208h ;3 canaux 8bit
+je sfv_carac_image_png24
+cmp word[edx+28h],410h ;2 canal 16bit
+je sfv_carac_image_png32
+cmp word[edx+28h],408h ;2 canal 8bit
+je sfv_carac_image_png24
+cmp word[edx+28h],010h ;1 canal 16bit
+je sfv_carac_image_png16
+cmp word[edx+28h],008h ;1 canal 8bit
+je sfv_carac_image_png8
+cmp word[edx+28h],004h ;1 canal 4bit
+je sfv_carac_image_png4
+cmp word[edx+28h],002h ;1 canal 2bit
+je sfv_carac_image_png2
+cmp word[edx+28h],001h ;1 canal 1bit
+je sfv_carac_image_png1
+cmp word[edx+28h],301h ;palette 1bit
+je sfv_carac_image_png24
+cmp word[edx+28h],302h ;palette 2bit
+je sfv_carac_image_png24
+cmp word[edx+28h],304h ;palette 4bit
+je sfv_carac_image_png24
+cmp word[edx+28h],308h ;palette 8bit
+je sfv_carac_image_png24
+jmp sfv_carac_image_erreur
+
+sfv_carac_image_png64:
+mov al,64
+jmp @f
+sfv_carac_image_png48:
+mov al,48
+jmp @f
+sfv_carac_image_png32:
+mov al,32
+jmp @f
+sfv_carac_image_png24:
+mov al,24
+jmp @f
+sfv_carac_image_png16:
+mov al,16
+jmp @f
+sfv_carac_image_png8:
+mov al,8
+jmp @f
+sfv_carac_image_png4:
+mov al,4
+jmp @f
+sfv_carac_image_png2:
+mov al,2
+jmp @f
+sfv_carac_image_png1:
+mov al,1
+@@:
+
+
+mov ebx,[edx+20h]
+mov ecx,[edx+24h]
+bswap ebx
+bswap ecx
+
+
+mov ebx,edx
+call libmem
+
+
+;calcul du nombre d'octet occupé par l'image
+push eax
+and eax,0FFh
+mul ecx
+mul ebx
+mov edx,eax
+add edx,7
+shr edx,3  ;calcul du nomre d'octet pour l'image
+add edx,14 ;et rajoute l'en tête
+shl edx,8 
+pop eax
+mov dl,al
+
+pop edi
+pop es
+pop ds
+xor eax,eax
+ret
+
+
+
+
+objimage_bpp equ 00h ;0 bit par pixel
+objimage_att equ 01h ;1 attribut image
+objimage_x   equ 02h ;2 largeur image
+objimage_y   equ 04h ;4 hauteur image
+objimage_opl equ 06h ;6 nombre d'octet par ligne
+objimage_ctp equ 0Ah ;10 couleur de transparence
+objimage_dat equ 0Eh ;14 image
+
+
+
+
+;structure de la mémoire utilisé par "sfv_lire_image"
+sfv_lire_image_bpp    equ 10h
+sfv_lire_image_to     equ 14h
+sfv_lire_image_tx     equ 18h
+sfv_lire_image_ty     equ 1Ch
+sfv_lire_image_handle equ 20h
+sfv_lire_image_dest   equ 24h ;offset+seg
+sfv_lire_image_zone1  equ 2Ch
+sfv_lire_image_zone2  equ 30h
+sfv_lire_image_filtre equ 34h
+sfv_lire_image_data   equ 40h
+
+sfv_lire_image:
+push ebx
+call sfv_carac_image2
+cmp eax,0
+je @f
+pop ebx
+iret
+
+@@:
+mov eax,edx
+push eax
+push ebx
+push ecx
+mov ax,selramh
+mov ds,ax
+mov es,ax
+mov fs,ax
+mov ecx,edx
+shl ecx,1
+call resmem
+mov edx,ebx
+pop ecx
+pop ebx
+pop eax
+
+
+mov [edx+sfv_lire_image_bpp],al
+shr eax,8
+mov [edx+sfv_lire_image_to],eax
+mov [edx+sfv_lire_image_tx],ebx
+mov [edx+sfv_lire_image_ty],ecx
+pop ebx
+mov [edx+sfv_lire_image_handle],ebx
+mov [edx+sfv_lire_image_dest],edi
+mov ax,es
+mov [edx+sfv_lire_image_dest+4],ax
+
+mov eax,edx
+add eax,sfv_lire_image_data
+mov [edx+sfv_lire_image_zone1],eax
+add eax,[edx+sfv_lire_image_to]
+add eax,[edx+sfv_lire_image_to]
+mov [edx+sfv_lire_image_zone2],eax
+
+
+
+
+;charge le contenu du fichier dans la zt
+push edx
+mov edi,[edx+sfv_lire_image_zone1]
+mov ecx,[edx+sfv_lire_image_to]
+xor edx,edx
+mov eax,4
+int 64h
+pop edx
+cmp eax,0
+je @f
+iret
+@@:
+
+push eax
+mov al,"C"
+call affcj
+pop eax
+iret
+
+mov esi,[edx+sfv_lire_image_zone1]
+cmp dword[esi],474E5089h
+je sfv_lire_image_png
+
+
+
+mov ebx,edx
+call libmem
+mov eax,cer_parami
+iret
+
+
+
+sfv_lire_image_png:
+mov al,[esi+1Ch]  ;type d'entralceement
+mov [edx+sfv_lire_image_filtre],al
+
+
+push eax
+mov al,"1"
+call affcj
+pop eax
+iret
+
+
+;recherche le premier idat
+mov esi,[edx+sfv_lire_image_zone1]
+mov edi,[edx+sfv_lire_image_zone2]
+add esi,8
+
+boucle1_recheridat:
+cmp dword[esi+4],"IDAT"
+je @f
+cmp dword[esi+4],"IEND"
+je sfv_lire_image_erreur
+;cmp dword[esi+4],"PLTE"  ;sauvegarde la position de la palette
+;jne pas_plte
+;??????????????????????????????????
+;pas_plte:
+mov eax,[esi]
+bswap eax
+add esi,eax
+add esi,12
+jmp boucle1_recheridat
+
+
+
+@@:
+;copie les données du chunk idat 
+push esi
+mov ecx,[esi]
+add esi,8
+bswap ecx
+rep movsb
+pop esi
+mov eax,[esi]
+bswap eax
+add esi,eax
+add esi,12
+
+
+
+;cherche le prochain idat ou iend
+boucle2_recheridat:
+cmp dword[esi+4],"IDAT"
+je @b
+cmp dword[esi+4],"IEND"
+je @f
+mov eax,[esi]
+bswap eax
+add esi,eax
+add esi,12
+jmp boucle2_recheridat
+@@:
+
+
+
+;décompresse les données
+mov esi,[edx+sfv_lire_image_zone2]
+mov edi,[edx+sfv_lire_image_zone1]
+add esi,2
+mov eax,152
+int 61h
+cmp eax,0
+jne sfv_lire_image_erreur
+
+push eax
+mov al,"2"
+call affcj
+pop eax
+;**************************************
+;supprime le filtre de l'image
+cmp byte[edx+sfv_lire_image_filtre],0
+je filtre_simple
+cmp byte[edx+sfv_lire_image_filtre],1
+je filtre_adam7
+mov eax,cer_parami
+jmp sfv_lire_image_erreur
+
+
+
+
+
+filtre_adam7:       ;défiltre l'image ADAM7
+;1 6 4 6 2 6 4 6
+;7 7 7 7 7 7 7 7
+;5 6 5 6 5 6 5 6
+;7 7 7 7 7 7 7 7
+;3 6 4 6 3 6 4 6
+;7 7 7 7 7 7 7 7
+;5 6 5 6 5 6 5 6
+;7 7 7 7 7 7 7 7
+
+xor ebx,ebx
+mov eax,[edx+sfv_lire_image_tx]
+mov bl,[edx+sfv_lire_image_bpp]
+push edx
+add ebx,7
+shr ebx,3
+mul ebx
+pop edx
+mov ebp,eax ;ebp=taille d'une scanline
+mov esi,[edx+sfv_lire_image_zone1]
+mov edi,[edx+sfv_lire_image_zone2]
+mov ecx,[edx+sfv_lire_image_ty]
+
+push ecx ;1
+push ebp
+inc ecx
+add ecx,7       ;+(div-1)-decalage   
+add ebp,7
+shr ecx,3
+shr ebp,3
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;2
+push ebp
+inc ecx
+add ecx,7
+add ebp,3
+shr ecx,3
+shr ebp,3
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;3
+push ebp
+add ecx,3
+add ebp,3
+shr ecx,3
+shr ebp,2
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;4
+push ebp
+add ecx,3
+add ebp,1
+shr ecx,2
+shr ebp,2
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;5
+push ebp
+inc ecx
+inc ebp
+shr ecx,2
+shr ebp,1
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;6
+push ebp
+inc ecx
+;add ebp,0
+shr ecx,1
+shr ebp,1
+call defiltre_PNG
+pop ebp
+pop ecx
+
+push ecx ;7
+push ebp
+;add ecx,0
+;add ebp,0
+shr ecx,1
+;shr ebp,0
+call defiltre_PNG
+pop ebp
+pop ecx
+
+;remet les octet dans l'ordre
+mov esi,[edx+sfv_lire_image_zone2]
+mov edi,[edx+sfv_lire_image_zone1]
+mov ebx,[edx+sfv_lire_image_tx]
+mov ecx,[edx+sfv_lire_image_ty]
+mov al,[edx+sfv_lire_image_bpp]
+and eax,0FFh
+push edx
+shr eax,3
+mov ebp,eax
+mul ebx
+pop edx
+
+push eax ;1
+push ebx
+push ecx 
+push edi
+push ebp
+add ebx,7
+add ecx,7
+shr ebx,3
+shr ecx,3
+shl eax,3
+shl ebp,3
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+
+push eax ;2
+push ebx
+push ecx 
+push edi
+push ebp
+add ebx,3
+add ecx,7
+shr ebx,3
+shr ecx,3
+shl eax,3
+shl ebp,2
+add edi,ebp
+shl ebp,1
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+push eax ;3
+push ebx
+push ecx 
+push edi
+push ebp
+add ebx,3
+add ecx,3
+shr ebx,2
+shr ecx,3
+shl ebp,2
+shl eax,2
+add edi,eax
+shl eax,1
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+push eax ;4
+push ebx
+push ecx 
+push edi
+push ebp
+add ebx,1
+add ecx,3
+shr ebx,2
+shr ecx,2
+shl ebp,1
+add edi,ebp
+shl ebp,1
+shl eax,2
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+push eax ;5
+push ebx
+push ecx 
+push edi
+push ebp
+add ebx,1
+add ecx,1
+shr ebx,1
+shr ecx,2
+shl eax,1
+add edi,eax
+shl eax,1
+shl ebp,1
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+push eax ;6
+push ebx
+push ecx 
+push edi
+push ebp
+;add ebx,0
+add ecx,1
+shr ebx,1
+shr ecx,1
+add edi,ebp
+shl eax,1
+shl ebp,1
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+
+push eax ;7
+push ebx
+push ecx 
+push edi
+push ebp
+;add ebx,0
+;add ecx,0
+;shr ebx,0
+shr ecx,1
+add edi,eax
+shl eax,1
+call ordre_sfv_lire_image
+pop ebp
+pop edi
+pop ecx
+pop ebx
+pop eax
+jmp finfiltre
+
+
+;****************************************
+filtre_simple:   ;défiltre l'image simple
+xor ebx,ebx
+mov eax,[edx+sfv_lire_image_tx]
+mov bl,[edx+sfv_lire_image_bpp]
+push edx
+add ebx,7
+shr ebx,3
+mul ebx
+pop edx
+mov ebp,eax ;ebp=taille d'une scanline
+mov esi,[edx+sfv_lire_image_zone1]
+mov edi,[edx+sfv_lire_image_zone2]
+mov ecx,[edx+sfv_lire_image_ty]
+call defiltre_PNG
+
+
+
+;remet les octet dans l'ordre
+mov esi,[edx+sfv_lire_image_zone2]
+mov edi,[edx+sfv_lire_image_zone1]
+mov ebx,[edx+sfv_lire_image_tx]
+mov ecx,[edx+sfv_lire_image_ty]
+mov al,[edx+sfv_lire_image_bpp]
+and eax,0FFh
+push edx
+shr eax,3
+mov ebp,eax
+mul ebx
+pop edx
+call ordre_sfv_lire_image
+
+
+finfiltre:
+push eax
+mov al,"3"
+call affcj
+pop eax
+
+;copie l'image finale
+mov cx,[edx+sfv_lire_image_dest+4]
+mov edi,[edx+sfv_lire_image_dest]
+mov es,cx
+mov al,[edx+sfv_lire_image_bpp]
+mov ebx,[edx+sfv_lire_image_tx]
+mov ecx,[edx+sfv_lire_image_ty]
+
+es
+mov [edi+objimage_bpp],al
+es
+mov byte[edi+objimage_att],0
+es
+mov [edi+objimage_x],bx
+es
+mov [edi+objimage_y],cx
+
+and eax,0FFh
+push edx
+shr eax,3
+mul ebx
+pop edx
+es
+mov [edi+objimage_opl],eax
+es
+mov dword[edi+objimage_ctp],0
+add edi,objimage_dat
+mov esi,[edx+sfv_lire_image_zone1]
+mov ecx,[edx+sfv_lire_image_to]
+cld
+rep movsb
+push eax
+mov al,"4"
+call affcj
+pop eax
+xor eax,eax
+iret
+
+
+
+sfv_lire_image_erreur:
 iret
 
 
 
 
-;*************************************************************************************************************
-sfv_lit_fich:
-;§§§§§§§§§§§§§§§§§§§§§
-iret
+;***********************************
+;ebp = taille d'un pixel a l'autre
+;eax = taille d'une ligne a l'autre
+;ebx= pixel par ligne
+;ecx=nb de ligne
+
+ordre_sfv_lire_image:
+push ebx
+push ecx
+push edx
+push ebp
+push eax
+mov al,[edx+sfv_lire_image_bpp]
+shr al,3 
+cmp al,1
+je ordre1_sfv_lire_image
+cmp al,2
+je ordre2_sfv_lire_image
+cmp al,3
+je ordre3_sfv_lire_image
+cmp al,4
+je ordre4_sfv_lire_image
+pop eax
+pop ebp
+pop edx
+pop ecx
+pop ebx
+mov eax,cer_parami
+ret
+
+
+ordre1_sfv_lire_image:
+pop edx
+boucle_ordre1_sfv_lire_image:
+push ebx
+push edi
+@@:
+mov al,[esi]
+mov [edi],al
+inc esi
+add edi,ebp
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jnz boucle_ordre1_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+ordre2_sfv_lire_image:
+pop edx
+boucle_ordre2_sfv_lire_image:
+push ebx
+push edi
+@@:
+mov ax,[esi]
+xchg al,ah
+mov [edi],ax
+add esi,2
+add edi,ebp
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jnz boucle_ordre2_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+ordre3_sfv_lire_image:
+pop edx
+boucle_ordre3_sfv_lire_image:
+push ebx
+push edi
+@@:
+mov eax,[esi]
+bswap eax
+mov [edi],ah
+shr eax,16
+mov [edi+1],ax
+add esi,3
+add edi,ebp
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jnz boucle_ordre3_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+ordre4_sfv_lire_image:
+pop edx
+boucle_ordre4_sfv_lire_image:
+push ebx
+push edi
+@@:
+mov eax,[esi]
+bswap eax
+push eax
+shr eax,8
+mov [edi],eax
+pop eax
+mov [edi+3],al
+add esi,4
+add edi,ebp
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jnz boucle_ordre4_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+
+
+
+
+
+
+;******************************************************
+;defiltre une image PNG
+defiltre_PNG:
+push ecx  ;cas spéciaux pour la première ligne
+mov ecx,ebp
+cmp byte[esi],2
+je filtre0_sfv_lire_image
+cmp byte[esi],3
+je filtre3b_sfv_lire_image
+cmp byte[esi],4
+je filtre4b_sfv_lire_image
+pop ecx
+
+
+bouclefiltre_sfv_lire_image:
+push ecx
+mov ecx,ebp
+cmp byte[esi],0
+je filtre0_sfv_lire_image
+cmp byte[esi],1
+je filtre1_sfv_lire_image
+cmp byte[esi],2
+je filtre2_sfv_lire_image
+cmp byte[esi],3
+je filtre3_sfv_lire_image
+cmp byte[esi],4
+jmp filtre4_sfv_lire_image
+mov eax,cer_parami
+pop ecx
+ret
+
+
+filtre0_sfv_lire_image:
+inc esi
+cld
+rep movsb
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret
+
+filtre1_sfv_lire_image:
+inc esi
+push ebx
+@@:
+mov al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+dec ebx
+jnz @b
+pop ebx
+
+@@:
+mov al,[esi]
+push edi
+sub edi,ebx
+add al,[edi]
+pop edi
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+jnz @b
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret 
+
+
+filtre2_sfv_lire_image:
+inc esi
+@@:
+mov al,[esi]
+push esi
+mov esi,edi
+sub esi,ebp
+add al,[esi]
+pop esi
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+jnz @b
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret
+
+
+filtre3_sfv_lire_image:
+inc esi
+push ebx
+@@:
+mov al,[esi]
+push edi
+sub edi,ebp
+mov ah,[edi]
+shr ah,1
+add al,ah
+pop edi
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+dec ebx
+jnz @b
+pop ebx
+
+
+@@:
+xor eax,eax
+mov al,[esi]
+mov [edi],al
+push edi
+push edi
+sub edi,ebx
+mov al,[edi]
+pop edi
+sub edi,ebp
+add al,[edi]
+adc ah,0
+shr ax,1
+pop edi
+add [edi],al
+inc esi
+inc edi
+dec ecx
+jnz @b
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret 
+
+
+filtre3b_sfv_lire_image:
+inc esi
+push ebx
+@@:
+mov al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+dec ebx
+jnz @b
+pop ebx
+
+@@:
+xor eax,eax
+mov al,[esi]
+mov [edi],al
+push edi
+sub edi,ebx
+add al,[edi]
+adc ah,0
+shr ax,1
+pop edi
+add [edi],al
+inc esi
+inc edi
+dec ecx
+jnz @b
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret
+
+
+
+
+
+
+
+
+
+filtre4_sfv_lire_image:
+inc esi
+
+push ebx
+@@:
+push edi
+xor eax,eax
+sub edi,ebp
+mov al,[edi]  ;b 7-0
+pop edi
+call calc_paeth
+add al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+dec ebx
+jnz @b
+pop ebx
+
+boucle_filtre4_sfv_lire_image:
+push edi
+sub edi,ebx
+mov al,[edi]  ;a  23-16
+sub edi,ebp
+shl eax,8
+mov al,[edi]   ;c  15-8
+add edi,ebx
+shl eax,8
+mov al,[edi]  ;b 7-0
+pop edi
+call calc_paeth
+add al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+jnz boucle_filtre4_sfv_lire_image
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret
+
+
+
+filtre4b_sfv_lire_image:
+inc esi
+
+push ebx
+@@:
+xor eax,eax
+call calc_paeth
+add al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+dec ebx
+jnz @b
+pop ebx
+
+boucle_filtre4b_sfv_lire_image:
+push edi
+sub edi,ebx
+mov al,[edi]  ;a  23-16
+shl eax,16
+xor ax,ax
+pop edi
+call calc_paeth
+add al,[esi]
+mov [edi],al
+inc esi
+inc edi
+dec ecx
+jnz boucle_filtre4_sfv_lire_image
+pop ecx
+dec ecx
+jnz bouclefiltre_sfv_lire_image
+ret
+
+
+
+
+;***********************************
+;p = a + b - c
+;pa = abs(p - a)  =abs(b-c)
+;pb = abs(p - b)  =abs(a-c)
+;pc = abs(p - c)  =abs(a+b-2c)
+;if pa <= pb and pa <= pc then Pr = a
+;else if pb <= pc then Pr = b
+;else Pr = c
+;return Pr (dans al)
+
+calc_paeth:
+push ebx
+push ecx
+push edx
+push esi
+push edi
+
+xor ebx,ebx
+xor ecx,ecx
+mov bl,al
+mov cl,ah
+cmp ebx,ecx
+ja @f
+xchg ebx,ecx
+@@:
+sub ebx,ecx
+mov esi,ebx ;pa
+
+xor ebx,ebx
+xor ecx,ecx
+push eax
+shr eax,8
+mov bl,al
+mov cl,ah
+pop eax
+cmp ebx,ecx
+ja @f
+xchg ebx,ecx
+@@:
+sub ebx,ecx
+mov edi,ebx ;pb
+
+xor ebx,ebx
+xor ecx,ecx
+push eax
+mov bl,al
+shr eax,8
+mov cl,ah
+pop eax
+add ebx,ecx
+mov cl,ah
+shl ecx,1
+cmp ebx,ecx
+ja @f
+xchg ebx,ecx
+@@:
+sub ebx,ecx ;pc
+
+cmp esi,ebx
+ja @f
+cmp esi,edi
+jbe a_filtre4_sfv_lire_image
+@@:
+cmp edi,ebx
+jbe b_filtre4_sfv_lire_image
+jmp c_filtre4_sfv_lire_image
+
+a_filtre4_sfv_lire_image:
+shr eax,8
+c_filtre4_sfv_lire_image:
+shr eax,8
+b_filtre4_sfv_lire_image:
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+ret
+
+
+
+
+
 
 
 
