@@ -4113,6 +4113,8 @@ mov ecx,4096
 call resmem
 mov edx,ebx
 pop ebx
+jc ermem_sfv_carac_image2
+mov word[edx+8],czm_fli
 
 
 push edx
@@ -4152,6 +4154,16 @@ mov eax,cer_parami
 ret
 
 
+
+ermem_sfv_carac_image2:
+pop edi
+pop es
+pop ds
+xor ebx,ebx
+xor ecx,ecx
+xor edx,edx
+mov eax,cer_pasm
+ret
 
 
 sfv_carac_image_png:
@@ -4227,10 +4239,10 @@ mov ecx,[edx+24h]
 bswap ebx
 bswap ecx
 
-
+push ebx
 mov ebx,edx
 call libmem
-
+pop ebx
 
 ;calcul du nombre d'octet occupé par l'image
 push eax
@@ -4254,15 +4266,6 @@ ret
 
 
 
-objimage_bpp equ 00h ;0 bit par pixel
-objimage_att equ 01h ;1 attribut image
-objimage_x   equ 02h ;2 largeur image
-objimage_y   equ 04h ;4 hauteur image
-objimage_opl equ 06h ;6 nombre d'octet par ligne
-objimage_ctp equ 0Ah ;10 couleur de transparence
-objimage_dat equ 0Eh ;14 image
-
-
 
 
 ;structure de la mémoire utilisé par "sfv_lire_image"
@@ -4279,11 +4282,21 @@ sfv_lire_image_data   equ 40h
 
 sfv_lire_image:
 push ebx
+push ecx
+push edx
+push esi
+push edi
+push ebp
+push ds
+push es
+push es
+push ebx
 call sfv_carac_image2
 cmp eax,0
 je @f
 pop ebx
-iret
+pop es
+jmp sfv_lire_image_erreur
 
 @@:
 mov eax,edx
@@ -4295,13 +4308,16 @@ mov ds,ax
 mov es,ax
 mov fs,ax
 mov ecx,edx
-shl ecx,1
+shr ecx,5   ;decal de 8 bit et multliplie par 4
+add ecx,sfv_lire_image_data+15
+and ecx,0FFFFFFF0h
 call resmem
 mov edx,ebx
 pop ecx
 pop ebx
 pop eax
-
+jc ermem_sfv_lire_image
+mov word[edx+8],czm_fli
 
 mov [edx+sfv_lire_image_bpp],al
 shr eax,8
@@ -4311,7 +4327,7 @@ mov [edx+sfv_lire_image_ty],ecx
 pop ebx
 mov [edx+sfv_lire_image_handle],ebx
 mov [edx+sfv_lire_image_dest],edi
-mov ax,es
+pop eax
 mov [edx+sfv_lire_image_dest+4],ax
 
 mov eax,edx
@@ -4320,8 +4336,6 @@ mov [edx+sfv_lire_image_zone1],eax
 add eax,[edx+sfv_lire_image_to]
 add eax,[edx+sfv_lire_image_to]
 mov [edx+sfv_lire_image_zone2],eax
-
-
 
 
 ;charge le contenu du fichier dans la zt
@@ -4333,40 +4347,19 @@ mov eax,4
 int 64h
 pop edx
 cmp eax,0
-je @f
-iret
-@@:
-
-push eax
-mov al,"C"
-call affcj
-pop eax
-iret
+jne sfv_lire_image_erreur
 
 mov esi,[edx+sfv_lire_image_zone1]
 cmp dword[esi],474E5089h
 je sfv_lire_image_png
-
-
-
-mov ebx,edx
-call libmem
 mov eax,cer_parami
-iret
+jmp sfv_lire_image_erreur
 
 
 
 sfv_lire_image_png:
-mov al,[esi+1Ch]  ;type d'entralceement
+mov al,[esi+1Ch]  ;type d'entrelacement
 mov [edx+sfv_lire_image_filtre],al
-
-
-push eax
-mov al,"1"
-call affcj
-pop eax
-iret
-
 
 ;recherche le premier idat
 mov esi,[edx+sfv_lire_image_zone1]
@@ -4405,6 +4398,7 @@ add esi,12
 
 
 
+
 ;cherche le prochain idat ou iend
 boucle2_recheridat:
 cmp dword[esi+4],"IDAT"
@@ -4418,8 +4412,6 @@ add esi,12
 jmp boucle2_recheridat
 @@:
 
-
-
 ;décompresse les données
 mov esi,[edx+sfv_lire_image_zone2]
 mov edi,[edx+sfv_lire_image_zone1]
@@ -4429,10 +4421,6 @@ int 61h
 cmp eax,0
 jne sfv_lire_image_erreur
 
-push eax
-mov al,"2"
-call affcj
-pop eax
 ;**************************************
 ;supprime le filtre de l'image
 cmp byte[edx+sfv_lire_image_filtre],0
@@ -4540,6 +4528,7 @@ shr ecx,1
 call defiltre_PNG
 pop ebp
 pop ecx
+
 
 ;remet les octet dans l'ordre
 mov esi,[edx+sfv_lire_image_zone2]
@@ -4709,7 +4698,6 @@ mov ecx,[edx+sfv_lire_image_ty]
 call defiltre_PNG
 
 
-
 ;remet les octet dans l'ordre
 mov esi,[edx+sfv_lire_image_zone2]
 mov edi,[edx+sfv_lire_image_zone1]
@@ -4726,11 +4714,6 @@ call ordre_sfv_lire_image
 
 
 finfiltre:
-push eax
-mov al,"3"
-call affcj
-pop eax
-
 ;copie l'image finale
 mov cx,[edx+sfv_lire_image_dest+4]
 mov edi,[edx+sfv_lire_image_dest]
@@ -4760,20 +4743,28 @@ mov dword[edi+objimage_ctp],0
 add edi,objimage_dat
 mov esi,[edx+sfv_lire_image_zone1]
 mov ecx,[edx+sfv_lire_image_to]
+sub ecx,objimage_dat
 cld
 rep movsb
-push eax
-mov al,"4"
-call affcj
-pop eax
 xor eax,eax
-iret
-
 
 
 sfv_lire_image_erreur:
+mov ebx,edx
+call libmem
+pop es
+pop ds
+pop ebp
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
 iret
 
+ermem_sfv_lire_image:
+mov eax,cer_pasm
+jmp sfv_lire_image_erreur
 
 
 
@@ -5093,16 +5084,8 @@ jnz bouclefiltre_sfv_lire_image
 ret
 
 
-
-
-
-
-
-
-
 filtre4_sfv_lire_image:
 inc esi
-
 push ebx
 @@:
 push edi
