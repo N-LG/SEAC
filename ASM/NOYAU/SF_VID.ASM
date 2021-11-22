@@ -86,11 +86,11 @@ je sfv_carac_image
 cmp al,52
 je sfv_lire_image
 ;cmp al,53
-;je sfv_?
-;cmp al,54
-;je sfv_?
-;cmp al,55
-;je sfv_?
+;je sfv_chgtaille
+cmp al,54
+je sfv_lit_frag
+cmp al,55
+je sfv_ecrit_frag
 
 
 mov eax,cer_parami
@@ -3985,30 +3985,22 @@ mov [edi+objimage_y],cx
 mov [edi+objimage_ctp],edx
 ;calcul taille ligne 
 shl ebx,1
-add ebx,3
-and ebx,0FFFFFFFCh
 mov [edi+objimage_opl],ebx
 
 ;remplissage de la zone
-shr ebx,2
-add edi,objimage_dat
-
-and edx,0FFFFh
-mov eax,edx
-shl eax,16
-or  eax,edx
-
-push eax
+push edx
 xor edx,edx
-mov eax,edx
+mov eax,ebx
 mul ecx
 mov ecx,eax
 pop eax
+shr ecx,1
+add edi,objimage_dat
 
 push es
 mov dx,ds
 mov es,dx
-rep stosd
+rep stosw
 pop es
 
 popad
@@ -4025,35 +4017,29 @@ mov [edi+objimage_x],bx
 mov [edi+objimage_y],cx
 mov [edi+objimage_ctp],edx
 ;calcul taille ligne 
-mov eax,ebx
-shl ebx,1
-add ebx,eax
-add ebx,3
-and ebx,0FFFFFFFCh
 mov [edi+objimage_opl],ebx
+add [edi+objimage_opl],ebx
+add [edi+objimage_opl],ebx
+
 
 ;remplissage de la zone
-xor ebx,ebx
-xor ecx,ecx
-mov bx,[edi+objimage_x]
-mov cx,[edi+objimage_y]
-mov edx,[edi+objimage_opl]
+push edx
+xor edx,edx
+mov eax,ebx
+mul ecx
+mov ecx,eax
+pop eax
 add edi,objimage_dat
+dec ecx
 
-boucle_sfv_cre_img24:
-push ebx
-push edi
 @@:
 mov [edi],eax
 add edi,3
-dec ebx
-jnz @b
-pop edi
-pop ebx
-add edi,edx
 dec ecx
-jne boucle_sfv_cre_img24
-
+jnz @b
+mov [edi],ax
+shr eax,16
+mov [edi+2],al
 
 popad
 xor eax,eax
@@ -4074,15 +4060,14 @@ shl ebx,2
 mov [edi+objimage_opl],ebx
 
 ;remplissage de la zone
-shr ebx,2
-add edi,objimage_dat
-
-push eax
+push edx
 xor edx,edx
-mov eax,edx
+mov eax,ebx
 mul ecx
 mov ecx,eax
 pop eax
+shr ecx,2
+add edi,objimage_dat
 
 push es
 mov dx,ds
@@ -5246,6 +5231,149 @@ pop ebx
 ret
 
 
+
+;********************************************************************************************************************************************
+sfv_chgtaille:
+;??????????????????????????
+iret
+
+
+;********************************************************************************************************************************************
+sfv_lit_frag:      	;extrait un fragment d'une image
+			;ds:esi=adresse de l'image   ds:edi=adresse du fragment  ebx=position x du fragment ecx=position y du fragment
+
+
+xor eax,eax
+mov al,[edi+objimage_bpp]
+cmp al,[esi+objimage_bpp]
+jne erreur_sfv_frag
+add eax,7
+shr eax,3
+
+;test si on est bien a l'interieur de l'image
+xor edx,edx
+mov dx,[esi+objimage_x]
+cmp ebx,edx
+jae erreur_sfv_frag
+mov dx,[esi+objimage_y]
+cmp ecx,edx
+jae erreur_sfv_frag
+
+call calcul_sfv_cpfrag 
+
+boucle_sfv_frag:  ;ebp=nb d'octet par ligne transfert ebx=octet par ligne entrée edx=octet par ligne sortie
+push ecx
+push esi
+push edi
+mov ecx,ebp
+rep movsb
+pop edi
+pop esi
+pop ecx
+add esi,ebx
+add edi,edx
+dec ecx
+jnz boucle_sfv_frag
+xor eax,eax
+iret 
+
+erreur_sfv_frag:
+mov eax,cer_parami
+iret
+
+
+
+
+calcul_sfv_cpfrag:
+
+
+;calcul l'offset
+push eax
+mul ebx
+push eax
+mov eax,[esi+objimage_opl]
+mul ecx
+pop edx
+add edx,eax 
+pop eax    ;edx=offset eax=octet par bit
+
+
+push edx
+push eax
+
+
+;ajuste le x
+xor eax,eax
+mov ax,[esi+objimage_x]
+xor edx,edx
+mov dx,[edi+objimage_x]
+sub eax,ebx
+cmp eax,edx
+jb @f
+xchg eax,edx
+@@:
+mov ebx,eax
+
+
+;ajuste le y
+xor eax,eax
+mov ax,[esi+objimage_y]
+xor edx,edx
+mov dx,[edi+objimage_y]
+sub eax,ebx
+cmp eax,edx
+jb @f
+xchg eax,edx
+@@:
+mov ecx,eax
+
+pop eax
+mul ebx
+mov eax,ebp
+
+mov ebx,[edi+objimage_opl]
+mov edx,[esi+objimage_opl]
+
+;calcul les premier octet des images
+add esi,objimage_dat
+add edi,objimage_dat
+pop eax
+add esi,eax
+ret
+
+
+
+
+
+
+
+
+
+
+;********************************************************************************************************************************************
+sfv_ecrit_frag:      	;insère un fragment dans une image
+			;ds:esi=adresse du fragment   ds:edi=adresse de l'image   ebx=position x du fragment ecx=position y du fragment
+
+xor eax,eax
+mov al,[edi+objimage_bpp]
+cmp al,[esi+objimage_bpp]
+jne erreur_sfv_frag
+add eax,7
+shr eax,3
+
+;test si on est bien a l'interieur de l'image
+xor edx,edx
+mov dx,[esi+objimage_x]
+cmp ebx,edx
+jae erreur_sfv_frag
+mov dx,[esi+objimage_y]
+cmp ecx,edx
+jae erreur_sfv_frag
+
+xchg esi,edi
+call calcul_sfv_cpfrag 
+xchg esi,edi
+jmp boucle_sfv_frag
 
 
 
