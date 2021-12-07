@@ -4125,6 +4125,11 @@ jne @f
 cmp dword[edx+14h],0A1A0A0Dh ;signature PNG
 je sfv_carac_image_png 
 @@:
+mov eax,[edx+10h]
+and eax,0FFFFFFh
+cmp eax,0FFD8FFh
+je sfv_carac_image_jpeg
+
  
 sfv_carac_image_erreur:
 mov ebx,edx
@@ -4249,7 +4254,98 @@ xor eax,eax
 ret
 
 
+sfv_carac_image_jpeg:
+mov edi,edx
+add  edi,10h
 
+@@:
+cmp byte[edi+1],0D9h
+je sfv_carac_image_erreur
+cmp byte[esi+1],0C0h
+je @f
+call bloc_jpeg
+jmp @b
+
+@@:
+push edx
+xor eax,eax
+xor ecx,ecx
+mov al,[edi+4]
+mov cl,[edi+9]
+mul ecx
+pop edx
+
+xor ebx,ebx
+xor ecx,ecx
+mov bx,[edi+7]
+mov cx,[edi+5]
+;xchg cl,ch
+;xchg bl,bh
+
+
+
+push ebx
+mov ebx,edx
+call libmem
+pop ebx
+
+;calcul du nombre d'octet occupé par l'image
+push eax
+and eax,0FFh
+mul ecx
+mul ebx
+mov edx,eax
+add edx,7
+shr edx,3  ;calcul du nomre d'octet pour l'image
+add edx,14 ;et rajoute l'en tête
+shl edx,8 
+pop eax
+mov dl,al
+
+pop edi
+pop es
+pop ds
+xor eax,eax
+ret
+
+
+
+;****************************************
+;passage d'un bloc jpeg a l'autre
+bloc_jpeg:
+cmp byte[edi],0FFh
+je bloc_jpeg_e
+cmp byte[edi+1],01h
+je bloc_jpeg_2o
+cmp byte[edi+1],0C0h
+jb bloc_jpeg_e
+cmp byte[edi+1],0DDh
+je bloc_jpeg_2o
+cmp byte[edi+1],0D0h
+jb bloc_jpeg_Mo
+cmp byte[edi+1],0DAh
+jb bloc_jpeg_0o
+cmp byte[edi+1],0FEh
+jb bloc_jpeg_Mo
+
+bloc_jpeg_e:
+mov word[edi],0D9FFh
+ret
+
+bloc_jpeg_0o:
+add edi,2
+ret
+
+bloc_jpeg_2o:
+add edi,4
+ret
+
+bloc_jpeg_Mo:
+add edi,2
+xor eax,eax
+mov ax,[edi]
+add edi,eax
+ret
 
 
 
@@ -4337,6 +4433,7 @@ jne sfv_lire_image_erreur
 mov esi,[edx+sfv_lire_image_zone1]
 cmp dword[esi],474E5089h
 je sfv_lire_image_png
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 mov eax,cer_parami
 jmp sfv_lire_image_erreur
 
@@ -4430,89 +4527,156 @@ filtre_adam7:       ;défiltre l'image ADAM7
 ;7 7 7 7 7 7 7 7
 
 xor ebx,ebx
-mov eax,[edx+sfv_lire_image_tx]
+mov ebp,[edx+sfv_lire_image_tx]
 mov bl,[edx+sfv_lire_image_bpp]
-push edx
 add ebx,7
 shr ebx,3
-mul ebx
-pop edx
-mov ebp,eax ;ebp=taille d'une scanline
 mov esi,[edx+sfv_lire_image_zone1]
 mov edi,[edx+sfv_lire_image_zone2]
 mov ecx,[edx+sfv_lire_image_ty]
 
-push ecx ;1
+
+push ebx ;1
+push ecx
 push ebp
 inc ecx
 add ecx,7       ;+(div-1)-decalage   
 add ebp,7
 shr ecx,3
 shr ebp,3
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;2
+
+push ebx ;2
+push ecx
 push ebp
 inc ecx
 add ecx,7
 add ebp,3
 shr ecx,3
 shr ebp,3
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;3
+
+push ebx ;3
+push ecx
 push ebp
 add ecx,3
 add ebp,3
 shr ecx,3
 shr ebp,2
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;4
+
+push ebx ;4
+push ecx
 push ebp
 add ecx,3
-add ebp,1
+inc ebp
 shr ecx,2
 shr ebp,2
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;5
+
+push ebx ;5
+push ecx
 push ebp
 inc ecx
 inc ebp
 shr ecx,2
 shr ebp,1
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;6
+
+push ebx ;6
+push ecx
 push ebp
 inc ecx
 ;add ebp,0
 shr ecx,1
 shr ebp,1
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
 
-push ecx ;7
+
+push ebx ;7
+push ecx
 push ebp
 ;add ecx,0
 ;add ebp,0
 shr ecx,1
 ;shr ebp,0
+push edx
+mov eax,ebp
+mul ebx
+mov ebp,eax ;ebp=taille d'une scanline
+pop edx
 call defiltre_PNG
 pop ebp
 pop ecx
+pop ebx
+cmp eax,0
+jne sfv_lire_image_erreur
+
 
 
 ;remet les octet dans l'ordre
@@ -4681,7 +4845,8 @@ mov esi,[edx+sfv_lire_image_zone1]
 mov edi,[edx+sfv_lire_image_zone2]
 mov ecx,[edx+sfv_lire_image_ty]
 call defiltre_PNG
-
+cmp eax,0
+jne sfv_lire_image_erreur
 
 ;remet les octet dans l'ordre
 mov esi,[edx+sfv_lire_image_zone2]
@@ -4904,6 +5069,11 @@ ret
 defiltre_PNG:
 push ecx  ;cas spéciaux pour la première ligne
 mov ecx,ebp
+pushad
+mov al,[esi]
+add al,"0"
+call affcj
+popad
 cmp byte[esi],2
 je filtre0_sfv_lire_image
 cmp byte[esi],3
@@ -4916,6 +5086,11 @@ pop ecx
 bouclefiltre_sfv_lire_image:
 push ecx
 mov ecx,ebp
+pushad
+mov al,[esi]
+add al,"0"
+call affcj
+popad
 cmp byte[esi],0
 je filtre0_sfv_lire_image
 cmp byte[esi],1
@@ -4938,6 +5113,7 @@ rep movsb
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret
 
 filtre1_sfv_lire_image:
@@ -4967,6 +5143,7 @@ jnz @b
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret 
 
 
@@ -4987,6 +5164,7 @@ jnz @b
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret
 
 
@@ -5032,6 +5210,7 @@ jnz @b
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret 
 
 
@@ -5066,6 +5245,7 @@ jnz @b
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret
 
 
@@ -5109,6 +5289,7 @@ jnz boucle_filtre4_sfv_lire_image
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret
 
 
@@ -5146,6 +5327,7 @@ jnz boucle_filtre4_sfv_lire_image
 pop ecx
 dec ecx
 jnz bouclefiltre_sfv_lire_image
+xor eax,eax
 ret
 
 

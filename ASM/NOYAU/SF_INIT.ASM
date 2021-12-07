@@ -21,45 +21,47 @@ out dx,al
 
 
 ;************************************************************************************************
-;désactive les périphériques PCI
-mov ebx,80000000h
-boucle_stop_pci:
-mov dx,0CF8h
-mov eax,ebx
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-cmp eax,0FFFFFFFFh
-je @f
+;désactive les périphériques PCI (pour eviter les bug de virtualbox au démarrage mais désactivé parce  que ça crée plus de probleme que ça n'en résout)
+;mov ebx,80000000h
+;boucle_stop_pci:
+;mov dx,0CF8h
+;mov eax,ebx
+;out dx,eax
+;mov dx,0CFCh
+;in eax,dx
+;cmp eax,0FFFFFFFFh
+;je @f
 
-mov dx,0CF8h
-mov eax,ebx
-add eax,8
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-shr eax,24
-cmp al,03h    ;sauf les cartes video
-je @f
-cmp al,06h    ;et les bridges
-je @f
-cmp al,08h    ;et les périphériques de base
-je @f
-cmp al,0Ch    ;et les controleurs USB
-je @f
+;mov dx,0CF8h
+;mov eax,ebx
+;add eax,8
+;out dx,eax
+;mov dx,0CFCh
+;in eax,dx
+;shr eax,24
+;cmp al,01h    ;sauf les périphériques de stockage
+;je @f
+;cmp al,03h    ;les cartes video
+;je @f
+;cmp al,06h    ;les bridges
+;je @f
+;cmp al,08h    ;les périphériques de base
+;je @f
+;cmp al,0Ch    ;et les controleurs USB
+;je @f
 
-mov dx,0CF8h
-mov eax,ebx
-add eax,4
-out dx,eax
-mov dx,0CFCh
-mov eax,0   ;command + status register
-out dx,eax
+;mov dx,0CF8h
+;mov eax,ebx
+;add eax,4
+;out dx,eax
+;mov dx,0CFCh
+;mov eax,0   ;command + status register
+;out dx,eax
 
-@@:
-add ebx,100h
-test ebx,7F000000h
-jz boucle_stop_pci
+;@@:
+;add ebx,100h
+;test ebx,7F000000h
+;jz boucle_stop_pci
 
 
 
