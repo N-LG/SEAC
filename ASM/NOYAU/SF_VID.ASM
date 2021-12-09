@@ -4094,7 +4094,7 @@ mov ds,ax
 mov es,ax
 mov fs,ax
 push ebx
-mov ecx,4096
+mov ecx,20000h
 call resmem
 mov edx,ebx
 pop ebx
@@ -4107,7 +4107,7 @@ mov edi,edx
 add edi,10h
 xor edx,edx
 mov edx,0
-mov ecx,640
+mov ecx,20000h
 mov eax,4
 int 64h
 pop edx
@@ -4261,7 +4261,7 @@ add  edi,10h
 @@:
 cmp byte[edi+1],0D9h
 je sfv_carac_image_erreur
-cmp byte[esi+1],0C0h
+cmp byte[edi+1],0C0h
 je @f
 call bloc_jpeg
 jmp @b
@@ -4279,8 +4279,8 @@ xor ebx,ebx
 xor ecx,ecx
 mov bx,[edi+7]
 mov cx,[edi+5]
-;xchg cl,ch
-;xchg bl,bh
+xchg cl,ch
+xchg bl,bh
 
 
 
@@ -4314,7 +4314,7 @@ ret
 ;passage d'un bloc jpeg a l'autre
 bloc_jpeg:
 cmp byte[edi],0FFh
-je bloc_jpeg_e
+jne bloc_jpeg_e
 cmp byte[edi+1],01h
 je bloc_jpeg_2o
 cmp byte[edi+1],0C0h
@@ -4344,6 +4344,7 @@ bloc_jpeg_Mo:
 add edi,2
 xor eax,eax
 mov ax,[edi]
+xchg al,ah
 add edi,eax
 ret
 
