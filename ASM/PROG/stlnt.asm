@@ -9,7 +9,7 @@ org 0
 ;demande mot de passe a la connexion
 ;affichage de l'adresse
 
-taille_journal equ 10000h
+taille_journal equ 80000h
 
 ;données du segment CS
 
