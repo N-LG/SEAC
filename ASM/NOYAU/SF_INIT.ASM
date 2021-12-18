@@ -21,47 +21,47 @@ out dx,al
 
 
 ;************************************************************************************************
-;désactive les périphériques PCI (pour eviter les bug de virtualbox au démarrage mais désactivé parce  que ça crée plus de probleme que ça n'en résout)
-;mov ebx,80000000h
-;boucle_stop_pci:
-;mov dx,0CF8h
-;mov eax,ebx
-;out dx,eax
-;mov dx,0CFCh
-;in eax,dx
-;cmp eax,0FFFFFFFFh
-;je @f
+;désactive les périphériques PCI (pour eviter les bug de virtualbox au démarrage)
+mov ebx,80000000h
+boucle_stop_pci:
+mov dx,0CF8h
+mov eax,ebx
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+cmp eax,0FFFFFFFFh
+je @f
 
-;mov dx,0CF8h
-;mov eax,ebx
-;add eax,8
-;out dx,eax
-;mov dx,0CFCh
-;in eax,dx
-;shr eax,24
-;cmp al,01h    ;sauf les périphériques de stockage
-;je @f
-;cmp al,03h    ;les cartes video
-;je @f
-;cmp al,06h    ;les bridges
-;je @f
-;cmp al,08h    ;les périphériques de base
-;je @f
-;cmp al,0Ch    ;et les controleurs USB
-;je @f
+mov dx,0CF8h
+mov eax,ebx
+add eax,8
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+shr eax,24
+cmp al,01h    ;sauf les périphériques de stockage
+je @f
+cmp al,03h    ;les cartes video
+je @f
+cmp al,06h    ;les bridges
+je @f
+cmp al,08h    ;les périphériques de base
+je @f
+cmp al,0Ch    ;et les controleurs USB
+je @f
 
-;mov dx,0CF8h
-;mov eax,ebx
-;add eax,4
-;out dx,eax
-;mov dx,0CFCh
-;mov eax,0   ;command + status register
-;out dx,eax
+mov dx,0CF8h
+mov eax,ebx
+add eax,4
+out dx,eax
+mov dx,0CFCh
+mov eax,0   ;command + status register
+out dx,eax
 
-;@@:
-;add ebx,100h
-;test ebx,7F000000h
-;jz boucle_stop_pci
+@@:
+add ebx,100h
+test ebx,7F000000h
+jz boucle_stop_pci
 
 
 
@@ -79,7 +79,7 @@ mov dx,0CFCh
 in eax,dx
 cmp ax,0FFFFh
 je pasctrlata
-mov edx,eax
+mov ecx,eax
 and eax,0FFFF0000h 
 cmp eax,001010000h  ;classe=01h sous-classe=01h
 jne pasctrlata
@@ -111,14 +111,18 @@ add eax,8
 mov [esi+dd_adress_dma+64],ax
 mov [esi+dd_adress_dma+96],ax
 
+test ch,1
+jz bar0_nok
 mov dx,0CF8h
 mov eax,ebx
 add eax,8     ;BAR0
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test eax,0FFFF0000h
+jz ctrlata0_nok
 test al,1
-jz bar0_nok
+jz ctrlata0_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar0_ok
@@ -128,14 +132,18 @@ bar0_ok:
 mov [esi+dd_adress_base],ax
 mov [esi+dd_adress_base+32],ax
 
+test ch,1
+jz bar1_nok
 mov dx,0CF8h
 mov eax,ebx
 add eax,12     ;BAR1
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test eax,0FFFF0000h
+jz ctrlata0_nok
 test al,1
-jz bar1_nok
+jz ctrlata0_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar1_ok
@@ -145,16 +153,42 @@ bar1_ok:
 mov [esi+dd_adress_ctrl],ax
 mov [esi+dd_adress_ctrl+32],ax
 
+jmp @f
+ctrlata0_nok:
+mov dword[esi+00h],0
+mov dword[esi+04h],0
+mov dword[esi+08h],0
+mov dword[esi+0Ch],0
+mov dword[esi+10h],0
+mov dword[esi+14h],0
+mov dword[esi+18h],0
+mov dword[esi+1Ch],0
+mov dword[esi+20h],0
+mov dword[esi+24h],0
+mov dword[esi+28h],0
+mov dword[esi+2Ch],0
+mov dword[esi+30h],0
+mov dword[esi+34h],0
+mov dword[esi+38h],0
+mov dword[esi+3Ch],0
+@@:
 add esi,64
+cmp esi,ad_descd+256
+je fin_detec_ata
 
+
+test ch,4
+jz bar2_nok
 mov dx,0CF8h
 mov eax,ebx
 add eax,16     ;BAR2
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test eax,0FFFF0000h
+jz ctrlata1_nok
 test al,1
-jz bar2_nok
+jz ctrlata1_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar2_ok
@@ -164,14 +198,18 @@ bar2_ok:
 mov [esi+dd_adress_base],ax
 mov [esi+dd_adress_base+32],ax
 
+test ch,4
+jz bar3_nok
 mov dx,0CF8h
 mov eax,ebx
 add eax,20     ;BAR3
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test eax,0FFFF0000h
+jz ctrlata1_nok
 test al,1
-jz bar3_nok
+jz ctrlata1_nok
 and eax,0FFFCh
 cmp eax,0
 jne bar3_ok
@@ -181,9 +219,30 @@ bar3_ok:
 mov [esi+dd_adress_ctrl],ax
 mov [esi+dd_adress_ctrl+32],ax
 
+
+jmp @f
+ctrlata1_nok:
+mov dword[esi+00h],0
+mov dword[esi+04h],0
+mov dword[esi+08h],0
+mov dword[esi+0Ch],0
+mov dword[esi+10h],0
+mov dword[esi+14h],0
+mov dword[esi+18h],0
+mov dword[esi+1Ch],0
+mov dword[esi+20h],0
+mov dword[esi+24h],0
+mov dword[esi+28h],0
+mov dword[esi+2Ch],0
+mov dword[esi+30h],0
+mov dword[esi+34h],0
+mov dword[esi+38h],0
+mov dword[esi+3Ch],0
+@@:
 add esi,64
 cmp esi,ad_descd+256
 je fin_detec_ata
+
 
 pasctrlata:
 add ebx,100h
