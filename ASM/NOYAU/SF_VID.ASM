@@ -3967,6 +3967,7 @@ pop eax
 push es
 mov dx,ds
 mov es,dx
+cld
 rep stosd
 pop es
 
@@ -4000,6 +4001,7 @@ add edi,objimage_dat
 push es
 mov dx,ds
 mov es,dx
+cld
 rep stosw
 pop es
 
@@ -4020,7 +4022,6 @@ mov [edi+objimage_ctp],edx
 mov [edi+objimage_opl],ebx
 add [edi+objimage_opl],ebx
 add [edi+objimage_opl],ebx
-
 
 ;remplissage de la zone
 push edx
@@ -4058,6 +4059,7 @@ mov [edi+objimage_ctp],edx
 ;calcul taille ligne 
 shl ebx,2
 mov [edi+objimage_opl],ebx
+shr ebx,2
 
 ;remplissage de la zone
 push edx
@@ -4066,12 +4068,12 @@ mov eax,ebx
 mul ecx
 mov ecx,eax
 pop eax
-shr ecx,2
 add edi,objimage_dat
 
 push es
 mov dx,ds
 mov es,dx
+cld
 rep stosd
 pop es
 
@@ -5070,11 +5072,6 @@ ret
 defiltre_PNG:
 push ecx  ;cas spéciaux pour la première ligne
 mov ecx,ebp
-pushad
-mov al,[esi]
-add al,"0"
-call affcj
-popad
 cmp byte[esi],2
 je filtre0_sfv_lire_image
 cmp byte[esi],3
@@ -5087,11 +5084,6 @@ pop ecx
 bouclefiltre_sfv_lire_image:
 push ecx
 mov ecx,ebp
-pushad
-mov al,[esi]
-add al,"0"
-call affcj
-popad
 cmp byte[esi],0
 je filtre0_sfv_lire_image
 cmp byte[esi],1
@@ -5423,7 +5415,7 @@ iret
 
 ;********************************************************************************************************************************************
 sfv_lit_frag:      	;extrait un fragment d'une image
-			;ds:esi=adresse de l'image   ds:edi=adresse du fragment  ebx=position x du fragment ecx=position y du fragment
+pushad			;ds:esi=adresse de l'image   ds:edi=adresse du fragment  ebx=position x du fragment ecx=position y du fragment
 
 
 xor eax,eax
@@ -5457,16 +5449,18 @@ add esi,ebx
 add edi,edx
 dec ecx
 jnz boucle_sfv_frag
+popad
 xor eax,eax
 iret 
 
 erreur_sfv_frag:
+popad
 mov eax,cer_parami
 iret
 
 
 
-
+;******************
 calcul_sfv_cpfrag:
 
 
@@ -5512,10 +5506,10 @@ mov ecx,eax
 
 pop eax
 mul ebx
-mov eax,ebp
+mov ebp,eax
 
-mov ebx,[edi+objimage_opl]
-mov edx,[esi+objimage_opl]
+mov ebx,[esi+objimage_opl]
+mov edx,[edi+objimage_opl]
 
 ;calcul les premier octet des images
 add esi,objimage_dat
@@ -5535,7 +5529,7 @@ ret
 
 ;********************************************************************************************************************************************
 sfv_ecrit_frag:      	;insère un fragment dans une image
-			;ds:esi=adresse du fragment   ds:edi=adresse de l'image   ebx=position x du fragment ecx=position y du fragment
+pushad			;ds:esi=adresse du fragment   ds:edi=adresse de l'image   ebx=position x du fragment ecx=position y du fragment
 
 xor eax,eax
 mov al,[edi+objimage_bpp]
@@ -5546,16 +5540,18 @@ shr eax,3
 
 ;test si on est bien a l'interieur de l'image
 xor edx,edx
-mov dx,[esi+objimage_x]
+mov dx,[edi+objimage_x]
 cmp ebx,edx
 jae erreur_sfv_frag
-mov dx,[esi+objimage_y]
+mov dx,[edi+objimage_y]
 cmp ecx,edx
 jae erreur_sfv_frag
 
 xchg esi,edi
 call calcul_sfv_cpfrag 
 xchg esi,edi
+xchg ebx,edx
+
 jmp boucle_sfv_frag
 
 
