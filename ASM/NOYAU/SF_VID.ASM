@@ -4542,7 +4542,6 @@ mov ecx,[edx+sfv_lire_image_ty]
 push ebx ;1
 push ecx
 push ebp
-inc ecx
 add ecx,7       ;+(div-1)-decalage   
 add ebp,7
 shr ecx,3
@@ -4563,7 +4562,6 @@ jne sfv_lire_image_erreur
 push ebx ;2
 push ecx
 push ebp
-inc ecx
 add ecx,7
 add ebp,3
 shr ecx,3
@@ -4952,7 +4950,7 @@ mov eax,cer_parami
 ret
 
 
-ordre1_sfv_lire_image:
+ordre1_sfv_lire_image:             ;niveau de gris et palette (a modifier)
 pop edx
 boucle_ordre1_sfv_lire_image:
 push ebx
@@ -4977,7 +4975,7 @@ xor eax,eax
 ret
 
 
-ordre2_sfv_lire_image:
+ordre2_sfv_lire_image:             ;niveau de gris et canal alpha (a modifier)
 pop edx
 boucle_ordre2_sfv_lire_image:
 push ebx
@@ -5003,7 +5001,7 @@ xor eax,eax
 ret
 
 
-ordre3_sfv_lire_image:
+ordre3_sfv_lire_image:             ;24bits
 pop edx
 boucle_ordre3_sfv_lire_image:
 push ebx
@@ -5031,7 +5029,7 @@ xor eax,eax
 ret
 
 
-ordre4_sfv_lire_image:
+ordre4_sfv_lire_image:          ;24bits+alpha
 pop edx
 boucle_ordre4_sfv_lire_image:
 push ebx
@@ -5079,7 +5077,6 @@ je filtre3b_sfv_lire_image
 cmp byte[esi],4
 je filtre4b_sfv_lire_image
 pop ecx
-
 
 bouclefiltre_sfv_lire_image:
 push ecx
