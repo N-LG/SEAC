@@ -85,8 +85,8 @@ cmp al,51
 je sfv_carac_image
 cmp al,52
 je sfv_lire_image
-;cmp al,53
-;je sfv_chgtaille
+cmp al,53
+je sfv_chgtaille
 cmp al,54
 je sfv_lit_frag
 cmp al,55
@@ -5439,9 +5439,296 @@ ret
 
 
 ;********************************************************************************************************************************************
-sfv_chgtaille:
-;??????????????????????????
+sfv_chgtaille_t1x     equ 000h
+sfv_chgtaille_t1y     equ 004h
+sfv_chgtaille_addr1   equ 008h 
+sfv_chgtaille_opl1    equ 00Ch
+sfv_chgtaille_t2x     equ 010h
+sfv_chgtaille_t2y     equ 014h
+sfv_chgtaille_addr2   equ 018h 
+sfv_chgtaille_opl2    equ 01Ch
+sfv_chgtaille_opp     equ 020h
+sfv_chgtaille_adligne equ 024h
+sfv_chgtaille_calx    equ 030h 
+sfv_chgtaille_caly    equ 070h 
+sfv_chgtaille_max     equ 0A0h 
+
+
+;****************************************************
+sfv_chgtaille:  ;ds:esi=image d'origine  ds:edi=image de sortie
+
+;verifie les parametre d'entrée
+mov al,[esi+objimage_bpp]
+cmp al,[edi+objimage_bpp]
+je @f
+mov eax,cer_parami 
 iret
+@@:
+cmp byte[edi+objimage_bpp],24
+je @f
+cmp byte[edi+objimage_bpp],32
+je @f
+mov eax,cer_parami 
+iret
+
+@@:  ;reserve mémoire dans la pile
+pushad
+push ds
+push es
+sub esp,sfv_chgtaille_max
+mov eax,esp
+push esi
+mov esi,eax
+mov ax,ds
+mov es,ax
+mov ax,ss
+mov ds,ax
+
+
+;enregistrement donnée image 2
+xor ebx,ebx
+xor ecx,ecx
+xor ebp,ebp
+es
+mov bx,[edi+objimage_x]
+es
+mov cx,[edi+objimage_y]
+es
+mov bp,[edi+objimage_opl]
+mov [esi+sfv_chgtaille_t2x],ebx 
+mov [esi+sfv_chgtaille_t2y],ecx
+mov [esi+sfv_chgtaille_addr2],edi
+mov [esi+sfv_chgtaille_opl2],ebp 
+
+pop edi
+;enregistrement donnée image 1
+xor ebx,ebx
+xor ecx,ecx
+xor ebp,ebp
+es
+mov bx,[edi+objimage_x]
+es
+mov cx,[edi+objimage_y]
+es
+mov bp,[edi+objimage_opl]
+mov [esi+sfv_chgtaille_t1x],ebx 
+mov [esi+sfv_chgtaille_t1y],ecx
+mov [esi+sfv_chgtaille_addr1],edi
+mov [esi+sfv_chgtaille_opl1],ebp 
+
+;calcul autres variables
+xor eax,eax
+es
+mov al,[edi+objimage_bpp]
+shr eax,3
+mov [esi+sfv_chgtaille_opp],eax
+
+
+xor ebx,ebx
+xor ecx,ecx
+@@:
+call sfv_chgtaille_calcpix
+inc ebx
+cmp ebx,[esi+sfv_chgtaille_t2x]
+jb @b
+xor ebx,ebx
+inc ecx
+cmp ecx,[esi+sfv_chgtaille_t2y]
+jb @b
+
+
+add esp,sfv_chgtaille_max
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+
+;calcule la moyenne d'un pixel
+sfv_chgtaille_calcpix:
+pushad
+push ebx
+push ecx
+
+;calcul adresse début de ligne
+mov eax,ecx
+mul dword[esi+sfv_chgtaille_t1y]
+div dword[esi+sfv_chgtaille_t2y]  ;eax=numéros du pixel d'origine 
+neg edx
+add edx,[esi+sfv_chgtaille_t2y]   ;edx=reste inversé
+push edx
+mul dword[esi+sfv_chgtaille_opl1] 
+pop edx
+add eax,[esi+sfv_chgtaille_addr1]
+add eax,objimage_dat
+mov [esi+sfv_chgtaille_adligne],eax
+
+
+;reset valeur pixel
+mov edi,esi
+add edi,sfv_chgtaille_caly
+mov ebp,[esi+sfv_chgtaille_opp]
+@@:
+mov dword[edi],0
+add edi,4
+dec ebp
+jnz @b
+
+
+;addition avec coefficient des lignes
+mov ebp,[esi+sfv_chgtaille_t1y]
+
+@@:
+cmp ebp,0
+je sfv_chgtaille_finy
+cmp edx,ebp
+ja sfv_chgtaille_derny
+
+mov ecx,edx
+call sfv_chgtaille_caligne
+sub ebp,ecx
+mov edx,[esi+sfv_chgtaille_t2y]
+mov eax,[esi+sfv_chgtaille_opl1] 
+add [esi+sfv_chgtaille_adligne],eax
+jmp @b
+
+
+sfv_chgtaille_derny:
+mov ecx,ebp
+call sfv_chgtaille_caligne
+
+
+;application moyenne des lignes et ecriture final du pixel
+sfv_chgtaille_finy:
+pop ecx
+mov eax,[esi+sfv_chgtaille_opl2]
+mul ecx
+mov ebx,eax
+pop eax
+mul dword[esi+sfv_chgtaille_opp] 
+add ebx,eax
+add ebx,[esi+sfv_chgtaille_addr2]
+add ebx,objimage_dat
+
+mov edi,sfv_chgtaille_caly
+add edi,esi
+mov ecx,[esi+sfv_chgtaille_opp] 
+
+@@:
+mov eax,[edi]
+xor edx,edx
+div dword[esi+sfv_chgtaille_t1y]
+es
+mov [ebx],al
+inc ebx
+add edi,4
+dec ecx
+jnz @b
+
+popad
+ret
+
+
+
+;************************************
+;calcul moyenne de la ligne
+sfv_chgtaille_caligne:
+pushad
+push ecx
+
+;calcul adresse du pixel
+mov eax,ebx
+mul dword[esi+sfv_chgtaille_t1x]
+div dword[esi+sfv_chgtaille_t2x]  ;eax=numéros du pixel d'origine 
+neg edx
+add edx,[esi+sfv_chgtaille_t2x]   ;edx=reste inversé
+push edx
+mul dword[esi+sfv_chgtaille_opp] 
+mov ebx,eax 
+add ebx,[esi+sfv_chgtaille_adligne] ;ebx=adresse du premier pixel
+pop edx
+
+;reset valeur de ligne
+mov edi,esi
+add edi,sfv_chgtaille_calx
+mov ebp,[esi+sfv_chgtaille_opp]
+@@:
+mov dword[edi],0
+add edi,4
+dec ebp
+jnz @b
+
+;addition avec coefficient des pixel
+mov ebp,[esi+sfv_chgtaille_t1x]
+
+@@:
+cmp ebp,0
+je sfv_chgtaille_finx
+cmp edx,ebp
+ja sfv_chgtaille_dernx
+
+mov ecx,edx
+call sfv_chgtaille_ajpix
+sub ebp,ecx
+mov edx,[esi+sfv_chgtaille_t2x]
+jmp @b
+
+sfv_chgtaille_dernx:
+mov ecx,ebp
+call sfv_chgtaille_ajpix
+
+
+;calcul de la moyenne de la ligne et ecriture dans le resultat
+sfv_chgtaille_finx:
+pop ecx
+mov ebx,esi
+mov edi,esi
+add ebx,sfv_chgtaille_calx
+add edi,sfv_chgtaille_caly
+mov ebp,[esi+sfv_chgtaille_opp]
+
+@@:
+mov eax,[ebx]
+mul ecx
+div dword[esi+sfv_chgtaille_t1x]
+add [edi],eax
+add ebx,4
+add edi,4
+dec ebp
+jnz @b
+
+popad
+ret
+
+
+
+
+
+
+
+
+
+;************************
+sfv_chgtaille_ajpix:
+push ebp
+mov edi,esi
+add edi,sfv_chgtaille_calx
+mov ebp,[esi+sfv_chgtaille_opp]
+@@:
+xor eax,eax
+es
+mov al,[ebx]
+mul ecx
+add [edi],eax
+inc ebx
+add edi,4
+dec ebp
+jnz @b
+pop ebp
+ret
+
+
 
 
 ;********************************************************************************************************************************************
