@@ -1943,7 +1943,7 @@ jnz boucle_sfv_dessine_rec_32
 
 
 fin_sfv_dessine_rec:
-call sigmajv
+;call sigmajv
 pop fs
 pop es
 popad
@@ -5703,12 +5703,6 @@ ret
 
 
 
-
-
-
-
-
-
 ;************************
 sfv_chgtaille_ajpix:
 push ebp
@@ -5754,7 +5748,7 @@ jae erreur_sfv_frag
 
 call calcul_sfv_cpfrag 
 
-boucle_sfv_frag:  ;ebp=nb d'octet par ligne transfert ebx=octet par ligne entrée edx=octet par ligne sortie
+boucle_sfv_frag:  ;ebp=nb d'octet par ligne transfert ;ebx=octet par ligne entrée ;edx=octet par ligne sortie ;ecx=nombre de lignes
 push ecx
 push esi
 push edi
@@ -5815,7 +5809,7 @@ xor eax,eax
 mov ax,[esi+objimage_y]
 xor edx,edx
 mov dx,[edi+objimage_y]
-sub eax,ebx
+sub eax,ecx
 cmp eax,edx
 jb @f
 xchg eax,edx
