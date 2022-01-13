@@ -7,12 +7,54 @@ org 0
 
 
 
+objimage_bpp equ 00h ;0 bit par pixel
+objimage_att equ 01h ;1 attribut image
+objimage_x   equ 02h ;2 largeur image
+objimage_y   equ 04h ;4 hauteur image
+objimage_opl equ 06h ;6 nombre d'octet par ligne
+objimage_ctp equ 0Ah ;10 couleur de transparence
+objimage_dat equ 0Eh ;14 image
+
+
+
 ;données du segment CS
 mov ax,sel_dat1
 mov ds,ax
 mov es,ax
 
 
+
+;test si il faut une couleur de fond spéciale
+mov al,5   
+mov ah,"c"   ;numéros de l'option de commande a lire
+mov cl,16 ;0=256 octet max
+mov edx,tempo
+int 61h
+cmp eax,0
+jne @f
+mov al,101
+mov edx,tempo
+int 61h
+mov [couleur],ecx
+@@:
+
+
+;test si on as besoin d'information supplémentaire
+mov al,5   
+mov ah,"t"   ;numéros de l'option de commande a lire
+mov cl,1 ;0=256 octet max
+mov edx,tempo
+int 61h
+cmp eax,0
+je @f
+or byte[opt],1
+@@:
+
+
+
+
+
+;lit nom du fichier dans la commande
 mov al,4   
 mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
@@ -21,6 +63,7 @@ int 61h
 cmp eax,0
 jne erreur_ouv
 
+;ouvre le fichier
 mov al,0
 xor ebx,ebx
 mov edx,tempo
@@ -29,78 +72,249 @@ cmp eax,0
 jne erreur_ouv
 mov [handle_fichier],ebx
 
-
-
+;lit les carac de l'image
 mov ebx,[handle_fichier]
 mov al,51
 int 63h
 cmp eax,0
 jne erreur_form
-mov [x_image],ebx
-mov [y_image],ecx
+mov [x_image1],ebx
+mov [y_image1],ecx
+mov [x_image2],ebx
+mov [y_image2],ecx
+mov [x_image3],ebx
+mov [y_image3],ecx
 
 
-
+;aggrandit la zone pour pouvoir y charger l'image et les différentes zones intermédiaire de traitement
 shr edx,8 
 push edx
 mov ecx,edx
-add ecx,zt_sfv
+add ecx,zt_sfv1    ;zone de chargement de l'image
+mov [zt_sfv2],ecx  ;zone du fragment a afficher
+add ecx,edx      
+mov [zt_sfv3],ecx  ;zone de l'image redimensionné
+shl ecx,4
+
+;add ecx,         
+
 mov edx,sel_dat1
 mov eax,8
 int 61h
 pop ecx
 
-
+;lit l'image
 mov ebx,[handle_fichier]
-mov edi,zt_sfv
+mov edi,zt_sfv1
 mov [zt_image],edi
-push ds
-push es
 mov al,52
 int 63h
-pop es
-pop ds
 cmp eax,0
 jne erreur_form2
 
 
 ;passe en mode video
 mov dx,sel_dat2
-mov ah,2   ;option=mode video ;6=video + souris
-mov al,0   ;crÃ©ation console     
+mov ah,6   ;option=mode video ;6=video + souris
+mov al,0   ;création console     
 int 63h
 mov ax,sel_dat2
 mov fs,ax
+fs
+or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
 
+
+
+calczoom:
+mov ebx,[zoom]
+mov ecx,10000
+xor ebp,ebp
+
+;calcul la position de la souris sur l'image
+fs
+mov eax,[posx_souris]
+mul ecx
+div ebx
+add eax,[offset_imagex]
+mov [posx_image],eax
+fs
+mov eax,[posy_souris]
+mul ecx
+div ebx
+add eax,[offset_imagey]
+mov [posy_image],eax
+
+
+
+;calcul de la dimension de l'image théorique après application du zoom et tronquage si trop grand
+mov eax,[x_image1]
+mul ebx
+div ecx
+fs
+mov bp,[resx_ecran]
+cmp eax,ebp
+jbe @f
+mov eax,ebp
+@@:
+mov [x_image3],eax
+
+mov eax,[y_image1]
+mul ebx
+div ecx
+fs
+mov bp,[resy_ecran]
+cmp eax,ebp
+jbe @f
+mov eax,ebp
+@@:
+mov [y_image3],eax
+
+
+
+;calcul des dimension de l'image intermédiaire
+mov eax,[x_image3]
+mul ecx
+div ebx
+mov [x_image2],eax
+
+mov eax,[y_image3]
+mul ecx
+div ebx
+mov [y_image2],eax
+
+
+
+
+;calcul le décalage pour que la souris ne bouge pas sur l'image lorsque l'on zoom
+fs
+mov eax,[posx_souris]
+mul ebx
+div ecx
+mov ebp,[posx_image]
+sub ebp,eax
+xor eax,eax
+fs
+mov ax,[resx_ecran]
+cmp [x_image3],eax
+jae @f
+xor ebp,ebp
+@@:
+test ebp,80000000h
+jz @f
+xor ebp,ebp
+@@:
+mov [offset_imagex],ebp
+
+fs
+mov eax,[posy_souris]
+mul ebx
+div ecx
+mov ebp,[posy_image]
+sub ebp,eax
+xor eax,eax
+fs
+mov ax,[resy_ecran]
+cmp [y_image3],eax
+jae @f
+xor ebp,ebp
+@@:
+test ebp,80000000h
+jz @f
+xor ebp,ebp
+@@:
+mov [offset_imagey],ebp
+
+
+
+
+;*********************************************************************************************
+affichage:
+
+
+
+
+mov ebx,[x_image2]
+mov ecx,[y_image2]
+mov edi,[zt_sfv2]
+mov al,50   ;créer image    
+mov ah,[zt_sfv1+objimage_bpp]
+mov edx,0FFFFFFFFh
+int 63h
+
+
+
+
+;lit un fragment de l'image
+mov ebx,[offset_imagex]
+mov ecx,[offset_imagey]
+mov esi,zt_sfv1
+mov edi,[zt_sfv2]
+mov al,54
+int 63h
+
+
+
+
+
+mov ebx,[x_image3]
+mov ecx,[y_image3]
+mov edi,[zt_sfv3]
+mov al,50   ;créer image    
+mov ah,[zt_sfv1+objimage_bpp]
+mov edx,0FFFFFFFFh
+int 63h
+
+;redimensionne l'image
+mov esi,[zt_sfv2]
+mov edi,[zt_sfv3]
+mov al,53
+int 63h
+
+
+;affiche un fond
+xor ebx,ebx
+xor ecx,ecx
+xor esi,esi
+xor edi,edi
+fs
+mov si,[resx_ecran]
+fs
+mov di,[resy_ecran]
+mov al,22   ;afficher rectangle    
+mov ah,24
+mov edx,[couleur]
+int 63h
+
+
+;affiche l'image
 xor ebx,ebx
 xor ecx,ecx
 fs
 mov bx,[resx_ecran]
 fs
 mov cx,[resy_ecran]
-sub ebx,[x_image]
+sub ebx,[x_image3]
 ja @f
 mov ebx,0
 @@:
-sub ecx,[y_image]
+sub ecx,[y_image3]
 ja @f
 mov ecx,0
 @@:
 shr ebx,1
 shr ecx,1
-mov edx,[zt_image]
+mov edx,[zt_sfv3]
 mov al,27   ;afficher image    
 int 63h
 
 
-;test si il faut afficher l'indication pour sortir
-mov al,5   
-mov ah,"t"   ;numéros de l'option de commande a lire
-mov cl,1 ;0=256 octet max
-mov edx,temp
-int 61h
-cmp eax,0
-je @f
+
+
+
+
+;test si il faut afficher du texte
+test byte[opt],1
+jz boucle_touche
 
 ;affiche l'indication pour sortir
 mov ebx,0
@@ -110,18 +324,189 @@ mov ah,0Fh
 mov al,25   ;afficher texte    
 int 63h
 
+;affiche la largeur
+mov eax,102
+mov ecx,[x_image1]
+mov edx,tempo
+int 61h
+mov ebx,0
+mov ecx,16
+mov edx,tempo
+mov ah,0Fh
+mov al,25
+int 63h
+
+;affiche la hauteur
+mov eax,102
+mov ecx,[y_image1]
+mov edx,tempo
+int 61h
+mov ebx,0
+mov ecx,32
+mov edx,tempo
+mov ah,0Fh
+mov al,25
+int 63h
 
 
-;attend l'appuie de la touche echap
-@@:
+;attend l'appuie d'une touche
+boucle_touche:
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+
+test byte[opt],2
+jne boucle_touche2
 mov al,5
 int 63h
-cmp al,1
-jne @b
+cmp al,1  ;echap on quitte
+je fin
+cmp al,82
+je zop
+cmp al,84
+je zom
+cmp ecx,"i"
+je info
+cmp ecx,"I"
+je info
+cmp al,0F0h
+je clique
+;???????????????autres interaction
+jmp boucle_touche
 
+
+
+
+;que faire lors du maintien du clique droit
+boucle_touche2:
+mov al,5
+int 63h
+cmp al,0F1h
+je clique
+fs
+mov eax,[posx_souris]
+cmp [sauvx_souris],eax
+je boucle_touche
+
+
+
+;calcul du déplacement de la souris
+mov ebx,[zoom]
+mov ecx,10000
+
+xor eax,eax
+xor ebp,ebp
+mov ax,[sauvx_souris]
+fs
+mov bp,[posx_souris]
+sub eax,ebp
+imul ecx
+idiv ebx
+add [offset_imagex],eax
+
+xor eax,eax
+xor ebp,ebp
+mov ax,[sauvy_souris]
+fs
+mov bp,[posy_souris]
+sub eax,ebp
+imul ecx
+idiv ebx
+add [offset_imagey],eax
+
+
+
+
+;ajustement pour que le déplacement ne déborde pas
+mov eax,[offset_imagex]
+mov ebx,[x_image1]
+sub ebx,[x_image2]
+cmp eax,0
+jge @f
+mov eax,0
+@@:
+cmp eax,ebx
+jle @f
+mov eax,ebx
+@@:
+mov [offset_imagex],eax
+
+mov eax,[offset_imagey]
+mov ebx,[y_image1]
+sub ebx,[y_image2]
+cmp eax,0
+jge @f
+mov eax,0
+@@:
+cmp eax,ebx
+jle @f
+mov eax,ebx
+@@:
+mov [offset_imagey],eax
+
+fs
+mov eax,[posx_souris]
+mov [sauvx_souris],eax
+jmp affichage
+
+
+
+
+
+
+fin:
 int 60h
 
 
+
+;********************************
+zom:
+cmp dword[zoom],2000
+jbe boucle_touche
+sub dword[zoom],1000
+jmp calczoom
+
+zop:
+cmp dword[zoom],80000
+jae boucle_touche
+add dword[zoom],1000
+jmp calczoom
+
+
+
+clique:
+;passe en mode de glisser l'image
+xor byte[opt],2
+fs
+mov eax,[posx_souris]
+mov [sauvx_souris],eax
+
+
+;echange la fleche et la croix
+mov esi,croix
+fs
+mov edi,[ad_curseur]
+mov ecx,64
+
+@@:
+mov eax,[esi]
+fs
+xchg eax,[edi]
+mov [esi],eax
+add esi,4
+add edi,4
+dec ecx
+jnz @b
+
+
+jmp affichage
+
+info:
+xor byte[opt],1
+jmp affichage
+
+
+;************************************************
 erreur_ouv:
 mov al,6
 mov edx,msg1
@@ -158,21 +543,49 @@ handle_fichier:
 dd 0
 zt_image:
 dd 0
-x_image:
+x_image1:
 dd 0
-y_image:
+y_image1:
 dd 0
-temp:
+x_image2:
+dd 0
+y_image2:
+dd 0
+x_image3:
+dd 0
+y_image3:
 dd 0
 
 
+offset_imagex:
+dd 0
+offset_imagey:
+dd 0
+posx_image:
+dd 0
+posy_image:
+dd 0
 
-msgtrappe:
-rb 256
+
+couleur:
+dd 0
+
+opt:
+db 0
+zoom:
+dd 10000
+
+
+sauvx_souris:
+dw 0
+sauvy_souris:
+dw 0
+
+croix:
+include "curs_crx.inc"
 
 tempo:
 rb 256
-
 
 msg1:
 db "impossible d'ouvrir le fichier",13,0
@@ -184,8 +597,11 @@ db "erreur dans le codage de l'image",13,0
 msgf:
 db "appuyez sur echap pour quitter",13,0
 
-
-zt_sfv:
+zt_sfv2:
+dd 0
+zt_sfv3:
+dd 0
+zt_sfv1:
 
 sdata2:
 org 0
