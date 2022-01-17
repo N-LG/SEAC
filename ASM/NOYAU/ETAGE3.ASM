@@ -996,6 +996,9 @@ mov dword[ad_ficho],ebx
 mov dword[max_ficho],ecx  
 
 
+
+
+
 mov ecx,8000h  ;32ko
 cmp dword[nb_ram],800000h ;si inf a 8Mo zt de fat de 32Ko
 jb @f

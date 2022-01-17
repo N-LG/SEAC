@@ -81,7 +81,6 @@ usb_commande equ 0E400h
 ;??? 0E600h
 
 
-
 ad_tss        equ 0F200h ;TSS et IO map (512 + 8196)  2200h
 ad_repertoire equ 11400h  ;adresse du repertoire courant
 ad_repsys     equ 11600h      ;adresse du repertoire système
@@ -214,7 +213,7 @@ octpp equ 79h     ;octet par pixel (valeur ok: 1,2,3,4)
 at_vid equ 80h ;attribut video
 	       ;b0=maj complete demandé
 	       ;b1=maj partielle demandé
-	       ;b2=deuxième partie
+	       ;b2=?
 	       ;b3=maj ecran en cours
 	       ;b4=mémoire en linear frame buffer
 
@@ -286,7 +285,7 @@ id_tache_af equ 102h ;num‚ros de tache affiché
 ad_tache_af equ 104h ;adresse de la tache affiché
 cmd_bios equ 108h ;sauvegarde provisoire de eax lors d'un appel au bios en mode réel
 
-
+ad_zt_ecran equ 10Ch ;zone de pré traitement de l'ecran
 
 
 
@@ -427,8 +426,8 @@ majv_precal_offsetx_image equ 568h
 majv_precal_finligne equ 56Ch
 majv_precal_debutligne equ 570h
 
-majv_dern equ 574h  ;prochaine valeur du compteur temps a partir duquel on pourrat faire la mise a jour écran
-
+majv_dern    equ 574h  ;prochaine valeur du compteur temps a partir duquel on pourrat faire la mise a jour écran
+majv_ysouris equ 578h  ;pause dans la mise a jour pour afficher la souris
 
 
 
@@ -729,6 +728,15 @@ zsata_prdt   equ 290h   ;physical region descriptor table
 zsata_liste  equ 410h   ;liste de pointeur vers les commandes
 
 
+;**********************************************************************
+;structure objet image
+objimage_bpp equ 00h ;0 bit par pixel
+objimage_att equ 01h ;1 attribut image
+objimage_x   equ 02h ;2 largeur image
+objimage_y   equ 04h ;4 hauteur image
+objimage_opl equ 06h ;6 nombre d'octet par ligne
+objimage_ctp equ 0Ah ;10 couleur de transparence
+objimage_dat equ 0Eh ;14 image
 
 
 
@@ -791,6 +799,7 @@ czm_hc     equ 2  ;historique des dernière commandes tapé
 czm_etz    equ 3  ;ecran de la tache zéro
 czm_cc     equ 4  ;zone tampon pour le copier/collé
 czm_pol    equ 5  ;police de caractère matricielle
+czm_zte    equ 6  ;zone tampon ecran
 
 czm_dfo    equ 10  ;descripteur des fichiers ouverts
 czm_ztf1   equ 11  ;zone tampon FAT1
@@ -802,6 +811,7 @@ czm_sata   equ 14  ;zone mémoire réservé au dialogue d'un périphérique sata bran
 czm_com     equ 20  ;zone tampon de reception port com
 czm_pil     equ 21  ;zone tampon utillisé par un pilote 
 czm_tmi     equ 22  ;espace mémoire réservé aux périphériques isa
+czm_fli     equ 23  ;zone tampon uttilisé par les fonctions de lecture image
 
 
 czm_setup_usb equ 30 ;zt echange setup usb

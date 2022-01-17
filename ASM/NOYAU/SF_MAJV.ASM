@@ -1,5 +1,4 @@
 ;mise a jour totale de l'écran video
-
 mov ax,seldat
 mov fs,ax
 mov ax,selramh
@@ -41,6 +40,7 @@ mov ax,selecran
 mov ds,ax
 
 
+
 ;************************************************
 ;charge les  touches appuyé et la position souris
 
@@ -60,7 +60,6 @@ fs
 mov eax,[xs1]
 mov [posx_souris],eax
 
-
 ;***************************************************
 majv_test_action:
 fs
@@ -68,9 +67,6 @@ mov eax,[cptsf]
 fs
 cmp eax,[majv_dern]
 jb majv_juste_souris
-fs
-cmp byte[nb_zrc],0     
-jne majv_juste_souris
 add eax,25
 fs
 mov [majv_dern],eax
@@ -93,6 +89,10 @@ cmp [axs1],eax
 je fin_majv
 
 ;********************************************************
+fs
+cmp byte[at_console],1
+je majv_texte
+
 xor eax,eax  ;on met a jour uniquement l'affichage souris
 xor ebx,ebx
 xor ecx,ecx
@@ -114,9 +114,8 @@ fs
 mov eax,[xs1]
 fs
 mov [axs1],eax
-
-jmp majv_ctrl_valeur
-
+call majv_ctrl_valeur
+jmp maj_ztverscarte
 
 
 ;*********************************************************
@@ -137,121 +136,17 @@ fs
 mov dword[majv_ydeb],0
 fs
 mov dword[majv_yfin],ebx
-fs
-test byte[atts1],01h
-jz majv_ctrl_valeur       ;si on as une souris, l'affichage se feras en 2 fois pour eviter le clignotement de la souris
-test byte[at_console],04h
-jz majv_ctrl_valeur
+call majv_ctrl_valeur
+jmp @f
 
-xor ebx,ebx
-fs
-mov bx,[ys1]
-add ebx,16
-fs
-mov dword[majv_yfin],ebx
-fs
-mov eax,[xs1]
-fs
-mov [axs1],eax
-fs
-or byte[at_vid],4h
-fs
-and byte[at_vid],0FEh
-jmp majv_ctrl_valeur
-
-;*************************************************
-majv_complet2:
-xor eax,eax
-xor ebx,ebx
-fs
-mov ax,[ays1]
-add ax,16
-fs
-mov bx,[resy]
-fs
-mov dword[majv_ydeb],eax
-fs
-mov dword[majv_yfin],ebx
-fs
-and byte[at_vid],0FBh
-jmp majv_ctrl_valeur
-
-
+;**************************
 majv_partielle:
 fs
 and byte[at_vid],0FDh
+call majv_ctrl_valeur
+@@:
 
 
-;***********************************************************
-majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
-xor ecx,ecx
-fs
-mov cx,[resy]
-fs
-cmp [majv_yfin],ecx
-jb majv_ok_yfin 
-fs
-mov [majv_yfin],ecx
-majv_ok_yfin:
-dec ecx
-fs
-cmp [majv_ydeb],ecx
-jb majv_ok_ydeb
-fs
-mov [majv_ydeb],ecx
-majv_ok_ydeb:
-
-xor ecx,ecx
-fs
-mov cx,[resx]
-fs
-cmp [majv_xfin],ecx
-jb majv_ok_xfin
-fs
-mov [majv_xfin],ecx
-majv_ok_xfin:
-
-
-
-
-;**************************************************
-majv_precalc:    ;précalcule certaines variables
-xor eax,eax
-fs
-mov ax,[resxt]
-shl eax,2
-fs
-mov [majv_precal_resxt],eax
-
-fs
-mov eax,[majv_xdeb]
-and eax,0FFFFFFF8h
-xor ecx,ecx
-xor edx,edx
-fs
-mov cx,[octpp]
-mul ecx
-fs
-mov [majv_precal_offsetx_ecran],eax
-add eax,[ad_graf]
-fs
-mov [majv_precal_offsetx_image],eax
-
-fs
-mov eax,[majv_xdeb]
-fs
-mov ebx,[majv_xfin]
-and eax,0FFFFFFF8h
-sub ebx,eax
-add ebx,7
-and ebx,0FFFFFFF8h
-shr eax,1
-shr ebx,1
-add eax,[ad_texte]
-fs
-mov [majv_precal_finligne],ebx
-fs
-mov [majv_precal_debutligne],eax
 
 
 ;**************************************************
@@ -354,6 +249,8 @@ jmp fin_majv
 
 ;*************************************
 majv_graph:
+mov ax,selramh             ;mise a jour écran en linear frame buffer
+mov es,ax
 fs
 mov eax,[majv_ydeb]
 fs
@@ -377,6 +274,8 @@ mul ecx
 add edi,eax
 mov esi,edi
 add esi,[ad_graf]  
+fs
+add edi,[ad_zt_ecran]
 
 xor ecx,ecx
 xor edx,edx
@@ -396,15 +295,6 @@ sub ecx,eax
 fs
 mov [majv_precal_offset_ligne],ecx
 
-
-fs
-test word[at_vid],10h     ;test si on est en linear  
-jz majv_graph_banked 
-
-
-;*******************************************************
-mov ax,sellfb             ;mise a jour écran en linear frame buffer
-mov es,ax
 
 ;permet l'alignement des transfert de données en dword
 fs
@@ -438,127 +328,16 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne boucle_majv_graph
-
-fs
-cmp byte[bitpp],32
-je majv_souris_32b_linear
-fs
-cmp byte[bitpp],24
-je majv_souris_24b_linear
-fs
-cmp byte[bitpp],15
-je majv_souris_16b_linear
-fs
-cmp byte[bitpp],16
-je majv_souris_16b_linear
-fs
-cmp byte[bitpp],8
-je majv_souris_8b_linear
-jmp fin_majv
+jmp maj_ztverscarte
 
 
-
-
-;*******************************************************
-majv_graph_banked:
-mov ax,selvidA
-mov es,ax
-
-boucle_majv_graph_banked:
-call majbank     
-fs
-mov ecx,[majv_precal_longeur_ligne]
-mov eax,edi
-and eax,0FFFFh
-add eax,ecx
-cmp eax,10000h
-ja majv_graph_banked_2
-
-
-push edi         ;maj ligne en une passe
-and edi,0FFFFh
-cld
-rep movsb
-pop edi
-fs
-add edi,[majv_precal_longeur_ligne]
-jmp suite_majv_graph_banked
-
-
-majv_graph_banked_2:  ;maj ligne en deux passe
-push edi
-push edi
-and edi,0FFFCh
-mov ecx,10000h
-sub ecx,edi
-push ecx
-shr ecx,2
-cld
-rep movsd
-pop eax
-pop edi
-add edi,eax
-fs
-mov ecx,[majv_precal_longeur_ligne]
-sub ecx,eax
-call majbank
-
-xor edi,edi
-add ecx,3
-shr ecx,2
-cld
-rep movsd
-pop edi
-fs
-add edi,[majv_precal_longeur_ligne]
-
-
-suite_majv_graph_banked:
-fs
-add esi,[majv_precal_offset_ligne]
-fs
-add edi,[majv_precal_offset_ligne]
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne boucle_majv_graph_banked
-
-
-fs
-cmp byte[bitpp],32
-je majv_souris_32b_banked
-fs
-cmp byte[bitpp],24
-je majv_souris_24b_banked
-fs
-cmp byte[bitpp],15
-je majv_souris_16b_banked
-fs
-cmp byte[bitpp],16
-je majv_souris_16b_banked
-fs
-cmp byte[bitpp],8
-je majv_souris_8b_banked
-jmp fin_majv
-
-
-
-;********************************************
+;*********************************************************************************************************************************
 majv_texte_graf:             ;mise a jour du texte en mode graphique
 fs
 mov eax,[majv_ydeb]
 fs
 mov [num_ligne_majv],eax
 
-fs
-test word[at_vid],10h     ;test si on est en linear  
-jz majv_texte_banked 
-
-mov ax,sellfb
-mov es,ax
 fs
 cmp byte[bitpp],32
 je majv_ligne32linear
@@ -576,25 +355,6 @@ cmp byte[bitpp],8
 je majv_ligne8linear
 jmp fin_majv
 
-majv_texte_banked: 
-mov ax,selvidA
-mov es,ax
-fs
-cmp byte[bitpp],32
-je majv_ligne32banked
-fs
-cmp byte[bitpp],24
-je majv_ligne24banked
-fs
-cmp byte[bitpp],15
-je majv_ligne16banked
-fs
-cmp byte[bitpp],16
-je majv_ligne16banked
-fs
-cmp byte[bitpp],8
-je majv_ligne8banked
-jmp fin_majv
 
 
 ;****************************************************
@@ -695,42 +455,7 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_ligne8linear
-
-
-;*****************************
-majv_souris_8b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_8b_linear:
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_8b_linear
-cmp edi,ebx
-jae ignore_majv_souris_8b_linear 
-es
-mov [edi],al
-ignore_majv_souris_8b_linear:
-inc esi
-inc edi
-dec dl
-jnz boucle_majv_souris_8b_linear
-add edi,ecx
-add ebx,ecx
-sub edi,16
-mov dl,16
-dec dh
-jnz boucle_majv_souris_8b_linear
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
+jmp maj_ztverscarte
 
 
 
@@ -832,43 +557,7 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_ligne16linear
-
-;*****************************
-majv_souris_16b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_16b_linear:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_16b_linear
-cmp edi,ebx
-jae ignore_majv_souris_16b_linear 
-call conv8_24
-call conv24_16
-es
-mov [edi],ax
-ignore_majv_souris_16b_linear:
-inc esi
-add edi,2
-dec dl
-jnz boucle_majv_souris_16b_linear
-add edi,ecx
-add ebx,ecx
-sub edi,16*2
-mov dl,16
-dec dh
-jnz boucle_majv_souris_16b_linear
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
+jmp maj_ztverscarte
 
 
 
@@ -973,45 +662,8 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_ligne24linear
+jmp maj_ztverscarte
 
-;*****************************
-majv_souris_24b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_24b_linear:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_24b_linear
-cmp edi,ebx
-jae ignore_majv_souris_24b_linear 
-call conv8_24
-es
-mov [edi],ax
-shr eax,16
-es
-mov [edi+2],al
-ignore_majv_souris_24b_linear:
-inc esi
-add edi,3
-dec dl
-jnz boucle_majv_souris_24b_linear
-add edi,ecx
-add ebx,ecx
-sub edi,16*3
-mov dl,16
-dec dh
-jnz boucle_majv_souris_24b_linear
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
 
 
 ;****************************************************
@@ -1112,788 +764,17 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_ligne32linear
+jmp maj_ztverscarte
 
 
-;*****************************
-majv_souris_32b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
-boucle_majv_souris_32b_linear:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_32b_linear
-cmp edi,ebx
-jae ignore_majv_souris_32b_linear 
-call conv8_24
-es
-mov [edi],eax
-ignore_majv_souris_32b_linear:
-inc esi
-add edi,4
-dec dl
-jnz boucle_majv_souris_32b_linear
-add edi,ecx
-add ebx,ecx
-sub edi,16*4
-mov dl,16
-dec dh
-jnz boucle_majv_souris_32b_linear
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
-
-;****************************************************
-majv_ligne8banked:
-call majv_init_text_graf
-majv_carac8banked:
-call lire_ligne_carac
-call majbank
-
-fs
-mov al,[couleur_fond] 
-shl dl,1
-jnc majets8b0
-fs
-mov al,[couleur_carac]
-majets8b0:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b1
-fs
-mov al,[couleur_carac]
-majets8b1:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b2
-fs
-mov al,[couleur_carac]
-majets8b2:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b3
-fs
-mov al,[couleur_carac]
-majets8b3:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b4
-fs
-mov al,[couleur_carac]
-majets8b4:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b5
-fs
-mov al,[couleur_carac]
-majets8b5:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b6
-fs
-mov al,[couleur_carac]
-majets8b6:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-fs
-mov al,[couleur_fond]
-shl dl,1
-jnc majets8b7
-fs
-mov al,[couleur_carac]
-majets8b7:
-es
-mov [di],al
-
-inc edi
-add ebx,4
-cmp ebx,ebp
-jne majv_carac8banked
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_ligne8banked
-
-;*****************************
-majv_souris_8b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_8b_banked:
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_8b_banked
-cmp edi,ebx
-jae ignore_majv_souris_8b_banked 
-call majbank
-es
-mov [di],al
-ignore_majv_souris_8b_banked:
-inc esi
-inc edi
-dec dl
-jnz boucle_majv_souris_8b_banked
-add edi,ecx
-add ebx,ecx
-sub edi,16
-mov dl,16
-dec dh
-jnz boucle_majv_souris_8b_banked
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
-
-
-
-;****************************************************
-majv_ligne16banked: ;et 15!  ;-)
-call majv_init_text_graf
-majv_carac16banked:
-call lire_ligne_carac
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b0
-fs
-mov ax,[couleur_carac]
-majets16b0:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b1
-fs
-mov ax,[couleur_carac]
-majets16b1:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b2
-fs
-mov ax,[couleur_carac]
-majets16b2:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b3
-fs
-mov ax,[couleur_carac]
-majets16b3:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b4
-fs
-mov ax,[couleur_carac]
-majets16b4:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b5
-fs
-mov ax,[couleur_carac]
-majets16b5:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b6
-fs
-mov ax,[couleur_carac]
-majets16b6:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-fs
-mov ax,[couleur_fond]  
-shl dl,1
-jnc majets16b7
-fs
-mov ax,[couleur_carac]
-majets16b7:
-es
-mov [di],ax
-
-add edi,2
-add ebx,4
-cmp ebx,ebp
-jne majv_carac16banked
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_ligne16banked
-
-;*****************************
-majv_souris_16b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_16b_banked:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_16b_banked
-cmp edi,ebx
-jae ignore_majv_souris_16b_banked 
-call conv8_24
-call conv24_16
-call majbank
-es
-mov [di],ax
-ignore_majv_souris_16b_banked:
-inc esi
-add edi,2
-dec dl
-jnz boucle_majv_souris_16b_banked
-add edi,ecx
-add ebx,ecx
-sub edi,16*2
-mov dl,16
-dec dh
-jnz boucle_majv_souris_16b_banked
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
-
-
-
-;****************************************************
-majv_ligne24banked:
-call majv_init_text_graf
-majv_carac24banked:
-call lire_ligne_carac
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b0
-fs
-mov eax,[couleur_carac]
-majets24b0:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b1
-fs
-mov eax,[couleur_carac]
-majets24b1:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b2
-fs
-mov eax,[couleur_carac]
-majets24b2:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b3
-fs
-mov eax,[couleur_carac]
-majets24b3:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b4
-fs
-mov eax,[couleur_carac]
-majets24b4:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b5
-fs
-mov eax,[couleur_carac]
-majets24b5:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b6
-fs
-mov eax,[couleur_carac]
-majets24b6:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets24b7
-fs
-mov eax,[couleur_carac]
-majets24b7:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-add ebx,4
-cmp ebx,ebp
-jne majv_carac24banked
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_ligne24banked
-
-
-;*****************************
-majv_souris_24b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_24b_banked:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_24b_banked
-cmp edi,ebx
-jae ignore_majv_souris_24b_banked 
-call conv8_24
-call majbank
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-sub edi,2
-ignore_majv_souris_24b_banked:
-inc esi
-add edi,3
-dec dl
-jnz boucle_majv_souris_24b_banked
-add edi,ecx
-add ebx,ecx
-sub edi,16*3
-mov dl,16
-dec dh
-jnz boucle_majv_souris_24b_banked
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
-
-
-
-;****************************************************
-majv_ligne32banked:
-call majv_init_text_graf
-majv_carac32banked:
-call lire_ligne_carac
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b0
-fs
-mov eax,[couleur_carac]
-majets32b0:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b1
-fs
-mov eax,[couleur_carac]
-majets32b1:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b2
-fs
-mov eax,[couleur_carac]
-majets32b2:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b3
-fs
-mov eax,[couleur_carac]
-majets32b3:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b4
-fs
-mov eax,[couleur_carac]
-majets32b4:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b5
-fs
-mov eax,[couleur_carac]
-majets32b5:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b6
-fs
-mov eax,[couleur_carac]
-majets32b6:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-fs
-mov eax,[couleur_fond]  
-shl dl,1
-jnc majets32b7
-fs
-mov eax,[couleur_carac]
-majets32b7:
-es
-mov [di],eax
-
-add edi,4
-add ebx,4
-cmp ebx,ebp
-jne majv_carac32banked
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_ligne32banked
-
-
-;*****************************
-majv_souris_32b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
-
-boucle_majv_souris_32b_banked:
-xor eax,eax
-mov al,[esi]
-cmp al,0FFh
-je ignore_majv_souris_32b_banked
-cmp edi,ebx
-jae ignore_majv_souris_32b_banked 
-call conv8_24
-call majbank
-es
-mov [di],eax
-ignore_majv_souris_32b_banked:
-inc esi
-add edi,4
-dec dl
-jnz boucle_majv_souris_32b_banked
-add edi,ecx
-add ebx,ecx
-sub edi,16*4
-mov dl,16
-dec dh
-jnz boucle_majv_souris_32b_banked
-
-fs
-test byte[at_vid],4h     ;test si on as besoin de poursuivre l'affichage
-jnz majv_complet2
-jmp fin_majv
-
-
-
-
-
-;*********************************************************************************
+;******************************************************************************************************************************************
 majv_combi:             ;mise a jour du mode combiné
 fs
 mov eax,[majv_ydeb]
 fs
 mov [num_ligne_majv],eax
 
-fs
-test word[at_vid],10h     ;test si on est en linear  
-jz majv_combi_banked 
-
-mov ax,sellfb
-mov es,ax
 fs
 cmp byte[bitpp],32
 je majv_combi32linear
@@ -1909,26 +790,6 @@ je majv_combi16linear
 fs
 cmp byte[bitpp],8
 je majv_combi8linear
-jmp fin_majv
-
-majv_combi_banked: 
-mov ax,selvidA
-mov es,ax
-fs
-cmp byte[bitpp],32
-je majv_combi32banked
-fs
-cmp byte[bitpp],24
-je majv_combi24banked
-fs
-cmp byte[bitpp],15
-je majv_combi16banked
-fs
-cmp byte[bitpp],16
-je majv_combi16banked
-fs
-cmp byte[bitpp],8
-je majv_combi8banked
 jmp fin_majv
 
 
@@ -2023,7 +884,7 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_combi8linear
-jmp majv_souris_8b_linear
+jmp maj_ztverscarte
 
 
 
@@ -2118,7 +979,10 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_combi16linear
-jmp majv_souris_16b_linear
+jmp maj_ztverscarte
+
+
+
 
 ;****************************************************
 majv_combi24linear:
@@ -2216,7 +1080,8 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_combi24linear
-jmp majv_souris_24b_linear
+jmp maj_ztverscarte
+
 
 
 ;****************************************************
@@ -2310,548 +1175,613 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_combi32linear
-jmp majv_souris_32b_linear
+;jmp maj_ztverscarte
 
 
-;****************************************************
-majv_combi8banked:
-call majv_init_text_graf
-majv_carac8banked_combi:
-call lire_ligne_carac
-call majbank
 
-mov al,[esi] 
-shl dl,1
-jnc majetc8b0
+
+
+
+
+;****************************************************************************************************************************************
+maj_ztverscarte:    ;transfert de la zone tampon a la carte
+push ds
+mov ax,selramh
+mov ds,ax
 fs
-mov al,[couleur_carac]
-majetc8b0:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-mov al,[esi+1]
-shl dl,1
-jnc majetc8b1
+mov eax,[majv_ydeb]
 fs
-mov al,[couleur_carac]
-majetc8b1:
-es
-mov [di],al
+mov [num_ligne_majv],eax
 
-inc edi
-call majbank
-
-mov al,[esi+2]
-shl dl,1
-jnc majetc8b2
+xor ecx,ecx
+xor edx,edx
 fs
-mov al,[couleur_carac]
-majetc8b2:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-mov al,[esi+3]
-shl dl,1
-jnc majetc8b3
+mov eax,[majv_xdeb]
 fs
-mov al,[couleur_carac]
-majetc8b3:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-mov al,[esi+4]
-shl dl,1
-jnc majetc8b4
+mov cx,[octpp]
+mul ecx
+mov edi,eax
+xor ecx,ecx
+xor edx,edx
 fs
-mov al,[couleur_carac]
-majetc8b4:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-mov al,[esi+5]
-shl dl,1
-jnc majetc8b5
+mov eax,[majv_ydeb]
 fs
-mov al,[couleur_carac]
-majetc8b5:
-es
-mov [di],al
-
-inc edi
-call majbank
-
-mov al,[esi+6]
-shl dl,1
-jnc majetc8b6
+mov cx,[octpl]
+mul ecx
+add edi,eax
+mov esi,edi
 fs
-mov al,[couleur_carac]
-majetc8b6:
-es
-mov [di],al
+add esi,[ad_zt_ecran]  
 
-inc edi
-call majbank
-
-mov al,[esi+7]
-shl dl,1
-jnc majetc8b7
+xor ecx,ecx
+xor edx,edx
 fs
-mov al,[couleur_carac]
-majetc8b7:
+mov cx,[octpp]
+fs
+mov eax,[majv_xfin]
+fs
+sub eax,[majv_xdeb]
+mul ecx
+fs
+mov [majv_precal_longeur_ligne],eax
+
+fs
+mov cx,[octpl]
+sub ecx,eax
+fs
+mov [majv_precal_offset_ligne],ecx
+
+
+fs
+test word[at_vid],10h     ;test si on est en linear  
+jz maj_ztverscarte_banked
+
+
+;*******************************************************
+mov ax,sellfb             ;mise a jour écran en linear frame buffer
+mov es,ax
+
+;permet l'alignement des transfert de données en dword
+fs
+mov eax,[majv_precal_longeur_ligne]
+mov ecx,eax
+add ecx,3
+and ecx,0FFFFFFFCh
+push ecx
+shr ecx,2
+fs
+mov [majv_precal_longeur_ligne],ecx
+pop ecx
+sub ecx,eax
+fs
+sub [majv_precal_offset_ligne],ecx
+
+
+boucle_maj_ztverscarte:
+fs
+mov ecx,[majv_precal_longeur_ligne]
+cld
+rep movsd
+fs
+add esi,[majv_precal_offset_ligne]
+fs
+add edi,[majv_precal_offset_ligne]
+fs
+inc dword[num_ligne_majv]
+fs
+mov eax,[num_ligne_majv]
+fs
+cmp [majv_ysouris],eax
+jne boucle_maj_ztverscarte
+
+pop ds
+pushad
+fs
+cmp byte[bitpp],32
+je majv_souris_32b_linear
+fs
+cmp byte[bitpp],24
+je majv_souris_24b_linear
+fs
+cmp byte[bitpp],15
+je majv_souris_16b_linear
+fs
+cmp byte[bitpp],16
+je majv_souris_16b_linear
+fs
+cmp byte[bitpp],8
+je majv_souris_8b_linear
+jmp maj_ztverscarte_linear2
+
+
+
+;*****************************
+majv_souris_8b_linear:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_8b_linear:
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_8b_linear
+cmp edi,ebx
+jae ignore_majv_souris_8b_linear 
 es
-mov [di],al
-
-add esi,8
+mov [edi],al
+ignore_majv_souris_8b_linear:
+inc esi
 inc edi
-add ebx,4
-cmp ebx,ebp
-jne majv_carac8banked_combi
+dec dl
+jnz boucle_majv_souris_8b_linear
+add edi,ecx
+add ebx,ecx
+sub edi,16
+mov dl,16
+dec dh
+jnz boucle_majv_souris_8b_linear
+jmp maj_ztverscarte_linear2
 
+
+
+;*****************************
+majv_souris_16b_linear:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_16b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_16b_linear
+cmp edi,ebx
+jae ignore_majv_souris_16b_linear 
+call conv8_24
+call conv24_16
+es
+mov [edi],ax
+ignore_majv_souris_16b_linear:
+inc esi
+add edi,2
+dec dl
+jnz boucle_majv_souris_16b_linear
+add edi,ecx
+add ebx,ecx
+sub edi,16*2
+mov dl,16
+dec dh
+jnz boucle_majv_souris_16b_linear
+jmp maj_ztverscarte_linear2
+
+
+
+;*****************************
+majv_souris_24b_linear:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_24b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_24b_linear
+cmp edi,ebx
+jae ignore_majv_souris_24b_linear 
+call conv8_24
+es
+mov [edi],ax
+shr eax,16
+es
+mov [edi+2],al
+ignore_majv_souris_24b_linear:
+inc esi
+add edi,3
+dec dl
+jnz boucle_majv_souris_24b_linear
+add edi,ecx
+add ebx,ecx
+sub edi,16*3
+mov dl,16
+dec dh
+jnz boucle_majv_souris_24b_linear
+jmp maj_ztverscarte_linear2
+
+
+
+;***************************
+majv_souris_32b_linear:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_32b_linear:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_32b_linear
+cmp edi,ebx
+jae ignore_majv_souris_32b_linear 
+call conv8_24
+es
+mov [edi],eax
+ignore_majv_souris_32b_linear:
+inc esi
+add edi,4
+dec dl
+jnz boucle_majv_souris_32b_linear
+add edi,ecx
+add ebx,ecx
+sub edi,16*4
+mov dl,16
+dec dh
+jnz boucle_majv_souris_32b_linear
+;jmp maj_ztverscarte_linear2
+
+
+
+;********************************
+maj_ztverscarte_linear2:
+popad
+fs
+mov eax,[majv_yfin]
+fs
+cmp [majv_ysouris],eax
+je fin_majv
+mov ax,selramh             ;mise a jour écran en linear frame buffer
+mov ds,ax
+
+
+boucle2_maj_ztverscarte:
+fs
+mov ecx,[majv_precal_longeur_ligne]
+cld
+rep movsd
+fs
+add esi,[majv_precal_offset_ligne]
+fs
+add edi,[majv_precal_offset_ligne]
 fs
 inc dword[num_ligne_majv]
 fs
 mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
-jne majv_combi8banked
-jmp majv_souris_8b_banked
+jne boucle2_maj_ztverscarte
+jmp fin_majv
 
-;****************************************************
-majv_combi16banked: ;et 15!  ;-)
-call majv_init_text_graf
-majv_carac16banked_combi:
-call lire_ligne_carac
+
+
+
+
+
+
+
+;*******************************************************
+maj_ztverscarte_banked:
+mov ax,selvidA
+mov es,ax
+
+boucle_maj_ztverscarte_banked:
+call majbank     
+fs
+mov ecx,[majv_precal_longeur_ligne]
+mov eax,edi
+and eax,0FFFFh
+add eax,ecx
+cmp eax,10000h
+ja maj_ztverscarte_bankedB
+
+
+push edi         ;maj ligne en une passe
+and edi,0FFFFh
+cld
+rep movsb
+pop edi
+fs
+add edi,[majv_precal_longeur_ligne]
+jmp suite_maj_ztverscarte_banked
+
+
+maj_ztverscarte_bankedB:  ;maj ligne en deux passe
+push edi
+push edi
+and edi,0FFFCh
+mov ecx,10000h
+sub ecx,edi
+push ecx
+shr ecx,2
+cld
+rep movsd
+pop eax
+pop edi
+add edi,eax
+fs
+mov ecx,[majv_precal_longeur_ligne]
+sub ecx,eax
 call majbank
 
-mov ax,[esi]  
-shl dl,1
-jnc majetc16b0
+xor edi,edi
+add ecx,3
+shr ecx,2
+cld
+rep movsd
+pop edi
 fs
-mov ax,[couleur_carac]
-majetc16b0:
+add edi,[majv_precal_longeur_ligne]
+
+
+suite_maj_ztverscarte_banked:
+fs
+add esi,[majv_precal_offset_ligne]
+fs
+add edi,[majv_precal_offset_ligne]
+fs
+inc dword[num_ligne_majv]
+fs
+mov eax,[num_ligne_majv]
+fs
+cmp [majv_ysouris],eax
+jne boucle_maj_ztverscarte_banked
+
+
+pop ds
+fs
+cmp byte[bitpp],32
+je majv_souris_32b_banked
+fs
+cmp byte[bitpp],24
+je majv_souris_24b_banked
+fs
+cmp byte[bitpp],15
+je majv_souris_16b_banked
+fs
+cmp byte[bitpp],16
+je majv_souris_16b_banked
+fs
+cmp byte[bitpp],8
+je majv_souris_8b_banked
+jmp maj_ztverscarte_banked2
+
+
+
+
+;***************************************
+majv_souris_8b_banked:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_8b_banked:
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_8b_banked
+cmp edi,ebx
+jae ignore_majv_souris_8b_banked 
+call majbank
+es
+mov [di],al
+ignore_majv_souris_8b_banked:
+inc esi
+inc edi
+dec dl
+jnz boucle_majv_souris_8b_banked
+add edi,ecx
+add ebx,ecx
+sub edi,16
+mov dl,16
+dec dh
+jnz boucle_majv_souris_8b_banked
+jmp maj_ztverscarte_banked2
+
+
+
+;*****************************
+majv_souris_16b_banked:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_16b_banked:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_16b_banked
+cmp edi,ebx
+jae ignore_majv_souris_16b_banked 
+call conv8_24
+call conv24_16
+call majbank
 es
 mov [di],ax
-
+ignore_majv_souris_16b_banked:
+inc esi
 add edi,2
+dec dl
+jnz boucle_majv_souris_16b_banked
+add edi,ecx
+add ebx,ecx
+sub edi,16*2
+mov dl,16
+dec dh
+jnz boucle_majv_souris_16b_banked
+jmp maj_ztverscarte_banked2
+
+
+
+;*****************************
+majv_souris_24b_banked:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_24b_banked:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_24b_banked
+cmp edi,ebx
+jae ignore_majv_souris_24b_banked 
+call conv8_24
+call majbank
+es
+mov [di],al
+inc edi
+call majbank
+es
+mov [di],ah
+inc edi
+call majbank
+shr eax,16
+es
+mov [di],al
+sub edi,2
+ignore_majv_souris_24b_banked:
+inc esi
+add edi,3
+dec dl
+jnz boucle_majv_souris_24b_banked
+add edi,ecx
+add ebx,ecx
+sub edi,16*3
+mov dl,16
+dec dh
+jnz boucle_majv_souris_24b_banked
+jmp maj_ztverscarte_banked2
+
+
+
+;*****************************
+majv_souris_32b_banked:
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+call adresse_souris
+
+boucle_majv_souris_32b_banked:
+xor eax,eax
+mov al,[esi]
+cmp al,0FFh
+je ignore_majv_souris_32b_banked
+cmp edi,ebx
+jae ignore_majv_souris_32b_banked 
+call conv8_24
+call majbank
+es
+mov [di],eax
+ignore_majv_souris_32b_banked:
+inc esi
+add edi,4
+dec dl
+jnz boucle_majv_souris_32b_banked
+add edi,ecx
+add ebx,ecx
+sub edi,16*4
+mov dl,16
+dec dh
+jnz boucle_majv_souris_32b_banked
+jmp maj_ztverscarte_banked2
+
+
+
+
+;**********************************
+maj_ztverscarte_banked2:
+popad
+fs
+mov eax,[majv_yfin]
+fs
+cmp [majv_ysouris],eax
+je fin_majv
+mov ax,selramh
+mov ds,ax
+
+boucle2_maj_ztverscarte_banked:
+call majbank     
+fs
+mov ecx,[majv_precal_longeur_ligne]
+mov eax,edi
+and eax,0FFFFh
+add eax,ecx
+cmp eax,10000h
+ja maj_ztverscarte_bankedB2
+
+
+push edi         ;maj ligne en une passe
+and edi,0FFFFh
+cld
+rep movsb
+pop edi
+fs
+add edi,[majv_precal_longeur_ligne]
+jmp suite2_maj_ztverscarte_banked
+
+
+maj_ztverscarte_bankedB2:  ;maj ligne en deux passe
+push edi
+push edi
+and edi,0FFFCh
+mov ecx,10000h
+sub ecx,edi
+push ecx
+shr ecx,2
+cld
+rep movsd
+pop eax
+pop edi
+add edi,eax
+fs
+mov ecx,[majv_precal_longeur_ligne]
+sub ecx,eax
 call majbank
 
-mov ax,[esi+2]   
-shl dl,1
-jnc majetc16b1
+xor edi,edi
+add ecx,3
+shr ecx,2
+cld
+rep movsd
+pop edi
 fs
-mov ax,[couleur_carac]
-majetc16b1:
-es
-mov [di],ax
+add edi,[majv_precal_longeur_ligne]
 
-add edi,2
-call majbank
 
-mov ax,[esi+4]  
-shl dl,1
-jnc majetc16b2
+suite2_maj_ztverscarte_banked:
 fs
-mov ax,[couleur_carac]
-majetc16b2:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-mov ax,[esi+6]   
-shl dl,1
-jnc majetc16b3
+add esi,[majv_precal_offset_ligne]
 fs
-mov ax,[couleur_carac]
-majetc16b3:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-mov ax,[esi+8]   
-shl dl,1
-jnc majetc16b4
-fs
-mov ax,[couleur_carac]
-majetc16b4:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-mov ax,[esi+10]  
-shl dl,1
-jnc majetc16b5
-fs
-mov ax,[couleur_carac]
-majetc16b5:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-mov ax,[esi+12]  
-shl dl,1
-jnc majetc16b6
-fs
-mov ax,[couleur_carac]
-majetc16b6:
-es
-mov [di],ax
-
-add edi,2
-call majbank
-
-mov ax,[esi+14]  
-shl dl,1
-jnc majetc16b7
-fs
-mov ax,[couleur_carac]
-majetc16b7:
-es
-mov [di],ax
-
-add esi,16
-add edi,2
-add ebx,4
-cmp ebx,ebp
-jne majv_carac16banked_combi
-
+add edi,[majv_precal_offset_ligne]
 fs
 inc dword[num_ligne_majv]
 fs
 mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
-jne majv_combi16banked
-jmp majv_souris_16b_banked
-
-
-
-
-;****************************************************
-majv_combi24banked:
-call majv_init_text_graf
-majv_carac24banked_combi:
-call lire_ligne_carac
-call majbank
-
-mov eax,[esi]  
-shl dl,1
-jnc majetc24b0
-fs
-mov eax,[couleur_carac]
-majetc24b0:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+3]  
-shl dl,1
-jnc majetc24b1
-fs
-mov eax,[couleur_carac]
-majetc24b1:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+6] 
-shl dl,1
-jnc majetc24b2
-fs
-mov eax,[couleur_carac]
-majetc24b2:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+9]   
-shl dl,1
-jnc majetc24b3
-fs
-mov eax,[couleur_carac]
-majetc24b3:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+12]   
-shl dl,1
-jnc majetc24b4
-fs
-mov eax,[couleur_carac]
-majetc24b4:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+15]  
-shl dl,1
-jnc majetc24b5
-fs
-mov eax,[couleur_carac]
-majetc24b5:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov eax,[esi+18]  
-shl dl,1
-jnc majetc24b6
-fs
-mov eax,[couleur_carac]
-majetc24b6:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-mov al,[esi+23]   
-shl eax,16
-mov ax,[esi+21]
-shl dl,1
-jnc majetc24b7
-fs
-mov eax,[couleur_carac]
-majetc24b7:
-
-es
-mov [di],al
-inc edi
-call majbank
-es
-mov [di],ah
-inc edi
-call majbank
-shr eax,16
-es
-mov [di],al
-inc edi
-call majbank
-
-add esi,24
-add ebx,4
-cmp ebx,ebp
-jne majv_carac24banked_combi
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_combi24banked
-jmp majv_souris_24b_banked
-
-;****************************************************
-majv_combi32banked:
-call majv_init_text_graf
-majv_carac32banked_combi:
-call lire_ligne_carac
-call majbank
-
-mov eax,[esi] 
-shl dl,1
-jnc majetc32b0
-fs
-mov eax,[couleur_carac]
-majetc32b0:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+4] 
-shl dl,1
-jnc majetc32b1
-fs
-mov eax,[couleur_carac]
-majetc32b1:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+8]   
-shl dl,1
-jnc majetc32b2
-fs
-mov eax,[couleur_carac]
-majetc32b2:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+12]   
-shl dl,1
-jnc majetc32b3
-fs
-mov eax,[couleur_carac]
-majetc32b3:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+16]   
-shl dl,1
-jnc majetc32b4
-fs
-mov eax,[couleur_carac]
-majetc32b4:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+20]   
-shl dl,1
-jnc majetc32b5
-fs
-mov eax,[couleur_carac]
-majetc32b5:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+24]   
-shl dl,1
-jnc majetc32b6
-fs
-mov eax,[couleur_carac]
-majetc32b6:
-es
-mov [di],eax
-
-add edi,4
-call majbank
-
-mov eax,[esi+28]   
-shl dl,1
-jnc majetc32b7
-fs
-mov eax,[couleur_carac]
-majetc32b7:
-es
-mov [di],eax
-
-add esi,32
-add edi,4
-add ebx,4
-cmp ebx,ebp
-jne majv_carac32banked_combi
-
-fs
-inc dword[num_ligne_majv]
-fs
-mov eax,[num_ligne_majv]
-fs
-cmp [majv_yfin],eax
-jne majv_combi32banked
-jmp majv_souris_32b_banked
-
+jne boucle2_maj_ztverscarte_banked
+jmp fin_majv
 
 
 
@@ -3044,6 +1974,103 @@ pop esi
 pop ecx
 pop ebx
 pop eax
+ret
+
+
+
+
+
+
+;***********************************************************
+majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
+xor ecx,ecx
+fs
+mov cx,[resy]
+fs
+cmp [majv_yfin],ecx
+jb majv_ok_yfin 
+fs
+mov [majv_yfin],ecx
+majv_ok_yfin:
+dec ecx
+fs
+cmp [majv_ydeb],ecx
+jb majv_ok_ydeb
+fs
+mov [majv_ydeb],ecx
+majv_ok_ydeb:
+
+xor ecx,ecx
+fs
+mov cx,[resx]
+fs
+cmp [majv_xfin],ecx
+jb majv_ok_xfin
+fs
+mov [majv_xfin],ecx
+majv_ok_xfin:
+
+
+;calcule a quelle ligne il faut faire une pause pour afficher la souris
+xor eax,eax
+fs
+mov ax,[ays1]
+add eax,16
+fs
+cmp eax,[majv_ydeb]
+jbe majv_aj_ysouris 
+fs
+cmp eax,[majv_yfin]
+jb majv_ok_ysouris 
+majv_aj_ysouris:
+fs
+mov eax,[majv_yfin]
+majv_ok_ysouris:
+fs
+mov [majv_ysouris],eax
+
+
+;********************
+;précalcule certaines variables
+mov ax,selramh
+mov es,ax
+
+xor eax,eax
+fs
+mov ax,[resxt]
+shl eax,2
+fs
+mov [majv_precal_resxt],eax
+
+fs
+mov eax,[majv_xdeb]
+and eax,0FFFFFFF8h
+xor ecx,ecx
+xor edx,edx
+fs
+mov cx,[octpp]
+mul ecx
+fs
+mov [majv_precal_offsetx_ecran],eax
+add eax,[ad_graf]
+fs
+mov [majv_precal_offsetx_image],eax
+
+fs
+mov eax,[majv_xdeb]
+fs
+mov ebx,[majv_xfin]
+and eax,0FFFFFFF8h
+sub ebx,eax
+add ebx,7
+and ebx,0FFFFFFF8h
+shr eax,1
+shr ebx,1
+add eax,[ad_texte]
+fs
+mov [majv_precal_finligne],ebx
+fs
+mov [majv_precal_debutligne],eax
 ret
 
 
@@ -3258,11 +2285,14 @@ mov cx,[octpl]
 mul ecx
 mov edi,eax   
 mov esi,eax
+
+
+fs
+add edi,[ad_zt_ecran] 
 fs
 add edi,[majv_precal_offsetx_ecran]   ;edi=pointeur sur la zone ecran
 fs
-add esi,[majv_precal_offsetx_image] ;esi=pointeur sur la zone image
-
+add esi,[majv_precal_offsetx_image]   ;esi=pointeur sur la zone image
 
 fs
 mov eax,[num_ligne_majv]
@@ -3399,6 +2429,45 @@ cld
 rep movsd
 pop es
 pop ds
+
+
+;****************reserve la zone tampon écran
+mov ebx,[ad_zt_ecran]
+cmp ebx,0
+je init_zt_ecran
+
+sub ebx,10h
+call libmem
+
+init_zt_ecran:
+xor eax,eax
+xor ebx,ebx
+xor ecx,ecx
+cmp byte[bitpp],0
+je init_zt_ecrant
+
+mov ax,[resx]
+mov bx,[resy]
+mov cx,[octpp]
+mul ebx
+mul ecx
+mov ecx,eax
+jmp init_zt_ecranv
+
+init_zt_ecrant:
+mov ax,[resxt]
+mov bx,[resyt]
+mul ebx
+shl eax,1
+mov ecx,eax
+
+init_zt_ecranv:
+call resmem
+jc errallocmem
+es
+mov word[ebx+8],czm_zte      ;zone tampon ecran
+add ebx,10h             ;ne pas oublier de ne pas compter sur le descripteur
+mov dword[ad_zt_ecran],ebx
 sti
 ret
 

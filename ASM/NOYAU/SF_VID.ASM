@@ -32,6 +32,7 @@
 ;55=insère une image dans une autre
 
 
+
 cmp al,0
 je sfv_ouvre_console
 cmp al,1
@@ -1252,7 +1253,6 @@ sfv_menu_maj_autres:
 add ebx,4
 cmp ebx,ebp
 jne boucle_menu_maj
-
 fs
 or byte[at_vid],1
 
@@ -1370,7 +1370,6 @@ mov [ebx],al
 add ebx,4
 cmp ebx,ebp
 jne boucle_menu_entree
-
 fs
 or byte[at_vid],1
 
@@ -1589,6 +1588,7 @@ cmp ax,[id_tache_af]
 jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
 fs
 or byte[at_vid],1
+
 fin_sigmajv:
 pop eax
 ret
@@ -1943,7 +1943,7 @@ jnz boucle_sfv_dessine_rec_32
 
 
 fin_sfv_dessine_rec:
-;call sigmajv
+call sigmajv
 pop fs
 pop es
 popad
