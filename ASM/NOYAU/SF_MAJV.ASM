@@ -90,8 +90,8 @@ je fin_majv
 
 ;********************************************************
 fs
-cmp byte[at_console],1
-je majv_texte
+cmp byte[bitpp],0
+je majv_souris_texte
 
 xor eax,eax  ;on met a jour uniquement l'affichage souris
 xor ebx,ebx
@@ -215,7 +215,8 @@ mov dx,3D5h
 mov al,bl
 out dx,al
 
-;affiche souris
+
+majv_affiche_souris_texte:  ;affiche souris
 test byte[at_console],04h
 jz fin_majv
 fs
@@ -245,6 +246,41 @@ mov eax,[xs1]
 fs
 mov [axs1],eax
 jmp fin_majv
+
+
+
+
+;********************
+majv_souris_texte:
+mov ax,selvidB8
+mov es,ax
+
+;efface souris
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+xor eax,eax
+xor ebx,ebx
+xor ecx,ecx
+xor edx,edx
+fs
+mov bx,[axs1]
+fs
+mov ax,[ays1]
+fs
+mov cx,[resxt]
+shr eax,4
+shr ebx,3
+mul ecx
+add ebx,eax
+shl ebx,1
+es
+xor byte[ebx+1],7Fh
+jmp majv_affiche_souris_texte
+
+
 
 
 ;*************************************
