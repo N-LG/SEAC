@@ -130,20 +130,6 @@ mov ebx,[zoom]
 mov ecx,10000
 xor ebp,ebp
 
-;calcul la position de la souris sur l'image
-fs
-mov eax,[posx_souris]
-mul ecx
-div ebx
-add eax,[offset_imagex]
-mov [posx_image],eax
-fs
-mov eax,[posy_souris]
-mul ecx
-div ebx
-add eax,[offset_imagey]
-mov [posy_image],eax
-
 
 
 ;calcul de la dimension de l'image théorique après application du zoom et tronquage si trop grand
@@ -185,50 +171,45 @@ mov [y_image2],eax
 
 
 
-;calcul le décalage pour que la souris ne bouge pas sur l'image lorsque l'on zoom
-fs
-mov eax,[posx_souris]
-mul ebx
-div ecx
-mov ebp,[posx_image]
-sub ebp,eax
-xor eax,eax
-fs
-mov ax,[resx_ecran]
-cmp [x_image3],eax
-jae @f
-xor ebp,ebp
-@@:
-test ebp,80000000h
-jz @f
-xor ebp,ebp
-@@:
-mov [offset_imagex],ebp
-
-fs
-mov eax,[posy_souris]
-mul ebx
-div ecx
-mov ebp,[posy_image]
-sub ebp,eax
-xor eax,eax
-fs
-mov ax,[resy_ecran]
-cmp [y_image3],eax
-jae @f
-xor ebp,ebp
-@@:
-test ebp,80000000h
-jz @f
-xor ebp,ebp
-@@:
-mov [offset_imagey],ebp
 
 
 
 
 ;*********************************************************************************************
 affichage:
+;ajustement pour que le déplacement ne déborde pas
+mov eax,[offset_imagex]
+mov ebx,[x_image1]
+sub ebx,[x_image2]
+cmp eax,0
+jge @f
+mov eax,0
+@@:
+cmp eax,ebx
+jle @f
+mov eax,ebx
+@@:
+mov [offset_imagex],eax
+
+mov eax,[offset_imagey]
+mov ebx,[y_image1]
+sub ebx,[y_image2]
+cmp eax,0
+jge @f
+mov eax,0
+@@:
+cmp eax,ebx
+jle @f
+mov eax,ebx
+@@:
+mov [offset_imagey],eax
+
+
+
+
+
+
+
 
 
 
@@ -414,39 +395,6 @@ imul ecx
 idiv ebx
 add [offset_imagey],eax
 
-
-
-
-;ajustement pour que le déplacement ne déborde pas
-mov eax,[offset_imagex]
-mov ebx,[x_image1]
-sub ebx,[x_image2]
-cmp eax,0
-jge @f
-mov eax,0
-@@:
-cmp eax,ebx
-jle @f
-mov eax,ebx
-@@:
-mov [offset_imagex],eax
-
-mov eax,[offset_imagey]
-mov ebx,[y_image1]
-sub ebx,[y_image2]
-cmp eax,0
-jge @f
-mov eax,0
-@@:
-cmp eax,ebx
-jle @f
-mov eax,ebx
-@@:
-mov [offset_imagey],eax
-
-fs
-mov eax,[posx_souris]
-mov [sauvx_souris],eax
 jmp affichage
 
 
