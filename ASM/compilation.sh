@@ -3,7 +3,7 @@ cd NOYAU
 fasm ETAGE3.ASM ../../BIN/ETAGE3.BIN
 fasm ETAGE4.ASM ../../BIN/ETAGE4.BIN
 cd ../FASM/SEAC
-fasm FASM_FR.ASM ../../../BIN/FASM.FE
+#fasm FASM_FR.ASM ../../../BIN/FASM.FE
 cd ../../PROG
 fasm date.asm ../../BIN/DATE.FE
 fasm edt.asm ../../BIN/EDT.FE
@@ -21,6 +21,7 @@ fasm ping.asm ../../BIN/PING.FE
 fasm trace.asm ../../BIN/TRACE.FE
 fasm scanip.asm ../../BIN/SCANIP.FE
 fasm expl.asm ../../BIN/EXPL.FE
+fasm voir.asm ../../BIN/VOIR.FE
 fasm utf8.asm ../../BIN/UTF8.FE
 fasm calc.asm ../../BIN/CALC.FE
 fasm ipconfig.asm ../../BIN/IPCONFIG.FE
@@ -45,17 +46,18 @@ cd ../BOOT
 fasm MBR_BIOS.ASM ../../BIN/BIOS.MBR
 fasm MBR_RELAIS.ASM ../../BIN/RELAIS.MBR
 cd ../DEF
-fasm bug1.asm ../../BIN/bug1.def
+#fasm bug1.asm ../../BIN/bug1.def
 fasm fr-txt.asm ../../BIN/fr-txt.def
-fasm fr-aza.asm ../../BIN/fr-aza.def
-fasm be-azs.asm ../../BIN/be-azs.def
+#fasm fr-aza.asm ../../BIN/fr-aza.def
+#fasm fr-bpo.asm ../../BIN/fr-bpo.def
+#fasm be-azs.asm ../../BIN/be-azs.def
 fasm en-txt.asm ../../BIN/en-txt.def
-fasm en-qwi.asm ../../BIN/en-qwi.def
-fasm 0u0.asm  ../../BIN/0u0.def
-fasm 25u0.asm  ../../BIN/25u0.def
-fasm F00u0.asm  ../../BIN/F00u0.def
+#fasm en-qwi.asm ../../BIN/en-qwi.def
+#fasm 0u0.asm  ../../BIN/0u0.def
+#fasm 25u0.asm  ../../BIN/25u0.def
+#fasm F00u0.asm  ../../BIN/F00u0.def
 cd ../../BIN/
-ajarch FASM.FE ETAGE4.BIN
+#ajarch FASM.FE ETAGE4.BIN
 ajarch DATE.FE ETAGE4.BIN
 ajarch EDT.FE ETAGE4.BIN
 ajarch EDH.FE ETAGE4.BIN
@@ -73,6 +75,7 @@ ajarch PING.FE ETAGE4.BIN
 ajarch TRACE.FE ETAGE4.BIN
 ajarch SCANIP.FE ETAGE4.BIN
 ajarch EXPL.FE ETAGE4.BIN
+ajarch VOIR.FE ETAGE4.BIN
 ajarch UTF8.FE ETAGE4.BIN
 ajarch CALC.FE ETAGE4.BIN
 ajarch BIOS.MBR ETAGE4.BIN
@@ -93,6 +96,7 @@ ajarch MANUEL.TXT ETAGE4.BIN
 ajarch bug1.def ETAGE4.BIN
 ajarch fr-txt.def ETAGE4.BIN
 ajarch fr-aza.def ETAGE4.BIN
+ajarch fr-bpo.def ETAGE4.BIN
 ajarch be-azs.def ETAGE4.BIN
 ajarch en-txt.def ETAGE4.BIN
 ajarch en-qwi.def ETAGE4.BIN
@@ -100,11 +104,13 @@ ajarch 0u0.def ETAGE4.BIN
 ajarch 1u0.def ETAGE4.BIN
 ajarch 25u0.def ETAGE4.BIN
 ajarch F00u0.def ETAGE4.BIN
+ajarch ETAGE24.ASM ETAGE4.BIN
 cd ../ASM/NOYAU
 fasm ETAGE2_MBR.ASM ../../BIN/SEAC.BAZ
 fasm ETAGE2_IMB.ASM ../../BIN/SEAC.IMB
 fasm ETAGE2_EFI.ASM ../../BIN/SEAC.EFI
 fasm ETAGE1_DSQ.ASM ../../BIN/SEAC.IMG
+fasm ETAGE1_DSQ.ASM ../../BIN/SEAC2.IMG
 fasm ETAGE1_PXE.ASM ../../BIN/SEAC.PXE
-fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
+:fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
 cd ..
