@@ -2047,7 +2047,13 @@ mov [majv_xfin],ecx
 majv_ok_xfin:
 
 
-;calcule a quelle ligne il faut faire une pause pour afficher la souris
+;calcule a quelle ligne il faut faire une pause pour afficher la souris (si existante)
+fs
+test byte[atts1],01h
+jz majv_aj_ysouris
+test byte[at_console],04h
+jz majv_aj_ysouris
+
 xor eax,eax
 fs
 mov ax,[ays1]
