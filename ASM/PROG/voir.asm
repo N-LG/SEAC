@@ -41,16 +41,25 @@ mov [couleur],ecx
 
 ;test si on as besoin d'information supplémentaire
 mov al,5   
-mov ah,"t"   ;numéros de l'option de commande a lire
+mov ah,"t"   ;lettre de l'option de commande a lire
 mov cl,1 ;0=256 octet max
 mov edx,tempo
 int 61h
 cmp eax,0
-je @f
+jne @f
 or byte[opt],1
 @@:
 
-
+;test si on as besoin d'afficher la souris
+mov al,5   
+mov ah,"s"   ;lettre de l'option de commande a lire
+mov cl,1 ;0=256 octet max
+mov edx,tempo
+int 61h
+cmp eax,0
+jne @f
+or byte[opt],4
+@@:
 
 
 
@@ -116,6 +125,10 @@ jne erreur_form2
 ;passe en mode video
 mov dx,sel_dat2
 mov ah,6   ;option=mode video ;6=video + souris
+test byte[opt],4
+jz @f
+and ah,0FBh   ;désactive la souris
+@@:
 mov al,0   ;création console     
 int 63h
 mov ax,sel_dat2
@@ -266,6 +279,11 @@ mov ah,24
 mov edx,[couleur]
 int 63h
 
+;@@:
+;mov al,5
+;int 63h
+;cmp al,0
+;je @b 
 
 ;affiche l'image
 xor ebx,ebx
@@ -295,7 +313,7 @@ int 63h
 
 ;test si il faut afficher du texte
 test byte[opt],1
-jz boucle_touche
+jnz boucle_touche
 
 ;affiche l'indication pour sortir
 mov ebx,0
@@ -519,7 +537,7 @@ couleur:
 dd 0
 
 opt:
-db 0
+db 0    ;b0=pas d'affichage info  b2=glissement souris en cours b3=souris pas affiché
 zoom:
 dd 10000
 
