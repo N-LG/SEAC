@@ -239,42 +239,6 @@ add dx,2
 in ax,dx
 mov [adresse_mac+4],ax
 
-
-;*******************************************************
-;affiche un message comme quoi la carte est ok
-
-
-cmp byte[type],"B"
-je message_typeb
-cmp byte[type],"C"
-je message_typec
-
-mov edx,msgok1a
-jmp affiche_message_ok
-
-message_typeb:
-mov edx,msgok1b
-jmp affiche_message_ok
-
-message_typec:
-mov edx,msgok1c
-
-affiche_message_ok:
-mov al,6        
-int 61h
-
-mov al,111
-mov ecx,adresse_mac
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov edx,msgok2
-mov al,6        
-int 61h
-
 popad
 xor eax,eax
 ret
@@ -505,12 +469,8 @@ sdata1:
 org 0
 msg1:
 db "aucune carte compatible 3C90x n'as été detecté",13,0
-msgok1a: 
+msgok1: 
 db "la carte compatible 3C90x d'adresse ",0
-msgok1b: 
-db "la carte compatible 3C90xB d'adresse ",0
-msgok1c: 
-db "la carte compatible 3C90xC d'adresse ",0
 msgok2:
 db " a été initialisé",13,0
 

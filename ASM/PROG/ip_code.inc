@@ -174,7 +174,31 @@ mov al,10
 mov ah,6
 int 61h
 
-jmp reinit_carte
+call init_carte
+cmp eax,0
+je suite_start_carte
+int 60h
+
+suite_start_carte:
+;affiche un message comme quoi la carte est ok
+mov edx,msgok1
+mov al,6        
+int 61h
+
+mov al,111
+mov ecx,adresse_mac
+mov edx,tempo
+int 61h
+mov al,6        
+mov edx,tempo
+int 61h
+
+mov edx,msgok2
+mov al,6        
+int 61h
+
+jmp suite_reinit_carte
+
 
 
 ;********************************************************
@@ -590,9 +614,16 @@ mov esi,table_acces_icmp
 boucle_acces_icmp:
 cmp dword[esi],0FFFFFFFFh
 je suite_acces_icmp
-;add esi,4
-;cmp esi,table_acces_icmp+8*4
-;jne boucle_ethernet_autresadresses
+add esi,4
+cmp esi,table_acces_icmp+8*4
+jne boucle_ethernet_autresadresses
+
+mov word[zt_decod],00FFh
+mov al,5
+mov ecx,8h
+mov edi,0
+mov esi,zt_decod
+int 65h
 jmp lire_nouvelle_trame 
 
 suite_acces_icmp:
@@ -1069,9 +1100,9 @@ mov al,7
 int 65h
 
 suite_autres_trame_icmp_v4:
-;add edi,4
-;cmp edi,table_acces_icmp+8*4
-;jne boucle_autres_trame_icmp_v4
+add edi,4
+cmp edi,table_acces_icmp+8*4
+jne boucle_autres_trame_icmp_v4
 
 
 jmp boucle_principale
@@ -2330,6 +2361,7 @@ sub eax,[esi+cnx_seq_serveur_suivante]     ;eax=nombre max d'octet que l'on peut
 jbe ignore_verification_connexion_active_tcp ;s'il est négatif ou nul on n'envoie rien
 
 
+
 ;**********************************************************************
 ;envoie la trame tcp
 pushad
@@ -2518,7 +2550,7 @@ int 65h        ;lit les données avec une place réservé pour les en-tête
 ;prépare les donnée de la trame
 sub ecx,14       ;-22+8     ;taille des données
 mov esi,zt_decod+80h
-mov al,[esi]                ;port de destination
+mov al,[esi]                ;ttl
 mov [ttl_niv_sup],al
 
 mov eax,[esi+2]
@@ -2557,9 +2589,9 @@ efface_verification_connexion_active_icmp:
 mov dword[esi],0FFFFFFFFh
 
 ignore_verification_connexion_active_icmp:
-;add esi,4
-;dec ecx
-;jnz verification_connexion_active_icmp
+add esi,4
+dec ecx
+jnz verification_connexion_active_icmp
 
 
 
@@ -3311,6 +3343,7 @@ push edi
 mov [edi],al
 mov [edi+zone_attente_taille],cx
 add edi,zone_attente_trame
+cld
 rep movsb
 pop esi
 

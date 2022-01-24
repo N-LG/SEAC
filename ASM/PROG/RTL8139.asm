@@ -197,24 +197,6 @@ mov al,00h
 out dx,al
 
 
-;*******************************************************
-;affiche un message comme quoi la carte est ok
-mov edx,msgok1
-mov al,6        
-int 61h
-
-mov al,111
-mov ecx,adresse_mac
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov edx,msgok2
-mov al,6        
-int 61h
-
 popad
 xor eax,eax
 ret

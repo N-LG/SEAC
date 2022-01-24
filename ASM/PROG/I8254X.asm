@@ -85,7 +85,7 @@ cmp eax,10178086h   ;82540EP-A
 je pci_trouv
 cmp eax,10168086h   ;82540EP-A(mobile)
 je pci_trouv
-cmp eax,100E8086h   ;82540EM-A -> testé sous virtualbox: ok
+cmp eax,100E8086h   ;82540EM-A -> testé sous virtualbox: ok          testé sur machine réel: nok
 je pci_trouv
 cmp eax,10158086h   ;82540EM-A(mobile)
 je pci_trouv                     
@@ -299,10 +299,19 @@ int 61h
 
 ;configure les interruption
 mov dx,[es_base]
+mov eax,0D0h   ;IMS Interrupt Mask Set Register
+out dx,eax
+add dx,4
+mov eax,0    ;désactive toutes les interruptions
+out dx,eax
+
+
+
+mov dx,[es_base]
 mov eax,0D8h   ;IMC Interrupt Mask Clear Register
 out dx,eax
 add dx,4
-mov eax,0FFFFFFFFh  ;désactive toutes les interruptions
+mov eax,0FFFFFFFFh  ;aquitte toutes les interruptions
 out dx,eax
 
 
@@ -454,38 +463,12 @@ mov eax,0400F2h  ;EN CT=0Fh COLD=40h 13.4.33
 out dx,eax
 
 
-;configure l'emission
-;mov dx,[es_base]
-;mov eax,0410h   ;TIPG   Transmit IPG Register
-;out dx,eax
-;add dx,4
-;mov eax,602006h   
-;out dx,eax
-
-
-
-
-
-
-
-;*******************************************************
-;affiche un message comme quoi la carte est ok
-mov edx,msgok1
-mov al,6        
-int 61h
-
-mov al,111
-mov ecx,adresse_mac
-mov edx,tempo
-int 61h
-mov al,6        
-mov edx,tempo
-int 61h
-
-mov edx,msgok2
-mov al,6        
-int 61h
-
+mov dx,[es_base]
+mov eax,0410h   ;TIPG   Transmit IPG Register
+out dx,eax
+add dx,4
+mov eax,602006h   ;IPGT=6 IPGR1=8 IPGR2=6
+out dx,eax
 
 xor eax,eax
 erreur_init:
