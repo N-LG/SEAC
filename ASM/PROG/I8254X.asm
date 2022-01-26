@@ -483,6 +483,87 @@ ret
 
 
 
+lire_phy:    ;al=registre dx=donnée
+shl eax,16
+and eax,01F0000h 
+or eax,04200000h    ;Adresse PHY + opcode read
+
+push eax
+mov dx,[es_base]
+mov eax,020h   ;MDIC
+out dx,eax
+add dx,4
+pop eax
+out dx,eax
+
+mov al,12
+push edx
+int 61h
+pop edx
+add ecx,20
+mov ebx,ecx
+
+@@:
+in eax,dx
+test eax,10000000h
+jnz ok_lire_phy
+
+mov al,12
+push edx
+int 61h
+pop edx
+cmp ecx,ebx
+jb @b
+
+mov eax,1
+ret
+
+ok_lire_phy:
+mov dx,ax
+xor eax,eax
+ret
+
+
+
+ecri_phy:
+shl eax,16
+and eax,01F0000h 
+or eax,02200000h    ;Adresse PHY + opcode write
+mov ax,dx
+
+push eax
+mov dx,[es_base]
+mov eax,020h   ;MDIC
+out dx,eax
+add dx,4
+pop eax
+out dx,eax
+mov al,12
+push edx
+int 61h
+pop edx
+add ecx,20
+mov ebx,ecx
+
+@@:
+in eax,dx
+test eax,10000000h
+jnz ok_ecri_phy
+
+mov al,12
+push edx
+int 61h
+pop edx
+cmp ecx,ebx
+jb @b
+
+mov eax,1
+ret
+
+ok_ecri_phy:
+xor eax,eax
+ret
+
 
 ;********************************************************************************************************
 rec_trame:
