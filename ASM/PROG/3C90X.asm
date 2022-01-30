@@ -14,7 +14,8 @@ int 60h
 
 
 
-
+eepromCommand equ 0Ah
+eepromdata equ 0Ch
 timer equ 1Ah
 txstatus equ 1Bh
 command equ 0Eh
@@ -26,7 +27,6 @@ uppktstatus equ 30h
 freetimer equ 34h
 countdown equ 36h
 uplistptr equ 38h
-
 
 
 ;********************************************************************************************
@@ -220,24 +220,22 @@ call attend_fin_commande
 
 
 ;*******************************************************
-;récupère l'adresse MAC
-
-mov dx,[es_base]
-add dx,command
-mov ax,0802h  ;select bank 2
-out dx,ax
-call attend_fin_commande
-
-;lit adresse MAC
-mov dx,[es_base]
-in ax,dx
+;récupère l'adresse MAC de l'EEPROM
+mov eax,10
+call lire_eeprom
+xchg al,ah
 mov [adresse_mac],ax
-add dx,2
-in ax,dx
+mov eax,11
+call lire_eeprom
+xchg al,ah
 mov [adresse_mac+2],ax
-add dx,2
-in ax,dx
+mov eax,12
+call lire_eeprom
+xchg al,ah
 mov [adresse_mac+4],ax
+
+
+
 
 popad
 xor eax,eax
@@ -256,6 +254,53 @@ and ax,1000h
 cmp ax,1000h
 je boucle_reset
 ret
+
+
+attend_dispo_eeprom:
+in ax,dx
+in ax,dx
+in ax,dx
+@@:
+in ax,dx
+and ax,8000h
+cmp ax,8000h
+je @b
+ret
+
+
+
+lire_eeprom:
+push edx
+and eax,0Fh
+or eax,80h  ;commande lecture
+
+push eax
+mov dx,[es_base]
+add dx,command
+mov ax,0800h  ;select bank 0
+out dx,ax
+call attend_fin_commande
+
+mov dx,[es_base]
+add dx,eepromCommand
+call attend_dispo_eeprom
+pop eax
+out dx,ax
+call attend_dispo_eeprom
+add dx,eepromdata-eepromCommand
+in ax,dx
+pop edx
+ret
+
+
+;lire_mii:
+;mov dx,[es_base]
+;add dx,command
+;mov ax,0804h  ;select bank 4
+;out dx,ax
+;call attend_fin_commande
+;mov dx,[es_base]
+;add dx,8 ;PhysicalMgmt
 
 
 ;********************************************************************************************************
