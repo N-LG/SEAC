@@ -1907,7 +1907,7 @@ es
 mov word[ligne_listing_ecran],0
 xor esi,esi
 mov edi,index_ecran
-xor bx,bx
+xor ebx,ebx
 
 boucle_aff_listing_ecran:
 cmp byte[esi+2],"F"
@@ -1924,7 +1924,6 @@ mov [edi],ax
 add edi,2
 
 ;affiche le descriptif tache
-push ebx
 xor eax,eax
 mov ebp,ebx
 es
@@ -2001,6 +2000,9 @@ jmp boucle_aff_listing_ecran
 
 finaft:
 
+
+
+
 ;**********************************************************
 ;mise a jour journal systeme
 es
@@ -2013,66 +2015,150 @@ int 63h ;signale que l'affichage doit être mis a jour
 
 
 
-;calcul la première ligne employé par le journal systeme
-xor eax,eax
+;determination adresse de la première ligne a afficher
+es
+mov edx,[ad_jcsl]    ;adresse journal
+es
+mov ebp,[to_jcsl]
+add ebp,edx ;adresse fin journal 
 xor ecx,ecx
-xor edx,edx
+xor edi,edi
 es
-mov ax,[ligne_listing_ecran]
+mov cx,[no_ligne_jcsl]    ;num ligne a afficher
 es
-mov cx,[resxt]
-mul ecx
+mov di,[resxt]   ;nb de carac par ligne
+
+boucle_trouve_ligne0:
+cmp ecx,0
+je ligne0_ok
+call lireutf8
+cmp edx,ebp
+je ok_affichagej
+cmp eax,13
+je finligne_trouve
 mov ebx,eax
-
-
-es
-mov edx,[ad_jcsl]
-es
-mov ebp,[to_jcsl]  
-add ebp,edx       ;ebp=adresse de la fin du journal
-es
-mov cx,[no_ligne_jcsl]
-es
-mov byte[coul_car],07h ;initialise la couleur du premier caractère par defaut
-
-
-
-
-bcherchedebj:         ;recherche le début de la zone a afficher dans le fichier journal
-cmp cx,0
-je bcafj
-cmp byte[edx],13  ;est ce une fin de ligne?
-jne debj_pasfl
-dec cx
-jmp debj_pascoul
-
-debj_pasfl:
-mov al,[edx]
-and al,0F0h
-cmp al,10h
-jne debj_pascoul
-mov al,[edx]
+and ebx,0FFFFFFF0h
+cmp ebx,10h
+jne @f
 and al,0Fh
 es
 mov [coul_car],al
+@@:
+dec edi
+jnz boucle_trouve_ligne0
 
-debj_pascoul:
-inc edx
-cmp edx,ebp           ;est ce que l'on est arrivé a la fin du journal?
-jb bcherchedebj
+finligne_trouve:
+dec ecx
+xor edi,edi
+es
+mov di,[resxt]   ;nb de carac par ligne
+jmp boucle_trouve_ligne0
 
+
+;test si il faut afficher la fin du journal
+ligne0_ok:
 es
-dec word[no_ligne_jcsl]  ;si oui on recule d'une ligne
+test byte[at_csl],20h
+jz ok_affichagej
+
+
+;determination adresse minimum dernière ligne pour afficher fin
 es
-mov edx,[ad_jcsl]
+mov ebp,[ad_jcsl]    ;adresse journal
 es
-mov cx,[no_ligne_jcsl]
+mov esi,[to_jcsl]
+add esi,ebp ;adresse fin journal 
+xor ecx,ecx
+xor edi,edi
 es
-and byte[at_csl],0DFh  ;on desactive l'obligation de visionner la fin du journal
-jmp bcherchedebj        ;et on recommence
+mov cx,[resyt]    ;nb de ligne pour le journal?
+es
+sub cx,[ligne_listing_ecran]
+sub cx,3
+es
+mov di,[resxt]   ;nb de carac par ligne
+
+
+boucle_trouve_lignef:
+dec esi
+mov al,[esi]
+cmp al,13
+je finligne_trouve2
+test al,80h
+jnz boucle_trouve_lignef
+dec edi
+jnz boucle_trouve_lignef
+
+finligne_trouve2:
+dec ecx
+jz lignef_ok
+xor edi,edi
+es
+mov di,[resxt]   ;nb de carac par ligne
+jmp boucle_trouve_lignef
+
+
+lignef_ok:
+cmp esi,edx
+jb ok_affichagej 
+
+
+
+
+;determination du numéro de la ligne
+xor edi,edi
+es
+mov di,[resxt]   ;nb de carac par ligne
+
+boucle_trouve_lignex:
+cmp esi,edx
+jb ok_affichagej
+call lireutf8
+cmp edx,ebp
+je ok_affichagej
+cmp eax,13
+je finlignex_trouve
+mov ebx,eax
+and ebx,0FFFFFFF0h
+cmp ebx,10h
+jne @f
+and al,0Fh
+es
+mov [coul_car],al
+@@:
+dec edi
+jnz boucle_trouve_lignex
+
+finlignex_trouve:
+es
+inc word[no_ligne_jcsl]
+xor edi,edi
+es
+mov di,[resxt]   ;nb de carac par ligne
+jmp boucle_trouve_lignex
+
+
+
+;affichage du journal
+ok_affichagej:
+push edx
+xor eax,eax
+xor ecx,ecx
+es
+mov ax,[resxt]   ;nb de carac par ligne
+es
+mov cx,[ligne_listing_ecran]
+mul ecx
+pop edx
+mov ebx,eax
+es
+mov ebp,[ad_jcsl]
+es
+add ebp,[to_jcsl] ;adresse fin journal 
+
 
 bcafj:          ;boucle d'affichage journal           
-cmp edx,ebp      ;test si on est arriv? a la fin du journal syst?me 
+cmp edx,ebp      ;test si on est arrivé a la fin du journal système 
 jae bouclevj
 call lireutf8
 cmp eax,13
@@ -2085,7 +2171,7 @@ call affcarac
 inc ebx
 es
 cmp ebx,[ad_afrep]
-je verifscroll
+je finafj
 push edx
 mov eax,ebx
 xor edx,edx
@@ -2117,8 +2203,8 @@ call affcarac
 
 inc ebx
 es
-cmp ebx,[ad_afrep]      ;test si on est arriv? a la fin de la zone d'affichage authoris?
-je verifscroll
+cmp ebx,[ad_afrep]      ;test si on est arrivé a la fin de la zone d'affichage authorisé
+je finafj
 jmp bcafj
 
 
@@ -2132,19 +2218,7 @@ cmp ebx,[ad_afrep]
 jne bouclevj
 es             
 or byte[at_csl],020h      ;rajoute le besoin d'afficher la fin du journal
-jmp finafj
 
-verifscroll:               ;test si on avai besoin d'afficher la fin du journal
-es             
-test byte[at_csl],020h      
-jz finafj                 
-cmp edx,ebp      ;test si on est arriv? a la fin du journal 
-jae finafj
-es
-inc word[no_ligne_jcsl]   ;si on avait besoin on descend d'une ligne
-es
-or byte[at_csl],02h ;signale que l'affichage journal doit être mis a jour
-jmp majafcsl              ;et on recommence
 
 
 finafj:
