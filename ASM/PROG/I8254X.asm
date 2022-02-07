@@ -85,7 +85,7 @@ cmp eax,10178086h   ;82540EP-A
 je pci_trouv
 cmp eax,10168086h   ;82540EP-A(mobile)
 je pci_trouv
-cmp eax,100E8086h   ;82540EM-A -> testé sous virtualbox: ok          testé sur machine réel: nok
+cmp eax,100E8086h   ;82540EM-A -> testé sous virtualbox: ok          testé sur machine réel: ok
 je pci_trouv
 cmp eax,10158086h   ;82540EM-A(mobile)
 je pci_trouv                     
@@ -305,14 +305,12 @@ add dx,4
 mov eax,0    ;désactive toutes les interruptions
 out dx,eax
 
-
-
 mov dx,[es_base]
-mov eax,0D8h   ;IMC Interrupt Mask Clear Register
+mov eax,0C0h   ;ICR Interrupt Cause Read Register
 out dx,eax
 add dx,4
-mov eax,0FFFFFFFFh  ;aquitte toutes les interruptions
-out dx,eax
+in eax,dx  ;aquitte toutes les interruptions en lisant le registre
+
 
 
 
@@ -596,7 +594,6 @@ cmp eax,ebx
 je rec_trame_vide
 
 
-
 ;incrémente le registre TAIL
 inc eax
 cmp eax,nb_rx
@@ -610,7 +607,6 @@ out dx,eax
 add dx,4
 pop eax
 out dx,eax
-
 
 
 ;lit le descripteur de reception
@@ -690,8 +686,12 @@ mov [ad_copie_env_trame],esi
 ;préparer descripteur 
 mov [taille_tx],cx
 mov byte[checksum_tx],0
-mov byte[command_tx],01h
-mov dword[status_tx],0
+mov byte[command_tx],03h
+mov byte[status_tx],0
+mov byte[rsv_css_tx],0
+mov word[special_tx],0
+
+
 
 
 ;tester si espace disponible pour emission
