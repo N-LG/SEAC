@@ -152,9 +152,19 @@ cnx_seq_serveur_max equ 38h              ;le numéros de séquence maximum que l'o
 
 
 
-
-
-
+;*****************************
+;trappe de débuggage
+macro trappe val
+{
+pushad
+mov byte[msg_trappe],val
+mov byte[msg_trappe+1],13
+mov byte[msg_trappe+2],0
+mov eax,6
+mov edx,msg_trappe
+int 61h
+popad
+}
 
 
 
@@ -616,7 +626,7 @@ cmp dword[esi],0FFFFFFFFh
 je suite_acces_icmp
 add esi,4
 cmp esi,table_acces_icmp+8*4
-jne boucle_ethernet_autresadresses
+jne boucle_acces_icmp
 
 mov word[zt_decod],00FFh
 mov al,5
@@ -636,8 +646,6 @@ mov edi,0
 mov esi,zt_decod
 int 65h
 ;jmp lire_nouvelle_trame
-
-
 
 
 
@@ -678,7 +686,6 @@ cmp [adresse_mac+4],dx
 je ok_destinataire_ethernet 
 
 nok_destinataire_ethernet:
-
 cmp ax,3333h
 je ok_broadcast  ;multicast
 cmp eax,0FFFFFFFFh
@@ -687,9 +694,16 @@ cmp dx,0FFFFh
 je ok_broadcast
 
 
+
+
+
+
+
 nok_broadcast:  ;recherche une correspondance d'adresse dans la liste des cartes virtuelles
 mov ebx,table_ethernet_virtuel
 boucle_recherche_autre_adresse:
+cmp dword[ebx+6],0FFFFFFFFh
+je pastrouve_autre_adresse
 cmp [ebx],eax
 jne pastrouve_autre_adresse
 cmp [ebx+4],dx
@@ -711,7 +725,6 @@ jmp boucle_principale
 
 
 ok_broadcast:   ;diffuse a toutes les cartes virtuelles
-
 mov edi,table_ethernet_virtuel+6
 boucle_ok_broadcast:
 mov ebx,[edi]
@@ -870,7 +883,6 @@ jmp boucle_principale
 
 ;***************************************************************************************
 trame_ipv4:
-
 ;verifier le cheksum
 xor ax,ax
 mov esi,[offset_ethernet]
@@ -1103,8 +1115,6 @@ suite_autres_trame_icmp_v4:
 add edi,4
 cmp edi,table_acces_icmp+8*4
 jne boucle_autres_trame_icmp_v4
-
-
 jmp boucle_principale
 
 
@@ -1182,7 +1192,6 @@ jmp boucle_principale
 ;datagramme UDP
 trame_udp_v4:
 trame_udp_v6:
-
 call chk_gen
 cmp ax,0 
 jne boucle_principale
@@ -2022,7 +2031,9 @@ jmp verification_connexion_active
 
 
 ;*****************
-traite_trame_attente_avance:  ;traite trame tcp reçu avec n°de séquence en avace
+traite_trame_attente_avance:  ;traite trame tcp reçu avec n°de séquence en avance
+trappe "Z"
+
 mov eax,[cptsf]
 cmp [ebx+zone_attente_tcp_compteur],eax
 jb traite_trame_attente_avance_efface   ;si temp dépassé efface la trame
@@ -2050,6 +2061,7 @@ call envoie_ack_tcp
 
 traite_trame_attente_avance_efface:
 mov byte[ebx+zone_attente_type],0 ;effacement de la trame
+trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -2059,6 +2071,7 @@ jmp ignore_rexp_trame_nack
 
 ;*****************
 traite_trame_attente_ack:         ;traite trame tcp en attente d'ack
+trappe "Y"
 mov eax,[cptsf]
 cmp [ebx+zone_attente_tcp_compteur],eax
 ja ignore_rexp_trame_nack
@@ -2081,6 +2094,7 @@ cld
 rep movsb
 call envoie_trame_ip
 popad
+trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -2091,7 +2105,7 @@ mov byte[ebx+zone_attente_type],0 ;effacement de la trame
 
 ;envoie d'une trame RST
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§ ;utile ou pas????
-
+trappe "X"
 
 ;effacement du descripteur de connexion
 mov edi,[ebx+zone_attente_tcp_descr]
@@ -2114,6 +2128,7 @@ mov dword[edi+52],0
 mov dword[edi+56],0
 mov dword[edi+60],0
 popad
+trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -3336,7 +3351,10 @@ dec edx
 jnz boucle1_trame_attente
 
 add dword[nb_zone_attente],16   ;on as pas trouvé de zone libre alors on en ajoute 16
+trappe "v"
 call change_taille_mem 
+trappe "u"
+
 
 trouve_vide_trame_attente:
 push edi
