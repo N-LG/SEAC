@@ -19,6 +19,25 @@ adresse_ipv6_global:
 dd 0,0,0,0
 
 
+
+dhcp_demande:
+dd 0
+dhcp_phase:
+db 0
+dhcp_id:
+dd 0
+dhcp_serveur:
+dd 0
+dhcp_adresse:
+dd 0
+dhcp_masque:
+dd 0
+dhcp_passerelle:
+dd 0
+
+
+
+
 taille_trame_max:
 dd 1500
 taille_trame:
@@ -69,6 +88,9 @@ dd 0,0
 
 msgerec:
 db "il y as eu une erreur lors de la reception de la trame",13,0
+
+msg_trappe:
+dd 0,0
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

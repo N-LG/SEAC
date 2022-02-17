@@ -52,8 +52,8 @@ mov ah,2   ;numéros de l'option de commande a lire
 mov cl,128 ;octet max
 mov edx,zt_param2
 int 61h
-cmp byte[zt_param2],0
-je erreurparam
+;cmp byte[zt_param2],0
+;je erreurparam
 
 
 
@@ -120,6 +120,8 @@ cmp dword[zt_param1],"ip6p"
 je chg_ip6p
 cmp dword[zt_param1],"ip6g"
 je chg_ip6g
+cmp dword[zt_param1],"auto"
+je chg_auto
 jmp erreurparam
 
 
@@ -245,7 +247,7 @@ mov edi,0
 mov esi,zt_commande
 int 65h
 
-;regarde si on as une réponse (une modification du descripteur
+;regarde si on as une réponse (une modification du descripteur)
 mov al,8
 mov ebx,[adresse_canal]
 mov ecx,200  ;500ms
@@ -261,12 +263,40 @@ mov edi,zt_commande
 int 65h
 cmp byte[zt_commande],83h
 jne erreur_com
+jmp affichage_param
 
 
 
 
+;******************************************************
+;demande la config auto via dhcp
+chg_auto:
+;envoie la commande de demande de config par DHCP
+mov word[zt_commande],0Ah
+mov al,5
+mov ebx,[adresse_canal]
+mov ecx,2
+mov edi,0
+mov esi,zt_commande
+int 65h
 
+;regarde si on as une réponse (une modification du descripteur)
+mov al,8
+mov ebx,[adresse_canal]
+mov ecx,10000  ;10s
+int 65h
+cmp eax,cer_ddi
+jne erreur_com 
 
+mov al,4
+mov ebx,[adresse_canal]
+mov ecx,2h
+mov esi,0
+mov edi,zt_commande
+int 65h
+cmp byte[zt_commande],8Ah
+jne erreur_com
+;jmp affichage_param
 
 
 ;*****************************************************************

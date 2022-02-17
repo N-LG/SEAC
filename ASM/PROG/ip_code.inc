@@ -76,6 +76,21 @@ tcp_cheksum     equ 16
 tcp_pointeur    equ 18
 tcp_option      equ 20
 
+dhcp_op         equ 0
+dhcp_htype      equ 1
+dhcp_hlen       equ 2
+dhcp_hops       equ 3
+dhcp_xid        equ 4
+dhcp_secs       equ 8
+dhcp_flags      equ 10
+dhcp_ciaddr     equ 12
+dhcp_yiaddr     equ 16
+dhcp_siaddr     equ 20
+dhcp_giaddr     equ 24
+dhcp_chaddr     equ 28
+dhcp_sname      equ 44
+dhcp_file       equ 108
+dhcp_options    equ 236
 
 
 ;**********************************************************************************************
@@ -252,6 +267,9 @@ cmp byte[zt_decod],8
 je ouverture_porttcp
 cmp byte[zt_decod],9
 je acces_icmp
+cmp byte[zt_decod],10
+je config_dhcp
+
 
 mov word[zt_decod],00FFh  ;on signale que la commande est inconnue
 mov al,5
@@ -645,11 +663,124 @@ mov ecx,8h
 mov edi,0
 mov esi,zt_decod
 int 65h
+jmp lire_nouvelle_trame
+
+
+
+
+;****************************
+config_dhcp:
+mov [dhcp_demande],ebx
+mov byte[dhcp_phase],1
+mov dword[adresse_ipv4],0
+mov dword[masque_ipv4],0
+mov dword[passerelle_ipv4],0
+
+;envoie une demande dhcp discover
+mov eax,12
+int 61h
+xor eax,ecx
+xor eax,063538263h ;génère un numéros de séquence a partir du numéros de séquence du client et du compteur temp
+mov [dhcp_id],eax
+
+;prépare la trame bootp
+mov esi,zt_decod+80h
+mov byte[esi+dhcp_op],1
+mov byte[esi+dhcp_htype],1
+mov byte[esi+dhcp_hlen],6
+mov byte[esi+dhcp_hops],0
+mov dword[esi+dhcp_xid],eax
+mov word[esi+dhcp_secs],0
+mov word[esi+dhcp_flags],0
+mov dword[esi+dhcp_ciaddr],0
+mov dword[esi+dhcp_yiaddr],0
+mov dword[esi+dhcp_siaddr],0
+mov dword[esi+dhcp_giaddr],0
+xor edx,edx
+mov eax,[adresse_mac]
+mov dx,[adresse_mac+4]
+mov dword[esi+dhcp_chaddr],eax
+mov dword[esi+dhcp_chaddr+4],edx
+mov dword[esi+dhcp_chaddr+8],0
+mov dword[esi+dhcp_chaddr+12],0
+;efface sname et file
+mov ebx,esi
+mov ecx,dhcp_options-dhcp_sname
+add ebx,dhcp_sname
+@@:
+mov byte[ebx],0
+inc ebx
+dec ecx
+jnz @b
+
+
+
+;ajoute les options dhcp
+push esi
+add esi,dhcp_options
+mov dword[esi],063538263h   ;ajoute le double mot magique (voir RFC1497)
+add esi,4
+
+mov word[esi],0135h       ;ajoute l'option de requete dhcp
+mov byte[esi+2],1         ;dhcp discover
+add esi,3 
+
+mov word[esi],073Dh       ;ajoute l'option  ID du client
+mov eax,[adresse_mac]
+mov dx,[adresse_mac+4]
+mov byte[esi+2],1
+mov [esi+3],eax
+mov [esi+7],dx
+add esi,9 
+
+mov byte[esi],255        ;marque la fin des options 
+inc esi
+mov ecx,esi
+pop esi
+sub esi,8
+sub ecx,esi
+mov [taille_niv_sup],ecx
+
+
+
+;remplit les données de l'en tête udp
+mov ax,68
+mov bx,67
+xchg al,ah
+xchg bl,bh
+xchg cl,ch
+mov [esi+udp_port_sour],ax
+mov [esi+udp_port_dest],bx
+mov [esi+udp_longueur],cx
+mov word[esi+udp_cheksum],0
+mov [offset_ip],esi 
+
+;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
+mov byte[type_niv_sup],17
+mov dword[adresse_ipv4_destination],0FFFFFFFFh
+mov dword[adresse_ipv6_destination],0
+mov dword[adresse_ipv6_destination+4],0
+mov dword[adresse_ipv6_destination+8],0
+mov dword[adresse_ipv6_destination+12],0
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+udp_cheksum],ax
+
+call envoie_trame_ip
+
+
+ 
+
 ;jmp lire_nouvelle_trame
 
 
 
 
+;*********************************************************************************************************************************************
 ;*********************************************************************************************************************************************
 lire_nouvelle_trame:
 mov edi,zt_decod
@@ -1201,6 +1332,8 @@ jne boucle_principale
 mov esi,[offset_ip]
 mov ax,[esi+udp_port_dest]   
 xchg al,ah
+cmp ax,68
+je client_dhcp    ;envoie au client dhcp intégré
 mov edi,[ad_table_udp]
 mov ecx,[nb_table_udp]
 trame_udp_verification:
@@ -1263,6 +1396,299 @@ add ecx,4
 int 65h
 jmp boucle_principale
 
+
+
+
+
+
+;*******************************
+client_dhcp:
+mov ax,[esi+udp_port_sour]   
+xchg al,ah
+cmp ax,67
+jne boucle_principale
+add esi,8
+mov eax,[dhcp_id]
+cmp [esi+dhcp_xid],eax
+jne boucle_principale 
+
+cmp byte[dhcp_phase],1
+je client_dhcp_reponse_discover
+cmp byte[dhcp_phase],5
+je client_dhcp_reponse_request
+jmp boucle_principale
+
+
+
+client_dhcp_reponse_discover:  ;on as reçu une offre, envoyons une requete
+
+
+;enregistrement des info de la partie bootp
+mov eax,[esi+dhcp_yiaddr]
+mov ebx,[esi+dhcp_siaddr]
+mov ecx,[esi+dhcp_giaddr]
+mov [dhcp_adresse],eax
+mov [dhcp_serveur],ebx
+mov [dhcp_passerelle],ecx
+mov dword[dhcp_masque],0FFFFFFh ;masque par défaut: 255.255.255.0
+
+
+;test si on est sur du dhcp ou du bootp
+cmp dword[esi+dhcp_options],063538263h
+jne ok_dhcpbootp
+
+;si ce n'est pas une offre dhcp,on abandonne
+mov al,35h
+call cherche_opt_dhcp
+cmp ebx,0
+je ok_dhcpbootp 
+cmp byte[ebx+2],2
+jne boucle_principale
+
+
+;enregistrement de la partie dhcp
+mov al,1
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+mov [dhcp_masque],eax
+@@:
+
+mov al,3
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+mov [dhcp_passerelle],eax
+@@:
+
+
+
+;envoie une demande dhcp request
+mov byte[dhcp_phase],5
+mov eax,12
+int 61h
+xor eax,ecx
+xor eax,06D73B2E3h ;génère un numéros de séquence a partir du numéros de séquence du client et du compteur temp
+mov [dhcp_id],eax
+
+;prépare la trame bootp
+mov esi,zt_decod+80h
+mov byte[esi+dhcp_op],1
+mov byte[esi+dhcp_htype],1
+mov byte[esi+dhcp_hlen],6
+mov byte[esi+dhcp_hops],0
+mov dword[esi+dhcp_xid],eax
+mov word[esi+dhcp_secs],0
+mov word[esi+dhcp_flags],0
+mov dword[esi+dhcp_ciaddr],0
+mov dword[esi+dhcp_yiaddr],0
+mov dword[esi+dhcp_siaddr],0
+mov dword[esi+dhcp_giaddr],0
+xor edx,edx
+mov eax,[adresse_mac]
+mov dx,[adresse_mac+4]
+mov dword[esi+dhcp_chaddr],eax
+mov dword[esi+dhcp_chaddr+4],edx
+mov dword[esi+dhcp_chaddr+8],0
+mov dword[esi+dhcp_chaddr+12],0
+;efface sname et file
+mov ebx,esi
+mov ecx,dhcp_options-dhcp_sname
+add ebx,dhcp_sname
+@@:
+mov byte[ebx],0
+inc ebx
+dec ecx
+jnz @b
+
+
+
+;ajoute les options dhcp
+push esi
+add esi,dhcp_options
+mov dword[esi],063538263h   ;ajoute le double mot magique (voir RFC1497)
+add esi,4
+
+mov word[esi],0135h       ;ajoute l'option de requete dhcp
+mov byte[esi+2],3         ;dhcp request
+add esi,3 
+
+mov word[esi],073Dh       ;ajoute l'option  ID du client
+mov eax,[adresse_mac]
+mov dx,[adresse_mac+4]
+mov byte[esi+2],1
+mov [esi+3],eax
+mov [esi+7],dx
+add esi,9 
+
+mov word[esi],0432h     ;ajoute l'adresse demandé
+mov eax,[dhcp_adresse]
+mov [esi+2],eax
+add esi,6
+
+mov word[esi],0436h     ;ajoute l'ip serveur
+mov eax,[dhcp_serveur]
+mov [esi+2],eax
+add esi,6
+
+mov word[esi],0337h     ;ajoute les options demandé
+mov byte[esi+2],1       ;masque
+mov byte[esi+3],3       ;routeur
+mov byte[esi+4],6       ;serveur dns
+add esi,5
+
+mov byte[esi],255        ;marque la fin des options 
+inc esi
+mov ecx,esi
+pop esi
+sub esi,8
+sub ecx,esi
+mov [taille_niv_sup],ecx
+
+
+;remplit les données de l'en tête udp
+mov ax,68
+mov bx,67
+xchg al,ah
+xchg bl,bh
+xchg cl,ch
+mov [esi+udp_port_sour],ax
+mov [esi+udp_port_dest],bx
+mov [esi+udp_longueur],cx
+mov word[esi+udp_cheksum],0
+mov [offset_ip],esi 
+
+;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
+mov byte[type_niv_sup],17
+mov dword[adresse_ipv4_destination],0FFFFFFFFh
+mov dword[adresse_ipv6_destination],0
+mov dword[adresse_ipv6_destination+4],0
+mov dword[adresse_ipv6_destination+8],0
+mov dword[adresse_ipv6_destination+12],0
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+udp_cheksum],ax
+
+call envoie_trame_ip
+
+jmp boucle_principale
+
+
+client_dhcp_reponse_request:
+;enregistrement des info de la partie bootp
+mov eax,[esi+dhcp_yiaddr]
+mov ebx,[esi+dhcp_siaddr]
+mov ecx,[esi+dhcp_giaddr]
+mov [dhcp_adresse],eax
+mov [dhcp_serveur],ebx
+mov [dhcp_passerelle],ecx
+mov dword[dhcp_masque],0FFFFFFh ;masque par défaut: 255.255.255.0
+
+;test si on est sur du dhcp ou du bootp
+cmp dword[esi+dhcp_options],063538263h
+jne ok_dhcpbootp
+
+;si ce n'est pas une ack dhcp,on abandonne
+mov al,35h
+call cherche_opt_dhcp
+cmp ebx,0
+je ok_dhcpbootp 
+cmp byte[ebx+2],5
+jne boucle_principale
+
+;enregistrement de la partie dhcp
+mov al,1
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+mov [dhcp_masque],eax
+@@:
+
+mov al,3
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+mov [dhcp_passerelle],eax
+@@:
+
+
+mov al,51       ;temps d'attribution de la tache
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+;?????????????
+@@:
+
+mov al,58        ;temps pour la première relance
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+;?????????????
+@@:
+
+mov al,59       ;temps pour la seconde relance
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+;?????????????
+@@:
+
+
+ok_dhcpbootp:   ;valide la configuration reçu
+mov eax,[dhcp_adresse]
+mov ebx,[dhcp_passerelle]
+mov ecx,[dhcp_masque]
+mov [adresse_ipv4],eax
+mov [passerelle_ipv4],ebx
+mov [masque_ipv4],ecx
+
+
+mov ebx,[dhcp_demande]
+mov word[zt_decod],008Ah
+mov al,5
+mov ecx,8h
+mov edi,0
+mov esi,zt_decod
+int 65h
+jmp boucle_principale
+
+
+;************************
+;cherche l'option al dans la trame dhcp reçu, renvoie l'adresse de cette option dans ebx
+cherche_opt_dhcp:
+xor ebx,ebx
+push ecx
+push esi
+xor ecx,ecx
+add esi,dhcp_options+4
+
+@@:
+cmp [esi],al
+je trouve_cherche_opt_dhcp
+cmp byte[esi],255
+je fin_cherche_opt_dhcp
+mov cl,[esi+1]
+add esi,ecx
+add esi,2
+jmp @b
+
+trouve_cherche_opt_dhcp:
+mov ebx,esi
+fin_cherche_opt_dhcp:
+pop esi
+pop ecx
+ret
 
 ;**************************************************************************
 ;datagramme TCP
@@ -2032,8 +2458,6 @@ jmp verification_connexion_active
 
 ;*****************
 traite_trame_attente_avance:  ;traite trame tcp reçu avec n°de séquence en avance
-trappe "Z"
-
 mov eax,[cptsf]
 cmp [ebx+zone_attente_tcp_compteur],eax
 jb traite_trame_attente_avance_efface   ;si temp dépassé efface la trame
@@ -2061,7 +2485,6 @@ call envoie_ack_tcp
 
 traite_trame_attente_avance_efface:
 mov byte[ebx+zone_attente_type],0 ;effacement de la trame
-trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -2071,7 +2494,6 @@ jmp ignore_rexp_trame_nack
 
 ;*****************
 traite_trame_attente_ack:         ;traite trame tcp en attente d'ack
-trappe "Y"
 mov eax,[cptsf]
 cmp [ebx+zone_attente_tcp_compteur],eax
 ja ignore_rexp_trame_nack
@@ -2094,7 +2516,6 @@ cld
 rep movsb
 call envoie_trame_ip
 popad
-trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -2105,7 +2526,7 @@ mov byte[ebx+zone_attente_type],0 ;effacement de la trame
 
 ;envoie d'une trame RST
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§ ;utile ou pas????
-trappe "X"
+
 
 ;effacement du descripteur de connexion
 mov edi,[ebx+zone_attente_tcp_descr]
@@ -2128,7 +2549,6 @@ mov dword[edi+52],0
 mov dword[edi+56],0
 mov dword[edi+60],0
 popad
-trappe "T"
 jmp ignore_rexp_trame_nack
 
 
@@ -3351,9 +3771,7 @@ dec edx
 jnz boucle1_trame_attente
 
 add dword[nb_zone_attente],16   ;on as pas trouvé de zone libre alors on en ajoute 16
-trappe "v"
 call change_taille_mem 
-trappe "u"
 
 
 trouve_vide_trame_attente:
