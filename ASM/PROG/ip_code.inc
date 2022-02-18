@@ -10,7 +10,7 @@
 ;réemission des paquets perdus (a controler)
 ;gerer les autres protocoles ethernet (a controler)
 ;gerer le multi adresse ethernet (a controler)
-;gerer la reception de message ICMP (bug des qu'il y as plusieurs connexion en simultané)
+
 
 ;ajouter verif conformité param adresse carte
 ;adresse de broadcast
@@ -771,10 +771,6 @@ mov esi,[offset_ip]
 mov word[esi+udp_cheksum],ax
 
 call envoie_trame_ip
-
-
- 
-
 ;jmp lire_nouvelle_trame
 
 
@@ -823,11 +819,6 @@ cmp eax,0FFFFFFFFh
 jne nok_broadcast
 cmp dx,0FFFFh
 je ok_broadcast
-
-
-
-
-
 
 
 nok_broadcast:  ;recherche une correspondance d'adresse dans la liste des cartes virtuelles
@@ -1025,12 +1016,14 @@ jne boucle_principale
 
 ;verifie l'adresse
 mov eax,[esi+ipv4_ip_dest]
+mov edx,[adresse_ipv4]
 cmp eax,0FFFFFFFFh
-je broadcast_trame_ipv4
-cmp eax,[adresse_ipv4]
+je @f
+cmp edx,0
+je @f
+cmp eax,edx
 jne boucle_principale
-broadcast_trame_ipv4:
-
+@@:
 
 ;test si la trame est un fragment d'une trame plus grande
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§ on ignore cette étape pour le moment
