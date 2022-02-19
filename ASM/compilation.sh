@@ -2,9 +2,10 @@ echo compilation du système
 cd NOYAU
 fasm ETAGE3.ASM ../../BIN/ETAGE3.BIN
 fasm ETAGE4.ASM ../../BIN/ETAGE4.BIN
-cd ../FASM/SEAC
+#cd ../FASM/SEAC
 #fasm FASM_FR.ASM ../../../BIN/FASM.FE
-cd ../../PROG
+#cd ../../PROG
+cd ../PROG
 fasm date.asm ../../BIN/DATE.FE
 fasm edt.asm ../../BIN/EDT.FE
 fasm edh.asm ../../BIN/EDH.FE
@@ -105,12 +106,12 @@ ajarch 1u0.def ETAGE4.BIN
 ajarch 25u0.def ETAGE4.BIN
 ajarch F00u0.def ETAGE4.BIN
 ajarch ETAGE24.ASM ETAGE4.BIN
+ajarch logo.png ETAGE4.BIN
 cd ../ASM/NOYAU
 fasm ETAGE2_MBR.ASM ../../BIN/SEAC.BAZ
 fasm ETAGE2_IMB.ASM ../../BIN/SEAC.IMB
 fasm ETAGE2_EFI.ASM ../../BIN/SEAC.EFI
 fasm ETAGE1_DSQ.ASM ../../BIN/SEAC.IMG
-fasm ETAGE1_DSQ.ASM ../../BIN/SEAC2.IMG
 fasm ETAGE1_PXE.ASM ../../BIN/SEAC.PXE
-:fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
+#fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
 cd ..
