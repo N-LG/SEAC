@@ -1,6 +1,7 @@
+ï»¿date.fe:
 pile equ 40960 ;definition de la taille de la pile
 include "fe.inc"
-db "Affiche la date et l'heure enregistré dans l'horloge de l'ordinateur"
+db "Affiche la date et l'heure enregistrÃ© dans l'horloge de l'ordinateur"
 scode:
 org 0
 
@@ -11,7 +12,7 @@ mov ax,sel_dat1
 mov ds,ax
 
 mov al,9
-int 61h ;al=heure ah=minute bx=seconde (en millième) dl=jour dh=mois cx=année
+int 61h ;al=heure ah=minute bx=seconde (en milliÃ¨me) dl=jour dh=mois cx=annÃ©e
 mov [heure],ax
 mov [seconde],bx
 mov [jour],dx
@@ -26,7 +27,7 @@ xor ch,ch
 mov cl,[jour]
 call afnombre
 
-mov al,[jour+1]   ;n° du mois
+mov al,[jour+1]   ;nÂ° du mois
 
 cmp al,01h 
 jne test1
@@ -135,7 +136,7 @@ ret
 sdata1:
 org 0
 msg1: 
-db 19h,"Nous somme le ",0
+db 19h,"Nous sommes le ",0
 msg2:
 db "de l'an ",0
 msg3:
@@ -165,7 +166,7 @@ dw 0
 mois1:
 db " Janvier ",0
 mois2:
-db " Février ",0
+db " FÃ©vrier ",0
 mois3:
 db " Mars ",0
 mois4:
@@ -185,7 +186,7 @@ db " Octobre ",0
 mois11:
 db " Novembre ",0
 mois12:
-db " Décembre ",0
+db " DÃ©cembre ",0
 
 sdata2:
 org 0

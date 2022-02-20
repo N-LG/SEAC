@@ -9,8 +9,8 @@ mov byte[msgtrappe],val
 mov byte[msgtrappe+1],13
 mov byte[msgtrappe+2],0
 mov edx,msgtrappe
-call affmsg
-
+mov al,6
+int 61h
 popad
 }
 
@@ -48,14 +48,16 @@ mov byte[option_e],1
 
 ;lit l'option o (dossier de destination)
 mov al,5   
-mov ah,"o"   ;numéros de l'option de commande a lire
+mov ah,"o"   ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,nom_1
 int 61h
 cmp eax,0
 jne @f
 mov edx,nom_1
-call ouvre_fichier
+xor ebx,ebx
+mov al,0
+int 64h
 cmp eax,0
 jne @f
 mov [handle_0],ebx
@@ -64,39 +66,53 @@ mov [handle_0],ebx
 
 
 
-
-
-mov cl,0
+;lit l'option 0 (fichier archive)
+mov al,4   
+mov ah,0   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
 mov edx,nom_1
-call lire_arg
-
+int 61h
+cmp eax,0
+jne @f
 mov edx,nom_1
-call ouvre_fichier
+xor ebx,ebx
+mov al,0
+int 64h
 cmp eax,0
 jne erreur_ouverture_archive
-
 mov [handle_1],ebx
-call taillef
+
+
+;lit la taille du fichier
+mov [handle_1],ebx
+mov al,6
+mov ah,1
+mov edx,taille_1
+int 64h
 cmp eax,0
 jne erreur_ouverture_archive
-sub ecx,16
-mov [taille_1],ecx
+
+
 
 
 mov ebx,[handle_1]  ;lit les 16 premier octets 
 mov ecx,16
 mov edx,0
 mov edi,chaine_temporaire
-call lit_fichier
+mov al,4
+int 64h
 cmp eax,0
 jne erreur_lecture_archive
 
 cmp dword[chaine_temporaire],04034B50h
 je pkzip
+cmp word[chaine_temporaire],8B1Fh
+je gzip
 
 mov edx,msg_erreur_format_inconnue
-call affmsg
-jmp fin
+mov al,6
+int 61h
+int 60h
 
 
 
@@ -106,19 +122,21 @@ jmp fin
 ;**********************************************************************************************************
 pkzip:
 mov dword[index_fichier],0
+
 boucle_pkzip:
-
-
 mov ebx,[handle_1]  ;lit les 32 premier octets 
 mov ecx,32
 mov edx,[index_fichier]
 mov edi,chaine_temporaire
-call lit_fichier
+mov al,4
+int 64h
 cmp eax,0
 jne erreur_lecture_archive
 
 cmp dword[chaine_temporaire],04034B50h
-jne fin
+jne fin_ok
+
+
 
 mov ebx,[handle_1]  ;lit le nom
 xor ecx,ecx
@@ -126,7 +144,8 @@ mov cx,[chaine_temporaire+1Ah]
 mov edx,[index_fichier]
 add edx,1Eh
 mov edi,nom_2
-call lit_fichier
+mov al,4
+int 64h
 cmp eax,0
 jne erreur_lecture_archive
 xor ebx,ebx
@@ -137,6 +156,7 @@ mov byte[nom_2+ebx],0
 ;réserve une ZT suffisante
 mov ecx,[chaine_temporaire+12h]
 add ecx,[chaine_temporaire+16h]
+add ecx,4
 cmp ecx,0
 je suite2_boucle_pkzip
 cmp ecx,[taille_zt]
@@ -150,7 +170,9 @@ int 61h
 
 ;créer le fichier
 mov edx,nom_2
-call cree_fichier
+xor ebx,ebx
+mov al,2
+int 64h
 cmp eax,0
 je pkzip_okcree
 
@@ -192,7 +214,8 @@ add edx,[index_fichier]
 add edx,1Eh
 add edx,eax
 mov edi,zt_transfert
-call lit_fichier
+mov al,4
+int 64h
 cmp eax,0
 jne pkzip_err_lec
 
@@ -204,20 +227,25 @@ je pkzip_type8
 
 
 mov edx,msg_erreur_deco1  ;type de compression non reconnu
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_deco2
-call affmsg
+mov al,6
+int 61h
 xor ecx,ecx
 mov eax,102
 mov cx,[chaine_temporaire+8]
 mov edx,zt_transfert
 int 61h
 mov edx,zt_transfert
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_deco3
-call affmsg
+mov al,6
+int 61h
 jmp suite2_boucle_pkzip
 
 
@@ -267,14 +295,18 @@ jne pkzip_err_ecr
 
 ;fermer le fichier
 mov ebx,[handle_2]
-call ferme_fichier
+mov al,1
+int 64h
 
 mov edx,msg_ok_deco1
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_ok_deco2
-call affmsg
+mov al,6
+int 61h
 
 suite2_boucle_pkzip:
 mov eax,[chaine_temporaire+12h] ;taille compressé
@@ -294,69 +326,66 @@ jmp boucle_pkzip
 
 pkzip_err_cre:
 mov edx,msg_erreur_cre1
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_cre2
-call affmsg
+mov al,6
+int 61h
 jmp suite2_boucle_pkzip
 
 pkzip_err_lec:
 mov edx,msg_erreur_lec1
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_lec2
-call affmsg
+mov al,6
+int 61h
 jmp suite2_boucle_pkzip
 
 
 pkzip_err_dec:
 mov edx,msg_erreur_dec1
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_dec2
-call affmsg
+mov al,6
+int 61h
 jmp suite2_boucle_pkzip
 
 
 pkzip_err_ecr:
 mov edx,msg_erreur_ecr1
-call affmsg
+mov al,6
+int 61h
 mov edx,nom_2
-call affmsg
+mov al,6
+int 61h
 mov edx,msg_erreur_ecr2
-call affmsg
+mov al,6
+int 61h
 jmp suite2_boucle_pkzip
 
 
 
 ;**********************************************************************************************************
 gzip:
-;?????????????????????
-jmp fin
+jmp erreur_format_inconnue   ;?????????????????????
+
 
 
 
 ;**********************************************************************************************************
 tar:
-;?????????????????????
-jmp fin
-
-
-
-
-
-pushad
-mov ecx,ebx
-mov edx,msgtrappe
-mov eax,103
-int 61h
-mov eax,6
-int 61h
-popad
-trappe "B"
+jmp erreur_format_inconnue   ;?????????????????????
 
 
 
@@ -364,27 +393,36 @@ trappe "B"
 
 
 
-;**************************************************************************************************************
-
-
+;****************************************************************************
 erreur_ouverture_archive:
 mov edx,msg_erreur_ouverture_archive
-call affmsg
-jmp fin
+mov al,6
+int 61h
+int 60h
 
 erreur_format_inconnue:
 mov edx,msg_erreur_format_inconnue
-call affmsg
-jmp fin
+mov al,6
+int 61h
+int 60h
 
 erreur_lecture_archive:
 mov edx,msg_erreur_lecture_archive
-call affmsg
+mov al,6
+int 61h
+int 60h
 
-fin:
-include "nlg_se.inc"
+fin_ok:
+mov edx,msg_ok_fin
+mov al,6
+int 61h
+int 60h
 
 
+
+;*********************************************************************
+sdata1:
+org 0
 
 msg_erreur_ouverture_archive:
 db "DCP: erreur pour ouvrir l'archive",13,0
@@ -395,6 +433,8 @@ db "DCP: erreur lors de la lecture de l'archive",13,0
 msg_erreur_format_inconnue:
 db "DCP: format de l'archive inconnue",13,0
 
+msg_ok_fin:
+db "DCP: fin du parcours de l'archive",13,0
 
 msg_ok_deco1:
 db "DCP: decompression de ",0
@@ -443,7 +483,7 @@ dd 0,0,0,0,0,0,0,0
 
 
 taille_1:
-dd 0
+dd 0,0
 handle_0:   ;dossier de destination
 dd 0
 handle_1:   ;fichier archive 
