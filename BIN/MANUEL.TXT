@@ -243,6 +243,7 @@
 :circ
 ^CIRC
  client pour systeme de messagerie utilisant le protocole IRC
+ pour communiquer avec le salon #devse sur le serveur irc.libera.chat:6667 par exemple
 
 %commande: circ XXX YY ZZZZ
  avec: XXX = adresse du serveur
