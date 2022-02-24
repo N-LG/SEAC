@@ -2390,6 +2390,7 @@ sfs_crc16:
 ;sortie: ax=valeur du CRC
 
 
+mov ax,bx
 
 boucle_sfs_crc16:
 xor al,[esi]
@@ -2458,7 +2459,7 @@ iret
 
 
 sfs_crc32:
-
+mov eax,ebx
 
 
 boucle_sfs_crc32:

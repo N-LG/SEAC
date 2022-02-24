@@ -32,7 +32,6 @@
 ;55=insère une image dans une autre
 
 
-
 cmp al,0
 je sfv_ouvre_console
 cmp al,1
@@ -906,6 +905,64 @@ es
 mov [ad_curseur_texte],ebx
 ret
 
+
+;*******************************************************************************************
+sfv_majecr:     ;effectue la mise a jour complete de l'ecran
+push ds
+mov ax,seldat
+mov ds,ax
+mov ax,[id_tache_exec]
+cmp ax,[id_tache_af]
+jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
+or byte[at_vid],1
+fin_sfv_majecr:
+xor eax,eax
+pop ds
+iret
+
+
+;*********************
+sfv_majecr_part:     ;effectue la mise a jour partielle de l'ecran
+		     ;ebx,ecx=coordonnée coin sup gauche
+ 		     ;esi,edi=coordonné coin inf droite
+
+push ds
+mov ax,seldat
+mov ds,ax
+mov ax,[id_tache_exec]
+cmp ax,[id_tache_af]
+jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
+or byte[at_vid],2
+mov dword[majv_xdeb],ebx
+mov dword[majv_ydeb],ecx
+mov dword[majv_xfin],esi
+mov dword[majv_yfin],edi
+
+xor eax,eax
+pop ds
+iret
+
+
+
+sigmajv:
+push eax
+es
+test byte[at_console],08h
+jnz fin_sigmajv
+fs
+mov ax,[id_tache_exec]
+fs
+cmp ax,[id_tache_af]
+jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
+fs
+or byte[at_vid],1
+
+fin_sigmajv:
+pop eax
+ret
+
+
+
 ;*******************************************************************************************
 sfv_chaine_pos:       ;ecrit la chaine de caractère utf8z en ds:edx a partir de la position x=ebx y=ecx ah=couleur
 push ebx
@@ -1538,64 +1595,11 @@ popad
 mov eax,cer_parami
 iret
 
-;*******************************************************************************************
-sfv_majecr:     ;effectue la mise a jour complete de l'ecran
-push ds
-mov ax,seldat
-mov ds,ax
-mov ax,[id_tache_exec]
-cmp ax,[id_tache_af]
-jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-or byte[at_vid],1
-fin_sfv_majecr:
-xor eax,eax
-pop ds
-iret
 
-
-;*********************
-sfv_majecr_part:     ;effectue la mise a jour partielle de l'ecran
-		     ;ebx,ecx=coordonnée coin sup gauche
- 		     ;esi,edi=coordonné coin inf droite
-
-push ds
-mov ax,seldat
-mov ds,ax
-mov ax,[id_tache_exec]
-cmp ax,[id_tache_af]
-jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-or byte[at_vid],2
-mov dword[majv_xdeb],ebx
-mov dword[majv_ydeb],ecx
-mov dword[majv_xfin],esi
-mov dword[majv_yfin],edi
-
-xor eax,eax
-pop ds
-iret
-
-
-
-sigmajv:
-push eax
-es
-test byte[at_console],08h
-jnz fin_sigmajv
-fs
-mov ax,[id_tache_exec]
-fs
-cmp ax,[id_tache_af]
-jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-fs
-or byte[at_vid],1
-
-fin_sigmajv:
-pop eax
-ret
 
 
 ;*******************************************************************************************
-sfv_dessine_pix:     ;dessine un segment x0=bx y0=cx edx=couleur ah=bit par pixel de la couleur
+sfv_dessine_pix:     ;dessine un pixel x0=bx y0=cx edx=couleur ah=bit par pixel de la couleur
 pushad
 push es
 push fs
@@ -1793,7 +1797,6 @@ add ebx,eax
 es
 add ebx,[ad_graf]
 pop edx
-
 fs
 cmp byte[bitpp],4
 je boucle_sfv_dessine_rec_4
@@ -1949,6 +1952,10 @@ pop es
 popad
 xor eax,eax
 iret
+
+
+
+
 
 parami_sfv_dessine_rec:   ;erreur parametre incorecte
 pop fs
