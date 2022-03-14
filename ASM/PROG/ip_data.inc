@@ -34,7 +34,12 @@ dhcp_masque:
 dd 0
 dhcp_passerelle:
 dd 0
-
+dhcp_t1:
+dd 0,0
+dhcp_t2:
+dd 0,0
+dhcp_t3:
+dd 0,0
 
 
 

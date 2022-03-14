@@ -231,6 +231,34 @@ boucle_principale:
 mov eax,12          ;lit le compteur temp
 int 61h
 mov[cptsf],eax
+mov[cptsf+4],edx
+
+;verifie que l'adresse ipv4 est toujour valide
+cmp byte[dhcp_phase],10
+jne ignore_tempo_dhcp
+
+mov edx,dhcp_t3
+call comp64
+jb stop_dhcp
+mov edx,dhcp_t2
+call comp64
+jb @f
+mov edx,dhcp_t1
+call comp64
+ja ignore_tempo_dhcp
+
+@@:
+mov dword[edx],0FFFFFFFFh
+mov dword[edx+4],0FFFFFFFFh
+jmp envoie_dhcp_request  ;sinon il faut la redemander au serveur dhcp
+
+stop_dhcp:
+mov byte[dhcp_phase],0
+mov dword[adresse_ipv4],0
+mov dword[masque_ipv4],0
+mov dword[passerelle_ipv4],0
+
+ignore_tempo_dhcp:
 
 
 ;recherche si il y as une nouvelle connexion
@@ -325,6 +353,7 @@ mov esi,0
 mov edi,info_adresse_carte
 int 65h
 
+mov byte[dhcp_phase],0   ;on désactive le dhcp
 
 mov eax,[adresse_mac]     ;complete l'adresse local de lien avec l'adresse MAC suivant la méthode MAC-EUI64
 mov edx,[adresse_mac+3]
@@ -1412,9 +1441,8 @@ je client_dhcp_reponse_request
 jmp boucle_principale
 
 
-
+;****************************
 client_dhcp_reponse_discover:  ;on as reçu une offre, envoyons une requete
-
 
 ;enregistrement des info de la partie bootp
 mov eax,[esi+dhcp_yiaddr]
@@ -1457,8 +1485,8 @@ mov [dhcp_passerelle],eax
 @@:
 
 
-
-;envoie une demande dhcp request
+;************
+envoie_dhcp_request:    ;envoie une demande dhcp request (pour demander ou confirmer une adresse)
 mov byte[dhcp_phase],5
 mov eax,12
 int 61h
@@ -1495,7 +1523,6 @@ mov byte[ebx],0
 inc ebx
 dec ecx
 jnz @b
-
 
 
 ;ajoute les options dhcp
@@ -1569,10 +1596,9 @@ mov esi,[offset_ip]
 mov word[esi+udp_cheksum],ax
 
 call envoie_trame_ip
-
 jmp boucle_principale
 
-
+;******************************
 client_dhcp_reponse_request:
 ;enregistrement des info de la partie bootp
 mov eax,[esi+dhcp_yiaddr]
@@ -1613,20 +1639,18 @@ mov [dhcp_passerelle],eax
 @@:
 
 
-mov al,51       ;temps d'attribution de la tache
-call cherche_opt_dhcp
-cmp ebx,0
-je @f
-mov eax,[ebx+2]
-;?????????????
-@@:
-
 mov al,58        ;temps pour la première relance
 call cherche_opt_dhcp
 cmp ebx,0
 je @f
 mov eax,[ebx+2]
-;?????????????
+mov ecx,400
+bswap eax
+mul ecx
+add eax,[cptsf]
+adc edx,[cptsf+4]
+mov [dhcp_t1],eax
+mov [dhcp_t1+4],edx
 @@:
 
 mov al,59       ;temps pour la seconde relance
@@ -1634,9 +1658,28 @@ call cherche_opt_dhcp
 cmp ebx,0
 je @f
 mov eax,[ebx+2]
-;?????????????
+mov ecx,400
+bswap eax
+mul ecx
+add eax,[cptsf]
+adc edx,[cptsf+4]
+mov [dhcp_t2],eax
+mov [dhcp_t2+4],edx
 @@:
 
+mov al,51       ;temps d'attribution de l'adresse
+call cherche_opt_dhcp
+cmp ebx,0
+je @f
+mov eax,[ebx+2]
+mov ecx,400
+bswap eax
+mul ecx
+add eax,[cptsf]
+adc edx,[cptsf+4]
+mov [dhcp_t3],eax
+mov [dhcp_t3+4],edx
+@@:
 
 ok_dhcpbootp:   ;valide la configuration reçu
 mov eax,[dhcp_adresse]
@@ -1645,43 +1688,22 @@ mov ecx,[dhcp_masque]
 mov [adresse_ipv4],eax
 mov [passerelle_ipv4],ebx
 mov [masque_ipv4],ecx
-
+mov byte[dhcp_phase],10
 
 mov ebx,[dhcp_demande]
+cmp ebx,0
+je boucle_principale
 mov word[zt_decod],008Ah
 mov al,5
 mov ecx,8h
 mov edi,0
 mov esi,zt_decod
 int 65h
+mov dword[dhcp_demande],0
 jmp boucle_principale
 
 
-;************************
-;cherche l'option al dans la trame dhcp reçu, renvoie l'adresse de cette option dans ebx
-cherche_opt_dhcp:
-xor ebx,ebx
-push ecx
-push esi
-xor ecx,ecx
-add esi,dhcp_options+4
 
-@@:
-cmp [esi],al
-je trouve_cherche_opt_dhcp
-cmp byte[esi],255
-je fin_cherche_opt_dhcp
-mov cl,[esi+1]
-add esi,ecx
-add esi,2
-jmp @b
-
-trouve_cherche_opt_dhcp:
-mov ebx,esi
-fin_cherche_opt_dhcp:
-pop esi
-pop ecx
-ret
 
 ;**************************************************************************
 ;datagramme TCP
@@ -3810,3 +3832,51 @@ mov [esi+zone_attente_tcp_descr],edi        ;adresse du descripteur de la connex
 mov eax,[edi+cnx_seq_serveur_suivante]
 mov [esi+zone_attente_tcp_ack_attendu],eax   ;ack qui validera la reception de la trame
 ret
+
+
+
+
+
+;************************
+;cherche l'option al dans la trame dhcp reçu, renvoie l'adresse de cette option dans ebx
+cherche_opt_dhcp:
+xor ebx,ebx
+push ecx
+push esi
+xor ecx,ecx
+add esi,dhcp_options+4
+
+@@:
+cmp [esi],al
+je trouve_cherche_opt_dhcp
+cmp byte[esi],255
+je fin_cherche_opt_dhcp
+mov cl,[esi+1]
+add esi,ecx
+add esi,2
+jmp @b
+
+trouve_cherche_opt_dhcp:
+mov ebx,esi
+fin_cherche_opt_dhcp:
+pop esi
+pop ecx
+ret
+
+;**********************
+comp64:   ;effectue un cmp 64bit de la valeur pointé par edx par rapport au compteur cptsf (equivalent a un "cmp qword[edx],[cptsf]")
+push eax
+push ebx
+mov eax,[cptsf]
+mov ebx,[cptsf+4]
+
+cmp [edx+4],ebx
+ja @f
+jb @f
+cmp [edx],eax
+
+@@:
+pop ebx
+pop eax
+ret
+
