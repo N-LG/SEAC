@@ -2853,13 +2853,13 @@ mov edx,[esi+6]
 mov al,[esi]
 fs
 mov ah,[bitpp]
-test byte[esi+1],01h
-jnz sfv_aff_img_transparence
 add esi,14
 
 
 cmp ax,2020h   ;32->32
 je boucle_sfv_aff_img_32_32
+cmp ax,0808h   ;8->8
+je boucle_sfv_aff_img_8_8
 cmp al,ah   
 je boucle_sfv_aff_img_mc   ;même couleur 
 
@@ -2874,6 +2874,15 @@ je boucle_sfv_aff_img_4_24
 cmp ax,2004h   ;4->32
 je boucle_sfv_aff_img_4_32 
 
+
+cmp ax,0F08h   ;8->15
+je boucle_sfv_aff_img_8_15
+cmp ax,1008h   ;8->16
+je boucle_sfv_aff_img_8_16
+cmp ax,1808h   ;8->24
+je boucle_sfv_aff_img_8_24
+cmp ax,2008h   ;8->32
+je boucle_sfv_aff_img_8_32
 
 cmp ax,0818h   ;24->8
 je boucle_sfv_aff_img_24_8
@@ -2902,17 +2911,6 @@ popad
 mov eax,cer_nci
 iret
 
-sfv_aff_img_transparence:
-add esi,14
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-call sigmajv
-pop fs
-pop es
-popad
-mov eax,cer_nci
-iret
 
 
 ;ds:esi= pointeur dans l'image
@@ -3164,6 +3162,183 @@ add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_32
 jmp fin_sfv_aff_img
+
+
+
+boucle_sfv_aff_img_8_8:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_8_8:
+mov al,[esi]
+cmp al,0FFh
+je @f
+es
+mov [edi],al
+@@:
+inc esi
+inc edi
+dec ecx
+jnz boucle2_sfv_aff_img_8_8
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_8_8
+jmp fin_sfv_aff_img
+
+
+
+boucle_sfv_aff_img_8_15:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_8_15:
+mov al,[esi]
+cmp al,0FFh
+je @f
+call conv8_24
+call conv24_15
+es
+mov [edi],ax
+@@:
+inc esi
+add edi,2
+dec ecx
+jnz boucle2_sfv_aff_img_8_15
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_8_15
+jmp fin_sfv_aff_img
+
+
+boucle_sfv_aff_img_8_16:
+push ecx
+push edx
+push esi
+push edi
+
+
+boucle2_sfv_aff_img_8_16:
+mov al,[esi]
+cmp al,0FFh
+je @f
+call conv8_24
+call conv24_16
+es
+mov [edi],ax
+@@:
+inc esi
+add edi,2
+dec ecx
+jnz boucle2_sfv_aff_img_8_16
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_8_16
+jmp fin_sfv_aff_img
+
+
+
+boucle_sfv_aff_img_8_24:
+push ecx
+push edx
+push esi
+push edi
+
+boucle2_sfv_aff_img_8_24:
+mov al,[esi]
+cmp al,0FFh
+je @f
+call conv8_24
+es
+mov [edi],ax
+shr eax,16
+es
+mov [edi+2],al
+@@:
+inc esi
+add edi,3
+dec ecx
+jnz boucle2_sfv_aff_img_8_24
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_8_24
+jmp fin_sfv_aff_img
+
+
+boucle_sfv_aff_img_8_32:
+push ecx
+push edx
+push esi
+push edi
+
+boucle2_sfv_aff_img_8_32:
+mov al,[esi]
+cmp al,0FFh
+je @f
+call conv8_24
+and eax,0FFFFFFh
+es
+mov [edi],eax
+@@:
+inc esi
+add edi,4
+dec ecx
+jnz boucle2_sfv_aff_img_8_32
+
+pop edi
+pop esi
+pop edx
+pop ecx
+add esi,edx
+xor eax,eax
+fs
+mov ax,[octpl]
+add edi,eax
+dec ebp
+jnz boucle_sfv_aff_img_8_32
+jmp fin_sfv_aff_img
+
 
 
 boucle_sfv_aff_img_24_8:
