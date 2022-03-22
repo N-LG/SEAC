@@ -40,7 +40,8 @@
 ;al=116 convertir données base64 en données binaires
 ;al=117 convertir données binaires en base64 
 ;al=118 convertir données binaires en base64url
-
+;al=119 convertir temps unix vers date et heure
+;al=120 convertir date et heure vers temps unix 
 
 
 
@@ -131,7 +132,9 @@ je conv_bin_b64
 cmp al,118
 je conv_bin_b64url
 cmp al,119
-
+je conv_tunix_date
+cmp al,120
+je conv_date_tunix
 
 cmp al,150
 je sfs_crc16
@@ -855,7 +858,7 @@ iret
 
 lire_date_heure:
 ;sortie:
-;al=heure ah=minute bx=seconde (en millième)
+;bh=heure bl=minute si=seconde (en millième)
 ;dl=jour dh=mois cx=année
 
 mov dx,70h
@@ -871,7 +874,7 @@ shr al,1     ;/16 *8 =/2
 shr ah,3     ;/16 *2 =/8
 add cl,al
 add cl,ah
-mov bl,cl
+mov bh,cl
 
 mov dx,70h
 mov al,02h   ;minutes
@@ -886,7 +889,7 @@ shr al,1     ;/16 *8 =/2
 shr ah,3     ;/16 *2 =/8
 add cl,al
 add cl,ah
-mov bh,cl
+mov bl,cl
 push ebx
 
 mov dx,70h
@@ -969,12 +972,12 @@ shr ah,3     ;/16 *2 =/8
 add cl,al
 add cl,ah
 mov bh,cl
-push ebx
 
-pop edx
+mov edx,ebx
 pop ecx
+pop esi
 pop ebx
-pop eax
+xor eax,eax
 ret
 
 
@@ -2364,12 +2367,240 @@ ret
 
 
 
+;****************************************
+conv_tunix_date:     ;conversion compteur temps unix vers date
+mov eax,ecx
+mov ecx,86400
+div ecx
+;eax=jours ;edx=secondes
+
+;calcul de l'année
+push edx
+mov ecx,1970
+boucle1_conv_tunix_date:
+mov edx,365
+call test_bs
+jnc @f
+inc edx
+@@:
+cmp eax,edx
+jb @f
+sub eax,edx
+inc ecx
+jmp boucle1_conv_tunix_date
+
+@@:    ;ecx=année ;eax=jour
+
+
+;calcul mois
+mov ebx,365-31
+call test_bs
+jnc @f
+inc ebx
+@@:
+mov dh,12
+
+boucle2_conv_tunix_date:
+cmp eax,ebx
+jae mois_ok_conv_tunix_date 
+dec dh
+sub ebx,31
+
+cmp dh,4
+je moisp_conv_tunix_date
+cmp dh,6
+je moisp_conv_tunix_date
+cmp dh,9
+je moisp_conv_tunix_date
+cmp dh,11
+je moisp_conv_tunix_date
+
+;mois de fevrier
+cmp dh,2
+jne boucle2_conv_tunix_date
+add ebx,3
+
+;mois de fevrier bisextile
+call test_bs
+jnc boucle2_conv_tunix_date
+dec ebx
+jmp boucle2_conv_tunix_date
+
+moisp_conv_tunix_date:
+inc ebx
+jmp boucle2_conv_tunix_date
+
+
+mois_ok_conv_tunix_date:
+sub eax,ebx
+mov dl,al
+inc dl
+pop eax  ;eax=seconde cx=années dh=mois dl=jours
+push ecx
+push edx
+
+xor edx,edx
+mov ecx,3600
+div ecx
+push eax ;heures
+mov eax,edx
+xor edx,edx
+mov ecx,60
+div ecx
+push eax ;minutes
+
+mov eax,edx
+xor edx,edx
+mov ecx,1000
+mul ecx
+mov esi,eax ;esi=milisecondes
+
+pop ebx
+pop edx
+mov bh,dl
+pop edx
+pop ecx
+xor eax,eax
+iret
+
+
+;*********************************
+conv_date_tunix:      ;conversion seact epoch
+push ecx
+push edx
+push ebx
+push ebx
+
+xor edx,edx
+mov eax,esi
+mov ecx,1000
+div ecx
+mov esi,eax
+pop eax
+mov ecx,60
+and eax,0FFh
+mul ecx
+add esi,eax
+pop eax
+mov al,ah
+mov ecx,3600
+and eax,0FFh
+mul ecx
+add esi,eax
+pop edx
+pop ecx
+
+
+xor edi,edi
+
+
+;calcul du nombre de jour par rapport au mois
+boucle1_conv_date_tunix:
+cmp dh,1
+je boucle2_conv_date_tunix
+dec dh
+add edi,31
+
+cmp dh,4
+je moisp_conv_date_tunix
+cmp dh,6
+je moisp_conv_date_tunix
+cmp dh,9
+je moisp_conv_date_tunix
+cmp dh,11
+je moisp_conv_date_tunix
+
+cmp dh,2
+jne boucle1_conv_date_tunix
+sub edi,3
+call test_bs
+jnc boucle1_conv_date_tunix
+inc edi
+jmp boucle1_conv_date_tunix
+
+moisp_conv_date_tunix:
+dec edi
+jmp boucle1_conv_date_tunix
+
+
+;calcul du nomre de jour par rapport a l'année
+boucle2_conv_date_tunix:
+cmp ecx,1970
+je @f
+dec ecx
+add edi,365
+call test_bs
+jnc boucle2_conv_date_tunix
+inc edi
+jmp boucle2_conv_date_tunix
+
+@@:
+and edx,0FFh
+add edi,edx
+dec edi
+
+mov eax,edi
+mov ecx,86400
+mul ecx
+add eax,esi
+adc edx,0
+iret
+
+
+
+
+;**************************
+test_bs:   ;test si l'année dans cx est bisextile cf=1 si bisextile
+push eax
+push ebx
+push edx
+xor eax,eax
+xor edx,edx
+mov ax,cx
+mov ebx,400
+div ebx
+cmp edx,0
+je ok_bs
+
+xor eax,eax
+xor edx,edx
+mov ax,cx
+mov ebx,4
+div ebx
+cmp edx,0
+jne non_bs
+
+xor eax,eax
+xor edx,edx
+mov ax,cx
+mov ebx,100
+div ebx
+cmp edx,0
+je non_bs
+
+ok_bs:
+stc
+pop edx
+pop ebx
+pop eax
+ret
+
+non_bs:
+clc
+pop edx
+pop ebx
+pop eax
+ret
+
+
+
+
+
+
+
+
 ;***********************************************************************************************
 sfs_crc16:
-
-
-
-
 ;Les argument ax et dx change suivant le domaine d'uttilisation du crc
 ;pour l'instant je ne suis sûr que des valeurs uttilisé par le crc du protocole modbus: ax=0FFFFh et dx=0A001h
 
