@@ -48,7 +48,7 @@
 ;al=150 calcul un crc16
 ;al=151 calcul un crc32
 ;al=152 décompresse une zone compressé par deflate
-
+;al=153 décompresse un fichier compressé par deflate
 
 
 cmp al,0
@@ -102,10 +102,6 @@ cmp al,104
 je conv_reg_hexa16
 cmp al,105
 je conv_reg_hexa8
-;cmp al,106
-;je conv_reg_hexa16
-;cmp al,107
-;je conv_reg_hexa8
 
 
 cmp al,108
@@ -142,6 +138,8 @@ cmp al,151
 je sfs_crc32
 cmp al,152
 je sfs_inflate
+cmp al,152
+je sfs_inflate_fichier
 
 mov eax,cer_parami
 iret
@@ -2754,10 +2752,10 @@ jnz boucle_sfs_crc32
 iret
 
 
+
+
+
 ;****************************************************************************************************
-
-
-
 
 macro av_bit val
 {
@@ -2789,6 +2787,12 @@ jz sfs_inflate_finpermute
 
 
 arbre_inflate_tailles      equ 10h
+
+arbre_inflate_fichier1 equ 14h
+arbre_inflate_adresse1 equ 18h
+arbre_inflate_fichier2 equ 1Ch
+arbre_inflate_adresse2 equ 20h
+
 arbre_inflate_literal      equ 200h
 arbre_inflate_dist         equ 204h
 arbre_inflate_bloc         equ 208h
@@ -2800,6 +2804,8 @@ arbre_inflate_tables_literal  equ 220h
 arbre_inflate_valeurs_literal equ 320h
 arbre_inflate_tables_dist     equ 620h
 arbre_inflate_valeurs_dist    equ 720h
+arbre_inflate_zt1 equ 00A20h
+arbre_inflate_zt2 equ 20A20h
 
 arbre_inflate_index equ 4
 arbre_inflate_min   equ 8
@@ -2863,256 +2869,15 @@ jmp sfs_inflate_bloc_fin
 ;***********************************
 sfs_inflate_bloc_01:    ;arbre de hufman fixe
 av_bit 3
-push ecx          ;génération de l'arbre fixe (suite de nombre de bit uttilisé pour chaque point de code)
-push edi
-push es
-mov ax,fs
-mov es,ax
-mov edi,ebx
-add edi,arbre_inflate_tailles
-cld
-mov al,8       ;arbre littéral
-mov ecx,144
-rep stosb
-mov al,9
-mov ecx,112
-rep stosb
-mov al,7
-mov ecx,24
-rep stosb
-mov al,8
-mov ecx,8
-rep stosb
-mov al,5       ;arbre de distance
-mov ecx,32
-rep stosb
-pop es
-pop edi
-pop ecx
-
-
-fs
-mov dword[ebx+arbre_inflate_literal],288  
-fs
-mov dword[ebx+arbre_inflate_dist],32
+call sfs_inflate_gen_table_decodage
 call sfs_inflate_gen_arbre
 jmp sfs_inflate_parcour_bloc
-
 
 
 ;***********************************
 sfs_inflate_bloc_10:    ;arbre de huffman dynamique
 av_bit 3
-mov eax,[esi]             ;extrait les valeurs de base
-shr eax,cl
-and eax,1Fh
-add eax,257
-av_bit 5
-fs
-mov [ebx+arbre_inflate_HLIT],eax
-
-mov eax,[esi]
-shr eax,cl
-and eax,1Fh
-inc eax
-av_bit 5
-fs
-mov [ebx+arbre_inflate_HDIST],eax   ;HDIST
-
-mov eax,[esi]
-shr eax,cl
-and eax,0Fh
-add eax,4
-av_bit 4
-mov dl,al      ;HCLEN
-
-
-xor eax,eax                    ;efface la table des tailles
-fs
-mov [ebx+arbre_inflate_tailles],eax
-fs
-mov [ebx+arbre_inflate_tailles+4],eax
-fs
-mov [ebx+arbre_inflate_tailles+8],eax
-fs
-mov [ebx+arbre_inflate_tailles+12],eax
-fs
-mov [ebx+arbre_inflate_tailles+16],eax
-
-
-sfs_inflate_litarbre 16         ;lit la valeur des arbres et replace ça suivant la table de permutation
-sfs_inflate_litarbre 17
-sfs_inflate_litarbre 18
-sfs_inflate_litarbre 0 
-sfs_inflate_litarbre 8 
-sfs_inflate_litarbre 7 
-sfs_inflate_litarbre 9 
-sfs_inflate_litarbre 6 
-sfs_inflate_litarbre 10 
-sfs_inflate_litarbre 5 
-sfs_inflate_litarbre 11
-sfs_inflate_litarbre 4 
-sfs_inflate_litarbre 12 
-sfs_inflate_litarbre 3 
-sfs_inflate_litarbre 13 
-sfs_inflate_litarbre 2 
-sfs_inflate_litarbre 14 
-sfs_inflate_litarbre 1
-sfs_inflate_litarbre 15
-sfs_inflate_finpermute: 
-
-fs
-mov dword[ebx+arbre_inflate_literal],19
-fs
-mov dword[ebx+arbre_inflate_dist],0   
-call sfs_inflate_gen_arbre
-
-fs
-mov eax,[ebx+arbre_inflate_HLIT]        
-fs
-add eax,[ebx+arbre_inflate_HDIST]   ;HLIT+HDIST
-fs
-mov [ebx+arbre_inflate_literal],eax        
-
-
-push edi
-push es
-mov ax,fs
-mov es,ax
-mov edi,ebx
-add edi,arbre_inflate_tailles
-
-
-sfs_inflate_decomp_arbre: 
-fs
-cmp dword[ebx+arbre_inflate_literal],0
-je sfs_inflate_decomp_arbre_fin
-jb sfs_inflate_erreur_arbre  
-mov ch,16
-mov eax,[esi]
-shr eax,cl
-mov edx,ebx
-add edx,arbre_inflate_tables_literal-10h
-xor ebp,ebp
-
-
-sfs_inflate_boucle_decodage_arbre:
-rcr eax,1
-rcl ebp,1
-av_bit 1
-add edx,10h
-dec ch
-jz sfs_inflate_erreur_arbre
-fs
-cmp dword[edx],0
-jz sfs_inflate_boucle_decodage_arbre
-fs
-cmp ebp,[edx+arbre_inflate_max]
-ja sfs_inflate_boucle_decodage_arbre
-;cmp [edx+arbre_inflate_min],ebp
-;jb sfs_inflate_boucle_decodage_arbre
-
-
-fs
-sub ebp,[edx+arbre_inflate_min]
-fs
-mov eax,[edx+arbre_inflate_index]
-add ebp,eax
-shl ebp,1
-push ebx
-add ebx,ebp
-fs
-mov ax,[ebx+arbre_inflate_valeurs_literal]
-pop ebx
-
-
-cmp ax,16
-je sfs_inflate_decomp_arbre_suite1
-cmp ax,17
-je sfs_inflate_decomp_arbre_suite2
-cmp ax,18
-je sfs_inflate_decomp_arbre_suite3
-test ax,0FFF0h
-jnz sfs_inflate_erreur_arbre
-cld
-stosb
-fs
-dec dword[ebx+arbre_inflate_literal]
-jmp sfs_inflate_decomp_arbre   
-
-sfs_inflate_erreur_arbre:
-pop es
-pop edi
-jmp sfs_inflate_erreur
-
-sfs_inflate_decomp_arbre_suite1:   
-dec edi
-mov eax,[esi]
-shr eax,cl
-av_bit 2
-push ecx
-mov ecx,eax
-and ecx,3h
-es
-mov al,[edi]
-add ecx,3
-cld
-stosb
-fs
-sub [ebx+arbre_inflate_literal],ecx       
-rep stosb
-pop ecx
-jmp sfs_inflate_decomp_arbre   
-
-
-sfs_inflate_decomp_arbre_suite2:   
-mov eax,[esi]
-shr eax,cl
-av_bit 3
-push ecx
-mov ecx,eax
-and ecx,07h
-mov al,0
-add ecx,3
-fs
-sub [ebx+arbre_inflate_literal],ecx       
-cld
-rep stosb
-pop ecx
-jmp sfs_inflate_decomp_arbre   
-
-
-sfs_inflate_decomp_arbre_suite3:   
-mov eax,[esi]
-shr eax,cl
-av_bit 7
-push ecx
-mov ecx,eax
-and ecx,7Fh
-mov al,0
-add ecx,11
-fs
-sub [ebx+arbre_inflate_literal],ecx 
-cld      
-rep stosb
-pop ecx
-jmp sfs_inflate_decomp_arbre   
-
-
-sfs_inflate_decomp_arbre_fin: 
-pop es
-pop edi
-
-
-
-fs
-mov eax,[ebx+arbre_inflate_HLIT]
-fs
-mov edx,[ebx+arbre_inflate_HDIST]
-fs
-mov [ebx+arbre_inflate_literal],eax
-fs
-mov [ebx+arbre_inflate_dist],edx
+call sfs_inflate_lit_table_decodage
 call sfs_inflate_gen_arbre
 
 
@@ -3140,8 +2905,6 @@ jz sfs_inflate_boucle_decodage_litteral
 fs
 cmp ebp,[edx+arbre_inflate_max]
 ja sfs_inflate_boucle_decodage_litteral
-;cmp [edx+arbre_inflate_min],ebp
-;jb sfs_inflate_boucle_decodage_litteral
 
 fs
 sub ebp,[edx+arbre_inflate_min]
@@ -3280,9 +3043,6 @@ jz sfs_inflate_boucle_decodage_distance
 fs
 cmp ebp,[edx+arbre_inflate_max]
 ja sfs_inflate_boucle_decodage_distance
-;cmp [edx+arbre_inflate_min],ebp
-;jb sfs_inflate_boucle_decodage_distance
-
 
 fs
 sub ebp,[edx+arbre_inflate_min]
@@ -3753,4 +3513,297 @@ pop ebx
 ret
 
 
+
+
+;***********************************************************************************************************
+sfs_inflate_lit_table_decodage:
+
+mov eax,[esi]             ;extrait les valeurs de base
+shr eax,cl
+and eax,1Fh
+add eax,257
+av_bit 5
+fs
+mov [ebx+arbre_inflate_HLIT],eax
+
+mov eax,[esi]
+shr eax,cl
+and eax,1Fh
+inc eax
+av_bit 5
+fs
+mov [ebx+arbre_inflate_HDIST],eax   ;HDIST
+
+mov eax,[esi]
+shr eax,cl
+and eax,0Fh
+add eax,4
+av_bit 4
+mov dl,al      ;HCLEN
+
+
+xor eax,eax                    ;efface la table des tailles
+fs
+mov [ebx+arbre_inflate_tailles],eax
+fs
+mov [ebx+arbre_inflate_tailles+4],eax
+fs
+mov [ebx+arbre_inflate_tailles+8],eax
+fs
+mov [ebx+arbre_inflate_tailles+12],eax
+fs
+mov [ebx+arbre_inflate_tailles+16],eax
+
+
+sfs_inflate_litarbre 16         ;lit la valeur des arbres et replace ça suivant la table de permutation
+sfs_inflate_litarbre 17
+sfs_inflate_litarbre 18
+sfs_inflate_litarbre 0 
+sfs_inflate_litarbre 8 
+sfs_inflate_litarbre 7 
+sfs_inflate_litarbre 9 
+sfs_inflate_litarbre 6 
+sfs_inflate_litarbre 10 
+sfs_inflate_litarbre 5 
+sfs_inflate_litarbre 11
+sfs_inflate_litarbre 4 
+sfs_inflate_litarbre 12 
+sfs_inflate_litarbre 3 
+sfs_inflate_litarbre 13 
+sfs_inflate_litarbre 2 
+sfs_inflate_litarbre 14 
+sfs_inflate_litarbre 1
+sfs_inflate_litarbre 15
+sfs_inflate_finpermute: 
+
+fs
+mov dword[ebx+arbre_inflate_literal],19
+fs
+mov dword[ebx+arbre_inflate_dist],0   
+call sfs_inflate_gen_arbre
+
+fs
+mov eax,[ebx+arbre_inflate_HLIT]        
+fs
+add eax,[ebx+arbre_inflate_HDIST]   ;HLIT+HDIST
+fs
+mov [ebx+arbre_inflate_literal],eax        
+
+
+push edi
+push es
+mov ax,fs
+mov es,ax
+mov edi,ebx
+add edi,arbre_inflate_tailles
+
+
+sfs_inflate_decomp_arbre: 
+fs
+cmp dword[ebx+arbre_inflate_literal],0
+je sfs_inflate_decomp_arbre_fin
+jb sfs_inflate_erreur_arbre  
+mov ch,16
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_literal-10h
+xor ebp,ebp
+
+
+sfs_inflate_boucle_decodage_arbre:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur_arbre
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_arbre
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_arbre
+
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+fs
+mov eax,[edx+arbre_inflate_index]
+add ebp,eax
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_literal]
+pop ebx
+
+
+cmp ax,16
+je sfs_inflate_decomp_arbre_suite1
+cmp ax,17
+je sfs_inflate_decomp_arbre_suite2
+cmp ax,18
+je sfs_inflate_decomp_arbre_suite3
+test ax,0FFF0h
+jnz sfs_inflate_erreur_arbre
+cld
+stosb
+fs
+dec dword[ebx+arbre_inflate_literal]
+jmp sfs_inflate_decomp_arbre   
+
+sfs_inflate_erreur_arbre:
+pop es
+pop edi
+jmp sfs_inflate_erreur
+
+sfs_inflate_decomp_arbre_suite1:   
+dec edi
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+push ecx
+mov ecx,eax
+and ecx,3h
+es
+mov al,[edi]
+add ecx,3
+cld
+stosb
+fs
+sub [ebx+arbre_inflate_literal],ecx       
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_suite2:   
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+push ecx
+mov ecx,eax
+and ecx,07h
+mov al,0
+add ecx,3
+fs
+sub [ebx+arbre_inflate_literal],ecx       
+cld
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_suite3:   
+mov eax,[esi]
+shr eax,cl
+av_bit 7
+push ecx
+mov ecx,eax
+and ecx,7Fh
+mov al,0
+add ecx,11
+fs
+sub [ebx+arbre_inflate_literal],ecx 
+cld      
+rep stosb
+pop ecx
+jmp sfs_inflate_decomp_arbre   
+
+
+sfs_inflate_decomp_arbre_fin: 
+pop es
+pop edi
+
+
+
+fs
+mov eax,[ebx+arbre_inflate_HLIT]
+fs
+mov edx,[ebx+arbre_inflate_HDIST]
+fs
+mov [ebx+arbre_inflate_literal],eax
+fs
+mov [ebx+arbre_inflate_dist],edx
+ret
+
+
+
+
+;***************************************************************************************************
+sfs_inflate_gen_table_decodage:
+push ecx          ;génération de l'arbre fixe (suite de nombre de bit uttilisé pour chaque point de code)
+push edi
+push es
+mov ax,fs
+mov es,ax
+mov edi,ebx
+add edi,arbre_inflate_tailles
+cld
+mov al,8       ;arbre littéral
+mov ecx,144
+rep stosb
+mov al,9
+mov ecx,112
+rep stosb
+mov al,7
+mov ecx,24
+rep stosb
+mov al,8
+mov ecx,8
+rep stosb
+mov al,5       ;arbre de distance
+mov ecx,32
+rep stosb
+pop es
+pop edi
+pop ecx
+
+
+fs
+mov dword[ebx+arbre_inflate_literal],288  
+fs
+mov dword[ebx+arbre_inflate_dist],32
+ret
+
+
+
+
+;**********************************************************************************************************************
+sfs_inflate_fichier:        ;décompresse fichier compressé par deflate 
+pushad
+push fs
+mov ax,selramh 
+mov fs,ax
+
+mov ecx,4096
+call resmem
+jnc @f
+
+pop fs
+popad
+mov eax,cer_pasm
+iret
+
+
+@@:
+
+;charge le début du fichier a lire dans la ZT d'entrée
+
+
+;décode un ou plusieurs octets
+
+;vérifie que l'on ne s'approche pas trop de la fin de la ZT d'entrée
+;si oui on recharge la ZT d'entrée
+
+;verifie que l'on ne s'approche pas trop de la fin de la T de sortie
+;si oui on libère de la place dans la ZT de sortie
+
+;fin du décodage, on charge toute la zt de sortie dans le fichier
+
+
+
+
+iret
 
