@@ -2882,401 +2882,14 @@ call sfs_inflate_gen_arbre
 
 
 
-;**************************************************************
+;**************************************
 sfs_inflate_parcour_bloc:
-mov ch,16
-mov eax,[esi]
-shr eax,cl
-mov edx,ebx
-add edx,arbre_inflate_tables_literal-10h
-xor ebp,ebp
+call sfs_inflate_decode
+jc sfs_inflate_parcour_bloc
 
+cmp eax,0
+jne ?????????????????????????????????????
 
-sfs_inflate_boucle_decodage_litteral:
-rcr eax,1
-rcl ebp,1
-av_bit 1
-add edx,10h
-dec ch
-jz sfs_inflate_erreur
-fs
-cmp dword[edx],0
-jz sfs_inflate_boucle_decodage_litteral
-fs
-cmp ebp,[edx+arbre_inflate_max]
-ja sfs_inflate_boucle_decodage_litteral
-
-fs
-sub ebp,[edx+arbre_inflate_min]
-fs
-add ebp,[edx+arbre_inflate_index]
-shl ebp,1
-push ebx
-add ebx,ebp
-fs
-mov ax,[ebx+arbre_inflate_valeurs_literal]
-pop ebx
-
-cmp ah,0             ;code littéral
-jne @f 
-cld
-stosb
-jmp sfs_inflate_parcour_bloc   
-
-@@:
-cmp ax,256            ;fin de bloc 
-je sfs_inflate_bloc_fin
-
-
-cmp ax,265            ;code de longueur
-jb sfs_inflate_longueur0
-cmp ax,269
-jb sfs_inflate_longueur1
-cmp ax,273
-jb sfs_inflate_longueur2
-cmp ax,277
-jb sfs_inflate_longueur3
-cmp ax,281
-jb sfs_inflate_longueur4
-cmp ax,285
-jb sfs_inflate_longueur5
-cmp ax,285
-je sfs_inflate_longueur6
-jmp sfs_inflate_erreur
-
-sfs_inflate_longueur0:
-and eax,0FFFFh
-sub eax,254   ;-257+3
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur1:
-xor edx,edx
-mov dx,ax
-sub edx,265   ;-265
-shl edx,1
-add edx,11  ;+11
-mov eax,[esi]
-shr eax,cl
-av_bit 1
-and eax,1h
-add eax,edx
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur2:
-xor edx,edx
-mov dx,ax
-sub edx,269   ;-269
-shl edx,2
-add edx,19  ;+19
-mov eax,[esi]
-shr eax,cl
-av_bit 2
-and eax,3h
-add eax,edx
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur3:
-xor edx,edx
-mov dx,ax
-sub edx,273   ;-273
-shl edx,3
-add edx,35  ;+35
-mov eax,[esi]
-shr eax,cl
-av_bit 3
-and eax,7h
-add eax,edx
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur4:
-xor edx,edx
-mov dx,ax
-sub edx,277   ;-277
-shl edx,4
-add edx,67  ;+67
-mov eax,[esi]
-shr eax,cl
-av_bit 4
-and eax,0Fh
-add eax,edx
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur5:
-xor edx,edx
-mov dx,ax
-sub edx,281   ;-281
-shl edx,5
-add edx,131  ;+131
-mov eax,[esi]
-shr eax,cl
-av_bit 5
-and eax,1Fh
-add eax,edx
-jmp suite2_sfs_inflate_longueur
-
-sfs_inflate_longueur6:
-mov eax,258
-
-suite2_sfs_inflate_longueur: 
-fs
-mov [ebx+arbre_inflate_taillechaine],eax
-
-
-
-mov ch,16                   ;décodage des distance suivant un arbre spécifique
-mov eax,[esi]
-shr eax,cl
-mov edx,ebx
-add edx,arbre_inflate_tables_dist-10h
-xor ebp,ebp
-
-sfs_inflate_boucle_decodage_distance:
-rcr eax,1
-rcl ebp,1
-av_bit 1
-add edx,10h
-dec ch
-jz sfs_inflate_erreur
-fs
-cmp dword[edx],0
-jz sfs_inflate_boucle_decodage_distance
-fs
-cmp ebp,[edx+arbre_inflate_max]
-ja sfs_inflate_boucle_decodage_distance
-
-fs
-sub ebp,[edx+arbre_inflate_min]
-xor eax,eax
-fs
-mov ax,[edx+arbre_inflate_index]
-add ebp,eax
-shl ebp,1
-push ebx
-add ebx,ebp
-fs
-mov ax,[ebx+arbre_inflate_valeurs_dist]
-pop ebx
-
-
-cmp al,4
-jb sfs_inflate_distance0
-cmp al,6
-jb sfs_inflate_distance1
-cmp al,8
-jb sfs_inflate_distance2
-cmp al,10
-jb sfs_inflate_distance3
-cmp al,12
-jb sfs_inflate_distance4
-cmp al,14
-jb sfs_inflate_distance5
-cmp al,16
-jb sfs_inflate_distance6
-cmp al,18
-jb sfs_inflate_distance7
-cmp al,20
-jb sfs_inflate_distance8
-cmp al,22
-jb sfs_inflate_distance9
-cmp al,24
-jb sfs_inflate_distance10
-cmp al,26
-jb sfs_inflate_distance11
-cmp al,28
-jb sfs_inflate_distance12
-cmp al,30
-jb sfs_inflate_distance13
-jmp sfs_inflate_erreur
-
-sfs_inflate_distance0:
-and eax,0FFh
-inc eax
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance1:
-xor edx,edx
-mov dl,al
-sub edx,4
-shl edx,1
-add edx,5
-mov eax,[esi]
-shr eax,cl
-av_bit 1
-and eax,1h
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance2:
-xor edx,edx
-mov dl,al
-sub edx,6
-shl edx,2
-add edx,9
-mov eax,[esi]
-shr eax,cl
-av_bit 2
-and eax,3h
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance3:
-xor edx,edx
-mov dl,al
-sub edx,8
-shl edx,3
-add edx,17
-mov eax,[esi]
-shr eax,cl
-av_bit 3
-and eax,7h
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance4:
-xor edx,edx
-mov dl,al
-sub edx,10
-shl edx,4
-add edx,33
-mov eax,[esi]
-shr eax,cl
-av_bit 4
-and eax,0Fh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance5:
-xor edx,edx
-mov dl,al
-sub edx,12
-shl edx,5
-add edx,65
-mov eax,[esi]
-shr eax,cl
-av_bit 5
-and eax,1Fh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance6:
-xor edx,edx
-mov dl,al
-sub edx,14
-shl edx,6
-add edx,129
-mov eax,[esi]
-shr eax,cl
-av_bit 6
-and eax,3Fh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance7:
-xor edx,edx
-mov dl,al
-sub edx,16
-shl edx,7
-add edx,257
-mov eax,[esi]
-shr eax,cl
-av_bit 7
-and eax,7Fh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance8:
-xor edx,edx
-mov dl,al
-sub edx,18
-shl edx,8
-add edx,513
-mov eax,[esi]
-shr eax,cl
-av_bit 8
-and eax,0FFh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance9:
-xor edx,edx
-mov dl,al
-sub edx,20
-shl edx,9
-add edx,1025
-mov eax,[esi]
-shr eax,cl
-av_bit 9
-and eax,1FFh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance10:
-xor edx,edx
-mov dl,al
-sub edx,22
-shl edx,10
-add edx,2049
-mov eax,[esi]
-shr eax,cl
-av_bit 10
-and eax,3FFh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance11:
-xor edx,edx
-mov dl,al
-sub edx,24
-shl edx,11
-add edx,4097
-mov eax,[esi]
-shr eax,cl
-av_bit 11
-and eax,7FFh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance12:
-xor edx,edx
-mov dl,al
-sub edx,26
-shl edx,12
-add edx,8193
-mov eax,[esi]
-shr eax,cl
-av_bit 12
-and eax,0FFFh
-add eax,edx
-jmp suite_sfs_inflate_distance
-
-sfs_inflate_distance13:
-xor edx,edx
-mov dl,al
-sub edx,28
-shl edx,13
-add edx,16385
-mov eax,[esi]
-shr eax,cl
-av_bit 13
-and eax,1FFFh
-add eax,edx
-
-suite_sfs_inflate_distance:
-push ecx
-push esi
-push ds
-mov dx,es
-mov ds,dx
-mov esi,edi
-sub esi,eax
-fs
-mov ecx,[ebx+arbre_inflate_taillechaine]
-cld
-rep movsb
-pop ds
-pop esi
-pop ecx
-jmp sfs_inflate_parcour_bloc
 
 
 sfs_inflate_bloc_fin:
@@ -3766,6 +3379,429 @@ mov dword[ebx+arbre_inflate_literal],288
 fs
 mov dword[ebx+arbre_inflate_dist],32
 ret
+
+
+
+
+;***************************************************************************************************
+sfs_inflate_decode:
+mov ch,16
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_literal-10h
+xor ebp,ebp
+
+
+sfs_inflate_boucle_decodage_litteral:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_litteral
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_litteral
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+fs
+add ebp,[edx+arbre_inflate_index]
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_literal]
+pop ebx
+
+cmp ah,0             ;code littéral
+jne @f 
+cld
+stosb
+stc
+ret
+
+@@:
+cmp ax,256            ;fin de bloc 
+je sfs_inflate_bloc_fin
+clc
+ret
+
+cmp ax,265            ;code de longueur
+jb sfs_inflate_longueur0
+cmp ax,269
+jb sfs_inflate_longueur1
+cmp ax,273
+jb sfs_inflate_longueur2
+cmp ax,277
+jb sfs_inflate_longueur3
+cmp ax,281
+jb sfs_inflate_longueur4
+cmp ax,285
+jb sfs_inflate_longueur5
+cmp ax,285
+je sfs_inflate_longueur6
+jmp sfs_inflate_erreur
+
+sfs_inflate_longueur0:
+and eax,0FFFFh
+sub eax,254   ;-257+3
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur1:
+xor edx,edx
+mov dx,ax
+sub edx,265   ;-265
+shl edx,1
+add edx,11  ;+11
+mov eax,[esi]
+shr eax,cl
+av_bit 1
+and eax,1h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur2:
+xor edx,edx
+mov dx,ax
+sub edx,269   ;-269
+shl edx,2
+add edx,19  ;+19
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+and eax,3h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur3:
+xor edx,edx
+mov dx,ax
+sub edx,273   ;-273
+shl edx,3
+add edx,35  ;+35
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+and eax,7h
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur4:
+xor edx,edx
+mov dx,ax
+sub edx,277   ;-277
+shl edx,4
+add edx,67  ;+67
+mov eax,[esi]
+shr eax,cl
+av_bit 4
+and eax,0Fh
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur5:
+xor edx,edx
+mov dx,ax
+sub edx,281   ;-281
+shl edx,5
+add edx,131  ;+131
+mov eax,[esi]
+shr eax,cl
+av_bit 5
+and eax,1Fh
+add eax,edx
+jmp suite2_sfs_inflate_longueur
+
+sfs_inflate_longueur6:
+mov eax,258
+
+suite2_sfs_inflate_longueur: 
+fs
+mov [ebx+arbre_inflate_taillechaine],eax
+
+
+
+mov ch,16                   ;décodage des distance suivant un arbre spécifique
+mov eax,[esi]
+shr eax,cl
+mov edx,ebx
+add edx,arbre_inflate_tables_dist-10h
+xor ebp,ebp
+
+sfs_inflate_boucle_decodage_distance:
+rcr eax,1
+rcl ebp,1
+av_bit 1
+add edx,10h
+dec ch
+jz sfs_inflate_erreur
+fs
+cmp dword[edx],0
+jz sfs_inflate_boucle_decodage_distance
+fs
+cmp ebp,[edx+arbre_inflate_max]
+ja sfs_inflate_boucle_decodage_distance
+
+fs
+sub ebp,[edx+arbre_inflate_min]
+xor eax,eax
+fs
+mov ax,[edx+arbre_inflate_index]
+add ebp,eax
+shl ebp,1
+push ebx
+add ebx,ebp
+fs
+mov ax,[ebx+arbre_inflate_valeurs_dist]
+pop ebx
+
+
+cmp al,4
+jb sfs_inflate_distance0
+cmp al,6
+jb sfs_inflate_distance1
+cmp al,8
+jb sfs_inflate_distance2
+cmp al,10
+jb sfs_inflate_distance3
+cmp al,12
+jb sfs_inflate_distance4
+cmp al,14
+jb sfs_inflate_distance5
+cmp al,16
+jb sfs_inflate_distance6
+cmp al,18
+jb sfs_inflate_distance7
+cmp al,20
+jb sfs_inflate_distance8
+cmp al,22
+jb sfs_inflate_distance9
+cmp al,24
+jb sfs_inflate_distance10
+cmp al,26
+jb sfs_inflate_distance11
+cmp al,28
+jb sfs_inflate_distance12
+cmp al,30
+jb sfs_inflate_distance13
+jmp sfs_inflate_erreur
+
+sfs_inflate_distance0:
+and eax,0FFh
+inc eax
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance1:
+xor edx,edx
+mov dl,al
+sub edx,4
+shl edx,1
+add edx,5
+mov eax,[esi]
+shr eax,cl
+av_bit 1
+and eax,1h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance2:
+xor edx,edx
+mov dl,al
+sub edx,6
+shl edx,2
+add edx,9
+mov eax,[esi]
+shr eax,cl
+av_bit 2
+and eax,3h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance3:
+xor edx,edx
+mov dl,al
+sub edx,8
+shl edx,3
+add edx,17
+mov eax,[esi]
+shr eax,cl
+av_bit 3
+and eax,7h
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance4:
+xor edx,edx
+mov dl,al
+sub edx,10
+shl edx,4
+add edx,33
+mov eax,[esi]
+shr eax,cl
+av_bit 4
+and eax,0Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance5:
+xor edx,edx
+mov dl,al
+sub edx,12
+shl edx,5
+add edx,65
+mov eax,[esi]
+shr eax,cl
+av_bit 5
+and eax,1Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance6:
+xor edx,edx
+mov dl,al
+sub edx,14
+shl edx,6
+add edx,129
+mov eax,[esi]
+shr eax,cl
+av_bit 6
+and eax,3Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance7:
+xor edx,edx
+mov dl,al
+sub edx,16
+shl edx,7
+add edx,257
+mov eax,[esi]
+shr eax,cl
+av_bit 7
+and eax,7Fh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance8:
+xor edx,edx
+mov dl,al
+sub edx,18
+shl edx,8
+add edx,513
+mov eax,[esi]
+shr eax,cl
+av_bit 8
+and eax,0FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance9:
+xor edx,edx
+mov dl,al
+sub edx,20
+shl edx,9
+add edx,1025
+mov eax,[esi]
+shr eax,cl
+av_bit 9
+and eax,1FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance10:
+xor edx,edx
+mov dl,al
+sub edx,22
+shl edx,10
+add edx,2049
+mov eax,[esi]
+shr eax,cl
+av_bit 10
+and eax,3FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance11:
+xor edx,edx
+mov dl,al
+sub edx,24
+shl edx,11
+add edx,4097
+mov eax,[esi]
+shr eax,cl
+av_bit 11
+and eax,7FFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance12:
+xor edx,edx
+mov dl,al
+sub edx,26
+shl edx,12
+add edx,8193
+mov eax,[esi]
+shr eax,cl
+av_bit 12
+and eax,0FFFh
+add eax,edx
+jmp suite_sfs_inflate_distance
+
+sfs_inflate_distance13:
+xor edx,edx
+mov dl,al
+sub edx,28
+shl edx,13
+add edx,16385
+mov eax,[esi]
+shr eax,cl
+av_bit 13
+and eax,1FFFh
+add eax,edx
+
+suite_sfs_inflate_distance:
+push ecx
+push esi
+push ds
+mov dx,es
+mov ds,dx
+mov esi,edi
+sub esi,eax
+fs
+mov ecx,[ebx+arbre_inflate_taillechaine]
+cld
+rep movsb
+pop ds
+pop esi
+pop ecx
+stc
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
