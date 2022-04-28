@@ -2844,12 +2844,16 @@ cmp al,2
 je sfs_inflate_bloc_01
 cmp al,4
 je sfs_inflate_bloc_10
+mov eax,cer_parami
 
 sfs_inflate_erreur:
+push eax
 call libmem
+pop eax
 pop fs
+ss
+mov [esp+28],eax   ;préserve eax
 popad
-mov eax,cer_parami
 iret
 
 
@@ -2878,6 +2882,8 @@ jmp sfs_inflate_parcour_bloc
 sfs_inflate_bloc_10:    ;arbre de huffman dynamique
 av_bit 3
 call sfs_inflate_lit_table_decodage
+cmp eax,0
+jne sfs_inflate_erreur
 call sfs_inflate_gen_arbre
 
 
@@ -2886,10 +2892,8 @@ call sfs_inflate_gen_arbre
 sfs_inflate_parcour_bloc:
 call sfs_inflate_decode
 jc sfs_inflate_parcour_bloc
-
 cmp eax,0
-jne ?????????????????????????????????????
-
+jne sfs_inflate_erreur
 
 
 sfs_inflate_bloc_fin:
@@ -3266,10 +3270,7 @@ fs
 dec dword[ebx+arbre_inflate_literal]
 jmp sfs_inflate_decomp_arbre   
 
-sfs_inflate_erreur_arbre:
-pop es
-pop edi
-jmp sfs_inflate_erreur
+
 
 sfs_inflate_decomp_arbre_suite1:   
 dec edi
@@ -3330,7 +3331,6 @@ pop es
 pop edi
 
 
-
 fs
 mov eax,[ebx+arbre_inflate_HLIT]
 fs
@@ -3339,9 +3339,15 @@ fs
 mov [ebx+arbre_inflate_literal],eax
 fs
 mov [ebx+arbre_inflate_dist],edx
+xor eax,eax
 ret
 
 
+sfs_inflate_erreur_arbre:
+pop es
+pop edi
+mov eax,cer_ers
+ret
 
 
 ;***************************************************************************************************
@@ -3399,7 +3405,7 @@ rcl ebp,1
 av_bit 1
 add edx,10h
 dec ch
-jz sfs_inflate_erreur
+jz sfs_inflate_decode_erreur
 fs
 cmp dword[edx],0
 jz sfs_inflate_boucle_decodage_litteral
@@ -3427,10 +3433,17 @@ ret
 
 @@:
 cmp ax,256            ;fin de bloc 
-je sfs_inflate_bloc_fin
+jne sfs_inflate_longueurs
+xor eax,eax
 clc
 ret
 
+sfs_inflate_decode_erreur:
+mov eax,cer_ers
+clc
+ret
+
+sfs_inflate_longueurs:
 cmp ax,265            ;code de longueur
 jb sfs_inflate_longueur0
 cmp ax,269
@@ -3445,7 +3458,7 @@ cmp ax,285
 jb sfs_inflate_longueur5
 cmp ax,285
 je sfs_inflate_longueur6
-jmp sfs_inflate_erreur
+jmp sfs_inflate_decode_erreur
 
 sfs_inflate_longueur0:
 and eax,0FFFFh
@@ -3539,7 +3552,7 @@ rcl ebp,1
 av_bit 1
 add edx,10h
 dec ch
-jz sfs_inflate_erreur
+jz sfs_inflate_decode_erreur
 fs
 cmp dword[edx],0
 jz sfs_inflate_boucle_decodage_distance
@@ -3589,7 +3602,7 @@ cmp al,28
 jb sfs_inflate_distance12
 cmp al,30
 jb sfs_inflate_distance13
-jmp sfs_inflate_erreur
+jmp sfs_inflate_decode_erreur
 
 sfs_inflate_distance0:
 and eax,0FFh
@@ -3781,23 +3794,6 @@ pop esi
 pop ecx
 stc
 ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
