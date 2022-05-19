@@ -4369,15 +4369,28 @@ cmp word[edx+28h],002h ;1 canal 2bit
 je sfv_carac_image_png24
 cmp word[edx+28h],001h ;1 canal 1bit
 je sfv_carac_image_png24
-;cmp word[edx+28h],301h ;palette 1bit
-;je sfv_carac_image_png24
-;cmp word[edx+28h],302h ;palette 2bit
-;je sfv_carac_image_png24
-;cmp word[edx+28h],304h ;palette 4bit
-;je sfv_carac_image_png24
-;cmp word[edx+28h],308h ;palette 8bit
-;je sfv_carac_image_png24
+cmp word[edx+28h],301h ;palette 1bit
+je sfv_carac_image_pngpalette
+cmp word[edx+28h],302h ;palette 2bit
+je sfv_carac_image_pngpalette
+cmp word[edx+28h],304h ;palette 4bit
+je sfv_carac_image_pngpalette
+cmp word[edx+28h],308h ;palette 8bit
+je sfv_carac_image_pngpalette
 jmp sfv_carac_image_erreur
+
+
+
+sfv_carac_image_pngpalette:
+mov al,24
+;recherche un chunk tRNS pour savoir si on peut rajouter une
+;??????????????????????
+jmp @f
+
+
+
+
+
 
 sfv_carac_image_png64:
 mov al,64
@@ -4531,8 +4544,10 @@ sfv_lire_image_zone2  equ 30h
 sfv_lire_image_filtre equ 34h
 sfv_lire_image_prof   equ 35h
 sfv_lire_image_opp    equ 37h
-sfv_lire_image_data   equ 40h
+sfv_lire_image_pal    equ 40h
+sfv_lire_image_data   equ 440h
 
+;***************************************
 sfv_lire_image:
 push ebx
 push ecx
@@ -4633,6 +4648,12 @@ mov ah,al
 shl al,1
 add al,ah
 @@:
+cmp ah,3 ;palette
+jne @f
+mov al,1
+@@:
+
+
 mov [edx+sfv_lire_image_opp],al  ;nombre d'octet par pixel
 
 ;recherche le premier idat
@@ -4645,10 +4666,26 @@ cmp dword[esi+4],"IDAT"
 je @f
 cmp dword[esi+4],"IEND"
 je sfv_lire_image_erreur
-;cmp dword[esi+4],"PLTE"  ;sauvegarde la position de la palette
-;jne pas_plte
+
+cmp dword[esi+4],"PLTE"  ;sauvegarde la position de la palette
+jne pas_plte
+mov ecx,[esi]
+bswap ecx
+push esi
+add esi,8
+mov edi,edx
+add edi,sfv_lire_image_pal
+cld
+rep movsb
+pop esi 
+pas_plte:
+
+;cmp dword[esi+4],"tRNS"  ;modifie la palette pour y inclure le canal alpha
+;jne pas_trns
 ;??????????????????????????????????
-;pas_plte:
+;pas_trns:
+
+
 mov eax,[esi]
 bswap eax
 add esi,eax
@@ -5117,10 +5154,13 @@ push edx
 push ebp
 push eax
 mov al,[edx+sfv_lire_image_opp]
-cmp al,1
+mov ah,[edx+sfv_lire_image_prof+1]
+;cmp ah,3
 ;je ordre1a_sfv_lire_image
 ;cmp al,1
-je ordre1b_sfv_lire_image
+;je ordre1b_sfv_lire_image
+cmp al,1
+je ordre1c_sfv_lire_image
 cmp al,2
 je ordre2_sfv_lire_image
 cmp al,3
@@ -5136,15 +5176,25 @@ mov eax,cer_parami
 ret
 
 
-ordre1a_sfv_lire_image:             ;palette (a modifier)
+ordre1a_sfv_lire_image:             ;palette 24bit
 pop edx
 boucle_ordre1a_sfv_lire_image:
 push ebx
 push edi
 @@:
+xor eax,eax
 mov al,[esi]
+push esi
+mov esi,eax
+shl esi,1
+add esi,eax
+add esi,edx
+add esi,sfv_lire_image_pal
+mov eax,[esi]
+pop esi
 mov [edi],al
-mov [edi+1],al
+mov [edi+1],ah
+shr eax,16
 mov [edi+2],al
 inc esi
 add edi,ebp
@@ -5162,9 +5212,45 @@ pop ebx
 xor eax,eax
 ret
 
-ordre1b_sfv_lire_image:             ;niveau de gris
+
+ordre1b_sfv_lire_image:             ;palette 32bit
 pop edx
 boucle_ordre1b_sfv_lire_image:
+push ebx
+push edi
+@@:
+xor eax,eax
+mov al,[esi]
+push esi
+mov esi,eax
+shl esi,2
+add esi,edx
+add esi,sfv_lire_image_pal
+mov eax,[esi]
+pop esi
+mov [edi],eax
+inc esi
+add edi,ebp
+dec ebx
+jnz @b
+pop edi
+pop ebx
+add edi,edx
+dec ecx
+jnz boucle_ordre1b_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+
+
+ordre1c_sfv_lire_image:             ;niveau de gris
+pop edx
+boucle_ordre1c_sfv_lire_image:
 push ebx
 push edi
 @@:
@@ -5180,7 +5266,7 @@ pop edi
 pop ebx
 add edi,edx
 dec ecx
-jnz boucle_ordre1b_sfv_lire_image
+jnz boucle_ordre1c_sfv_lire_image
 pop ebp
 pop edx
 pop ecx
