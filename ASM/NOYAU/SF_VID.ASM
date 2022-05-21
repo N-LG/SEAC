@@ -4423,7 +4423,7 @@ mul ecx
 mul ebx
 mov edx,eax
 add edx,7
-shr edx,3  ;calcul du nomre d'octet pour l'image
+shr edx,3  ;calcul du nombre d'octet pour l'image
 add edx,14 ;et rajoute l'en tête
 shl edx,8 
 pop eax
@@ -4672,12 +4672,14 @@ jne pas_plte
 mov ecx,[esi]
 bswap ecx
 push esi
+push edi
 add esi,8
 mov edi,edx
 add edi,sfv_lire_image_pal
 cld
 rep movsb
-pop esi 
+pop edi
+pop esi
 pas_plte:
 
 ;cmp dword[esi+4],"tRNS"  ;modifie la palette pour y inclure le canal alpha
@@ -5153,12 +5155,12 @@ push ecx
 push edx
 push ebp
 push eax
+mov ax,[edx+sfv_lire_image_prof]
+cmp ah,3
+je ordre1a_sfv_lire_image
+
+
 mov al,[edx+sfv_lire_image_opp]
-mov ah,[edx+sfv_lire_image_prof+1]
-;cmp ah,3
-;je ordre1a_sfv_lire_image
-;cmp al,1
-;je ordre1b_sfv_lire_image
 cmp al,1
 je ordre1c_sfv_lire_image
 cmp al,2
@@ -5177,11 +5179,12 @@ ret
 
 
 ordre1a_sfv_lire_image:             ;palette 24bit
-pop edx
+pop eax
 boucle_ordre1a_sfv_lire_image:
 push ebx
 push edi
 @@:
+push eax
 xor eax,eax
 mov al,[esi]
 push esi
@@ -5192,17 +5195,18 @@ add esi,edx
 add esi,sfv_lire_image_pal
 mov eax,[esi]
 pop esi
-mov [edi],al
-mov [edi+1],ah
+bswap eax
+mov [edi],ah
 shr eax,16
-mov [edi+2],al
+mov [edi+1],ax
+pop eax
 inc esi
 add edi,ebp
 dec ebx
 jnz @b
 pop edi
 pop ebx
-add edi,edx
+add edi,eax
 dec ecx
 jnz boucle_ordre1a_sfv_lire_image
 pop ebp
@@ -5214,11 +5218,12 @@ ret
 
 
 ordre1b_sfv_lire_image:             ;palette 32bit
-pop edx
+pop eax
 boucle_ordre1b_sfv_lire_image:
 push ebx
 push edi
 @@:
+push eax
 xor eax,eax
 mov al,[esi]
 push esi
@@ -5228,14 +5233,20 @@ add esi,edx
 add esi,sfv_lire_image_pal
 mov eax,[esi]
 pop esi
+bswap eax
+push eax
+shr eax,8
 mov [edi],eax
+pop eax
+mov [edi+3],al
+pop eax
 inc esi
 add edi,ebp
 dec ebx
 jnz @b
 pop edi
 pop ebx
-add edi,edx
+add edi,eax
 dec ecx
 jnz boucle_ordre1b_sfv_lire_image
 pop ebp
