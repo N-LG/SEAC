@@ -4327,8 +4327,6 @@ xor edx,edx
 mov eax,cer_parami
 ret
 
-
-
 ermem_sfv_carac_image2:
 pop edi
 pop es
@@ -4383,12 +4381,30 @@ jmp sfv_carac_image_erreur
 
 sfv_carac_image_pngpalette:
 mov al,24
-;recherche un chunk tRNS pour savoir si on peut rajouter une
-;??????????????????????
+;recherche un chunk tRNS pour savoir si il y as aussi un canal alpha
+push edx
+add edx,18h
+mov ebx,edx
+add ebx,20000h
+boucle_sfv_carac_image_pngpalette:
+cmp dword[edx+4],"tRNS"
+je fin1_sfv_carac_image_pngpalette
+cmp dword[edx+4],"IDAT"
+je fin2_sfv_carac_image_pngpalette
+cmp dword[edx+4],"IEND"
+je fin2_sfv_carac_image_pngpalette
+mov ecx,[edx]
+bswap ecx
+add edx,ecx
+add edx,12
+cmp edx,ebx
+jae fin2_sfv_carac_image_pngpalette
+jmp boucle_sfv_carac_image_pngpalette 
+fin1_sfv_carac_image_pngpalette:
+add al,8
+fin2_sfv_carac_image_pngpalette:
+pop edx
 jmp @f
-
-
-
 
 
 
@@ -4682,10 +4698,44 @@ pop edi
 pop esi
 pas_plte:
 
-;cmp dword[esi+4],"tRNS"  ;modifie la palette pour y inclure le canal alpha
-;jne pas_trns
-;??????????????????????????????????
-;pas_trns:
+;jmp pas_trns
+cmp dword[esi+4],"tRNS"  ;modifie la palette pour y inclure le canal alpha
+jne pas_trns
+or byte[edx+sfv_lire_image_prof+1],80h
+pushad
+
+;agrandis la table
+mov edi,edx
+add edi,sfv_lire_image_pal
+mov ebx,edi
+add edi,255*4
+add ebx,255*3
+mov ecx,256
+boucle1_trns:
+mov eax,[ebx]
+or eax,0FF000000h
+mov [edi],eax
+sub ebx,3
+sub edi,4
+dec ecx
+jnz boucle1_trns
+
+;et y ecrit les canaux alpha
+mov ecx,[esi]
+bswap ecx
+add esi,8
+mov edi,edx
+add edi,sfv_lire_image_pal+3
+boucle2_trns:
+mov al,[esi]
+mov [edi],al
+inc esi
+add edi,4
+dec ecx
+jnz boucle2_trns
+
+popad
+pas_trns:
 
 
 mov eax,[esi]
@@ -4708,8 +4758,6 @@ mov eax,[esi]
 bswap eax
 add esi,eax
 add esi,12
-
-
 
 
 ;cherche le prochain idat ou iend
@@ -4742,9 +4790,6 @@ cmp byte[edx+sfv_lire_image_filtre],1
 je filtre_adam7
 mov eax,cer_parami
 jmp sfv_lire_image_erreur
-
-
-
 
 
 filtre_adam7:       ;défiltre l'image ADAM7
@@ -5158,6 +5203,10 @@ push eax
 mov ax,[edx+sfv_lire_image_prof]
 cmp ah,3
 je ordre1a_sfv_lire_image
+mov ax,[edx+sfv_lire_image_prof]
+cmp ah,83h
+je ordre1b_sfv_lire_image
+
 
 
 mov al,[edx+sfv_lire_image_opp]
