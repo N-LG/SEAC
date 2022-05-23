@@ -4560,6 +4560,9 @@ sfv_lire_image_zone2  equ 30h
 sfv_lire_image_filtre equ 34h
 sfv_lire_image_prof   equ 35h
 sfv_lire_image_opp    equ 37h
+sfv_lire_image_palb   equ 38h
+sfv_lire_image_palm   equ 39h
+sfv_lire_image_pald   equ 3Ah
 sfv_lire_image_pal    equ 40h
 sfv_lire_image_data   equ 440h
 
@@ -4650,22 +4653,32 @@ mov [edx+sfv_lire_image_prof],ax
 
 add al,7   ;determination du nombre d'octet par pixel
 shr al,3
+
 cmp ah,4 ;gris+ alpha
 jne @f
 shl al,1
 @@:
+
 cmp ah,6 ;3couleur +alpha
 jne @f
 shl al,2
 @@:
+
 cmp ah,2 ;3 couleur
 jne @f
 mov ah,al
 shl al,1
 add al,ah
 @@:
+
 cmp ah,3 ;palette
 jne @f
+mov al,1
+mov cl,[esi+18h]  
+mov [edx+sfv_lire_image_palb],cl
+shl al,cl
+dec al
+mov [edx+sfv_lire_image_palm],al   
 mov al,1
 @@:
 
@@ -4773,6 +4786,7 @@ add esi,12
 jmp boucle2_recheridat
 @@:
 
+
 ;décompresse les données
 mov esi,[edx+sfv_lire_image_zone2]
 mov edi,[edx+sfv_lire_image_zone1]
@@ -4781,6 +4795,7 @@ mov eax,152
 int 61h
 cmp eax,0
 jne sfv_lire_image_erreur
+
 
 ;**************************************
 ;supprime le filtre de l'image
@@ -4801,6 +4816,7 @@ filtre_adam7:       ;défiltre l'image ADAM7
 ;7 7 7 7 7 7 7 7
 ;5 6 5 6 5 6 5 6
 ;7 7 7 7 7 7 7 7
+
 
 xor ebx,ebx
 mov ebp,[edx+sfv_lire_image_tx]
@@ -5201,17 +5217,21 @@ push edx
 push ebp
 push eax
 mov ax,[edx+sfv_lire_image_prof]
+cmp ax,308h
+je ordre24pal256_sfv_lire_image
+mov ax,[edx+sfv_lire_image_prof]
+cmp ax,8308h
+je ordre32pal256_sfv_lire_image
 cmp ah,3
-je ordre1a_sfv_lire_image
+je ordre24pal_sfv_lire_image
 mov ax,[edx+sfv_lire_image_prof]
 cmp ah,83h
-je ordre1b_sfv_lire_image
-
+je ordre32pal_sfv_lire_image
 
 
 mov al,[edx+sfv_lire_image_opp]
 cmp al,1
-je ordre1c_sfv_lire_image
+je ordre1_sfv_lire_image
 cmp al,2
 je ordre2_sfv_lire_image
 cmp al,3
@@ -5227,12 +5247,12 @@ mov eax,cer_parami
 ret
 
 
-ordre1a_sfv_lire_image:             ;palette 24bit
+ordre24pal256_sfv_lire_image:             ;palette 24bit 256 couleurs
 pop eax
-boucle_ordre1a_sfv_lire_image:
+boucle1_ordre24pal256_sfv_lire_image:
 push ebx
 push edi
-@@:
+boucle2_ordre24pal256_sfv_lire_image:
 push eax
 xor eax,eax
 mov al,[esi]
@@ -5252,12 +5272,12 @@ pop eax
 inc esi
 add edi,ebp
 dec ebx
-jnz @b
+jnz boucle2_ordre24pal256_sfv_lire_image
 pop edi
 pop ebx
 add edi,eax
 dec ecx
-jnz boucle_ordre1a_sfv_lire_image
+jnz boucle1_ordre24pal256_sfv_lire_image
 pop ebp
 pop edx
 pop ecx
@@ -5266,9 +5286,67 @@ xor eax,eax
 ret
 
 
-ordre1b_sfv_lire_image:             ;palette 32bit
+ordre24pal_sfv_lire_image:             ;palette 24bit 2 4 et 16 couleurs
 pop eax
-boucle_ordre1b_sfv_lire_image:
+mov byte[edx+sfv_lire_image_pald],8
+
+boucle1_ordre24pal_sfv_lire_image:
+push ebx
+push edi
+
+boucle2_ordre24pal_sfv_lire_image:
+push eax
+push ecx
+xor eax,eax
+mov cl,[edx+sfv_lire_image_pald]
+sub cl,[edx+sfv_lire_image_palb]
+mov [edx+sfv_lire_image_pald],cl
+mov al,[esi]
+shr al,cl
+and al,[edx+sfv_lire_image_palm]
+push esi
+mov esi,eax
+shl esi,1
+add esi,eax
+add esi,edx
+add esi,sfv_lire_image_pal
+mov eax,[esi]
+pop esi
+bswap eax
+mov [edi],ah
+shr eax,16
+mov [edi+1],ax
+pop ecx
+pop eax
+cmp byte[edx+sfv_lire_image_pald],0
+jne @f 
+inc esi
+mov byte[edx+sfv_lire_image_pald],8
+@@:
+add edi,ebp
+dec ebx
+jnz boucle2_ordre24pal_sfv_lire_image
+cmp byte[edx+sfv_lire_image_pald],8
+je @f
+inc esi
+mov byte[edx+sfv_lire_image_pald],8
+@@:
+pop edi
+pop ebx
+add edi,eax
+dec ecx
+jnz boucle1_ordre24pal_sfv_lire_image
+pop ebp
+pop edx
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+ordre32pal256_sfv_lire_image:             ;palette 32bit 256 couleurs
+pop eax
+boucle_ordre32pal256_sfv_lire_image:
 push ebx
 push edi
 @@:
@@ -5297,7 +5375,7 @@ pop edi
 pop ebx
 add edi,eax
 dec ecx
-jnz boucle_ordre1b_sfv_lire_image
+jnz boucle_ordre32pal256_sfv_lire_image
 pop ebp
 pop edx
 pop ecx
@@ -5306,11 +5384,68 @@ xor eax,eax
 ret
 
 
+ordre32pal_sfv_lire_image:             ;palette 32bit 2 4 et 16 couleurs
+pop eax
+mov byte[edx+sfv_lire_image_pald],8
 
+boucle1_ordre32pal_sfv_lire_image:
+push ebx
+push edi
 
-ordre1c_sfv_lire_image:             ;niveau de gris
+boucle2_ordre32pal_sfv_lire_image:
+push eax
+push ecx
+xor eax,eax
+mov cl,[edx+sfv_lire_image_pald]
+sub cl,[edx+sfv_lire_image_palb]
+mov [edx+sfv_lire_image_pald],cl
+mov al,[esi]
+shr al,cl
+and al,[edx+sfv_lire_image_palm]
+push esi
+mov esi,eax
+shl esi,2
+add esi,edx
+add esi,sfv_lire_image_pal
+mov eax,[esi]
+pop esi
+bswap eax
+push eax
+shr eax,8
+mov [edi],eax
+pop eax
+mov [edi+3],al
+pop ecx
+pop eax
+cmp byte[edx+sfv_lire_image_pald],0
+jne @f 
+inc esi
+mov byte[edx+sfv_lire_image_pald],8
+@@:
+add edi,ebp
+dec ebx
+jnz boucle2_ordre32pal_sfv_lire_image
+cmp byte[edx+sfv_lire_image_pald],8
+je @f
+inc esi
+mov byte[edx+sfv_lire_image_pald],8
+@@:
+pop edi
+pop ebx
+add edi,eax
+dec ecx
+jnz boucle1_ordre32pal_sfv_lire_image
+pop ebp
 pop edx
-boucle_ordre1c_sfv_lire_image:
+pop ecx
+pop ebx
+xor eax,eax
+ret
+
+
+ordre1_sfv_lire_image:             ;niveau de gris
+pop edx
+boucle_ordre1_sfv_lire_image:
 push ebx
 push edi
 @@:
@@ -5326,7 +5461,7 @@ pop edi
 pop ebx
 add edi,edx
 dec ecx
-jnz boucle_ordre1c_sfv_lire_image
+jnz boucle_ordre1_sfv_lire_image
 pop ebp
 pop edx
 pop ecx
@@ -5430,6 +5565,29 @@ ret
 ;******************************************************
 ;defiltre une image PNG
 defiltre_PNG:
+cmp word[edx+sfv_lire_image_prof],304h
+je defiltre_PNG4
+cmp word[edx+sfv_lire_image_prof],302h
+je defiltre_PNG2
+cmp word[edx+sfv_lire_image_prof],301h
+je defiltre_PNG1
+jmp @f
+
+defiltre_PNG4:
+inc ebp   
+shr ebp,1   
+jmp @f
+
+defiltre_PNG2:
+add ebp,3   
+shr ebp,2   
+jmp @f
+
+defiltre_PNG1:
+add ebp,7   
+shr ebp,3   
+
+@@:
 push ecx  ;cas spéciaux pour la première ligne
 mov ecx,ebp
 cmp byte[esi],2
