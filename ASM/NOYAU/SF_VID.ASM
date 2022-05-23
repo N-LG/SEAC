@@ -5571,6 +5571,12 @@ cmp word[edx+sfv_lire_image_prof],302h
 je defiltre_PNG2
 cmp word[edx+sfv_lire_image_prof],301h
 je defiltre_PNG1
+cmp word[edx+sfv_lire_image_prof],8304h
+je defiltre_PNG4
+cmp word[edx+sfv_lire_image_prof],8302h
+je defiltre_PNG2
+cmp word[edx+sfv_lire_image_prof],8301h
+je defiltre_PNG1
 jmp @f
 
 defiltre_PNG4:
