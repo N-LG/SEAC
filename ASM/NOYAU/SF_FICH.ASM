@@ -2037,9 +2037,10 @@ fs
 mov dword[ad_nomfichier2+28],0
 fs
 mov dword[ad_nomfichier2+32],0
-
+push esi
 call lire_date_heure  
 call conv_date_fat ;ax=heure dx=date
+pop esi
 fs
 mov [ad_nomfichier2+14],ax
 fs
@@ -2388,8 +2389,10 @@ fs
 mov dword[edi+32],0
 
 push ecx
+push esi
 call lire_date_heure  
 call conv_date_fat ;ax=heure dx=date
+pop esi
 fs
 mov [edi+14],ax
 fs
@@ -2934,12 +2937,12 @@ ret
 ;*******************************************************************
 conv_date_fat: ;convertit la date et l'heure au format FAT
 ;entrée:
-;al=heure ah=minute bx=seconde (en millième)
+;bh=heure bl=minute si=seconde (en millième)
 ;dl=jour dh=mois cx=année
 ;sortie:
 ;ax=heure dx=date
 
-push eax
+push ebx
 sub cx,1980
 shl cx,9
 mov al,dh
@@ -2958,7 +2961,7 @@ shl ax,11
 or dx,ax
 push edx
 xor edx,edx
-mov eax,ebx
+mov eax,esi
 mov ecx,2000
 div ecx
 and ax,1Fh
@@ -3241,8 +3244,10 @@ ok_lire_meta_fichier_fat:
 
 ;mettre a jour la date de dernier acces
 push ebx
+push esi
 call lire_date_heure  
 call conv_date_fat
+pop esi
 pop ebx
 fs
 mov [ebx+zt_lminfo+12h],dx
@@ -4982,8 +4987,10 @@ okcluster0_ecrire_meta_fichier_fat:
 
 ;mettre a jour la date de dernère modif
 push ebx
+push esi
 call lire_date_heure  
 call conv_date_fat
+pop esi
 pop ebx
 fs
 mov [ebx+zt_lminfo+16h],ax
@@ -6252,8 +6259,10 @@ okcluster0_res_espace_fichier_fat:
 
 ;mettre a jour la date de dernère modif
 push ebx
+push esi
 call lire_date_heure  
 call conv_date_fat
+pop esi
 pop ebx
 fs
 mov [ebx+zt_lminfo+16h],ax
@@ -6365,7 +6374,7 @@ fs
 test byte[at_fichier],00000010b
 jz errprmsf
 
-
+push edi
 fs
 mov al,[at_fichier]
 and al,00111100b
@@ -6379,6 +6388,7 @@ cmp al,010100b
 je sff_lit_dossier_fat       ;ou fat16
 cmp al,011000b
 je sff_lit_dossier_fat       ;ou fat32
+pop edi
 jmp errprmsf
 
 
@@ -6450,7 +6460,7 @@ mov al,0
 stosb
 mov eax,cer_pasm
 mov ebx,edx
-jmp finfonctionfichierokebx
+jmp sff_lit_dossier_trie
 
 nt_sff_lit_dossier:
 xor edx,edx
@@ -6459,9 +6469,146 @@ mov al,0
 stosb
 xor eax,eax
 mov ebx,edx
+
+
+
+;******************************************
+sff_lit_dossier_trie:
+pop edi
+pushad
+mov ax,es
+mov ds,ax
+mov edx,edi
+
+
+;passe au fichier suivant
+sff_lit_dossier_trie_fichier_suivant:
+cmp byte[edi],"|"
+je @f
+cmp byte[edi],0
+je sff_lit_dossier_trie_fin
+inc edi
+jmp sff_lit_dossier_trie_fichier_suivant
+@@:
+inc edi
+
+;test si le fichier doit être placé avant et le déplace si nécessaire
+mov esi,edx
+sff_lit_dossier_trie_boucle:
+call sff_lit_dossier_test
+jnc @f
+
+
+call sff_lit_dossier_decale
+jmp sff_lit_dossier_trie_fichier_suivant
+
+
+
+@@:
+cmp byte[esi],"|"
+je @f
+cmp byte[esi],0
+je sff_lit_dossier_trie_fichier_suivant
+inc esi
+jmp @b
+@@:
+inc esi
+cmp esi,edi
+je sff_lit_dossier_trie_fichier_suivant
+jmp sff_lit_dossier_trie_boucle
+
+
+
+sff_lit_dossier_trie_fin: 
+popad
 jmp finfonctionfichierokebx
 
 
+
+;******************
+sff_lit_dossier_test:  ;cf=1 si le fichier en edi doit se placer avant celuis en esi
+pushad
+sff_lit_dossier_test_boucle:
+mov al,[edi]
+mov ah,[esi]
+cmp al,"a"
+jb @f
+cmp al,"z"
+ja @f
+sub al,"a"-"A"
+@@:
+cmp ah,"a"
+jb @f
+cmp ah,"z"
+ja @f
+sub ah,"a"-"A"
+@@:
+cmp al,ah
+jb sff_lit_dossier_test_ok
+jne sff_lit_dossier_test_nok
+inc edi
+inc esi
+jmp sff_lit_dossier_test_boucle
+
+sff_lit_dossier_test_ok:
+popad
+stc
+ret
+
+sff_lit_dossier_test_nok:
+popad
+clc
+ret
+
+
+
+
+
+;******************************
+sff_lit_dossier_decale:
+pushad
+;calcul taille a deplacer
+mov edx,edi
+mov ecx,edi
+sub edx,2
+sub ecx,esi
+
+
+;sauvegarde nom a decaler
+push word 8000h
+xor eax,eax
+@@:
+mov al,[edi]
+cmp al,0
+je @f
+cmp al,"|"
+je @f
+push ax
+inc edi
+jmp @b
+@@:
+dec edi
+
+;décale les noms
+dec ecx
+mov esi,edx
+std
+rep movsb
+
+;recopie nom sauvegardé
+mov byte[edi],"|"
+dec edi
+@@:
+pop ax
+cmp ax,8000h
+je @f
+mov [edi],al
+dec edi
+jmp @b
+@@:
+
+popad
+ret
 
 
 ;*****************************************************
@@ -6632,6 +6779,7 @@ suite_finzt_sff_lit_dossier_iso9660:
 mov al,0
 stosb
 mov eax,cer_pasm
+pop edi
 jmp finfonctionfichierokebx
 
 nt_sff_lit_dossier_iso9660:
@@ -6645,8 +6793,7 @@ pop ebx
 mov al,0
 stosb
 xor eax,eax
-jmp finfonctionfichierokebx
-
+jmp sff_lit_dossier_trie
 
 err_sff_lit_dossier_iso9660:
 push ebx
@@ -6656,6 +6803,7 @@ sti
 pop ebx
 es
 mov byte[edi],0
+pop edi
 jmp finfonctionfichiererr
 
 
@@ -6663,6 +6811,7 @@ erm_sff_lit_dossier_iso9660:
 mov eax,cer_znd
 es
 mov byte[edi],0
+pop edi
 jmp finfonctionfichiererr
 
 
