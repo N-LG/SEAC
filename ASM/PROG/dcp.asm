@@ -84,7 +84,7 @@ mov [handle_1],ebx
 
 
 ;lit la taille du fichier
-mov [handle_1],ebx
+mov ebx,[handle_1]
 mov al,6
 mov ah,1
 mov edx,taille_1
@@ -96,7 +96,7 @@ jne erreur_ouverture_archive
 
 
 mov ebx,[handle_1]  ;lit les 16 premier octets 
-mov ecx,16
+mov ecx,512
 mov edx,0
 mov edi,chaine_temporaire
 mov al,4
@@ -108,6 +108,8 @@ cmp dword[chaine_temporaire],04034B50h
 je pkzip
 cmp word[chaine_temporaire],8B1Fh
 je gzip
+;cmp word[chaine_temporaire],
+;je tar
 
 mov edx,msg_erreur_format_inconnue
 mov al,6
@@ -169,9 +171,9 @@ int 61h
 @@:
 
 ;créer le fichier
-mov edx,nom_2
-xor ebx,ebx
 mov al,2
+mov ebx,[handle_0]
+mov edx,nom_2
 int 64h
 cmp eax,0
 je pkzip_okcree
@@ -184,7 +186,7 @@ jne pkzip_err_cre
 
 ;ouvre le fichier
 mov al,0 
-mov bx,[handle_0]
+mov ebx,[handle_0]
 mov edx,nom_2
 int 64h
 cmp eax,0
@@ -264,22 +266,8 @@ int 61h
 cmp eax,0
 jne pkzip_err_dec
 
-;mov edx,zt_transfert
-;add edx,[chaine_temporaire+12h]
-;push edx
-;add edx,[chaine_temporaire+16h]
-;dec edx
-;mov byte[edx],0
-;pop edx
-;mov al,6
-;int 61h
-
-
-
-
 mov esi,zt_transfert
 add esi,[chaine_temporaire+12h]
-;jmp suite_boucle_pkzip
 
 
 
@@ -378,9 +366,182 @@ jmp suite2_boucle_pkzip
 
 ;**********************************************************************************************************
 gzip:
-jmp erreur_format_inconnue   ;?????????????????????
+cmp byte[chaine_temporaire+2],8
+jne erreur_format_inconnue
+mov al,[chaine_temporaire+3]
+mov esi,chaine_temporaire+10
 
 
+;passe les différents champs
+test al,4   ;si FEXTRA = 1
+jz gzip_FEXTRA
+xor ecx,ecx
+mov cx,[esi]
+add esi,ecx
+add esi,2
+gzip_FEXTRA:
+
+
+test al,8   ;si FNAME = 1
+jz gzip_FNAME
+;récupère le nom du fichier de destination
+mov edi,nom_2
+@@:
+mov ah,[esi]
+mov [edi],ah
+inc esi
+inc edi
+cmp ah,0
+jnz @b
+jmp gzip_FNAME_fin
+
+
+gzip_FNAME:
+pushad
+;si pas de nom on prend le nom de l'archive moins la dernière extension
+mov esi,nom_1
+mov edi,nom_2
+@@:
+mov al,[esi]
+mov [edi],al
+inc esi
+inc edi
+cmp al,0
+jne @b
+
+mov esi,edi
+
+@@:
+dec edi
+cmp edi,nom_2
+je @f
+cmp byte[edi],"."
+jne @b
+
+mov byte[edi],0
+popad
+jmp gzip_FNAME_fin
+
+@@:     ;et si pas d'extension on rajoute l'extencion .DCP
+dec esi
+mov dword[esi],".DCP"
+mov byte[esi+4],0
+popad
+gzip_FNAME_fin:
+
+
+
+test al,10h   ;si FCOMMENT = 1
+jz gzip_FCOMMENT
+@@:
+mov ah,[esi]
+inc esi
+cmp ah,0
+jnz @b
+gzip_FCOMMENT:
+
+test al,2   ;si FHCRC = 1
+jz gzip_FHCRC
+add esi,2
+gzip_FHCRC:
+
+sub esi,chaine_temporaire
+mov [offset_1],esi
+
+
+
+
+;crée ou écrase le fichier
+
+;créer le fichier
+mov al,2
+mov ebx,[handle_0]
+mov edx,nom_2
+int 64h
+cmp eax,0
+je gzip_okcree
+
+;si le fichier existe déja et si l'option -e est active on écrase le fichier
+cmp eax,cer_nfr
+jne pkzip_err_cre
+cmp byte[option_e],1
+jne gzip_err_cre
+
+;ouvre le fichier
+mov al,0 
+mov ebx,[handle_0]
+mov edx,nom_2
+int 64h
+cmp eax,0
+jne gzip_err_cre
+
+;fixe la taille du fichier
+mov dword[zt_transfert],0
+mov dword[zt_transfert+4],0
+mov al,7
+mov ah,1 ;taille fichier
+mov edx,zt_transfert
+int 64h
+cmp eax,0
+jne gzip_err_cre
+
+gzip_okcree:
+mov [handle_2],ebx
+
+
+
+
+
+
+
+mov eax,153
+mov esi,[handle_1]
+mov edi,[handle_2]
+mov edx,[offset_1]
+int 61h
+cmp eax,0
+jne gzip_err_dec
+
+
+mov edx,msg_ok_deco1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_ok_deco2
+mov al,6
+int 61h
+int 60h
+
+
+;*****************
+gzip_err_cre:
+mov edx,msg_erreur_cre1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_erreur_cre2
+mov al,6
+int 61h
+int 60h
+
+
+
+;*****************
+gzip_err_dec:
+mov edx,msg_erreur_dec1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_erreur_dec2
+mov al,6
+int 61h
+int 60h
 
 
 ;**********************************************************************************************************
@@ -478,9 +639,6 @@ msgtrappe4:
 db ",",0
 
 
-chaine_temporaire:
-dd 0,0,0,0,0,0,0,0
-
 
 taille_1:
 dd 0,0
@@ -494,6 +652,8 @@ dd 0
 index_fichier:
 dd 0
 
+offset_1:
+dd 0
 
 option_e:
 db 0
@@ -507,6 +667,8 @@ rb 512
 nom_2:
 rb 512
 
+chaine_temporaire:
+rb 512
 
 zt_transfert: 
 
