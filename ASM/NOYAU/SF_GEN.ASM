@@ -43,8 +43,6 @@
 ;al=119 convertir temps unix vers date et heure
 ;al=120 convertir date et heure vers temps unix 
 
-
-
 ;al=150 calcul un crc16
 ;al=151 calcul un crc32
 ;al=152 décompresse une zone compressé par deflate
@@ -138,7 +136,7 @@ cmp al,151
 je sfs_crc32
 cmp al,152
 je sfs_inflate
-cmp al,152
+cmp al,153
 je sfs_inflate_fichier
 
 mov eax,cer_parami
@@ -2786,12 +2784,15 @@ jz sfs_inflate_finpermute
 
 
 
-arbre_inflate_tailles      equ 10h
 
-arbre_inflate_fichier1 equ 14h
-arbre_inflate_adresse1 equ 18h
-arbre_inflate_fichier2 equ 1Ch
-arbre_inflate_adresse2 equ 20h
+arbre_inflate_fichier1 equ 10h
+arbre_inflate_adresse1 equ 14h
+arbre_inflate_fichier2 equ 18h
+arbre_inflate_adresse2 equ 1Ch
+
+arbre_inflate_tailles      equ 20h
+
+
 
 arbre_inflate_literal      equ 200h
 arbre_inflate_dist         equ 204h
@@ -2805,7 +2806,8 @@ arbre_inflate_valeurs_literal equ 320h
 arbre_inflate_tables_dist     equ 620h
 arbre_inflate_valeurs_dist    equ 720h
 arbre_inflate_zt1 equ 00A20h
-arbre_inflate_zt2 equ 20A20h
+arbre_inflate_zt_to equ 40000h
+arbre_inflate_zt2 equ arbre_inflate_zt1 + arbre_inflate_zt_to
 
 arbre_inflate_index equ 4
 arbre_inflate_min   equ 8
@@ -2819,7 +2821,7 @@ push fs
 mov ax,selramh 
 mov fs,ax
 
-mov ecx,4096
+mov ecx,arbre_inflate_valeurs_dist+200h
 call resmem
 jnc @f
 
@@ -3805,37 +3807,255 @@ ret
 ;**********************************************************************************************************************
 sfs_inflate_fichier:        ;décompresse fichier compressé par deflate 
 pushad
+push ds
+push es
 push fs
 mov ax,selramh 
+mov ds,ax
+mov es,ax
 mov fs,ax
 
-mov ecx,4096
+mov ecx,arbre_inflate_zt2 + arbre_inflate_zt_to
 call resmem
 jnc @f
 
 pop fs
+pop es
+pop ds
 popad
 mov eax,cer_pasm
 iret
 
 
-@@:
+@@:  ;ds/es/fs:ebx=zone tampon pour l'arbre de décodage
+;enregistre les numéros de fichier
+mov [ebx+arbre_inflate_fichier1],esi
+mov [ebx+arbre_inflate_fichier2],edi
+mov dword[ebx+arbre_inflate_adresse1],edx
+mov dword[ebx+arbre_inflate_adresse2],0
 
 ;charge le début du fichier a lire dans la ZT d'entrée
+push ebx
+push ecx
+push edi
+mov edi,ebx
+mov eax,4
+mov ebx,[edi+arbre_inflate_fichier1]
+mov ecx,arbre_inflate_zt_to
+mov edx,[edi+arbre_inflate_adresse1]
+add edi,arbre_inflate_zt1
+int 64h
+pop edi
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_erreur
+
+xor ecx,ecx   ;cl=index de bit
+mov esi,ebx
+mov edi,ebx
+add esi,arbre_inflate_zt1
+add edi,arbre_inflate_zt2
 
 
-;décode un ou plusieurs octets
+sfs_inflate_fichier_bloc_suivant:
+mov eax,[esi]
+shr eax,cl
+fs
+mov [ebx+arbre_inflate_bloc],eax
+
+
+and al,6
+cmp al,0
+je sfs_inflate_fichier_bloc_00
+cmp al,2
+je sfs_inflate_fichier_bloc_01
+cmp al,4
+je sfs_inflate_fichier_bloc_10
+mov eax,cer_parami
+jmp sfs_inflate_fichier_erreur
+
+
+
+
+
+;***********************************
+sfs_inflate_fichier_bloc_00:   ;sans compression
+xor ecx,ecx
+mov cx,[esi+1]
+add esi,5
+cld
+rep movsb
+xor ecx,ecx
+jmp sfs_inflate_fichier_bloc_fin
+
+;***********************************
+sfs_inflate_fichier_bloc_01:    ;arbre de hufman fixe
+av_bit 3
+call sfs_inflate_gen_table_decodage
+call sfs_inflate_gen_arbre
+jmp sfs_inflate_fichier_parcour_bloc
+
+
+;***********************************
+sfs_inflate_fichier_bloc_10:    ;arbre de huffman dynamique
+av_bit 3
+call sfs_inflate_lit_table_decodage
+cmp eax,0
+jne sfs_inflate_fichier_erreur
+call sfs_inflate_gen_arbre
+
+
+
+;**************************************
+sfs_inflate_fichier_parcour_bloc:
+
+call sfs_inflate_decode
+jnc sfs_inflate_fichier_fin_bloc
+
 
 ;vérifie que l'on ne s'approche pas trop de la fin de la ZT d'entrée
-;si oui on recharge la ZT d'entrée
+mov eax,ebx
+add eax,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
+cmp esi,eax
+jb @f
 
-;verifie que l'on ne s'approche pas trop de la fin de la T de sortie
+
+;si oui on recharge la ZT d'entrée
+sub esi,arbre_inflate_zt1
+sub esi,ebx
+add [edi+arbre_inflate_adresse1],esi
+push ebx
+push ecx
+push edi
+mov edi,ebx
+mov eax,4
+mov ebx,[edi+arbre_inflate_fichier1]
+mov ecx,arbre_inflate_zt_to
+mov edx,[edi+arbre_inflate_adresse1]
+add edi,arbre_inflate_zt1
+int 64h
+pop edi
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_erreur
+
+mov esi,ebx
+add esi,arbre_inflate_zt1
+@@:
+
+
+;verifie que l'on ne s'approche pas trop de la fin de la ZT de sortie
+mov eax,ebx
+add eax,arbre_inflate_zt2+arbre_inflate_zt_to-10000h
+cmp edi,eax
+jb sfs_inflate_fichier_parcour_bloc
+
+
 ;si oui on libère de la place dans la ZT de sortie
+;calcul de la quantité a sauvegarder
+;mov edx,edi
+;sub edx,ebx
+;sub edx,arbre_inflate_zt2
+;sub edx,8000h 
+mov edx,20000h ;par bloc de 128Ko c'est mieux
+
+
+;sauvegarde
+push ebx
+push ecx
+push edx
+push esi
+mov esi,ebx
+mov eax,5
+mov ebx,[esi+arbre_inflate_fichier2]
+mov ecx,edx
+mov edx,[esi+arbre_inflate_adresse2]
+add esi,arbre_inflate_zt2
+int 64h
+pop esi
+pop edx
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_erreur
+
+
+;décale les données conservé
+push ecx
+push esi
+push edi
+mov esi,ebx
+mov edi,ebx
+add esi,arbre_inflate_zt2 
+add edi,arbre_inflate_zt2 
+add esi,edx
+mov ecx,arbre_inflate_zt_to
+sub ecx,edx
+cld
+rep movsb
+pop edi
+pop esi
+pop ecx
+
+;met a jour les pointeurs
+add [ebx+arbre_inflate_adresse2],edx
+sub edi,edx
+jmp sfs_inflate_fichier_parcour_bloc
+
+
+
+
+;*****************************
+sfs_inflate_fichier_fin_bloc:
+cmp eax,0
+jne sfs_inflate_fichier_erreur
+
+
+sfs_inflate_fichier_bloc_fin:
+fs
+mov eax,[ebx+arbre_inflate_bloc]
+test eax,1      ;si le bit de fin de bloc du bloc précédent n'était pas a 1 on continue
+jz sfs_inflate_fichier_bloc_suivant
 
 ;fin du décodage, on charge toute la zt de sortie dans le fichier
+push ebx
+push ecx
+push esi
+mov esi,ebx
+mov eax,5
+mov ebx,[esi+arbre_inflate_fichier2]
+mov ecx,edi
+mov edx,[esi+arbre_inflate_adresse2]
+add esi,arbre_inflate_zt1
+sub ecx,esi
+int 64h
+pop esi
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_erreur
 
-
-
-
+call libmem
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
 iret
+
+
+sfs_inflate_fichier_erreur:
+push eax
+call libmem
+pop eax
+pop fs
+pop es
+pop ds
+ss
+mov [esp+28],eax   ;préserve eax
+popad
+iret
+
 
