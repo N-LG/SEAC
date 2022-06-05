@@ -2904,8 +2904,23 @@ mov eax,[ebx+arbre_inflate_bloc]
 test eax,1      ;si le bit de fin de bloc du bloc précédent n'était pas a 1 on continue
 jz sfs_inflate_bloc_suivant
 
+
+cmp cl,0
+je @f
+inc esi
+@@:
+
 call libmem
 pop fs
+;calcul la taille des données en sortie et les insères dans la pile
+ss
+sub esi,[esp+4]
+ss
+sub edi,[esp]
+ss
+mov [esp+4],esi ;taille des données compressé
+ss
+mov [esp],edi  ;taille des données décompressé
 popad
 xor eax,eax
 iret
@@ -3048,10 +3063,6 @@ jmp sfs_inflate_gen_arbre_dist1
 
 
 sfs_inflate_ignore_distance1:
-
-
-
-
 
 
 xor eax,eax       ;génération des codes et des pointeurs associé aux branches de l'arbre littéral
@@ -3843,6 +3854,7 @@ mov eax,4
 mov ebx,[edi+arbre_inflate_fichier1]
 mov ecx,arbre_inflate_zt_to
 mov edx,[edi+arbre_inflate_adresse1]
+and edx,0FFFF0000h
 add edi,arbre_inflate_zt1
 int 64h
 pop edi
@@ -3856,6 +3868,9 @@ mov esi,ebx
 mov edi,ebx
 add esi,arbre_inflate_zt1
 add edi,arbre_inflate_zt2
+mov eax,[ebx+arbre_inflate_adresse1]
+and eax,0FFFFh
+add esi,eax
 
 
 sfs_inflate_fichier_bloc_suivant:
@@ -3914,26 +3929,49 @@ call sfs_inflate_decode
 jnc sfs_inflate_fichier_fin_bloc
 
 
+
+
+
 ;vérifie que l'on ne s'approche pas trop de la fin de la ZT d'entrée
 mov eax,ebx
 add eax,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
 cmp esi,eax
 jb @f
 
-
 ;si oui on recharge la ZT d'entrée
+
+
 sub esi,arbre_inflate_zt1
 sub esi,ebx
-add [edi+arbre_inflate_adresse1],esi
+add [ebx+arbre_inflate_adresse1],esi
+
+push ecx
+push esi
+push edi
+mov esi,ebx
+mov edi,ebx
+mov ecx,10000h/4
+add esi,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
+add edi,arbre_inflate_zt1
+cld
+rep movsd
+pop edi
+pop esi
+pop ecx
+
+
+
 push ebx
 push ecx
 push edi
 mov edi,ebx
 mov eax,4
 mov ebx,[edi+arbre_inflate_fichier1]
-mov ecx,arbre_inflate_zt_to
+mov ecx,arbre_inflate_zt_to-10000h
 mov edx,[edi+arbre_inflate_adresse1]
-add edi,arbre_inflate_zt1
+and edx,0FFFF0000h
+add edx,10000h
+add edi,arbre_inflate_zt1+10000h
 int 64h
 pop edi
 pop ecx
@@ -3941,8 +3979,12 @@ pop ebx
 cmp eax,0
 jne sfs_inflate_fichier_erreur
 
+
+mov eax,[ebx+arbre_inflate_adresse1]
 mov esi,ebx
+and eax,0FFFFh
 add esi,arbre_inflate_zt1
+add esi,eax
 @@:
 
 
@@ -3954,13 +3996,7 @@ jb sfs_inflate_fichier_parcour_bloc
 
 
 ;si oui on libère de la place dans la ZT de sortie
-;calcul de la quantité a sauvegarder
-;mov edx,edi
-;sub edx,ebx
-;sub edx,arbre_inflate_zt2
-;sub edx,8000h 
 mov edx,20000h ;par bloc de 128Ko c'est mieux
-
 
 ;sauvegarde
 push ebx
@@ -4019,9 +4055,21 @@ mov eax,[ebx+arbre_inflate_bloc]
 test eax,1      ;si le bit de fin de bloc du bloc précédent n'était pas a 1 on continue
 jz sfs_inflate_fichier_bloc_suivant
 
-;fin du décodage, on charge toute la zt de sortie dans le fichier
+
+;fin du décodage, on calcul l'adresse du dernier octet compressé
+and dword[ebx+arbre_inflate_adresse1],0FFFF0000h
+cmp cl,0
+je @f
+inc esi
+@@:
+sub esi,arbre_inflate_zt1
+sub esi,ebx
+add [ebx+arbre_inflate_adresse1],esi
+
+
+
+;on charge toute la zt de sortie dans le fichier
 push ebx
-push ecx
 push esi
 mov esi,ebx
 mov eax,5
@@ -4032,16 +4080,23 @@ add esi,arbre_inflate_zt1
 sub ecx,esi
 int 64h
 pop esi
-pop ecx
 pop ebx
 cmp eax,0
 jne sfs_inflate_fichier_erreur
+add [ebx+arbre_inflate_adresse2],ecx
 
+mov esi,[ebx+arbre_inflate_adresse1]
+mov edi,[ebx+arbre_inflate_adresse2]
 call libmem
 pop fs
 pop es
 pop ds
+ss
+mov [esp+4],esi ;taille des données compressé
+ss
+mov [esp],edi  ;taille des données décompressé
 popad
+sub esi,edx
 xor eax,eax
 iret
 
