@@ -1,5 +1,8 @@
 ﻿dcp:
 
+;a faire: gzip pour multiples ficher
+;         pkzip utilisant la fonction de deflate le fichier directement
+;         option de controle des CRC
 
 macro trappe val
 {
@@ -93,9 +96,40 @@ cmp eax,0
 jne erreur_ouverture_archive
 
 
+;lit l'extension fichier
+mov edx,nom_1
+@@:
+inc edx
+cmp byte[edx],0
+jne @b
+
+xor eax,eax
+mov cl,4
+@@:
+dec edx
+cmp byte[edx],"."
+je ok_extension
+dec cl
+jz @f
+shl eax,8
+mov al,[edx]
+cmp al,"a"
+jb @b
+cmp al,"z"
+ja @b
+sub al,"a"-"A"
+jmp @b
+
+@@:
+xor eax,eax
+ok_extension:
+mov [extension],eax
 
 
-mov ebx,[handle_1]  ;lit les 16 premier octets 
+
+
+
+mov ebx,[handle_1]  ;lit les 512 premier octets 
 mov ecx,512
 mov edx,0
 mov edi,chaine_temporaire
@@ -108,8 +142,8 @@ cmp dword[chaine_temporaire],04034B50h
 je pkzip
 cmp word[chaine_temporaire],8B1Fh
 je gzip
-;cmp word[chaine_temporaire],
-;je tar
+cmp dword[extension],"TAR"
+je tar
 
 mov edx,msg_erreur_format_inconnue
 mov al,6
@@ -170,40 +204,9 @@ mov dx,sel_dat1
 int 61h
 @@:
 
-;créer le fichier
-mov al,2
-mov ebx,[handle_0]
-mov edx,nom_2
-int 64h
+call cree_fichier
 cmp eax,0
-je pkzip_okcree
-
-;si le fichier existe déja et si l'option -e est active on écrase le fichier
-cmp eax,cer_nfr
-jne pkzip_err_cre
-cmp byte[option_e],1
-jne pkzip_err_cre
-
-;ouvre le fichier
-mov al,0 
-mov ebx,[handle_0]
-mov edx,nom_2
-int 64h
-cmp eax,0
-jne pkzip_err_cre
-
-;fixe la taille du fichier
-mov dword[zt_transfert],0
-mov dword[zt_transfert+4],0
-mov al,7
-mov ah,1 ;taille fichier
-mov edx,zt_transfert
-int 64h
-cmp eax,0
-jne pkzip_err_cre
-
-pkzip_okcree:
-mov [handle_2],ebx
+jne  pkzip_err_cre
 
 ;lire les données
 mov ebx,[handle_1]  
@@ -270,7 +273,6 @@ mov esi,zt_transfert
 add esi,[chaine_temporaire+12h]
 
 
-
 suite_boucle_pkzip:
 ;ecrire les données
 mov ebx,[handle_2]
@@ -286,15 +288,7 @@ mov ebx,[handle_2]
 mov al,1
 int 64h
 
-mov edx,msg_ok_deco1
-mov al,6
-int 61h
-mov edx,nom_2
-mov al,6
-int 61h
-mov edx,msg_ok_deco2
-mov al,6
-int 61h
+call signal_decomp_ok
 
 suite2_boucle_pkzip:
 mov eax,[chaine_temporaire+12h] ;taille compressé
@@ -418,6 +412,15 @@ je @f
 cmp byte[edi],"."
 jne @b
 
+
+cmp dword[extension],"TGZ" ;si l'extension était TGZ on passe a l'extension TAR
+jne gzip_sup_ext
+inc edi
+mov dword[edi],"TAR"
+popad
+jmp gzip_FNAME_fin
+
+gzip_sup_ext:
 mov byte[edi],0
 popad
 jmp gzip_FNAME_fin
@@ -427,6 +430,9 @@ dec esi
 mov dword[esi],".DCP"
 mov byte[esi+4],0
 popad
+
+
+
 gzip_FNAME_fin:
 
 
@@ -489,11 +495,6 @@ gzip_okcree:
 mov [handle_2],ebx
 
 
-
-
-
-
-
 mov eax,153
 mov esi,[handle_1]
 mov edi,[handle_2]
@@ -503,15 +504,8 @@ cmp eax,0
 jne gzip_err_dec
 
 
-mov edx,msg_ok_deco1
-mov al,6
-int 61h
-mov edx,nom_2
-mov al,6
-int 61h
-mov edx,msg_ok_deco2
-mov al,6
-int 61h
+call signal_decomp_ok
+
 int 60h
 
 
@@ -546,7 +540,315 @@ int 60h
 
 ;**********************************************************************************************************
 tar:
-jmp erreur_format_inconnue   ;?????????????????????
+;agrandit la ZT pour avoir 1Mo
+mov al,8
+mov ecx,zt_transfert+100000h
+mov dx,sel_dat1
+int 61h
+;????????????
+
+call signal_debut
+
+mov edx,512
+
+;**********************
+tar_boucle1:
+
+
+;lit la taille
+mov esi,chaine_temporaire+124
+xor ecx,ecx
+@@:
+mov al,[esi]
+cmp al,"0"
+jb @f
+cmp al,"7"
+ja @f
+shl ecx,3
+sub al,"0"
+or cl,al
+inc esi
+jmp @b
+@@:
+
+
+;test si c'est bien un fichier
+cmp byte[chaine_temporaire+156],"0"
+jne tar_fichier_suivant
+;et que ce n'est pas un fichier vide
+cmp ecx,0
+je tar_fichier_suivant
+
+
+;lit le nom
+push ecx
+mov esi,chaine_temporaire
+mov edi,nom_2
+mov ecx,25
+cld
+rep movsd
+call cree_fichier
+pop ecx
+cmp eax,0
+jne tar_erreur_creation
+
+xor ebp,ebp ;ecx=taille du fichier edx=pointeur dans l'archive ebp=pointeur dans le fichier
+
+
+;*******************************
+tar_boucle2:
+;test si il rest moin d'un MO a ecrire
+cmp ecx,100000h
+jbe tar_fin_fichier
+
+
+;lit 1MO
+push ecx
+mov al,4
+mov ebx,[handle_1]
+mov ecx,100000h
+mov edi,zt_transfert
+int 64h
+pop ecx
+cmp eax,0
+jne tar_erreur_lecture
+
+
+;copie dans la destination ce MO
+push ecx
+push edx
+mov al,5
+mov ebx,[handle_2]
+mov ecx,100000h
+mov edx,ebp
+mov esi,zt_transfert
+int 64h
+pop edx
+pop ecx
+cmp eax,0
+jne tar_erreur_ecriture
+
+
+add edx,100000h
+add ebp,100000h
+sub ecx,100000h
+jmp tar_boucle2
+
+
+
+tar_fin_fichier:
+;lit le reste du fichier
+mov al,4
+mov ebx,[handle_1]
+mov edi,zt_transfert
+int 64h
+cmp eax,0
+jne tar_erreur_lecture
+
+
+;ecrire les données
+push edx
+mov al,5
+mov ebx,[handle_2]
+mov edx,ebp
+mov esi,zt_transfert
+int 64h
+pop edx
+cmp eax,0
+jne tar_erreur_ecriture
+
+
+
+;fermer le fichier
+mov ebx,[handle_2]
+mov al,1
+int 64h
+call signal_decomp_ok
+
+
+;passe au fichier suivant
+tar_fichier_suivant:
+add ecx,511
+and ecx,0FFFFFE00h
+add edx,ecx
+
+
+
+;copie le descripteur de fichier
+mov al,4
+mov ebx,[handle_1]
+mov ecx,512
+mov edi,chaine_temporaire
+int 64h
+cmp eax,0
+jne erreur_lecture_archive
+cmp ecx,0
+je fin_ok
+
+add edx,512
+cmp byte[chaine_temporaire],0
+jne tar_boucle1
+
+
+jmp fin_ok
+
+
+tar_erreur_creation:
+push edx
+mov edx,msg_erreur_cre1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_erreur_cre2
+mov al,6
+int 61h
+pop edx
+jmp tar_fichier_suivant
+
+
+tar_erreur_ecriture:
+push edx
+mov edx,msg_erreur_ecr1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_erreur_ecr2
+mov al,6
+int 61h
+pop edx
+jmp tar_fichier_suivant
+
+
+
+
+tar_erreur_lecture:
+mov edx,msg_erreur_lec1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_erreur_lec2
+mov al,6
+int 61h
+int 60h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;****************************************************************************************************
+cree_fichier:
+push ecx
+push edx
+mov dword[handle_2],0
+;créer le fichier
+mov al,2
+mov ebx,[handle_0]
+mov edx,nom_2
+int 64h
+cmp eax,0
+je ok_cree_fichier
+
+;si le fichier existe déja et si l'option -e est active on écrase le fichier
+cmp eax,cer_nfr
+jne fin_cree_fichier 
+cmp byte[option_e],1
+jne fin_cree_fichier
+
+;ouvre le fichier
+mov al,0 
+mov ebx,[handle_0]
+mov edx,nom_2
+int 64h
+cmp eax,0
+jne fin_cree_fichier
+
+
+;fixe la taille du fichier
+mov dword[taille_fichier],0
+mov dword[taille_fichier+4],0
+mov al,7
+mov ah,1 ;taille_fichier
+mov edx,taille_fichier
+int 64h
+cmp eax,0
+jne fin_cree_fichier
+
+pkzip_okcree:
+mov [handle_2],ebx
+
+
+ok_cree_fichier:
+mov [handle_2],ebx
+fin_cree_fichier:
+pop edx
+pop ecx
+ret
+
+
+
+;******************
+signal_debut:
+push eax
+push edx
+mov edx,msg_ok_debut
+mov al,6
+int 61h
+mov edx,nom_1
+mov al,6
+int 61h
+mov edx,msg_ok_deco2
+mov al,6
+int 61h
+pop edx
+pop eax
+ret
+
+
+
+
+
+;******************
+signal_decomp_ok:
+push eax
+push edx
+mov edx,msg_ok_deco1
+mov al,6
+int 61h
+mov edx,nom_2
+mov al,6
+int 61h
+mov edx,msg_ok_deco2
+mov al,6
+int 61h
+pop edx
+pop eax
+ret
+
+
+
+
+
+
+
+
 
 
 
@@ -594,6 +896,10 @@ db "DCP: erreur lors de la lecture de l'archive",13,0
 msg_erreur_format_inconnue:
 db "DCP: format de l'archive inconnue",13,0
 
+msg_ok_debut:
+db "DCP: début de la décompression de l'archive ",0
+
+
 msg_ok_fin:
 db "DCP: fin du parcours de l'archive",13,0
 
@@ -619,6 +925,8 @@ msg_erreur_lec1:
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_lec2:
 db 34," erreur de lecture de l'archive",13,0
+msg_erreur_lec3:
+db "DCP: erreur de lecture de l'archive",13,0
 msg_erreur_ecr1:
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_ecr2:
@@ -648,6 +956,8 @@ handle_1:   ;fichier archive
 dd 0
 handle_2:   ;fichier décompressé
 dd 0
+taille_fichier:
+dd 0,0
 
 index_fichier:
 dd 0
@@ -660,7 +970,8 @@ db 0
 
 taille_zt:
 dd 512
-
+extension:
+dd 0
 
 nom_1:
 rb 512
