@@ -3844,20 +3844,24 @@ mov [ebx+arbre_inflate_fichier1],esi
 mov [ebx+arbre_inflate_fichier2],edi
 mov dword[ebx+arbre_inflate_adresse1],edx
 mov dword[ebx+arbre_inflate_adresse2],0
+and dword[ebx+arbre_inflate_adresse1],0FFFF0000h
+
+
 
 ;charge le début du fichier a lire dans la ZT d'entrée
 push ebx
 push ecx
+push edx
 push edi
 mov edi,ebx
 mov eax,4
 mov ebx,[edi+arbre_inflate_fichier1]
 mov ecx,arbre_inflate_zt_to
 mov edx,[edi+arbre_inflate_adresse1]
-and edx,0FFFF0000h
 add edi,arbre_inflate_zt1
 int 64h
 pop edi
+pop edx
 pop ecx
 pop ebx
 cmp eax,0
@@ -3868,9 +3872,7 @@ mov esi,ebx
 mov edi,ebx
 add esi,arbre_inflate_zt1
 add edi,arbre_inflate_zt2
-mov eax,[ebx+arbre_inflate_adresse1]
-and eax,0FFFFh
-add esi,eax
+add esi,edx
 
 
 sfs_inflate_fichier_bloc_suivant:
@@ -3939,11 +3941,9 @@ cmp esi,eax
 jb @f
 
 ;si oui on recharge la ZT d'entrée
+add dword[ebx+arbre_inflate_adresse1],arbre_inflate_zt_to-10000h
+sub esi,arbre_inflate_zt_to-10000h
 
-
-sub esi,arbre_inflate_zt1
-sub esi,ebx
-add [ebx+arbre_inflate_adresse1],esi
 
 push ecx
 push esi
@@ -3959,8 +3959,6 @@ pop edi
 pop esi
 pop ecx
 
-
-
 push ebx
 push ecx
 push edi
@@ -3969,7 +3967,6 @@ mov eax,4
 mov ebx,[edi+arbre_inflate_fichier1]
 mov ecx,arbre_inflate_zt_to-10000h
 mov edx,[edi+arbre_inflate_adresse1]
-and edx,0FFFF0000h
 add edx,10000h
 add edi,arbre_inflate_zt1+10000h
 int 64h
@@ -3979,13 +3976,8 @@ pop ebx
 cmp eax,0
 jne sfs_inflate_fichier_erreur
 
-
-mov eax,[ebx+arbre_inflate_adresse1]
-mov esi,ebx
-and eax,0FFFFh
-add esi,arbre_inflate_zt1
-add esi,eax
 @@:
+
 
 
 ;verifie que l'on ne s'approche pas trop de la fin de la ZT de sortie
@@ -4076,7 +4068,7 @@ mov eax,5
 mov ebx,[esi+arbre_inflate_fichier2]
 mov ecx,edi
 mov edx,[esi+arbre_inflate_adresse2]
-add esi,arbre_inflate_zt1
+add esi,arbre_inflate_zt2
 sub ecx,esi
 int 64h
 pop esi
