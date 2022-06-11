@@ -1,6 +1,7 @@
 ﻿dcp:
 
 ;a faire: gzip pour multiples ficher
+;         verif descripteur ustar
 ;         pkzip utilisant la fonction de deflate le fichier directement
 ;         option de controle des CRC
 
@@ -142,6 +143,11 @@ cmp dword[chaine_temporaire],04034B50h
 je pkzip
 cmp word[chaine_temporaire],8B1Fh
 je gzip
+cmp dword[chaine_temporaire+257],"usta"
+jne @f
+cmp dword[chaine_temporaire+261],"r  "
+je tar
+@@:
 cmp dword[extension],"TAR"
 je tar
 
@@ -587,10 +593,42 @@ mov edi,nom_2
 mov ecx,25
 cld
 rep movsd
+
+
+;lit le suffixe si on est au format ustar
+cmp dword[chaine_temporaire+257],"usta"
+jne tar_pas_nom_ustar
+cmp dword[chaine_temporaire+261],"r  "
+jne tar_pas_nom_ustar
+
+mov esi,chaine_temporaire+345
+mov edi,nom_2
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+
+@@:
+mov ecx,155
+cld
+rep movsb
+tar_pas_nom_ustar:
+
+
+
 call cree_fichier
 pop ecx
 cmp eax,0
 jne tar_erreur_creation
+
+
+
+
+
+
+
+
 
 xor ebp,ebp ;ecx=taille du fichier edx=pointeur dans l'archive ebp=pointeur dans le fichier
 
@@ -875,6 +913,13 @@ mov al,6
 int 61h
 int 60h
 
+erreur_structure_archive:
+mov edx,msg_erreur_structure_archive
+mov al,6
+int 61h
+int 60h
+
+
 fin_ok:
 mov edx,msg_ok_fin
 mov al,6
@@ -896,9 +941,11 @@ db "DCP: erreur lors de la lecture de l'archive",13,0
 msg_erreur_format_inconnue:
 db "DCP: format de l'archive inconnue",13,0
 
+msg_erreur_structure_archive:
+db "DCP: erreur dans la structure de l'archive",13,0
+
 msg_ok_debut:
 db "DCP: début de la décompression de l'archive ",0
-
 
 msg_ok_fin:
 db "DCP: fin du parcours de l'archive",13,0
