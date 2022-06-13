@@ -4,7 +4,7 @@ Systeme d'exploitation (operating system)
 
 ### [en]more information in the [wiki](https://github-com.translate.goog/N-LG/SEAC/wiki?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=fr&_x_tr_pto=wapp) automatically translated by Google Translate
 
-### [fr]voir dans le [wiki](/wiki) pour plus d'info
+### [fr]voir dans le [wiki](https://github.com/N-LG/SEAC/wiki) pour plus d'info
 
 # 
 organisation du dépot:
