@@ -1,9 +1,8 @@
 ﻿dcp:
 
-;a faire: gzip pour multiples ficher
-;         verif descripteur ustar
+;a faire: verifier bonne gestion des allocation mémoire
 ;         pkzip utilisant la fonction de deflate le fichier directement
-;         option de controle des CRC
+
 
 macro trappe val
 {
@@ -19,7 +18,7 @@ popad
 }
 
 
-pile equ 24096 ;definition de la taille de la pile
+pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "Décompression de fichier pkzip gzip et tar"
 scode:
@@ -366,6 +365,10 @@ jmp suite2_boucle_pkzip
 
 ;**********************************************************************************************************
 gzip:
+mov dword[offset_1],0
+call signal_debut
+
+gzip_boucle1:
 cmp byte[chaine_temporaire+2],8
 jne erreur_format_inconnue
 mov al,[chaine_temporaire+3]
@@ -458,46 +461,13 @@ add esi,2
 gzip_FHCRC:
 
 sub esi,chaine_temporaire
-mov [offset_1],esi
-
-
+add [offset_1],esi
 
 
 ;crée ou écrase le fichier
-
-;créer le fichier
-mov al,2
-mov ebx,[handle_0]
-mov edx,nom_2
-int 64h
+call cree_fichier
 cmp eax,0
-je gzip_okcree
-
-;si le fichier existe déja et si l'option -e est active on écrase le fichier
-cmp eax,cer_nfr
-jne pkzip_err_cre
-cmp byte[option_e],1
-jne gzip_err_cre
-
-;ouvre le fichier
-mov al,0 
-mov ebx,[handle_0]
-mov edx,nom_2
-int 64h
-cmp eax,0
-jne gzip_err_cre
-
-;fixe la taille du fichier
-mov dword[zt_transfert],0
-mov dword[zt_transfert+4],0
-mov al,7
-mov ah,1 ;taille fichier
-mov edx,zt_transfert
-int 64h
-cmp eax,0
-jne gzip_err_cre
-
-gzip_okcree:
+jne  gzip_err_cre
 mov [handle_2],ebx
 
 
@@ -509,10 +479,29 @@ int 61h
 cmp eax,0
 jne gzip_err_dec
 
-
 call signal_decomp_ok
 
-int 60h
+add esi,8
+add [offset_1],esi
+
+mov eax,[taille_1]
+cmp [offset_1],eax
+jae fin_ok
+
+mov ebx,[handle_1]  ;lit les 512 premier octets 
+mov ecx,512
+mov edx,[offset_1]
+mov edi,chaine_temporaire
+mov al,4
+int 64h
+cmp eax,0
+jne erreur_lecture_archive
+
+
+cmp word[chaine_temporaire],8B1Fh
+je gzip_boucle1
+jmp erreur_structure_archive
+
 
 
 ;*****************
@@ -621,14 +610,6 @@ call cree_fichier
 pop ecx
 cmp eax,0
 jne tar_erreur_creation
-
-
-
-
-
-
-
-
 
 xor ebp,ebp ;ecx=taille du fichier edx=pointeur dans l'archive ebp=pointeur dans le fichier
 
