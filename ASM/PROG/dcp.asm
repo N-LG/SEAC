@@ -1,7 +1,6 @@
 ﻿dcp:
 
-;a faire: verifier bonne gestion des allocation mémoire
-;         pkzip utilisant la fonction de deflate le fichier directement
+;a faire: pkzip utilisant la fonction de deflate le fichier directement
 
 
 macro trappe val
@@ -163,6 +162,7 @@ int 60h
 ;**********************************************************************************************************
 pkzip:
 mov dword[index_fichier],0
+call signal_debut
 
 boucle_pkzip:
 mov ebx,[handle_1]  ;lit les 32 premier octets 
@@ -207,8 +207,12 @@ mov al,8   ;agrandit la zone de transfert si besoin
 add ecx,zt_transfert
 mov dx,sel_dat1
 int 61h
+cmp eax,0
+jne erreur_manque_mem
 @@:
 
+mov dword[taille_2],0
+mov dword[taille_2+4],0
 call cree_fichier
 cmp eax,0
 jne  pkzip_err_cre
@@ -465,6 +469,8 @@ add [offset_1],esi
 
 
 ;crée ou écrase le fichier
+mov dword[taille_2],0
+mov dword[taille_2+4],0
 call cree_fichier
 cmp eax,0
 jne  gzip_err_cre
@@ -540,7 +546,8 @@ mov al,8
 mov ecx,zt_transfert+100000h
 mov dx,sel_dat1
 int 61h
-;????????????
+cmp eax,0
+jne erreur_manque_mem
 
 call signal_debut
 
@@ -605,7 +612,8 @@ rep movsb
 tar_pas_nom_ustar:
 
 
-
+mov dword[taille_2],0
+mov dword[taille_2+4],0
 call cree_fichier
 pop ecx
 cmp eax,0
@@ -801,11 +809,9 @@ jne fin_cree_fichier
 
 
 ;fixe la taille du fichier
-mov dword[taille_fichier],0
-mov dword[taille_fichier+4],0
 mov al,7
-mov ah,1 ;taille_fichier
-mov edx,taille_fichier
+mov ah,1 ;taille fichier
+mov edx,taille_2
 int 64h
 cmp eax,0
 jne fin_cree_fichier
@@ -889,7 +895,7 @@ int 61h
 int 60h
 
 erreur_lecture_archive:
-mov edx,msg_erreur_lecture_archive
+mov edx,msg_erreur_lec3
 mov al,6
 int 61h
 int 60h
@@ -900,6 +906,11 @@ mov al,6
 int 61h
 int 60h
 
+erreur_manque_mem:
+mov edx,msg_erreur_manque_mem
+mov al,6
+int 61h
+int 60h
 
 fin_ok:
 mov edx,msg_ok_fin
@@ -916,8 +927,6 @@ org 0
 msg_erreur_ouverture_archive:
 db "DCP: erreur pour ouvrir l'archive",13,0
 
-msg_erreur_lecture_archive:
-db "DCP: erreur lors de la lecture de l'archive",13,0
 
 msg_erreur_format_inconnue:
 db "DCP: format de l'archive inconnue",13,0
@@ -954,7 +963,7 @@ db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_lec2:
 db 34," erreur de lecture de l'archive",13,0
 msg_erreur_lec3:
-db "DCP: erreur de lecture de l'archive",13,0
+db "DCP: erreur lors de la lecture de l'archive",13,0
 msg_erreur_ecr1:
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_ecr2:
@@ -963,6 +972,8 @@ msg_erreur_dec1:
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_dec2:
 db 34," erreur dans la sructure",13,0
+msg_erreur_manque_mem:
+db "DCP: pas assez de mémoire pour poursuivre l'opération",13,0
 
 
 msgtrappe:
@@ -976,15 +987,15 @@ db ",",0
 
 
 
-taille_1:
-dd 0,0
 handle_0:   ;dossier de destination
 dd 0
 handle_1:   ;fichier archive 
 dd 0
+taille_1:
+dd 0,0
 handle_2:   ;fichier décompressé
 dd 0
-taille_fichier:
+taille_2:
 dd 0,0
 
 index_fichier:
