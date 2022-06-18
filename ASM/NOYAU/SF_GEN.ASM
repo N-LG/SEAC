@@ -3845,7 +3845,7 @@ mov [ebx+arbre_inflate_fichier2],edi
 mov dword[ebx+arbre_inflate_adresse1],edx
 mov dword[ebx+arbre_inflate_adresse2],0
 and dword[ebx+arbre_inflate_adresse1],0FFFF0000h
-
+and edx,0FFFFh
 
 
 ;charge le début du fichier a lire dans la ZT d'entrée
@@ -3880,8 +3880,6 @@ mov eax,[esi]
 shr eax,cl
 fs
 mov [ebx+arbre_inflate_bloc],eax
-
-
 and al,6
 cmp al,0
 je sfs_inflate_fichier_bloc_00
@@ -3904,6 +3902,10 @@ add esi,5
 cld
 rep movsb
 xor ecx,ecx
+
+call sfs_inflate_fichier_verifpoint
+cmp eax,0
+jne sfs_inflate_fichier_erreur
 jmp sfs_inflate_fichier_bloc_fin
 
 ;***********************************
@@ -3923,7 +3925,6 @@ jne sfs_inflate_fichier_erreur
 call sfs_inflate_gen_arbre
 
 
-
 ;**************************************
 sfs_inflate_fichier_parcour_bloc:
 
@@ -3932,104 +3933,9 @@ jnc sfs_inflate_fichier_fin_bloc
 
 
 
-
-
-;vérifie que l'on ne s'approche pas trop de la fin de la ZT d'entrée
-mov eax,ebx
-add eax,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
-cmp esi,eax
-jb @f
-
-;si oui on recharge la ZT d'entrée
-add dword[ebx+arbre_inflate_adresse1],arbre_inflate_zt_to-10000h
-sub esi,arbre_inflate_zt_to-10000h
-
-
-push ecx
-push esi
-push edi
-mov esi,ebx
-mov edi,ebx
-mov ecx,10000h/4
-add esi,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
-add edi,arbre_inflate_zt1
-cld
-rep movsd
-pop edi
-pop esi
-pop ecx
-
-push ebx
-push ecx
-push edi
-mov edi,ebx
-mov eax,4
-mov ebx,[edi+arbre_inflate_fichier1]
-mov ecx,arbre_inflate_zt_to-10000h
-mov edx,[edi+arbre_inflate_adresse1]
-add edx,10000h
-add edi,arbre_inflate_zt1+10000h
-int 64h
-pop edi
-pop ecx
-pop ebx
+call sfs_inflate_fichier_verifpoint
 cmp eax,0
 jne sfs_inflate_fichier_erreur
-
-@@:
-
-
-
-;verifie que l'on ne s'approche pas trop de la fin de la ZT de sortie
-mov eax,ebx
-add eax,arbre_inflate_zt2+arbre_inflate_zt_to-10000h
-cmp edi,eax
-jb sfs_inflate_fichier_parcour_bloc
-
-
-;si oui on libère de la place dans la ZT de sortie
-mov edx,20000h ;par bloc de 128Ko c'est mieux
-
-;sauvegarde
-push ebx
-push ecx
-push edx
-push esi
-mov esi,ebx
-mov eax,5
-mov ebx,[esi+arbre_inflate_fichier2]
-mov ecx,edx
-mov edx,[esi+arbre_inflate_adresse2]
-add esi,arbre_inflate_zt2
-int 64h
-pop esi
-pop edx
-pop ecx
-pop ebx
-cmp eax,0
-jne sfs_inflate_fichier_erreur
-
-
-;décale les données conservé
-push ecx
-push esi
-push edi
-mov esi,ebx
-mov edi,ebx
-add esi,arbre_inflate_zt2 
-add edi,arbre_inflate_zt2 
-add esi,edx
-mov ecx,arbre_inflate_zt_to
-sub ecx,edx
-cld
-rep movsb
-pop edi
-pop esi
-pop ecx
-
-;met a jour les pointeurs
-add [ebx+arbre_inflate_adresse2],edx
-sub edi,edx
 jmp sfs_inflate_fichier_parcour_bloc
 
 
@@ -4104,5 +4010,111 @@ ss
 mov [esp+28],eax   ;préserve eax
 popad
 iret
+
+
+
+;*************************************************
+sfs_inflate_fichier_verifpoint:
+;vérifie que l'on ne s'approche pas trop de la fin de la ZT d'entrée
+mov eax,ebx
+add eax,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
+cmp esi,eax
+jb @f
+
+;si oui on recharge la ZT d'entrée
+add dword[ebx+arbre_inflate_adresse1],arbre_inflate_zt_to-10000h
+sub esi,arbre_inflate_zt_to-10000h
+
+
+push ecx
+push esi
+push edi
+mov esi,ebx
+mov edi,ebx
+mov ecx,10000h/4
+add esi,arbre_inflate_zt1+arbre_inflate_zt_to-10000h
+add edi,arbre_inflate_zt1
+cld
+rep movsd
+pop edi
+pop esi
+pop ecx
+
+push ebx
+push ecx
+push edi
+mov edi,ebx
+mov eax,4
+mov ebx,[edi+arbre_inflate_fichier1]
+mov ecx,arbre_inflate_zt_to-10000h
+mov edx,[edi+arbre_inflate_adresse1]
+add edx,10000h
+add edi,arbre_inflate_zt1+10000h
+int 64h
+pop edi
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_verifpoint_erreur
+
+@@:
+
+
+
+;verifie que l'on ne s'approche pas trop de la fin de la ZT de sortie
+mov eax,ebx
+add eax,arbre_inflate_zt2+arbre_inflate_zt_to-10000h
+cmp edi,eax
+jb sfs_inflate_fichier_verifpoint_ok
+
+
+;si oui on libère de la place dans la ZT de sortie
+mov edx,20000h ;par bloc de 128Ko c'est mieux
+
+;sauvegarde
+push ebx
+push ecx
+push edx
+push esi
+mov esi,ebx
+mov eax,5
+mov ebx,[esi+arbre_inflate_fichier2]
+mov ecx,edx
+mov edx,[esi+arbre_inflate_adresse2]
+add esi,arbre_inflate_zt2
+int 64h
+pop esi
+pop edx
+pop ecx
+pop ebx
+cmp eax,0
+jne sfs_inflate_fichier_verifpoint_erreur
+
+
+;décale les données conservé
+push ecx
+push esi
+push edi
+mov esi,ebx
+mov edi,ebx
+add esi,arbre_inflate_zt2 
+add edi,arbre_inflate_zt2 
+add esi,edx
+mov ecx,arbre_inflate_zt_to
+sub ecx,edx
+cld
+rep movsb
+pop edi
+pop esi
+pop ecx
+
+;met a jour les pointeurs
+add [ebx+arbre_inflate_adresse2],edx
+sub edi,edx
+
+sfs_inflate_fichier_verifpoint_ok:
+xor eax,eax
+sfs_inflate_fichier_verifpoint_erreur:
+ret
 
 
