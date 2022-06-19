@@ -114,23 +114,16 @@ zt_disquette equ 14200h          ;zone tampon pour la lecture de secteur sur la 
 bootsecteur equ 14400h           ;zone tampon de lecture du MBR et descripteur GPT, du premier secteur d'une partition, et d'un decripteur de CD
 secteurcd equ 14800h             ;zt pour la lecture partielle de secteur CD
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+ad_table_ecran equ 15000h ;4Kibi 128*32
+table_ecran_id equ ad_table_ecran + 0 ;id de la tache  qui possède l'ecran
+table_ecran_ne equ ad_table_ecran + 2 ;numeros de l'ecran a qui appartien la fenetre
+table_ecran_ad equ ad_table_ecran + 4 ;adresse de la tache  qui possède l'ecran
+table_ecran_x1 equ ad_table_ecran + 8 ;coordonnée ecran
+table_ecran_x2 equ ad_table_ecran + 12 
+table_ecran_y1 equ ad_table_ecran + 16
+table_ecran_y2 equ ad_table_ecran + 20
 
 ad_descp      equ 16000h ;8kibi 128*64
-
-
 
 ad_table_exec equ 18000h ;table d'orde d'execution des taches constitué des élément suivant:
 table_exec_id  equ ad_table_exec + 0  ;id de la tache
@@ -688,6 +681,7 @@ at_console equ 00h
       ;b1=mode graphique actif
       ;b2=souris ative
       ;b3=pas de maj ecran obligatoire après appel fonction int 63h
+      ;b4=caracteristique ecran réel changé
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch
@@ -705,6 +699,15 @@ resy_texte equ 3Ah
 octet_ligne equ 3Ch
 bit_pixel equ 3Eh 
 octet_pixel equ 3Fh
+;caractéristique écran réel
+r_resx_ecran equ 40h
+r_resy_ecran equ 42h
+r_resx_texte equ 44h
+r_resy_texte equ 48h
+r_octet_ligne equ 4Ah
+r_bit_pixel equ 4Ch 
+r_octet_pixel equ 4Dh
+
 ad_res_console equ 100h  ;adresse reservé
 
 

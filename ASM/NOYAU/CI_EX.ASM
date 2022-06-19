@@ -1,7 +1,9 @@
 cmdex_nom_script equ 0
-cmdex_handle_script equ 512
-cmdex_taille_script equ 516
-cmdex_zone_tampon equ 524
+cmdex_taches_attente equ 512
+cmdex_handle_script equ 1024
+cmdex_taille_script equ 1028
+cmdex_option_exec equ 1036
+cmdex_zone_tampon equ 1040
 
 ;change la taille de la zone mémoire
 mov al,8
@@ -29,6 +31,18 @@ int 64h
 cmp eax,0
 jne erreur_autres_cmdex
 mov [cmdex_handle_script],ebx
+
+
+mov al,5       ;test si la commande vrac est activé
+mov ah,"v"
+mov cl,0 ;0=256 octet max
+mov edx,cmdex_zone_tampon
+int 61h
+cmp eax,0
+jne @f
+or byte[cmdex_option_exec],1
+@@:
+
 
 ;lit la taille du fichier
 mov al,6
@@ -158,6 +172,22 @@ je attente_ligne_script
 mov edx,edi ;envoie la commande au systeme
 mov al,0
 int 61h
+
+
+test byte[cmdex_option_exec],01h
+jnz ignore_ligne_script
+
+@@:
+mov al,19
+mov cl,128
+mov edx,cmdex_taches_attente
+mov word[edx],0
+int 61h
+cmp word[cmdex_taches_attente],0
+je ignore_ligne_script
+int 62h
+jmp @b
+
 
 ignore_ligne_script:
 ret

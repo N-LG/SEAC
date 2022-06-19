@@ -1344,9 +1344,9 @@ mov dword[esi+60],0
 mov word[ad_ztcmd+0],0
 mov dword[ad_ztcmd+2],"ex c"   ;commande initiale: execution du script d'amorçage
 mov dword[ad_ztcmd+6],"fg.s"
-mov byte[ad_ztcmd+10],"h"
-mov byte[ad_ztcmd+11],0
-mov word[to_ztcmd],12
+mov dword[ad_ztcmd+10],"h -v"
+mov byte[ad_ztcmd+14],0
+mov word[to_ztcmd],15
 
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
@@ -1823,7 +1823,7 @@ mov [cu_cce],di
 jmp majafcsl
 
 
-
+;change l'ecran affiché
 touchefx:
 xor ebx,ebx
 mov bl,al

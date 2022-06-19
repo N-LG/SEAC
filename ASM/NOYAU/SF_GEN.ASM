@@ -18,6 +18,7 @@
 ;al=16  lire les données dans la zone de copier/coller
 ;al=17  effacer la zone de copier/coller
 ;al=18  lire le dossier de travail en cours
+;al=19  recherche les taches que l'on as créer
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -87,6 +88,9 @@ cmp al,17
 je sfs_sup_copiercoller
 cmp al,18
 je sfs_lire_dossier
+cmp al,19
+je sfs_rech_cree
+
 
 cmp al,100
 je conv_cdeci_reg
@@ -1283,8 +1287,6 @@ iret
 
 
 
-
-
 ;*******************************************
 ;suppression données coper coller
 sfs_sup_copiercoller:
@@ -1301,10 +1303,6 @@ fin_sfs_sup_copiercoller:
 pop ds
 popad
 iret
-
-
-
-
 
 
 
@@ -1334,7 +1332,54 @@ iret
 
 
 
+;**********************
+sfs_rech_cree:      ;recherche toutes les tache que l'on a créer
+pushad              ;cl=nombre de tache a rechercher ds:edx=adresse ou ecrire la liste des taches
+push es
 
+mov esi,edx
+
+;attend que toutes les taches ait été créer
+mov bx,seldat
+mov es,bx
+@@:
+int 62h
+cmp word[to_ztcmd],0
+jne @b
+es
+mov dx,[id_tache_exec]
+
+mov bx,selramh
+mov es,bx
+xor ebx,ebx
+
+boucle_sfs_rech_cree:
+es
+cmp byte [ebx+type_dm],'F'
+je fin_sfs_rech_cree
+es
+cmp byte [ebx+type_dm],'T'
+jne ignore_sfs_rech_cree
+es
+cmp [ebx+id_maitre],dx
+jne ignore_sfs_rech_cree
+es
+mov ax,[ebx+id_tache]
+mov [esi],ax
+dec cl
+jz fin_sfs_rech_cree
+add esi,2
+
+ignore_sfs_rech_cree:
+es
+mov ecx,[ebx+to_tache]
+add ebx,ecx
+jmp boucle_sfs_rech_cree
+
+fin_sfs_rech_cree:
+pop es
+popad
+iret
 
 
 
