@@ -161,12 +161,20 @@ int 60h
 
 ;**********************************************************************************************************
 pkzip:
+;agrandit la ZT pour avoir 1Mo de zone de transfert
+mov al,8
+mov ecx,zt_transfert+100000h
+mov dx,sel_dat1
+int 61h
+cmp eax,0
+jne erreur_manque_mem
+
 mov dword[index_fichier],0
 call signal_debut
 
 boucle_pkzip:
-mov ebx,[handle_1]  ;lit les 32 premier octets 
-mov ecx,32
+mov ebx,[handle_1]  ;lit les 512 premier octets 
+mov ecx,512
 mov edx,[index_fichier]
 mov edi,chaine_temporaire
 mov al,4
@@ -176,8 +184,6 @@ jne erreur_lecture_archive
 
 cmp dword[chaine_temporaire],04034B50h
 jne fin_ok
-
-
 
 mov ebx,[handle_1]  ;lit le nom
 xor ecx,ecx
@@ -194,29 +200,140 @@ mov bx,[chaine_temporaire+1Ah]  ;taille du nom
 mov byte[nom_2+ebx],0
 
 
-;réserve une ZT suffisante
-mov ecx,[chaine_temporaire+12h]
-add ecx,[chaine_temporaire+16h]
-add ecx,4
-cmp ecx,0
-je suite2_boucle_pkzip
-cmp ecx,[taille_zt]
-jbe @f
-mov [taille_zt],ecx
-mov al,8   ;agrandit la zone de transfert si besoin
-add ecx,zt_transfert
-mov dx,sel_dat1
-int 61h
-cmp eax,0
-jne erreur_manque_mem
-@@:
-
 mov dword[taille_2],0
 mov dword[taille_2+4],0
 call cree_fichier
 cmp eax,0
 jne  pkzip_err_cre
 
+;test si la taille de zt est suffisante
+mov ecx,[chaine_temporaire+12h] ;taille compressé
+add ecx,[chaine_temporaire+16h] ;taille décompressé
+cmp ecx,100000h
+jb pkzip_petite_taille
+
+
+
+;************************
+cmp word[chaine_temporaire+8],0   ;sans compression
+je pkzip_type0g
+cmp word[chaine_temporaire+8],8   ;compression deflate (rfc1951)
+je pkzip_type8g
+jmp pkzip_inc
+
+;***********
+pkzip_type0g:
+xor edx,edx
+xor eax,eax
+mov dx,[chaine_temporaire+1Ch]  ;taille du champ extra
+mov ax,[chaine_temporaire+1Ah]  ;taille du nom
+add edx,[index_fichier]
+add edx,1Eh
+add edx,eax  
+mov ecx,[chaine_temporaire+12h]
+xor ebp,ebp ;ecx=taille du fichier edx=pointeur dans l'archive ebp=pointeur dans le fichier
+
+
+pkzip_type0g_boucle:
+;test si il rest moin d'un MO a ecrire
+cmp ecx,100000h
+jbe pkzip_type0g_fin_fichier
+
+
+;lit 1MO
+push ecx
+mov al,4
+mov ebx,[handle_1]
+mov ecx,100000h
+mov edi,zt_transfert
+int 64h
+pop ecx
+cmp eax,0
+jne pkzip_err_lec 
+
+
+;copie dans la destination ce MO
+push ecx
+push edx
+mov al,5
+mov ebx,[handle_2]
+mov ecx,100000h
+mov edx,ebp
+mov esi,zt_transfert
+int 64h
+pop edx
+pop ecx
+cmp eax,0
+jne pkzip_err_ecr
+
+
+add edx,100000h
+add ebp,100000h
+sub ecx,100000h
+jmp pkzip_type0g_boucle
+
+
+pkzip_type0g_fin_fichier:
+;lit le reste du fichier
+mov al,4
+mov ebx,[handle_1]
+mov edi,zt_transfert
+int 64h
+cmp eax,0
+jne pkzip_err_lec
+
+
+;ecrire les données
+push edx
+mov al,5
+mov ebx,[handle_2]
+mov edx,ebp
+mov esi,zt_transfert
+int 64h
+pop edx
+cmp eax,0
+jne pkzip_err_ecr
+
+
+;fermer le fichier
+mov ebx,[handle_2]
+mov al,1
+int 64h
+
+call signal_decomp_ok
+jmp suite_boucle_pkzip
+
+
+
+;***********
+pkzip_type8g:
+xor edx,edx
+xor eax,eax
+mov dx,[chaine_temporaire+1Ch]  ;taille du champ extra
+mov ax,[chaine_temporaire+1Ah]  ;taille du nom
+add edx,[index_fichier]
+add edx,1Eh
+add edx,eax  ;edx=position des données dans l'archive
+
+mov eax,153
+mov esi,[handle_1]
+mov edi,[handle_2]
+int 61h
+cmp eax,0
+jne pkzip_err_dec
+
+
+;fermer le fichier
+mov ebx,[handle_2]
+mov al,1
+int 64h
+
+call signal_decomp_ok
+jmp suite_boucle_pkzip
+
+
+;***********************
+pkzip_petite_taille:
 ;lire les données
 mov ebx,[handle_1]  
 mov ecx,[chaine_temporaire+12h]
@@ -235,11 +352,12 @@ jne pkzip_err_lec
 
 
 cmp word[chaine_temporaire+8],0   ;sans compression
-je pkzip_type0
+je pkzip_type0r
 cmp word[chaine_temporaire+8],8   ;compression deflate (rfc1951)
-je pkzip_type8
+je pkzip_type8r
 
-
+;***********
+pkzip_inc:
 mov edx,msg_erreur_deco1  ;type de compression non reconnu
 mov al,6
 int 61h
@@ -260,16 +378,16 @@ int 61h
 mov edx,msg_erreur_deco3
 mov al,6
 int 61h
-jmp suite2_boucle_pkzip
-
-
-pkzip_type0:
-mov esi,zt_transfert
 jmp suite_boucle_pkzip
+
+;***********
+pkzip_type0r:
+mov esi,zt_transfert
+jmp suiteg_boucle_pkzip
 
 
 ;*********
-pkzip_type8:
+pkzip_type8r:
 mov edi,zt_transfert
 mov esi,zt_transfert
 add edi,[chaine_temporaire+12h]
@@ -282,7 +400,7 @@ mov esi,zt_transfert
 add esi,[chaine_temporaire+12h]
 
 
-suite_boucle_pkzip:
+suiteg_boucle_pkzip:
 ;ecrire les données
 mov ebx,[handle_2]
 mov ecx,[chaine_temporaire+16h]
@@ -299,7 +417,7 @@ int 64h
 
 call signal_decomp_ok
 
-suite2_boucle_pkzip:
+suite_boucle_pkzip:
 mov eax,[chaine_temporaire+12h] ;taille compressé
 xor ebx,ebx
 xor ecx,ecx
@@ -313,8 +431,7 @@ jmp boucle_pkzip
 
 
 
-
-
+;****************
 pkzip_err_cre:
 mov edx,msg_erreur_cre1
 mov al,6
@@ -325,7 +442,7 @@ int 61h
 mov edx,msg_erreur_cre2
 mov al,6
 int 61h
-jmp suite2_boucle_pkzip
+jmp suite_boucle_pkzip
 
 pkzip_err_lec:
 mov edx,msg_erreur_lec1
@@ -337,7 +454,7 @@ int 61h
 mov edx,msg_erreur_lec2
 mov al,6
 int 61h
-jmp suite2_boucle_pkzip
+jmp suite_boucle_pkzip
 
 
 pkzip_err_dec:
@@ -350,7 +467,7 @@ int 61h
 mov edx,msg_erreur_dec2
 mov al,6
 int 61h
-jmp suite2_boucle_pkzip
+jmp suite_boucle_pkzip
 
 
 pkzip_err_ecr:
@@ -363,7 +480,7 @@ int 61h
 mov edx,msg_erreur_ecr2
 mov al,6
 int 61h
-jmp suite2_boucle_pkzip
+jmp suite_boucle_pkzip
 
 
 
@@ -485,6 +602,10 @@ int 61h
 cmp eax,0
 jne gzip_err_dec
 
+;fermer le fichier
+mov ebx,[handle_2]
+mov al,1
+int 64h
 call signal_decomp_ok
 
 add esi,8
@@ -541,7 +662,7 @@ int 60h
 
 ;**********************************************************************************************************
 tar:
-;agrandit la ZT pour avoir 1Mo
+;agrandit la ZT pour avoir 1Mo de zone de transfert
 mov al,8
 mov ecx,zt_transfert+100000h
 mov dx,sel_dat1
@@ -763,17 +884,6 @@ mov edx,msg_erreur_lec2
 mov al,6
 int 61h
 int 60h
-
-
-
-
-
-
-
-
-
-
-
 
 
 
