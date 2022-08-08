@@ -1024,15 +1024,6 @@ int 61h
 test ecx,0FFFF0000h
 jnz fin_commande_erreur_param
 
-
-cmp [id_tache_af],cx
-jne pas_af_stop
-mov byte[nb_zrc],0
-mov word[id_tache_af],0
-mov dword[ad_tache_af],0
-or byte[at_vid],01h ;signale que l'affichage doit être mis a jour
-pas_af_stop:
-
 ;recherche la zone mémoire qui correspond a l'ID
 mov ax,selramh
 mov es,ax
@@ -1056,6 +1047,11 @@ add ebx,eax
 jmp boucle_stop
 
 stop_tache_trouv:
+
+
+;supprime l'écran
+mov dx,cx
+call sfv_sf_ferme_console
 
 ;supprime le descripteur de la LDT
 es
@@ -1107,6 +1103,12 @@ mov ds,ax
 mov ax,selramh
 mov es,ax
 mov ebx,[ad_tache_exec]
+
+
+;supprime l'écran
+mov dx,[id_tache_exec]
+call sfv_sf_ferme_console
+
 
 ;supprime le descripteur de la LDT
 es
@@ -1196,14 +1198,15 @@ jne boucle_efface_canauxcom
 ;********************************
 mov ax,seldat   ;test si l'affichage était reglé sur la tache stoppé, si oui revien a l'affichage tache 0
 mov ds,ax
-cmp [id_tache_af],cx
+;???????????????????????????????????????????????debut
+;cmp [id_tache_af],cx
 jne pas_bascule_affichage
 mov byte[nb_zrc],0
-mov word[id_tache_af],0
-mov dword[ad_tache_af],0
+;mov word[id_tache_af],0
+;mov dword[ad_tache_af],0
 pas_bascule_affichage:
 or byte[at_csl],0Fh ;signale que l'affichage doit être mis a jour
-
+;???????????????????????????????????????????????fin
 
 
 ;*************************************

@@ -115,7 +115,7 @@ jmp afmsg
 messagerreur:
 db 10,13,"erreur de lecture...",0
 messageok:
-db 10,13,"lancement ok sur la disquette",0
+db 10,13,"lancement ok sur disque amovible",0
 
 
 

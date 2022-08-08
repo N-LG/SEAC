@@ -3415,8 +3415,7 @@ mov dword[esi+zsata_liste+28],0
 
 call fin_ahci
 cmp eax,0
-jne tempotrappe
-;jne fin2_liresecteursata
+jne fin2_liresecteursata
 
 ;recopie les données
 mov ax,selramh
@@ -3431,55 +3430,7 @@ xor eax,eax
 jmp fin2_liresecteursata
 
 
-tempotrappe:
-pushad
-mov al,"+"
-call affcj
-gs
-mov ebx,[esi+zsata_ad_port]
-gs
-mov eax,[ebx+18h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+20h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+24h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+28h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+2Ch]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+30h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+34h]
-call affh2j
-mov al,"+"
-call affcj
-gs
-mov eax,[ebx+38h]
-call affh2j
 
-mov al,13
-call affcj
-popad
-jmp fin2_liresecteursata
 
 
 ;**************************************************************
@@ -3656,8 +3607,7 @@ sff_lit_tailledisque_atapi:
 call selection_ata
 jc errlecnt
 
-mov al,"A"
-call affcj
+
 
 ;fs
 ;mov byte[zt_clefusb],025h  ;commande read format capacity

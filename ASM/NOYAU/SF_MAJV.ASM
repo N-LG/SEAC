@@ -6,10 +6,17 @@ mov gs,ax
 fs
 or byte[at_vid],08h
 
+fs
+mov byte[trappe_tache0],50
+
 ;*********************************************************
 majv_charge_seg_csl:     ;charge le bon segment de mémoire relatif a la console
+xor esi,esi
 fs
-cmp word[id_tache_af],0
+mov si,[no_ecran]
+shl esi,5
+fs
+cmp word[esi+table_ecran_id],0
 jne majv_tache
 mov dx,selconsole
 mov ds,dx 
@@ -22,7 +29,7 @@ mov ax,selgdt
 mov ds,ax
 
 fs
-mov ebx,[ad_tache_af]
+mov ebx,[esi+table_ecran_ad]
 gs
 mov ax,[ebx+sel_ecranv]
 and eax,0FFF8h
@@ -58,7 +65,8 @@ mov [bm_clavier+8],ecx
 mov [bm_clavier+12],edx
 fs
 mov eax,[xs1]
-mov [posx_souris],eax
+mov [posx_souris],eax             ;????????????????????a changer lors du multiecran
+
 
 ;***************************************************
 majv_test_action:
@@ -70,83 +78,116 @@ jb majv_juste_souris
 add eax,25
 fs
 mov [majv_dern],eax
-fs                      ;test si on doit mettre a jour l'écran
-test byte[at_vid],01h
-jnz maj_complete
+                     
+test byte[at_console],010h  ;test si on doit mettre a jour l'écran
+jz majv_juste_souris
+and byte[at_console],0EFh
 fs
-test byte[at_vid],02h
-jnz majv_partielle      ;mise a jour partielle
-majv_juste_souris:
+or byte[at_vid],01
 fs
-test byte[atts1],01h
-jz fin_majv
-test byte[at_console],04h
-jz fin_majv
-fs
-mov eax,[xs1]
-fs
-cmp [axs1],eax
-je fin_majv
+mov byte[trappe_tache0],51
 
-;********************************************************
-fs
-cmp byte[bitpp],0
-je majv_souris_texte
 
-xor eax,eax  ;on met a jour uniquement l'affichage souris
-xor ebx,ebx
+;charge les coordonnée de mise a jour
+xor eax,eax
+mov ax,[dmaj_xdeb]
+fs
+mov [majv_xdeb],ax
+mov ax,[dmaj_xfin]
+fs
+mov [majv_xfin],ax
+mov ax,[dmaj_ydeb]
+fs
+mov [majv_ydeb],ax
+mov ax,[dmaj_yfin]
+fs
+mov [majv_yfin],ax
+
+
+
+;ajuste les parametre de la mise a jour si c'est hors limite
 xor ecx,ecx
 fs
-mov ax,[axs1]
+mov cx,[resy]
 fs
-mov bx,[ays1]
+cmp [majv_yfin],ecx
+jb majv_ok_yfin 
 fs
-mov dword[majv_xdeb],eax
+mov [majv_yfin],ecx
+majv_ok_yfin:
+dec ecx
 fs
-mov dword[majv_ydeb],ebx
-add eax,16
-add ebx,16
+cmp [majv_ydeb],ecx
+jb majv_ok_ydeb
 fs
-mov dword[majv_xfin],eax
+mov [majv_ydeb],ecx
+majv_ok_ydeb:
+
+xor ecx,ecx
 fs
-mov dword[majv_yfin],ebx
+mov cx,[resx]
 fs
-mov eax,[xs1]
+cmp [majv_xfin],ecx
+jb majv_ok_xfin
 fs
-mov [axs1],eax
-call majv_ctrl_valeur
-jmp maj_ztverscarte
+mov [majv_xfin],ecx
+majv_ok_xfin:
+dec ecx
+fs
+cmp [majv_xdeb],ecx
+jb majv_ok_xdeb
+fs
+mov [majv_xdeb],ecx
+majv_ok_xdeb:
 
 
-;*********************************************************
-maj_complete:          ;mise a jour complete de l'écran
-fs
-and byte[at_vid],0FCh
+
+
+
+
+;********************
+;précalcule certaines variables
+
 xor eax,eax
-xor ebx,ebx
 fs
-mov ax,[resx]
+mov ax,[resxt]
+shl eax,2
 fs
-mov bx,[resy]
+mov [majv_precal_resxt],eax
 fs
-mov dword[majv_xdeb],0
+mov eax,[majv_xdeb]
+and eax,0FFFFFFF8h
+xor ecx,ecx
+xor edx,edx
 fs
-mov dword[majv_xfin],eax
+mov cx,[octpp]
+mul ecx
 fs
-mov dword[majv_ydeb],0
+mov [majv_precal_offsetx_ecran],eax
+add eax,[ad_graf]
 fs
-mov dword[majv_yfin],ebx
-call majv_ctrl_valeur
-jmp @f
+mov [majv_precal_offsetx_image],eax
 
-;**************************
-majv_partielle:
 fs
-and byte[at_vid],0FDh
-call majv_ctrl_valeur
-@@:
+mov eax,[majv_xdeb]
+fs
+mov ebx,[majv_xfin]
+and eax,0FFFFFFF8h
+sub ebx,eax
+add ebx,7
+and ebx,0FFFFFFF8h
+shr eax,1
+shr ebx,1
+add eax,[ad_texte]
+fs
+mov [majv_precal_finligne],ebx
+fs
+mov [majv_precal_debutligne],eax
 
 
+
+fs
+mov byte[trappe_tache0],52
 
 
 ;**************************************************
@@ -158,14 +199,13 @@ cmp al,2
 je majv_graph
 cmp al,3
 je majv_combi
-
-fs                          ; si il y as une erreur dans l'affichage, affiche la console
-mov word[id_tache_af],0
-fs
-mov dword[ad_tache_af],0
-fs
-mov byte[nb_zrc],0
+mov dx,0
+call sfv_sf_choix_console
 jmp fin_majv
+
+
+
+
 
 
 
@@ -176,6 +216,9 @@ majv_texte:
 fs
 cmp byte[bitpp],0
 jne majv_texte_graf
+fs
+mov byte[trappe_tache0],53
+
 
 mov ebx,[ad_texte]
 mov ebp,[to_texte]
@@ -250,41 +293,13 @@ jmp fin_majv
 
 
 
-;********************
-majv_souris_texte:
-mov ax,selvidB8
-mov es,ax
-
-;efface souris
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-xor eax,eax
-xor ebx,ebx
-xor ecx,ecx
-xor edx,edx
-fs
-mov bx,[axs1]
-fs
-mov ax,[ays1]
-fs
-mov cx,[resxt]
-shr eax,4
-shr ebx,3
-mul ecx
-add ebx,eax
-shl ebx,1
-es
-xor byte[ebx+1],7Fh
-jmp majv_affiche_souris_texte
-
-
-
 
 ;*************************************
 majv_graph:
+
+fs
+mov byte[trappe_tache0],53
+
 mov ax,selramh             ;mise a jour écran en linear frame buffer
 mov es,ax
 fs
@@ -369,6 +384,8 @@ jmp maj_ztverscarte
 
 ;*********************************************************************************************************************************
 majv_texte_graf:             ;mise a jour du texte en mode graphique
+fs
+mov byte[trappe_tache0],54
 fs
 mov eax,[majv_ydeb]
 fs
@@ -708,6 +725,7 @@ call majv_init_text_graf
 majv_carac32linear:
 call lire_ligne_carac
 
+
 fs
 mov eax,[couleur_fond]  
 shl dl,1
@@ -806,6 +824,8 @@ jmp maj_ztverscarte
 
 ;******************************************************************************************************************************************
 majv_combi:             ;mise a jour du mode combiné
+fs
+mov byte[trappe_tache0],55
 fs
 mov eax,[majv_ydeb]
 fs
@@ -1211,16 +1231,105 @@ mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
 jne majv_combi32linear
-;jmp maj_ztverscarte
+jmp maj_ztverscarte
 
 
 
 
 
 
+;***************************************************************************************************
+;***************************************************************************************************
+majv_juste_souris:
+fs
+mov eax,[axs1]
+fs
+cmp [xs1],eax
+je fin_majv
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+fs
+or byte[at_vid],02
 
-;****************************************************************************************************************************************
+fs
+cmp byte[bitpp],0
+jne majv_souris_graphique
+
+;***********************
+;souris en mode texte
+mov ax,selvidB8
+mov es,ax
+
+;efface souris
+
+fs
+test byte[atts1],01h
+jz fin_majv
+xor eax,eax
+xor ebx,ebx
+xor ecx,ecx
+xor edx,edx
+fs
+mov bx,[axs1]
+fs
+mov ax,[ays1]
+fs
+mov cx,[resxt]
+shr eax,4
+shr ebx,3
+mul ecx
+add ebx,eax
+shl ebx,1
+es
+xor byte[ebx+1],7Fh
+jmp majv_affiche_souris_texte
+
+
+
+;*********************************
+majv_souris_graphique:
+xor eax,eax
+xor ebx,ebx
+fs
+mov ax,[axs1]
+fs
+mov bx,[ays1]
+fs
+mov [majv_xdeb],eax
+fs
+mov [majv_ydeb],ebx
+add eax,16
+add ebx,16
+fs
+mov [majv_xfin],eax
+fs
+mov [majv_yfin],ebx
+
+
+
+;jmp fin_majv;?????????????????????
+
+
+
+
+
 maj_ztverscarte:    ;transfert de la zone tampon a la carte
+
+
+
+
+
+
+
+
+
+
+
+
+
 push ds
 mov ax,selramh
 mov ds,ax
@@ -1267,6 +1376,28 @@ sub ecx,eax
 fs
 mov [majv_precal_offset_ligne],ecx
 
+;calcul la pause dans l'affichage souris qui permet la mise a jour de celle ci
+xor eax,eax
+fs
+mov ax,[ays1]
+add eax,16
+fs
+test byte[at_vid],02h
+jz majv_ajustement_ysouris
+fs
+cmp eax,[majv_ydeb]
+jbe majv_ajustement_ysouris 
+fs
+cmp eax,[majv_yfin]
+jb majv_fincalcul_ysouris
+
+majv_ajustement_ysouris:
+fs
+mov eax,[majv_yfin]
+majv_fincalcul_ysouris:
+fs
+mov [majv_ysouris],eax
+
 
 fs
 test word[at_vid],10h     ;test si on est en linear  
@@ -1311,7 +1442,16 @@ cmp [majv_ysouris],eax
 jne boucle_maj_ztverscarte
 
 pop ds
+
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+
 pushad
+call adresse_souris
+
 fs
 cmp byte[bitpp],32
 je majv_souris_32b_linear
@@ -1333,12 +1473,7 @@ jmp maj_ztverscarte_linear2
 
 ;*****************************
 majv_souris_8b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
+
 
 boucle_majv_souris_8b_linear:
 mov al,[esi]
@@ -1365,12 +1500,6 @@ jmp maj_ztverscarte_linear2
 
 ;*****************************
 majv_souris_16b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
 boucle_majv_souris_16b_linear:
 xor eax,eax
@@ -1400,12 +1529,7 @@ jmp maj_ztverscarte_linear2
 
 ;*****************************
 majv_souris_24b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
+
 
 boucle_majv_souris_24b_linear:
 xor eax,eax
@@ -1437,12 +1561,7 @@ jmp maj_ztverscarte_linear2
 
 ;***************************
 majv_souris_32b_linear:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
+
 
 boucle_majv_souris_32b_linear:
 xor eax,eax
@@ -1472,6 +1591,7 @@ jnz boucle_majv_souris_32b_linear
 ;********************************
 maj_ztverscarte_linear2:
 popad
+
 fs
 mov eax,[majv_yfin]
 fs
@@ -1575,6 +1695,15 @@ jne boucle_maj_ztverscarte_banked
 
 
 pop ds
+test byte[at_console],04h
+jz fin_majv
+fs
+test byte[atts1],01h
+jz fin_majv
+pushad
+call adresse_souris
+
+
 fs
 cmp byte[bitpp],32
 je majv_souris_32b_banked
@@ -1597,12 +1726,6 @@ jmp maj_ztverscarte_banked2
 
 ;***************************************
 majv_souris_8b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
 boucle_majv_souris_8b_banked:
 mov al,[esi]
@@ -1630,12 +1753,6 @@ jmp maj_ztverscarte_banked2
 
 ;*****************************
 majv_souris_16b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
 boucle_majv_souris_16b_banked:
 xor eax,eax
@@ -1666,12 +1783,6 @@ jmp maj_ztverscarte_banked2
 
 ;*****************************
 majv_souris_24b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
 boucle_majv_souris_24b_banked:
 xor eax,eax
@@ -1711,12 +1822,6 @@ jmp maj_ztverscarte_banked2
 
 ;*****************************
 majv_souris_32b_banked:
-test byte[at_console],04h
-jz fin_majv
-fs
-test byte[atts1],01h
-jz fin_majv
-call adresse_souris
 
 boucle_majv_souris_32b_banked:
 xor eax,eax
@@ -2017,103 +2122,6 @@ ret
 
 
 
-;***********************************************************
-majv_ctrl_valeur:          ;controle que les parametres ne débordent pas des valeurs admissibles
-xor ecx,ecx
-fs
-mov cx,[resy]
-fs
-cmp [majv_yfin],ecx
-jb majv_ok_yfin 
-fs
-mov [majv_yfin],ecx
-majv_ok_yfin:
-dec ecx
-fs
-cmp [majv_ydeb],ecx
-jb majv_ok_ydeb
-fs
-mov [majv_ydeb],ecx
-majv_ok_ydeb:
-
-xor ecx,ecx
-fs
-mov cx,[resx]
-fs
-cmp [majv_xfin],ecx
-jb majv_ok_xfin
-fs
-mov [majv_xfin],ecx
-majv_ok_xfin:
-
-
-;calcule a quelle ligne il faut faire une pause pour afficher la souris (si existante)
-fs
-test byte[atts1],01h
-jz majv_aj_ysouris
-test byte[at_console],04h
-jz majv_aj_ysouris
-
-xor eax,eax
-fs
-mov ax,[ays1]
-add eax,16
-fs
-cmp eax,[majv_ydeb]
-jbe majv_aj_ysouris 
-fs
-cmp eax,[majv_yfin]
-jb majv_ok_ysouris 
-majv_aj_ysouris:
-fs
-mov eax,[majv_yfin]
-majv_ok_ysouris:
-fs
-mov [majv_ysouris],eax
-
-
-;********************
-;précalcule certaines variables
-mov ax,selramh
-mov es,ax
-
-xor eax,eax
-fs
-mov ax,[resxt]
-shl eax,2
-fs
-mov [majv_precal_resxt],eax
-
-fs
-mov eax,[majv_xdeb]
-and eax,0FFFFFFF8h
-xor ecx,ecx
-xor edx,edx
-fs
-mov cx,[octpp]
-mul ecx
-fs
-mov [majv_precal_offsetx_ecran],eax
-add eax,[ad_graf]
-fs
-mov [majv_precal_offsetx_image],eax
-
-fs
-mov eax,[majv_xdeb]
-fs
-mov ebx,[majv_xfin]
-and eax,0FFFFFFF8h
-sub ebx,eax
-add ebx,7
-and ebx,0FFFFFFF8h
-shr eax,1
-shr ebx,1
-add eax,[ad_texte]
-fs
-mov [majv_precal_finligne],ebx
-fs
-mov [majv_precal_debutligne],eax
-ret
 
 
 
@@ -2351,6 +2359,10 @@ add ebx,[majv_precal_debutligne]    ;ebx=pointeur sur la zone texte
 fs
 mov ebp,[majv_precal_finligne]
 add ebp,ebx         ;ebp=adresse max pour la ligne
+
+mov ax,selramh
+mov es,ax
+
 ret
 
 
@@ -2359,11 +2371,13 @@ ret
 
 ;***********************************************************
 adresse_souris:
-xor eax,eax
 xor ecx,ecx
 xor edx,edx
 fs
-mov ax,[axs1]
+mov eax,[xs1]
+fs
+mov [axs1],eax
+and eax,0FFFFh
 fs
 mov cx,[octpp]
 mul ecx
@@ -2372,7 +2386,7 @@ xor eax,eax
 xor ecx,ecx
 xor edx,edx
 fs
-mov ax,[ays1]
+mov ax,[ys1]
 fs
 mov cx,[octpl]        ;ecx=octet par ligne
 mul ecx
@@ -2448,10 +2462,38 @@ mov ds,dx
 mov dl,02h       ;segment de données ring 0
 call creeds
 
+
+
+
+
+
 mov dx,selconsole
 mov ds,dx  
+mov ax,seldat
+mov es,ax
 
 mov word[at_console],05h     ;texte+curseur souris
+
+
+
+es
+mov ax,[resx]
+es
+mov bx,[resy]
+mov [resx_ecran],ax
+mov [resy_ecran],bx
+shr ax,3
+shr bx,4
+mov [resx_texte],ax
+mov [resy_texte],bx
+
+
+;octet_ligne equ 3Ch ???????????????????????????????????????????????
+;bit_pixel equ 3Eh 
+;octet_pixel equ 3Fh
+
+
+
 
 pop eax
 mov [to_texte],eax
@@ -2459,6 +2501,7 @@ mov dword[ad_texte],ad_res_console
 mov dword[ad_curseur_texte],ad_res_console
 add eax,ad_res_console
 mov [ad_curseur],eax
+
 
 mov edi,eax    ;copie la souris par défaut
 mov esi,ad_curseur_defaut
@@ -2471,6 +2514,9 @@ cld
 rep movsd
 pop es
 pop ds
+
+
+
 
 
 ;****************reserve la zone tampon écran
@@ -2516,7 +2562,7 @@ ret
 
 fin_majv:
 fs
-and byte[at_vid],0F7h
+and byte[at_vid],0F0h
 
 fs                ;met a jour le bitmap clavier
 mov eax,[atbp]

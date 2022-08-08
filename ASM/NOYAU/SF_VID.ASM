@@ -101,14 +101,16 @@ sfv_ouvre_console:    ;ouvre une nouvelle console dans le systeme dx=segment de 
 push ebx
 push ecx
 push edx
+push esi
+push edi
 push ds
 push es
 push fs
 
 mov bx,seldat
-mov fs,bx
-mov bx,selramh
 mov es,bx
+mov bx,selramh
+mov fs,bx
 
 mov bl,ah
 and bl,0Fh
@@ -118,7 +120,7 @@ jz fin_sfv_ouvre_console
 
 test bl,10b          ;vérifie que l'on est en mode graphique si on demande un écran graphique
 jz pasmodegraf_sfv_ouvre_console 
-fs
+es
 cmp byte[bitpp],0
 jne pasmodegraf_sfv_ouvre_console 
 mov eax,cer_eabs
@@ -139,15 +141,15 @@ bt word[at_console],0
 jnc ig_texte_sfv_ouvre_console
 xor ecx,ecx
 xor edx,edx
-fs
+es
 mov ax,[resxt]
-fs
+es
 mov cx,[resyt]
 
-fs
+es
 cmp byte[bitpp],0
 je noaj_ouvre_console
-fs
+es
 test word[resy],0Fh ;test si on a pas un multiple de 16 en resolution verticale
 jz noaj_ouvre_console
 inc cx             ;si oui rajoute une ligne de texte
@@ -163,9 +165,9 @@ bt word[at_console],1
 jnc ig_graf_sfv_ouvre_console
 xor ecx,ecx
 xor edx,edx
-fs
+es
 mov ax,[resy]
-fs
+es
 mov cx,[octpl]
 mul ecx
 ig_graf_sfv_ouvre_console:    
@@ -189,16 +191,16 @@ cmp eax,0
 jne fin_sfv_ouvre_console
 
 sti
-fs
-mov ebx,[ad_tache_exec]
 es
+mov ebx,[ad_tache_exec]
+fs
 mov [ebx+sel_ecranv],ds
 
-fs               ;ecrit les infos de base
+es               ;ecrit les infos de base
 mov eax,[resx]
-fs
+es
 mov ecx,[resxt]
-fs
+es
 mov edx,[octpl]
 mov [resx_ecran],eax
 mov [resx_texte],ecx 
@@ -218,39 +220,50 @@ jnz boucle_sfv_ouvre_console
 ;copie la souris par défaut
 mov edi,[ad_curseur]
 mov esi,ad_curseur_defaut
-push ds
-push es
+
 mov ax,seldat
 mov cx,ds
 mov ds,ax
 mov es,cx
-mov ecx,256
+mov ecx,64
 cld
-rep movsb
-pop es
-pop ds
+rep movsd
 
 
+;décale les descripteurs d'écran
+mov bx,seldat
+mov es,bx
+xor ecx,ecx
+mov cx,[nb_ecran]
+shl ecx,5 
+lea esi,[ad_table_ecran-4+ecx]
+lea edi,[ad_table_ecran+28+ecx]
+shr ecx,2
+std
+rep movsd
 
-es                     ;active l'ecran
-mov ax,[ebx+id_tache]
-fs
-mov [id_tache_af],ax
-fs
-mov [ad_tache_af],ebx
-fs
-or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage
-fs
+
+;et cree le nouveau descripteur
+mov ax,[id_tache_exec]
+mov ebx,[ad_tache_exec]
+mov [table_ecran_id],ax
+mov [table_ecran_ad],ebx
+
+
+inc word[nb_ecran]
+mov word[no_ecran],0
 mov byte[nb_zrc],0    ;efface la zt de reception souris
-fs
 or byte[at_csl],03h   ;signale que la liste et le journal doit etre mis jour
 cli
 xor eax,eax
+
 
 fin_sfv_ouvre_console:
 pop fs
 pop es
 pop ds
+pop edi
+pop esi
 pop edx
 pop ecx
 pop ebx
@@ -260,21 +273,82 @@ iret
 
 ;*******************************************************************************************
 sfv_ferme_console:    ;ferme la console
-push ebp
+push dx
+push ds
+mov dx,seldat
+mov ds,dx
+mov dx,[id_tache_exec]
+call sfv_sf_ferme_console 
+pop ds
+pop dx
+iret
+
+
+sfv_sf_ferme_console: 
+pushad
 push ds
 push es
-mov bx,seldat
-mov ds,bx
-mov bx,selramh
-mov es,bx
-mov ebp,[ad_tache_exec]
+push fs
+mov cx,seldat
+mov ds,cx
+mov es,cx
+mov cx,selramh
+mov fs,cx
+
+
+;recherche dans la liste
+xor ecx,ecx
+xor eax,eax
+mov edi,table_ecran_id
+mov cx,[nb_ecran]
+@@:
+cmp [edi],dx
+je @f
+add edi,32
+inc eax
+dec ecx
+jnz @b
+jmp fin_sfv_sf_ferme_console
+@@:
+
+;enregistre la tache maitre
+mov ebx,[edi+table_ecran_ad-table_ecran_id]
+fs
+mov dx,[ebx+id_maitre]
+
+;efface de la liste
+shl ecx,3    ;x32 /4
+lea esi,[edi+32]
+cld
+rep movsd
+dec word[nb_ecran]
+
+
+;test si c'est la tache qui est actuellement affiché
+cmp ax,[no_ecran]
+jne @f
+;si oui on change de tache et on signale que la tache doit être mise a jour
+call sfv_sf_choix_console
+@@:
+
+
+
+;signal au tecop que les taches ont changé
 or byte[at_csl],03h      ;signale que la liste et le journal doit etre mis jour
-es
-mov dword[ebp+sel_ecranv],0
+
+
+fin_sfv_sf_ferme_console:
+pop fs
 pop es
 pop ds
-pop ebp
-iret
+popad
+xor eax,eax
+ret
+
+
+
+
+
 
 ;*******************************************************************************************
 sfv_info_ecran:       ;renvoie les information de dimension et de nombre de couleur dans un tableau en ds:edx (40 octets)
@@ -318,47 +392,111 @@ iret
 
 ;****************************************************************
 sfv_choix_console:
+call sfv_sf_choix_console 
+iret
+
+sfv_sf_choix_console:
 pushad
 push ds
-push fs
-mov ax,selramh
-mov ds,ax
+push es
 mov ax,seldat
-mov fs,ax
-xor ebx,ebx
+mov ds,ax
+mov es,ax
+xor ecx,ecx
+mov ebx,ad_table_ecran
+mov cx,[nb_ecran]
+xor eax,eax
+
+
+@@:
+cmp dx,[ebx]
+je @f
+add ebx,32
+inc eax
+dec ecx
+jnz @b
+
 cmp dx,0
-je sfv_choix_console0
+je erreur_sfv_choix_console
+xor ecx,ecx
+mov ebx,ad_table_ecran
+mov cx,[nb_ecran]
+xor eax,eax
+xor edx,edx
+jmp @b
 
-boucle_sfv_choix_console:
-cmp byte[ebx+type_dm],"F"
-je fin_sfv_choix_console
-cmp byte[ebx+type_dm],"T"
-jne suite_sfv_choix_console
-cmp word[ebx+sel_ecranv],0
-je suite_sfv_choix_console
-cmp [ebx+id_tache],dx
-jne suite_sfv_choix_console
 
-sfv_choix_console0:
-fs
-mov [id_tache_af],dx
-fs
-mov [ad_tache_af],ebx
-fs
-or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
-fs
-mov byte[nb_zrc],0    ;efface la zt de reception souris
-fin_sfv_choix_console:
-pop fs
+@@:
+cmp ebx,ad_table_ecran
+je ok_sfv_choix_console
+
+;sauvegarde descripteur
+mov eax,[ebx]
+mov edx,[ebx+4]
+mov esi,[ebx+8]
+mov edi,[ebx+12]
+push eax
+push edx
+push esi
+push edi
+mov eax,[ebx+16]
+mov edx,[ebx+20]
+mov esi,[ebx+24]
+mov edi,[ebx+28]
+push eax
+push edx
+push esi
+push edi
+
+
+;décalage descripteur
+mov ecx,ebx
+sub ecx,ad_table_ecran
+shr ecx,2
+mov esi,ebx
+mov edi,ebx
+sub esi,4
+add edi,28
+std
+rep movsd
+
+;replacement descripteur
+pop edi
+pop esi
+pop edx
+pop eax
+mov [ad_table_ecran+16],eax
+mov [ad_table_ecran+20],edx
+mov [ad_table_ecran+24],esi
+mov [ad_table_ecran+28],edi
+pop edi
+pop esi
+pop edx
+pop eax
+mov [ad_table_ecran],eax
+mov [ad_table_ecran+4],edx
+mov [ad_table_ecran+8],esi
+mov [ad_table_ecran+12],edi
+
+
+ok_sfv_choix_console:
+mov word[no_ecran],0  ;affiche le premier écran de la liste
+mov byte[nb_zrc],0    ;efface la zt de reception clavier/souris
+or byte[at_csl],03h      ;signale que la liste et le journal doit etre mis jour
+call majv_complet
+pop es
 pop ds
 popad
 xor eax,eax
-iret
+ret
 
-suite_sfv_choix_console:
-mov eax,[ebx+to_tache]
-add ebx,eax
-jmp boucle_sfv_choix_console
+
+erreur_sfv_choix_console:
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
 
 
 
@@ -380,8 +518,11 @@ push es
 mov ax,seldat
 mov ds,ax
 mov es,ax
-xor eax,eax          ;est ce que c'est la tache active qui demande la dernière touche?
-mov cx,[id_tache_af]
+         
+xor esi,esi   ;est ce que c'est la tache active qui demande la dernière touche?
+mov si,[no_ecran]
+shl esi,5
+mov cx,[esi+table_ecran_id]
 cmp [id_tache_exec],cx
 jne nul_obt_clav
 
@@ -908,56 +1049,158 @@ ret
 
 ;*******************************************************************************************
 sfv_majecr:     ;effectue la mise a jour complete de l'ecran
+pushad
 push ds
-mov ax,seldat
-mov ds,ax
-mov ax,[id_tache_exec]
-cmp ax,[id_tache_af]
-jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-or byte[at_vid],1
-fin_sfv_majecr:
-xor eax,eax
-pop ds
-iret
+call charge_sel_ecran
 
+xor esi,esi
+xor edi,edi
+xor ebx,ebx
+xor ecx,ecx
+mov si,[resx_ecran]
+mov di,[resy_ecran]
+jmp sfv_majecr_part2
 
 ;*********************
 sfv_majecr_part:     ;effectue la mise a jour partielle de l'ecran
 		     ;ebx,ecx=coordonnée coin sup gauche
  		     ;esi,edi=coordonné coin inf droite
-
+pushad
 push ds
-mov ax,seldat
-mov ds,ax
-mov ax,[id_tache_exec]
-cmp ax,[id_tache_af]
-jne fin_sfv_majecr    ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-or byte[at_vid],2
-mov dword[majv_xdeb],ebx
-mov dword[majv_ydeb],ecx
-mov dword[majv_xfin],esi
-mov dword[majv_yfin],edi
+call charge_sel_ecran
 
-xor eax,eax
+sfv_majecr_part2:
+mov dword[dmaj_xdeb],ebx
+mov dword[dmaj_ydeb],ecx
+mov dword[dmaj_xfin],esi
+mov dword[dmaj_yfin],edi
+or byte[at_console],10h
 pop ds
+popad
+xor eax,eax
 iret
 
 
+;****************
+charge_sel_ecran:
+mov ax,seldat
+mov ds,ax
+cmp word[id_tache_exec],0
+je charge_sel_ecran0 
+mov edx,[ad_tache_exec]
+mov ax,selramh
+mov ds,ax
+mov ax,[edx+sel_ecranv]
+mov ds,ax
+ret
 
+charge_sel_ecran0:
+mov ax,selconsole
+mov ds,ax
+ret
+
+;*****************
+majv_complet:
+pushad
+push ds
+mov ax,seldat
+mov ds,ax
+;pushad
+;mov al,"t"
+;call affcj
+;popad
+
+xor ebx,ebx
+mov bx,[no_ecran]
+shl ebx,5
+cmp word[ebx+table_ecran_id],0
+je tache0_majv_complet 
+mov esi,[ebx+table_ecran_ad]
+mov ax,selramh
+mov ds,ax
+cmp word[esi+sel_ecranv],sel_dat1
+je sel1_majv_complet
+cmp word[esi+sel_ecranv],sel_dat2
+je sel2_majv_complet
+cmp word[esi+sel_ecranv],sel_dat3
+je sel3_majv_complet
+cmp word[esi+sel_ecranv],sel_dat4
+je sel4_majv_complet
+pop ds
+popad
+ret
+
+sel1_majv_complet:
+mov ebx,esi
+add ebx,[esi+ad_data1_dt]
+jmp suite_majv_complet
+
+sel2_majv_complet:
+mov ebx,esi
+add ebx,[esi+ad_data2_dt]
+jmp suite_majv_complet
+
+sel3_majv_complet:
+mov ebx,esi
+add ebx,[esi+ad_data3_dt]
+jmp suite_majv_complet
+
+sel4_majv_complet:
+mov ebx,esi
+add ebx,[esi+ad_data4_dt]
+jmp suite_majv_complet
+
+tache0_majv_complet:
+mov ebx,[ad_console0]
+mov ax,selramh
+mov ds,ax
+
+suite_majv_complet:
+xor esi,esi
+xor edi,edi
+mov si,[ebx+resx_ecran]
+mov di,[ebx+resy_ecran]
+mov dword[ebx+dmaj_xdeb],0
+mov dword[ebx+dmaj_ydeb],0
+mov dword[ebx+dmaj_xfin],esi
+mov dword[ebx+dmaj_yfin],edi
+or byte[ebx+at_console],10h
+pop ds
+popad
+ret
+
+
+
+
+
+
+
+
+;*********
 sigmajv:
 push eax
+push ebx
 es
 test byte[at_console],08h
-jnz fin_sigmajv
-fs
-mov ax,[id_tache_exec]
-fs
-cmp ax,[id_tache_af]
-jne fin_sigmajv     ;on ne demande pas de mise a jour ecran si on est pas la tache affiché
-fs
-or byte[at_vid],1
-
-fin_sigmajv:
+jnz @f
+xor eax,eax
+xor ebx,ebx
+es
+mov ax,[resx_ecran]
+es
+mov bx,[resy_ecran]
+es
+mov dword[dmaj_xdeb],0
+es
+mov dword[dmaj_ydeb],0
+es
+mov dword[dmaj_xfin],eax
+es
+mov dword[dmaj_yfin],ebx
+es
+or byte[at_console],10h
+@@:
+pop ebx
 pop eax
 ret
 
@@ -1310,8 +1553,7 @@ sfv_menu_maj_autres:
 add ebx,4
 cmp ebx,ebp
 jne boucle_menu_maj
-fs
-or byte[at_vid],1
+or byte[at_console],10h
 
 pop edi
 pop ecx
@@ -1427,8 +1669,7 @@ mov [ebx],al
 add ebx,4
 cmp ebx,ebp
 jne boucle_menu_entree
-fs
-or byte[at_vid],1
+or byte[at_console],10h
 
 pop edx
 pop ecx
@@ -1573,9 +1814,7 @@ mov [ebx],edx
 fin_sfv_barre:
 mov dword[ebx+12],07000025h
 
-mov ax,seldat
-mov ds,ax
-or byte[at_vid],1
+call sigmajv
 
 pop ds
 popad

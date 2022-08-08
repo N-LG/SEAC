@@ -100,7 +100,7 @@ ad_nomfichier2 equ 12400h ;zt uttilisé par la fonction d'ouverture de fichier
 
 index_tabcar equ 12600h ;index des 32 tables de caractères (dword)
 
-index_ecran equ 12700h ;index des 64 ecranS (word)
+
 
 ;???
 
@@ -134,7 +134,7 @@ table_exec_dex equ ad_table_exec + 8  ;dernière execution de la tache
 ad_ztcmd      equ 20000h ;zone tampon reception commande
 
 ;*******************************************************************************************************************************************************
-;variables systŠme
+;variables système
 
 cu_cce equ 0  ;position du curseur dans la commande en cours de rédaction
 to_cce equ 2  ;taille de la commande en cours de r‚daction
@@ -204,9 +204,9 @@ octpp equ 79h     ;octet par pixel (valeur ok: 1,2,3,4)
 
 
 at_vid equ 80h ;attribut video
-	       ;b0=maj complete demandé
-	       ;b1=maj partielle demandé
-	       ;b2=?
+	       ;b0=besoin maj ecran
+	       ;b1=besoin maj souris 
+	       ;b2=
 	       ;b3=maj ecran en cours
 	       ;b4=mémoire en linear frame buffer
 
@@ -273,11 +273,10 @@ to_jcsl equ 0FCh  ;taille occup‚ par le journal console
 
 
 
-ligne_listing_ecran equ 100h  ;nombre d'écran affiché dans le tecop
-id_tache_af equ 102h ;num‚ros de tache affiché
-ad_tache_af equ 104h ;adresse de la tache affiché
+nb_ecran equ 100h  ;nombre d'écran
+no_ecran equ 102h  ;numéros de l'écran affiché
+nb_ecran_tecop equ 104 ;nombre de ligne consacré au écrans sur le tecop
 cmd_bios equ 108h ;sauvegarde provisoire de eax lors d'un appel au bios en mode réel
-
 ad_zt_ecran equ 10Ch ;zone de pré traitement de l'ecran
 
 
@@ -403,10 +402,6 @@ couleur_fond equ 544h
 couleur_carac equ 548h
 ad_console0 equ 54Ch       
 
-majv_xdeb equ 550h ;coordonnées utilisé lors des mise a jour de l'écran
-majv_xfin equ 554h
-majv_ydeb equ 558h
-majv_yfin equ 55Ch
 
 ;précal mise a jour écran en mode graphique uniquement
 majv_precal_longeur_ligne equ 560h
@@ -422,6 +417,26 @@ majv_precal_debutligne equ 570h
 majv_dern    equ 574h  ;prochaine valeur du compteur temps a partir duquel on pourrat faire la mise a jour écran
 majv_ysouris equ 578h  ;pause dans la mise a jour pour afficher la souris
 
+
+majv_xfen equ 580h   ;offset fenetre
+majv_xdeb equ 584h   ;debut zone
+majv_xfin equ 588h   ;fin zone
+majv_xlon equ 58Ch   ;longueur 
+
+majv_yfen equ 590h
+majv_ydeb equ 594h
+majv_yfin equ 598h
+majv_ylon equ 59Ch
+
+majv_opl  equ 5B0h ;octet par ligne fenetre xlon*opp
+majv_oilf equ 5B4h ;octet interligne fenetre ;opl - oplf
+majv_oilt equ 5B8h ;idem texte fenetre  
+majv_oile equ 5BCh ;idem ecran 
+
+majv_ads equ 5C0h ; adresse segment
+majv_adf equ 5C4h ; adresse fenetre
+majv_adt equ 5C8h ; idem texte
+majv_ade equ 5CCh ; idem ecran
 
 
 ;*************************************************************************
@@ -681,7 +696,8 @@ at_console equ 00h
       ;b1=mode graphique actif
       ;b2=souris ative
       ;b3=pas de maj ecran obligatoire après appel fonction int 63h
-      ;b4=caracteristique ecran réel changé
+      ;b4=demande de mise a jour écran
+      ;b5=caracteristique ecran réel changé
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch
@@ -699,14 +715,11 @@ resy_texte equ 3Ah
 octet_ligne equ 3Ch
 bit_pixel equ 3Eh 
 octet_pixel equ 3Fh
-;caractéristique écran réel
-r_resx_ecran equ 40h
-r_resy_ecran equ 42h
-r_resx_texte equ 44h
-r_resy_texte equ 48h
-r_octet_ligne equ 4Ah
-r_bit_pixel equ 4Ch 
-r_octet_pixel equ 4Dh
+dmaj_xdeb equ 40h
+dmaj_xfin equ 44h
+dmaj_ydeb equ 48h
+dmaj_yfin equ 4Ch
+
 
 ad_res_console equ 100h  ;adresse reservé
 

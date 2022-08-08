@@ -159,10 +159,8 @@ je affiche_ligne_dir_dossier
 cmp eax,0
 jne affiche_ligne_dir_ouvert
 
-
 mov al,6
 int 61h
-
 
 ;lit la taille
 mov al,6
@@ -173,7 +171,6 @@ int 64h
 
 mov eax,1   ;ferme le fichier
 int 64h
-
 
 
 ;affiche la taille

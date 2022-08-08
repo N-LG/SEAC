@@ -760,11 +760,6 @@ fs
 mov [ebx+table_exec_ad],eax
 
 
-
-
-
-
-
 fs
 mov esi,[ad_tache_exec]
 call maj_ldtache
@@ -774,36 +769,27 @@ lldt [esi+sel_ldt_tache] ;on recharge la bonne LDT
 mov ax,sel_pilet0 ;on recharge le segment de la pile pour mettre a jour les données 
 mov ss,ax
 
-fs                      ;recharge eventuellement les informations de tache affiché
-mov ax,[id_tache_af]
+
+fs                      ;met a jour l'adresse dans la table des fenetres
+mov ax,[id_tache_exec]
+mov ebx,table_ecran_id
 fs
-cmp ax,[id_tache_exec]
-jne fin_sfs_mod_seg
+mov cx,[nb_ecran]
 fs
-mov eax,[ad_tache_exec]
+mov edx,[ad_tache_exec]
+
+@@:
 fs
-mov [ad_tache_af],eax
+cmp [ebx],ax
+je @f
+add ebx,32
+dec cx
+jnz @b
+jmp fin_sfs_mod_seg 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@@:
+fs
+mov [ebx+table_ecran_ad-table_ecran_id],edx
 
 
 

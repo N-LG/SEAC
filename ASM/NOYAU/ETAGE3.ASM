@@ -1348,6 +1348,18 @@ mov dword[ad_ztcmd+10],"h -v"
 mov byte[ad_ztcmd+14],0
 mov word[to_ztcmd],15
 
+
+mov dword[ad_table_ecran],0           ;crée le descripteur d'écran de la tache 0
+mov dword[ad_table_ecran+4],0
+mov dword[ad_table_ecran+8],0
+mov dword[ad_table_ecran+12],0
+mov dword[ad_table_ecran+16],0
+mov dword[ad_table_ecran+20],0
+mov dword[ad_table_ecran+24],0
+mov dword[ad_table_ecran+28],0
+mov word[nb_ecran],1
+
+
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
@@ -1397,11 +1409,14 @@ test byte[atts1],1
 jz pas_retour_tecop
 cmp dword[axs1],0
 jne pas_retour_tecop
-mov word[id_tache_af],0
-mov dword[ad_tache_af],0
-or byte[at_csl],0Eh      ;met a 1 les bits de mise a jour des parties du tecop
-mov byte[nb_zrc],0    ;efface la zt de reception souris
+mov dx,0
+call sfv_sf_choix_console
 pas_retour_tecop:
+
+
+;si ce n'est pas le tecop qui est affiché, on ne s'occupe pas de mettre a jour le tecop
+cmp word[table_ecran_id],0
+jne maj_ecran
 
 
 
@@ -1474,21 +1489,21 @@ insert1:
 inc edi
 cmp edi,255
 jae pasconsole      ;verifie que la chaine n'est pas pleine
-mov [to_cce],di   ;maj de la taille occup?
+mov [to_cce],di   ;maj de la taille occupé
 mov eax,ecx
 xor ecx,ecx
 mov cx,[to_cce]
-sub cx,[cu_cce]   ;calcul la diff?rence entre la taille occup? et la position curseur
+sub cx,[cu_cce]   ;calcul la différence entre la taille occupé et la position curseur
 cmp ecx,0
 je pas_decal_ins1
 add edi,ad_cce
 mov esi,edi
 dec esi
 std
-rep movsb          ;d?cale les donn?es
+rep movsb          ;décale les données
 pas_decal_ins1:
 
-and eax,7Fh         ;transformation du caract?re
+and eax,7Fh         ;transformation du caractère
 mov [edx+ad_cce],al  ;?crit le caract?re
 inc word[cu_cce]    ;maj de la position curseur
 jmp majafcsl
@@ -1497,18 +1512,18 @@ insert2:
 add edi,2
 cmp edi,255
 jae pasconsole      ;verifie que la chaine n'est pas pleine
-mov [to_cce],di   ;maj de la taille occup?
+mov [to_cce],di   ;maj de la taille occupé
 mov eax,ecx
 xor ecx,ecx
 mov cx,[to_cce]
-sub cx,[cu_cce]   ;calcul la diff?rence entre la taille occup? et la position curseur
+sub cx,[cu_cce]   ;calcul la diff?rence entre la taille occupé et la position curseur
 cmp ecx,0
 je pas_decal_ins2
 add edi,ad_cce
 mov esi,edi
 sub esi,2
 std
-rep movsb          ;d?cale les donn?es
+rep movsb          ;décale les données
 
 pas_decal_ins2:
 
@@ -1540,7 +1555,7 @@ add edi,ad_cce
 mov esi,edi
 sub esi,3
 std
-rep movsb          ;d?cale les donn?es
+rep movsb          ;décale les donn?es
 pas_decal_ins3:
 
 mov ecx,eax
@@ -1777,7 +1792,7 @@ cmd_suiv:
 cmp byte[num_cmd],3Fh
 je majafcsl
 dec byte[num_cmd]
-and byte[num_cmd],03Fh ;on ne peut afficher que les 64 derni?res commandes
+and byte[num_cmd],03Fh ;on ne peut afficher que les 64 dernières commandes
 
 recop_cmd:
 mov bx,selramh
@@ -1832,60 +1847,45 @@ mov fs,ax
 cmp ebx,1
 je majafcsl
 sub ebx,2
-cmp cx,[ligne_listing_ecran]
+cmp cx,[nb_ecran_tecop]
 jae majafcsl
-shl ebx,1
-add ebx,index_ecran
-mov ax,[ebx]
-mov [id_tache_af],ax
-xor edx,edx
-jmp boucle_souris_tecop
+mov ecx,ebx
+jmp change_ecran_tecop
 
 
 souris_tecop:
 mov ax,selramh
 mov fs,ax
 shr ecx,4
-cmp cx,[ligne_listing_ecran]
+cmp cx,[nb_ecran_tecop]
 jae majafcsl
 
-shl ecx,1
-add ecx,index_ecran
-mov ax,[ecx]
-mov [id_tache_af],ax
-xor edx,edx
 
-boucle_souris_tecop:
-fs
-cmp byte[edx+2],"F"
-je erreur_souris_tecop 
-fs
-cmp byte[edx+2],"T"
-jne suite_souris_tecop
-fs
-cmp [edx+id_tache],ax
-je fin_souris_tecop
 
-suite_souris_tecop:
-fs
-mov ebx,[edx+to_tache]
-cmp ebx,0
-je erreur_souris_tecop
-add edx,ebx
-jmp boucle_souris_tecop
+change_ecran_tecop:
+mov ebx,table_ecran_id
 
-fin_souris_tecop:
-mov [ad_tache_af],edx
-or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
-mov byte[nb_zrc],0    ;efface la zt de reception souris
+boucle_change_ecran_tecop:
+mov dx,[ebx]
+cmp dx,0
+je @f
+cmp ecx,0
+je fin_change_ecran_tecop 
+dec ecx
+@@:
+add ebx,32
+jmp boucle_change_ecran_tecop
+
+
+fin_change_ecran_tecop:
+call sfv_sf_choix_console
 jmp maj_ecran 
 
-erreur_souris_tecop:
-mov dword[id_tache_af],0
+
 
 
 ;****************************************************************************
-;mise a jour affichage console syst?me
+;mise a jour affichage console système
 
 majafcsl:
 mov bx,selramh
@@ -1904,24 +1904,26 @@ mov eax,7
 int 63h ;signale que l'affichage doit être mis a jour
 
 es
-mov word[ligne_listing_ecran],0
-xor esi,esi
-mov edi,index_ecran
+mov word[nb_ecran_tecop],0
+mov edi,table_ecran_id
 xor ebx,ebx
 
-boucle_aff_listing_ecran:
-cmp byte[esi+2],"F"
-je finaft
-cmp byte[esi+2],"T"
-jne suite_aff_listing_ecran
-cmp word[esi+sel_ecranv],0
-je suite_aff_listing_ecran
 
-;enregistre l'id de la tache
-mov ax,[esi+id_tache]
+boucle_aff_listing_ecran:
 es
-mov [edi],ax
-add edi,2
+mov ax,[nb_ecran]
+dec ax
+es
+cmp [nb_ecran_tecop],ax
+jae finaft
+
+es
+cmp word[edi],0
+je ignore_aff_listing_ecran
+
+
+es
+mov esi,[edi+table_ecran_ad-table_ecran_id]
 
 ;affiche le descriptif tache
 xor eax,eax
@@ -1935,7 +1937,7 @@ call affcarac
 inc ebx
 xor eax,eax
 es
-mov ax,[ligne_listing_ecran]
+mov ax,[nb_ecran_tecop]
 add eax,"1"
 mov cl," "
 cmp eax,":"
@@ -1982,23 +1984,20 @@ jne b2_aff_listing_ecran
 f2_aff_listing_ecran:
 
 es
-inc word[ligne_listing_ecran]
+inc word[nb_ecran_tecop]
 es
 mov ax,[resyt]
 shr ax,1
 es
-cmp [ligne_listing_ecran],ax
+cmp [nb_ecran_tecop],ax
 jae finaft
 
-
-suite_aff_listing_ecran:
-mov eax,[esi+to_tache]
-cmp eax,0
-je finaft 
-add esi,eax
+ignore_aff_listing_ecran:
+add edi,32
 jmp boucle_aff_listing_ecran
 
 finaft:
+
 
 
 
@@ -2073,7 +2072,7 @@ xor edi,edi
 es
 mov cx,[resyt]    ;nb de ligne pour le journal?
 es
-sub cx,[ligne_listing_ecran]
+sub cx,[nb_ecran_tecop]
 sub cx,3
 es
 mov di,[resxt]   ;nb de carac par ligne
@@ -2147,7 +2146,7 @@ xor ecx,ecx
 es
 mov ax,[resxt]   ;nb de carac par ligne
 es
-mov cx,[ligne_listing_ecran]
+mov cx,[nb_ecran_tecop]
 mul ecx
 pop edx
 mov ebx,eax
@@ -2764,7 +2763,7 @@ ok_col_modv:
 ;si le mode est compatible avc le linear frame buffer, on l'active
 test dword[infovesa],080h
 jz pasdelinear
-or cx,4000h
+;or cx,4000h             ;désactiver cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!!!
 pasdelinear:
 
 
@@ -2777,7 +2776,6 @@ jne erreurmodv
 and cx,1FFh
 mov [mdvc],cx
 or byte[at_csl],0Eh ;signale que l'affichage de la console doit être mis a jour
-or byte[at_vid],01h ;et que l'écran complet doit être mis a jour
 test dword[infovesa],10h ;on teste si on est un mode texte ou pas
 jz cmdmodv_texte
 
@@ -2785,12 +2783,11 @@ jz cmdmodv_texte
 mov ax,[infovesa+12h]    ;maj des resolutions
 mov bx,[infovesa+14h]
 mov [resx],ax
-shr ax,3
-mov [resxt],ax
 mov [resy],bx
+shr ax,3
 shr bx,4
+mov [resxt],ax
 mov [resyt],bx
-
 mov cx,[infovesa+10h]
 mov [octpl],cx
 
@@ -2803,7 +2800,7 @@ mov [octpp],al    ;octet par pixel
 
 test dword[infovesa],080h
 jz banked_cmdmodv
-
+jmp banked_cmdmodv   ;activer cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!
 or word[at_vid],10h     ;met le bit 4 a un (bit utilisation du linear frame buffer)
 mov ebx,[infovesa+28h] ;adresse de base du linear frame buffer
 
@@ -2830,10 +2827,13 @@ jmp fin_cmdmodv
 cmdmodv_texte:
 mov ax,[infovesa+12h]    ;maj des resolutions
 mov bx,[infovesa+14h]
-mov [resx],ax
 mov [resxt],ax
-mov [resy],bx
 mov [resyt],bx
+shl ax,3
+shl bx,4
+mov [resx],ax
+mov [resy],bx
+
 mov byte[bitpp],00
 jmp fin_cmdmodv
 
@@ -4432,8 +4432,9 @@ jmp int_60
 redem_id0:  ;sinon on redemarre la tache principale
 mov cl,44
 call affmsgsyst
+xor eax,eax
 mov al,[trappe_tache0]
-call affh1j
+call affnj
 mov dword[ad_tache_exec],0
 mov word[id_tache_exec],0
 mov byte[cpttc],25
@@ -4634,6 +4635,8 @@ jmp finircl
 
 
 depressalt:
+cmp word[no_ecran],0
+jne fin_alttab
 cmp dword[sv_alt],0  ;on verifie si il y as un caractère qui as été 
 je finircl
 mov eax,[sv_alt]
@@ -4678,7 +4681,7 @@ mov ax,[atbp+8h]
 test ax,0280h
 jz pas_touche_tab 
 test ax,0440h
-jz touche_ecran_plus 
+jz debut_alttab
 jmp touche_retour_console
 pas_touche_tab:
 
@@ -4996,74 +4999,38 @@ touche_clavier_alternative:
 xor byte[attcl],080h
 jmp finircl 
 
+
+
 touche_retour_console: ;list ou ctrl+alt+tab
 mov al,0
 out 61h,al        ;éteint le bipper
-xor ax,ax ;selectionne la tache principale comme tache a afficher
-xor edx,edx
 
-charge_ecran:
-mov bx,seldat
-mov ds,bx
-mov [id_tache_af],ax
-mov [ad_tache_af],edx
-or byte[at_vid],1      ;met a 1 le bit de mise a jour affichage complet
-mov byte[nb_zrc],0    ;efface la zt de reception souris
+mov dx,0
+call sfv_sf_choix_console
 jmp bougled
 
-;touche_ecran_moins:   
-;xor ebx,ebx ;recherche la tache précédente
-;mov cx,[id_tache_af]
-;mov ax,selramh
-;mov ds,ax
-;xor edx,edx
 
-;boucle_touche_ecran_moins:
-;cmp byte[ebx+type_dm],"F"
-;je trouve_ecran_moins
-;cmp byte[ebx+type_dm],"T"
-;jne pas_touche_ecran_moins
-;cmp word[ebx+sel_ecranv],0
-;je pas_touche_ecran_moins
+debut_alttab:    ;alt+tab
+inc word[no_ecran]
+mov ax,[nb_ecran]
+cmp [no_ecran],ax
+jae @f
+call majv_complet
+jmp bougled
 
-;cmp [ebx+id_tache],cx
-;je trouve_ecran_moins
-;mov edx,ebx
-         
-;pas_touche_ecran_moins:
-;mov eax,[ebx+to_tache]
-;add ebx,eax
-;jmp boucle_touche_ecran_moins 
+@@:
+mov word[no_ecran],0
+call majv_complet
+jmp bougled
 
-;trouve_ecran_moins:
-;cmp edx,0
-;je touche_retour_console
-;mov ax,[edx+id_tache]
-;jmp charge_ecran
 
-touche_ecran_plus:    ;alt+tab
-mov edx,[ad_tache_af] ;recherche la tache suivante
-mov ax,selramh
-mov ds,ax
-mov eax,[edx+to_tache]
-add edx,eax
-
-boucle_touche_ecran_plus:
-cmp byte[edx+type_dm],"F"
-je touche_retour_console
-cmp byte[edx+type_dm],"T"
-jne pas_touche_ecran_plus
-cmp word[edx+sel_ecranv],0
-je pas_touche_ecran_plus
-
-mov ax,[edx+id_tache]
-jmp charge_ecran
-
-pas_touche_ecran_plus:
-mov eax,[edx+to_tache]
-add edx,eax
-jmp boucle_touche_ecran_plus
-
+fin_alttab:
+xor ebx,ebx
+mov bx,[no_ecran]
+shl ebx,5
+mov dx,[ebx+table_ecran_id]
+call sfv_sf_choix_console
+jmp bougled
 
 
 ;*****************************************************
@@ -5087,9 +5054,6 @@ mov si,bx
 inc bl
 mov [nbzt1],bl       ; et l'incrémente
 in al,60h
-;pushad       ;TRAPPE
-;call affh0j
-;popad
 mov [zts1+si],al    ;met le caractère reçu dans la zt souris
 cmp [nbts1],bl
 jne finirqs         ;si la trame n'as pas été totalement reçu -> fin
