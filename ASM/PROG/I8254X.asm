@@ -686,7 +686,7 @@ mov [ad_copie_env_trame],esi
 ;préparer descripteur 
 mov [taille_tx],cx
 mov byte[checksum_tx],0
-mov byte[command_tx],03h
+mov byte[command_tx],03h ;voir 3.3.3.1
 mov byte[status_tx],0
 mov byte[rsv_css_tx],0
 mov word[special_tx],0

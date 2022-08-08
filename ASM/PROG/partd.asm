@@ -41,7 +41,7 @@ mov dword[num_disque],0
 
 ;******************************
 ;listing des disques présent
-mov ch,10h
+mov ch,08h
 boucle_ldp:
 push ecx
 mov al,10
@@ -104,65 +104,12 @@ inc dword[num_disque]
 suite_ldp:
 pop ecx
 inc ch
-cmp ch,18h
-jne finsata
-mov ch,20h
-finsata:
-cmp ch,30h
+cmp ch,60h
 jne boucle_ldp
 
 
 
-;******************************
-;affiche les clef usb
-mov ch,40h
-boucle_lcp:
-push ecx
-mov al,10
-mov edi,ZT512A
-int 64h
-cmp eax,0
-jne suite_lcp
 
-mov al,11
-mov ah,07h ;couleur
-mov edx,ZT512A+64
-int 63h
-
-mov ecx,[ZT512A]
-shr ecx,1
-mov edx,taille_part
-mov al,102
-int 61h
-
-mov al,11
-mov ah,07h ;couleur
-mov edx,espace
-int 63h
-
-mov edx,taille_part
-mov al,11
-mov ah,07h ;couleur
-int 63h
-
-mov al,11
-mov ah,07h ;couleur
-mov edx,kiloctet
-int 63h
-
-
-pop ecx
-mov ebx,[num_disque]
-mov[ebx+table_disque],ch
-push ecx
-inc dword[num_disque]
-
-
-suite_lcp:
-pop ecx
-inc ch
-cmp ch,60h
-jne boucle_lcp
 
 
 ;***************************

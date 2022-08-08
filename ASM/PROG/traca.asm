@@ -1,39 +1,44 @@
 ﻿term:
-;gestion des erreurs des fonctions
-;saisie des paramêtre de la commande
-;affichage du texte d'aide
+
 
 
 
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
-db "Terminal de commande par liaison série ou TCP"
+db "simulation d'envoie de recette traça"
 scode:
 org 0
 
-;initialisation ecran texte
-mov dx,sel_dat2
-mov ah,1   ;option=mode texte
-mov al,0   ;création console     
-int 63h
 
 mov dx,sel_dat1    ;variable du programme
 mov ds,dx
 mov es,dx
-mov dx,sel_dat2    ;écran video
-mov fs,dx
 
 
 
 
-;génère un numéros de port local pseudo aléatoirement
-mov eax,9
-int 61h
-xor ax,bx
-xor ax,cx
-xor ax,dx
-xor ax,08C7Ah
-mov [cmd_port],ax
+;récupère numéros de port
+
+
+
+
+
+
+
+
+
+
+
+;configure port
+
+
+
+
+
+
+
+;envoie 5 et attend 
+
 
 
 
@@ -183,36 +188,36 @@ mov al,100
 mov edx,vitesse_port
 int 61h
 
-xor dl,dl
+xor bl,bl
 
 cmp byte[bits_port],"8"
 jne pp8
-or dl,00001b
+or bl,00001b
 pp8:
 
 cmp byte[stop_port],"2"
 jne pp2
-or dl,00100b
+or bl,00100b
 pp2:
 
 ;cmp byte[parite_port],"I"
 jne ppI
-or dl,01000b
+or bl,01000b
 ppI:
 
 ;cmp byte[parite_port],"i"
 jne ppi
-or dl,01000b
+or bl,01000b
 ppi:
 
 ;cmp byte[parite_port],"P"
 jne ppP
-or dl,11000b
+or bl,11000b
 ppP:
 
 cmp byte[parite_port],"p"
 jne ppp
-or dl,11000b
+or bl,11000b
 ppp:
 
 mov al,6
@@ -365,8 +370,8 @@ cmp al,2
 je changer_port
 ;cmp al,3
 ;je config_port
-cmp al,4
-je config_affichage
+;cmp al,4
+;je config_affichage
 
 cmp al,44
 je touche_entre
@@ -435,8 +440,6 @@ mov [carac],cl
 
 ;******************************************affichage données reçu
 affichage_rec:
-cmp byte[carac],8
-je back_affichage_rec
 cmp byte[carac],13
 je ok_affichage_rec
 cmp byte[carac],20h
@@ -451,10 +454,6 @@ int 63h
 jmp boucle
 
 
-back_affichage_rec:
-fs
-sub dword[ad_curseur_texte],4
-jmp boucle
 
 
 ;**************************************** envoie les donnée via la connexion TCP

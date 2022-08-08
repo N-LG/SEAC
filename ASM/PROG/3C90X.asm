@@ -95,7 +95,7 @@ ret
 
 
 pci_trouv_a:
-mov byte[type],"A"
+mov byte[type]," "
 jmp pci_trouv
 
 pci_trouv_b:
@@ -305,7 +305,6 @@ ret
 
 ;********************************************************************************************************
 rec_trame:
-
 pushad
 push edi
 mov al,4
@@ -515,7 +514,10 @@ org 0
 msg1:
 db "aucune carte compatible 3C90x n'as été detecté",13,0
 msgok1: 
-db "la carte compatible 3C90x d'adresse ",0
+db "la carte compatible 3C90x"
+type:
+db 0
+db " d'adresse ",0
 msgok2:
 db " a été initialisé",13,0
 
@@ -538,8 +540,7 @@ zt_tx:
 dd 0
 taille_recu:
 dd 0
-type:
-db 0
+
 packet_id:
 dd 0
 error:

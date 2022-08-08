@@ -58,6 +58,11 @@ sel_res7   equ 07Ch  ;segment LDT 15 DPL0
 
 ;structure d'un ecran virtuel
 at_console equ 00h
+      ;b0=mote texte actif
+      ;b1=mode graphique actif
+      ;b2=souris ative
+      ;b3=pas de maj ecran obligatoire après appel fonction int 63h
+      ;b4=caracteristique ecran réel changé
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch
@@ -75,10 +80,16 @@ resy_texte equ 3Ah
 octet_ligne equ 3Ch
 bit_pixel equ 3Eh 
 octet_pixel equ 3Fh
+dmaj_xdeb equ 40h
+dmaj_xfin equ 44h
+dmaj_ydeb equ 48h
+dmaj_yfin equ 4Ch
 
 ad_res_console equ 100h  ;adresse reservé
 
 
+
+;*********************************************************************************
 ;code d'erreur
 cer_parami equ 1  ;parametre incorrecte
 cer_lec    equ 2  ;erreur de lecture
@@ -114,3 +125,12 @@ cer_uhci   equ 31 ;erreur controleur UHCI
 cer_ohci   equ 32 ;erreur controleur OHCI
 cer_ehci   equ 33 ;erreur controleur EHCI
 cer_xhci   equ 34 ;erreur controleur XHCI
+cer_efis   equ 35 ;exception du fpu
+cer_efia   equ 36 ;exception du fpu
+cer_efi    equ 37 ;exception du fpu
+cer_efd    equ 38 ;exception du fpu
+cer_efz    equ 39 ;exception du fpu
+cer_efo    equ 40 ;exception du fpu
+cer_efu    equ 41 ;exception du fpu
+cer_efp    equ 42 ;exception du fpu
+cer_ahci   equ 43 ;erreur controleur AHCI

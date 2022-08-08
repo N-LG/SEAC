@@ -781,13 +781,16 @@ cmp eax,"CPC"
 je action_texte
 cmp eax,"TXT"
 je action_texte
+cmp eax,"ASM"
+je action_texte
 cmp eax,"SH"
 je action_texte
 cmp eax,"INI"
 je action_texte
 cmp eax,"DEF"
 je action_def
-
+cmp eax,"PNG"
+je action_png
 jmp attent_clav
 
 
@@ -799,6 +802,11 @@ jmp effectue_action
 
 action_def:
 mov cl,2
+jmp effectue_action
+
+
+action_png:
+mov cl,4
 jmp effectue_action
 
 
@@ -1136,7 +1144,11 @@ taille_zt:
 dd 40000h
 
 actions:
-db "edition texte=edt ",22h,"$",22h,"|édition hexadécimale=edh ",22h,"$",22h,"|charger comme fichier de definition=def $|execution de script=ex ",22h,"$",22h,0
+db "edition texte=edt ",22h,"$",22h,"|"
+db "edition hexadécimale=edh ",22h,"$",22h,"|"
+db "charger comme fichier de definition=def ",22h,"$",22h,"|"
+db "execution de script=ex ",22h,"$",22h,"|"
+db "voir=voir ",22h,"$",22h,0
 
 
 descriptif:

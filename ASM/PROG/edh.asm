@@ -15,10 +15,13 @@ org 0
 
 
 
+
 mov dx,sel_dat2
 mov ah,5   ;option=mode texte+souris
 mov al,0   ;création console     
 int 63h
+
+
 
 mov dx,sel_dat1
 mov ds,dx
@@ -34,7 +37,6 @@ mov eax,[resyt]   ;calcul la quantité de donnée affichable en un seul écran
 sub eax,3
 shl eax,4
 mov [max_affichable],eax
-
 
 mov al,8                 ;redimensionne la zone de donné pour avoir une zt de 128ko
 mov ecx,zone_tampon
@@ -72,8 +74,6 @@ inc esi
 ;listing des disques présent
 mov ch,8h
 boucle_ldp:
-push ecx
-push ecx
 mov al,10
 mov edi,zone_tampon
 int 64h
@@ -106,12 +106,11 @@ mov ah,07h ;couleur
 int 63h
 
 ;affiche la capacité
-pop ecx
+push ecx
 mov al,18
 int 64h
 cmp eax,0
 jne ldp_erreur_taille
-
 
 mov ecx,ebx
 shr ecx,1
@@ -124,6 +123,7 @@ mov al,11
 mov ah,07h ;couleur
 int 63h
 
+pop ecx
 mov edx,msg_choix_disque3
 mov al,11
 mov ah,07h ;couleur
@@ -131,13 +131,13 @@ int 63h
 jmp suite_ldp
 
 ldp_erreur_taille:
+pop ecx
 mov edx,msg_choix_disque4
 mov al,11
 mov ah,07h ;couleur
 int 63h
 
 suite_ldp:
-pop ecx
 inc ch
 cmp ch,80h
 jne boucle_ldp
@@ -225,19 +225,6 @@ chargement_partie:     ;charge la zt par 128ko de données
 cmp byte[num_disque],0
 je chargement_partie_fichier
 
-
-mov eax,8
-mov ebx,[num_secteur]
-mov cl,0   ;0=256
-mov ch,[num_disque]
-mov edi,zone_tampon
-int 64h
-call erreur_lecture
-cmp eax,1
-je chargement_partie 
-cmp eax,2
-je affichage_menu
-
 mov eax,18
 mov ch,[num_disque]
 int 64h
@@ -265,6 +252,24 @@ dec ecx
 mov [masque_affichage],ecx
 mov dword[masque_affichage+4],0
 mov byte[secteur_modif],0
+
+
+
+
+mov ebx,[num_secteur]
+mov eax,20000h
+mov cl,[decalage]
+shr eax,cl
+mov cl,al
+mov eax,8
+mov ch,[num_disque]
+mov edi,zone_tampon
+int 64h
+call erreur_lecture
+cmp eax,1
+je chargement_partie 
+cmp eax,2
+je affichage_menu
 jmp affichage
 
 

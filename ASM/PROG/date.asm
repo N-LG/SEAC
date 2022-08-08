@@ -12,9 +12,9 @@ mov ax,sel_dat1
 mov ds,ax
 
 mov al,9
-int 61h ;al=heure ah=minute bx=seconde (en millième) dl=jour dh=mois cx=année
-mov [heure],ax
-mov [seconde],bx
+int 61h ;bl=heure bh=minute si=seconde (en millième) dl=jour dh=mois cx=année
+mov [heure],bx
+mov [seconde],si
 mov [jour],dx
 mov [annee],cx
 
@@ -93,7 +93,7 @@ mov al,6
 int 61h
 
 xor ch,ch
-mov cl,[heure]
+mov cl,[heure+1]
 call afnombre
 
 mov edx,msg4
@@ -101,7 +101,7 @@ mov al,6
 int 61h
 
 xor ch,ch
-mov cl,[heure+1]   ;minutes
+mov cl,[heure]   ;minutes
 call afnombre
 
 mov edx,msg5
