@@ -2629,25 +2629,24 @@ ret
 ;***********************************************************************************************
 sfs_crc16:
 ;Les argument ax et dx change suivant le domaine d'uttilisation du crc
-;pour l'instant je ne suis sûr que des valeurs uttilisé par le crc du protocole modbus: ax=0FFFFh et dx=0A001h
+;pour l'instant je ne suis sûr que des valeurs uttilisé par 
+;modbus: bx=0FFFFh dx=0A001h
 
-
-;l'argument de départ dx est appellé "polynome" avec des guillemets parce que ça ne correspond pas exactement aux valeurs des polynome donné dans les différente documentation que j'ai put lire, j'ai toutefois l'impression qu'il s'agit des polynomes mais tronqué du bit N°16, celui ci étant a 1 dans les différent exemple que j'ai vu ça ne m'étonne pas beaucoup surtout 
-;si le crc est bien une division binaire
-
-
-
+;png:  ebx=FFFFFFFF edx=0EDB88320h
 ;ds:esi=début de la chaine
 
 ;ecx=Nb d'octet de la chaine
 
-;ax=valeur initiale du CRC
+;bx=valeur initiale du CRC
 
-;dx="polynome"
+;dx=polynome sans bit de poid fort avec ordre des bit inversé
 
 ;sortie: ax=valeur du CRC
 
 
+push ecx
+push edx
+push esi
 mov ax,bx
 
 boucle_sfs_crc16:
@@ -2708,6 +2707,11 @@ dec ecx
 
 jnz boucle_sfs_crc16
 
+not ax
+pop esi
+pop edx
+pop ecx
+and eax,0FFFFh
 iret
 
 
@@ -2717,8 +2721,10 @@ iret
 
 
 sfs_crc32:
+push ecx
+push edx
+push esi
 mov eax,ebx
-
 
 boucle_sfs_crc32:
 xor al,[esi]
@@ -2778,6 +2784,10 @@ dec ecx
 
 jnz boucle_sfs_crc32
 
+not eax
+pop esi
+pop edx
+pop ecx
 iret
 
 

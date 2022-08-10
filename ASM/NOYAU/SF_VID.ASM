@@ -4929,7 +4929,27 @@ mov esi,[edx+sfv_lire_image_zone1]
 mov edi,[edx+sfv_lire_image_zone2]
 add esi,8
 
+
 boucle1_recheridat:
+;vérifie que le chunk est intègre
+push edx
+push esi
+mov ecx,[esi]
+bswap ecx
+add esi,4
+add ecx,4
+mov eax,151
+mov ebx,-1
+mov edx,0EDB88320h 	    	 			
+int 61h
+add esi,ecx
+bswap eax
+cmp eax,[esi]
+pop esi
+pop edx
+jne sfv_lire_image_erreur
+
+
 cmp dword[esi+4],"IDAT"
 je @f
 cmp dword[esi+4],"IEND"
@@ -4950,7 +4970,6 @@ pop edi
 pop esi
 pas_plte:
 
-;jmp pas_trns
 cmp dword[esi+4],"tRNS"  ;modifie la palette pour y inclure le canal alpha
 jne pas_trns
 or byte[edx+sfv_lire_image_prof+1],80h
@@ -5014,6 +5033,24 @@ add esi,12
 
 ;cherche le prochain idat ou iend
 boucle2_recheridat:
+;vérifie que le chunk est intègre
+push edx
+push esi
+mov ecx,[esi]
+bswap ecx
+add esi,4
+add ecx,4
+mov eax,151
+mov ebx,-1
+mov edx,0EDB88320h 	    	 			
+int 61h
+add esi,ecx
+bswap eax
+cmp eax,[esi]
+pop esi
+pop edx
+jne sfv_lire_image_erreur
+
 cmp dword[esi+4],"IDAT"
 je @b
 cmp dword[esi+4],"IEND"
@@ -5023,8 +5060,16 @@ bswap eax
 add esi,eax
 add esi,12
 jmp boucle2_recheridat
+
+
+
 @@:
 
+;berk:
+;sti
+;nop
+;nop
+;jmp berk
 
 ;décompresse les données
 mov esi,[edx+sfv_lire_image_zone2]
