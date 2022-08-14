@@ -2763,7 +2763,7 @@ ok_col_modv:
 ;si le mode est compatible avc le linear frame buffer, on l'active
 test dword[infovesa],080h
 jz pasdelinear
-;or cx,4000h             ;désactiver cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!!!
+or cx,4000h             ;désactiver cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!!!
 pasdelinear:
 
 
@@ -2800,7 +2800,7 @@ mov [octpp],al    ;octet par pixel
 
 test dword[infovesa],080h
 jz banked_cmdmodv
-jmp banked_cmdmodv   ;activer cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!
+;jmp banked_cmdmodv   ;activer cette ligne si on ne veux pas uttiliser le linear frame buffer pour les test !!!!!!!!!!!!!!!!!!
 or word[at_vid],10h     ;met le bit 4 a un (bit utilisation du linear frame buffer)
 mov ebx,[infovesa+28h] ;adresse de base du linear frame buffer
 

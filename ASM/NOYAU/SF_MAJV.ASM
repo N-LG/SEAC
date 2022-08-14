@@ -1264,10 +1264,6 @@ mov ax,selvidB8
 mov es,ax
 
 ;efface souris
-
-fs
-test byte[atts1],01h
-jz fin_majv
 xor eax,eax
 xor ebx,ebx
 xor ecx,ecx
@@ -1307,18 +1303,85 @@ fs
 mov [majv_xfin],eax
 fs
 mov [majv_yfin],ebx
-
-
-
-;jmp fin_majv;?????????????????????
-
+jmp maj_ztverscarte_procedure
 
 
 
 
+;****************************************
 maj_ztverscarte:    ;transfert de la zone tampon a la carte
 
 
+;test si la souris est présente dans la zone a mettre a jour
+xor eax,eax
+fs
+mov ax,[axs1]
+fs
+cmp eax,[majv_xfin]
+ja maj_ztverscarte_sourishz
+add eax,16
+fs
+cmp eax,[majv_xdeb]
+jb maj_ztverscarte_sourishz
+
+xor eax,eax
+fs
+mov ax,[ays1]
+fs
+cmp eax,[majv_yfin]
+ja maj_ztverscarte_sourishz
+add eax,16
+fs
+cmp eax,[majv_ydeb]
+jb maj_ztverscarte_sourishz
+
+;si oui alors il faudra redessiner la souris
+fs
+or byte[at_vid],02
+
+;test si la souris as bougé
+fs
+mov eax,[axs1]
+fs
+cmp eax,[xs1]
+je maj_ztverscarte_sourishz
+
+;si oui on agrandit eventuellement la zone pour effacer le vieux cursur
+xor eax,eax
+fs
+mov ax,[axs1]
+fs
+cmp eax,[majv_xdeb]
+ja @f
+fs
+mov [majv_xdeb],eax
+@@:
+add eax,16
+fs
+cmp eax,[majv_xfin]
+jb @f
+fs
+mov [majv_xfin],eax
+@@:
+
+xor eax,eax
+fs
+mov ax,[ays1]
+fs
+cmp eax,[majv_ydeb]
+ja @f
+fs
+mov [majv_ydeb],eax
+@@:
+add eax,16
+fs
+cmp eax,[majv_yfin]
+jb @f
+fs
+mov [majv_yfin],eax
+@@:
+
+maj_ztverscarte_sourishz:
 
 
 
@@ -1327,9 +1390,8 @@ maj_ztverscarte:    ;transfert de la zone tampon a la carte
 
 
 
-
-
-
+;***********************
+maj_ztverscarte_procedure:
 push ds
 mov ax,selramh
 mov ds,ax
@@ -1386,10 +1448,10 @@ test byte[at_vid],02h
 jz majv_ajustement_ysouris
 fs
 cmp eax,[majv_ydeb]
-jbe majv_ajustement_ysouris 
+jb majv_ajustement_ysouris 
 fs
 cmp eax,[majv_yfin]
-jb majv_fincalcul_ysouris
+jbe majv_fincalcul_ysouris
 
 majv_ajustement_ysouris:
 fs
@@ -1447,6 +1509,9 @@ test byte[at_console],04h
 jz fin_majv
 fs
 test byte[atts1],01h
+jz fin_majv
+fs
+test byte[at_vid],02h
 jz fin_majv
 
 pushad
@@ -1699,6 +1764,9 @@ test byte[at_console],04h
 jz fin_majv
 fs
 test byte[atts1],01h
+jz fin_majv
+fs
+test byte[at_vid],02h
 jz fin_majv
 pushad
 call adresse_souris
