@@ -3993,12 +3993,17 @@ pop ecx
 pop ebx
 ret
 
+conv24_165:
+fs
+cmp byte[bitpp],15
+je conv24_15
+
 conv24_16:
 push ebx
 push edx
 mov edx,eax
 shr edx,8    ;dh=bleu dl=green
-and eax,0F8h
+and eax,0F8h ;al=red
 shr al,3     
 mov bl,dl
 and ebx,0FCh
@@ -4040,7 +4045,8 @@ push ebx
 push edx
 mov edx,eax
 shr edx,8    ;dh=bleu dl=green
-shr al,3     ;0-3
+and eax,0F8h ;al=red
+shr al,3     ;0-3 
 mov bl,dl
 and ebx,0F8h
 shl ebx,2    ;5-3  
@@ -5062,15 +5068,7 @@ add esi,12
 jmp boucle2_recheridat
 
 
-
 @@:
-
-;berk:
-;sti
-;nop
-;nop
-;jmp berk
-
 ;décompresse les données
 mov esi,[edx+sfv_lire_image_zone2]
 mov edi,[edx+sfv_lire_image_zone1]

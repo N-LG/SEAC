@@ -1574,7 +1574,7 @@ je ignore_majv_souris_16b_linear
 cmp edi,ebx
 jae ignore_majv_souris_16b_linear 
 call conv8_24
-call conv24_16
+call conv24_165
 es
 mov [edi],ax
 ignore_majv_souris_16b_linear:
@@ -1830,7 +1830,7 @@ je ignore_majv_souris_16b_banked
 cmp edi,ebx
 jae ignore_majv_souris_16b_banked 
 call conv8_24
-call conv24_16
+call conv24_165
 call majbank
 es
 mov [di],ax
@@ -2077,7 +2077,7 @@ cmp byte[bitpp],8
 je majv_couleur8
 fs
 cmp byte[bitpp],15
-je majv_couleur15
+je majv_couleur16
 fs
 cmp byte[bitpp],16
 je majv_couleur16
@@ -2127,32 +2127,6 @@ pop eax
 ret
 
 
-majv_couleur15:
-mov al,cl
-and eax,0Fh
-shl eax,3
-mov esi,eax
-fs
-mov ax,[esi+ad_tabcoul]
-call conv24_15
-fs
-mov [couleur_carac],ax
-
-mov al,cl
-and eax,0F0h
-shr eax,1
-mov esi,eax
-fs
-mov ax,[esi+ad_tabcoul]
-call conv24_15
-fs
-mov [couleur_fond],ax
-pop esi
-pop ecx
-pop ebx
-pop eax
-ret
-
 majv_couleur16:
 mov esi,ad_tabcoul
 mov al,cl
@@ -2163,7 +2137,7 @@ add esi,eax
 fs
 mov eax,[esi] 
 and eax,0FFFFFFh
-call conv24_16
+call conv24_165
 fs
 mov [couleur_carac],eax
 
@@ -2176,7 +2150,7 @@ add esi,eax
 fs
 mov eax,[esi] 
 and eax,0FFFFFFh
-call conv24_16
+call conv24_165
 fs
 mov [couleur_fond],eax
 pop esi
@@ -2184,10 +2158,6 @@ pop ecx
 pop ebx
 pop eax
 ret
-
-
-
-
 
 
 
