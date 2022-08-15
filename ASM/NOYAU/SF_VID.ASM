@@ -230,6 +230,18 @@ cld
 rep movsd
 
 
+;vérifie qu'il n'existait pas déja un descripteur pour cette tache
+mov ax,[id_tache_exec]
+xor ebx,ebx
+mov cx,[nb_ecran]
+@@:
+cmp [ebx+table_ecran_id],ax
+je ecrdesc_sfv_ouvre_console
+add ebx,32
+dec cx
+jnz @b
+
+
 ;décale les descripteurs d'écran
 mov bx,seldat
 mov es,bx
@@ -242,21 +254,21 @@ shr ecx,2
 std
 rep movsd
 
-
-;et cree le nouveau descripteur
-mov ax,[id_tache_exec]
-mov ebx,[ad_tache_exec]
-mov [table_ecran_id],ax
-mov [table_ecran_ad],ebx
-
-
-inc word[nb_ecran]
-mov word[no_ecran],0
+inc word[nb_ecran]    ;signal qu'il y as un écran de plus
+mov word[no_ecran],0  ;selectionne l'ecran
 mov byte[nb_zrc],0    ;efface la zt de reception souris
 or byte[at_csl],03h   ;signale que la liste et le journal doit etre mis jour
+xor ebx,ebx
+
+;et cree ou met a jour le nouveau descripteur
+ecrdesc_sfv_ouvre_console:
+mov ax,[id_tache_exec]
+mov edx,[ad_tache_exec]
+mov [ebx+table_ecran_id],ax
+mov [ebx+table_ecran_ad],edx
+
 cli
 xor eax,eax
-
 
 fin_sfv_ouvre_console:
 pop fs
