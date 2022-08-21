@@ -72,6 +72,23 @@ int 61h
 cmp eax,0
 jne erreur_ouv
 
+
+;passe en mode video
+mov dx,sel_dat2
+mov ah,6   ;option=mode video ;6=video + souris
+test byte[opt],4
+jz @f
+and ah,0FBh   ;désactive la souris
+@@:
+mov al,0   ;création console     
+int 63h
+mov ax,sel_dat2
+mov fs,ax
+fs
+or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
+
+
+
 ;ouvre le fichier
 mov al,0
 xor ebx,ebx
@@ -80,6 +97,7 @@ int 64h
 cmp eax,0
 jne erreur_ouv
 mov [handle_fichier],ebx
+
 
 ;lit les carac de l'image
 mov ebx,[handle_fichier]
@@ -95,24 +113,25 @@ mov [x_image3],ebx
 mov [y_image3],ecx
 
 
-
 ;aggrandit la zone pour pouvoir y charger l'image et les différentes zones intermédiaire de traitement
 shr edx,8 
 push edx
 mov ecx,edx
 add ecx,zt_sfv1    ;zone de chargement de l'image
+fs
+mov eax,[to_graf]
 mov [zt_sfv2],ecx  ;zone du fragment a afficher
-add ecx,edx      
+add ecx,edx     
 mov [zt_sfv3],ecx  ;zone de l'image redimensionné
-shl ecx,4 ;?????????????????????????????????????????????????????pourquoi cet agrandissement?
-
-;add ecx,         
-
+add ecx,eax         
+add ecx,objimage_dat
+and ecx,0FFFFFFF0h
 mov edx,sel_dat1
 mov eax,8
 int 61h
 pop ecx
-;??????????????????????????????????????????????ajouter un controle de l'agrandissement
+cmp eax,0
+jne erreur_mem
 
 
 
@@ -125,24 +144,6 @@ int 63h
 cmp eax,0
 jne erreur_form2
 
-;testd:
-;nop
-;nop
-;jmp testd
-
-;passe en mode video
-mov dx,sel_dat2
-mov ah,6   ;option=mode video ;6=video + souris
-test byte[opt],4
-jz @f
-and ah,0FBh   ;désactive la souris
-@@:
-mov al,0   ;création console     
-int 63h
-mov ax,sel_dat2
-mov fs,ax
-fs
-or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
 
 
 
@@ -245,7 +246,6 @@ int 63h
 
 
 
-
 ;lit un fragment de l'image
 mov ebx,[offset_imagex]
 mov ecx,[offset_imagey]
@@ -257,7 +257,6 @@ int 63h
 
 
 
-
 mov ebx,[x_image3]
 mov ecx,[y_image3]
 mov edi,[zt_sfv3]
@@ -265,6 +264,7 @@ mov al,50   ;créer image
 mov ah,[zt_sfv1+objimage_bpp]
 mov edx,0FFFFFFFFh
 int 63h
+
 
 ;redimensionne l'image
 mov esi,[zt_sfv2]
@@ -287,11 +287,6 @@ mov ah,24
 mov edx,[couleur]
 int 63h
 
-;@@:
-;mov al,5
-;int 63h
-;cmp al,0
-;je @b 
 
 ;affiche l'image
 xor ebx,ebx
@@ -502,6 +497,11 @@ int 61h
 int 60h
 
 
+erreur_mem:
+mov al,6
+mov edx,msg4
+int 61h
+int 60h
 
 
 
@@ -568,6 +568,8 @@ msg2:
 db "le format de l'image n'est pas reconnu",13,0
 msg3:
 db "erreur dans le codage de l'image",13,0
+msg4:
+db "pas assez de mémoire pour ouvrir l'image",13,0
 
 msgf:
 db "appuyez sur echap pour quitter",13,0
