@@ -4529,6 +4529,7 @@ iret
 sfv_carac_image2:
 push ds
 push es
+push fs
 push edi
 mov ax,selramh
 mov ds,ax
@@ -4703,6 +4704,7 @@ pop eax
 mov dl,al
 
 pop edi
+pop fs
 pop es
 pop ds
 xor eax,eax
@@ -4758,6 +4760,7 @@ pop eax
 mov dl,al
 
 pop edi
+pop fs
 pop es
 pop ds
 xor eax,eax
@@ -4833,6 +4836,7 @@ push edi
 push ebp
 push ds
 push es
+push fs
 push es
 push ebx
 call sfv_carac_image2
@@ -4852,7 +4856,7 @@ mov ds,ax
 mov es,ax
 mov fs,ax
 mov ecx,edx
-shr ecx,5   ;decal de 8 bit et multliplie par 4
+shr ecx,6   ;decal de 8 bit et multliplie par 4
 add ecx,sfv_lire_image_data+15
 and ecx,0FFFFFFF0h
 call resmem
@@ -5461,6 +5465,7 @@ mov [edi+objimage_x],bx
 es
 mov [edi+objimage_y],cx
 
+
 and eax,0FFh
 push edx
 shr eax,3
@@ -5482,6 +5487,7 @@ xor eax,eax
 sfv_lire_image_erreur:
 mov ebx,edx
 call libmem
+pop fs
 pop es
 pop ds
 pop ebp
@@ -5493,6 +5499,8 @@ pop ebx
 iret
 
 ermem_sfv_lire_image:
+pop eax
+pop eax
 mov eax,cer_pasm
 jmp sfv_lire_image_erreur
 

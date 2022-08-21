@@ -4331,16 +4331,17 @@ iex1F:
 mov cx,31
 
 exsigstop:  ;exception: signale et stoppe
-
 mov dx,seldat      ;init pile et data
 mov ds,dx
 mov es,dx
 mov fs,dx
 mov gs,dx
-mov dx,selpil
-mov ss,dx
-mov esp,[sauv_esp_t0]
-sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême
+;mov dx,selpil
+;mov ss,dx
+;mov esp,[sauv_esp_t0]
+;sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême (désactivé parce que visiblement ça triple faute PARFOIS lorsque ça interromp un ring 0)
+
+
 push cx
 
 mov al,1Ch
@@ -4362,7 +4363,7 @@ add cx,10
 call affmsgsyst
 
 ;test si c'est l'exception du fpu et signale les eventuelles erreur
-;jmp suite_exception
+jmp suite_exception
 cmp cx,26
 jne suite_exception
 push ecx
