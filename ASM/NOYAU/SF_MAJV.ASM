@@ -1392,9 +1392,7 @@ maj_ztverscarte_sourishz:
 
 ;***********************
 maj_ztverscarte_procedure:
-push ds
-mov ax,selramh
-mov ds,ax
+
 fs
 mov eax,[majv_ydeb]
 fs
@@ -1443,6 +1441,11 @@ xor eax,eax
 fs
 mov ax,[ays1]
 add eax,16
+test byte[at_console],04h
+jz majv_ajustement_ysouris
+fs
+test byte[atts1],01h
+jz majv_ajustement_ysouris
 fs
 test byte[at_vid],02h
 jz majv_ajustement_ysouris
@@ -1460,7 +1463,9 @@ majv_fincalcul_ysouris:
 fs
 mov [majv_ysouris],eax
 
-
+push ds
+mov ax,selramh
+mov ds,ax
 fs
 test word[at_vid],10h     ;test si on est en linear  
 jz maj_ztverscarte_banked
