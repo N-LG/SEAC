@@ -190,6 +190,12 @@ add ebx,eax
 dec ecx
 jnz boucle1_cretache_elf
 
+;ajuste la granularité des données au besoin
+test edx,0FFF00000h
+jz @f
+add edx,0FFFh
+and edx,0FFFFF000h
+@@:
 
 ;initialise les tailles des segments
 mov ebx,[ad_tache_cree]
@@ -414,6 +420,47 @@ es
 add ecx,[ebx+tsf_data4_fe]
 es
 mov [ebx+tt_data4_dt],ecx
+
+
+
+
+;ajuste la granularité des segment de données au besoin
+es
+test dword[ebx+tt_data1_dt],0FFF00000h
+jz @f
+es
+add dword[ebx+tt_data1_dt],0FFFh
+es
+and dword[ebx+tt_data1_dt],0FFFFF000h
+@@:
+es
+test dword[ebx+tt_data2_dt],0FFF00000h
+jz @f
+es
+add dword[ebx+tt_data2_dt],0FFFh
+es
+and dword[ebx+tt_data2_dt],0FFFFF000h
+@@:
+es
+test dword[ebx+tt_data3_dt],0FFF00000h
+jz @f
+es
+add dword[ebx+tt_data3_dt],0FFFh
+es
+and dword[ebx+tt_data3_dt],0FFFFF000h
+@@:
+es
+test dword[ebx+tt_data4_dt],0FFF00000h
+jz @f
+es
+add dword[ebx+tt_data4_dt],0FFFh
+es
+and dword[ebx+tt_data4_dt],0FFFFF000h
+@@:
+
+
+
+
 
 ;calcul des adresse (relative au debut de la zone mémoire) des différent zone mémoire
 mov eax,data_tache

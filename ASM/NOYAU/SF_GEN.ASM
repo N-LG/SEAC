@@ -624,6 +624,13 @@ mov ax,selramh
 mov ds,ax
 mov es,ax
 
+;ajuste la granularité au besoin
+test ecx,0FFF00000h
+jz @f
+add ecx,0FFFh
+and ecx,0FFFFF000h
+@@:
+
 attent_sfs_mod_seg: ;attent que la tache principale ait finis de mettre a jour l'écran
 int 62h
 fs
