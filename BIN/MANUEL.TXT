@@ -89,8 +89,9 @@
 ^EX
  execute un script
 
-%commande: ex XXX 
+%commande: ex XXX -v
           XXX = nom du fichier a executer
+          -v  = on execute la liste de commande sans verifier si la précédente a fini (paramètre optionnel)
 :edt
 ^EDT
  editeur de texte
