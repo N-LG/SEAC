@@ -1,4 +1,23 @@
 ﻿expl:
+
+
+;structure de dossier ouvert
+do_ts equ 0   ;taille de la structure
+do_tn equ 4   ;taille de la zone des nom
+do_adresse equ 8
+do_adresse_max equ 16
+do_znom equ 32
+
+
+
+;structure de l'index fichier
+if_nom equ 0    ;pointeur vers le nom
+if_ext equ 4    ;pointeur ver l'extension
+if_taille equ 8 ;taille
+if_att equ 16   ;attribut b0=taille et type valide b1=type(1=dossier) b2=fichier selectionné
+
+
+
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "explorateur de fichier"
@@ -6,6 +25,59 @@ scode:
 org 0
 mov ax,sel_dat1
 mov ds,ax
+
+
+
+;chargement base de definition actions par type
+xor eax,eax
+mov edx,nom_bdd
+int 64h             ;ouvre le fichier
+cmp eax,0
+jne ignore_bdd
+
+;lit la taille
+mov al,6
+mov ah,1
+mov edx,taille_bdd
+int 64h
+cmp eax,0
+jne ignore_bdd
+
+;reservation mémoire pour la bdd
+mov dx,sel_dat1
+mov ecx,[taille_zt]
+shl ecx,1
+add ecx,zt_lecture
+mov al,8
+int 61h
+cmp eax,0
+;jne erreur_memoire
+
+;lecture du fichier brut
+
+
+;fermeture fichier
+mov al,1
+int 64h
+
+;transformation des éventuel LF en CR
+mov ebx,actions_bdd
+mov ecx,taille_bdd
+add ecx,ebx
+boucle_lfcr:
+cmp byte[ebx],10
+jne @f
+mov byte[ebx],13
+@@:
+inc ebx
+cmp ebx,ecx
+jne boucle_lfcr 
+
+
+;
+
+
+ignore_bdd:
 
 
 ;reservation mémoire de travail
@@ -212,7 +284,7 @@ mov al,11
 mov ah,70h ;couleur
 int 63h
 
-;affichage de l'adresse du dossier maximun
+;affichage de l'adresse du dossier maximum
 mov edx,nom_dossier_max
 cmp byte[edx],0
 jne ok_nom_dossier
@@ -1033,7 +1105,7 @@ mov byte[nom_dossier],0
 jmp charge_tailles
 
 
-
+;********************************************************************************************************************************************
 
 
 
@@ -1095,7 +1167,16 @@ ret
 
 
 
-;**************************************************************
+
+
+
+
+
+
+
+
+
+;********************************************************************************************************************************************
 sdata1:
 org 0
 
@@ -1129,45 +1210,33 @@ db 13,0
 interval:
 db " - ",0
 
-chaine_taille:
-dd 0,0,0,0,0
 
 ligne_affiche:
 dd 0
 ligne_max:
 dd 0
 
-num_dossier:
-dd 0
 
-taille_zt:
-dd 40000h
 
-actions:
-db "edition texte=edt ",22h,"$",22h,"|"
-db "edition hexadécimale=edh ",22h,"$",22h,"|"
-db "charger comme fichier de definition=def ",22h,"$",22h,"|"
-db "execution de script=ex ",22h,"$",22h,"|"
-db "voir=voir ",22h,"$",22h,0
+
+
 
 
 descriptif:
 db "Explorateur dossier "
+zt_travail:
+rb 1024
 
-nom_dossier:
-rb 512
 
 
-nom_dossier_max:
-rb 512
+nom_bdd:
+db "EXPL.CFG",0
+taille_bdd:
+dd 0,0
+actions_bdd:
 
-commande:
-rb 512
 
-nom_suivant:
-rb 512
 
-zt_lecture:
 
 
 
