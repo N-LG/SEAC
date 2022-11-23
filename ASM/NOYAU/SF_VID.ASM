@@ -3723,6 +3723,8 @@ push edi
 
 
 boucle2_sfv_aff_img_32_8:
+cmp byte[esi+3],0
+je @f
 es
 mov al,[edi]
 call conv8_24
@@ -3732,6 +3734,7 @@ call conv32_24
 call conv24_8
 es
 mov [edi],al
+@@:
 add esi,4
 add edi,1
 dec ecx
@@ -3760,6 +3763,8 @@ push edi
 
 
 boucle2_sfv_aff_img_32_15:
+cmp byte[esi+3],0
+je @f
 es
 mov ax,[edi]
 call conv15_24
@@ -3769,6 +3774,7 @@ call conv32_24
 call conv24_15
 es
 mov [edi],ax
+@@:
 add esi,4
 add edi,2
 dec ecx
@@ -3796,6 +3802,8 @@ push edi
 
 
 boucle2_sfv_aff_img_32_16:
+cmp byte[esi+3],0
+je @f
 es
 mov ax,[edi]
 call conv16_24
@@ -3805,6 +3813,7 @@ call conv32_24
 call conv24_16
 es
 mov [edi],ax
+@@:
 add esi,4
 add edi,2
 dec ecx
@@ -3832,6 +3841,8 @@ push esi
 push edi
 
 boucle2_sfv_aff_img_32_24:
+cmp byte[esi+3],0
+je @f
 mov eax,[esi]
 es
 mov edx,[edi]
@@ -3841,6 +3852,7 @@ mov [edi],ax
 shr eax,16
 es
 mov [edi+2],al
+@@:
 add esi,4
 add edi,3
 dec ecx
@@ -3867,12 +3879,15 @@ push esi
 push edi
 
 boucle2_sfv_aff_img_32_32:
+cmp byte[esi+3],0
+je @f
 mov eax,[esi]
 es
 mov edx,[edi]
 call conv32_24
 es
 mov [edi],eax
+@@:
 add esi,4
 add edi,4
 dec ecx
@@ -6250,7 +6265,6 @@ sfv_chgtaille_max     equ 0A0h
 
 ;****************************************************
 sfv_chgtaille:  ;ds:esi=image d'origine  ds:edi=image de sortie
-
 ;verifie les parametre d'entrée
 mov al,[esi+objimage_bpp]
 cmp al,[edi+objimage_bpp]
