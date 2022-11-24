@@ -50,6 +50,8 @@ int 64h
 cmp eax,0
 jne suite_ldp
 
+test byte[ZT512A+1],080h   ;test si le périphérique est atapi
+jnz suite_ldp
 
 ;convertit le nom
 mov ebx,ZT512A+36h
@@ -119,6 +121,8 @@ mov bl,0
 mov cl,1
 mov ch,[num_disque]
 int 63h
+cmp bh,1
+je fin_programme
 
 and ebx,0FFh
 mov al,[ebx+table_disque]
@@ -2026,7 +2030,7 @@ sdata1:
 org 0
 
 msgldp1:
-db "choisisez le disque:",13,0
+db "choisisez le disque:  (appuyez sur ECHAP pour quitter)",13,0
 
 kiloctet:
 db "Kilo-octets",13,0
