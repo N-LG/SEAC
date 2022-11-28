@@ -2708,26 +2708,138 @@ jmp boucle_modv0
 modv_0fen:
 
 
-mov edx,ad_zdc          ;recherche la chaine qui coresspond au numéros de mode
+mov edx,ad_zdc          ;recherche le début du parametre
 boucle_modv1:
 cmp byte[edx]," "
 jne suite_boucle_modv1
 cmp byte[edx+1]," "
-jne id_modv
+jne @f
 suite_boucle_modv1:
 inc edx
 cmp edx,ad_zdc+200h
 je fin_commande_erreur_param
 jmp boucle_modv1
 
-;convertit l'id en entier 16 bit
-id_modv:
+@@:
 inc edx
+mov esi,edx
+
+
+boucle_modv2:             ;recherche si on as affaire a une résolution
+cmp byte[edx],"x"
+je @f
+cmp byte[edx],"X"
+je @f
+cmp byte[edx],"*"
+je @f
+cmp byte[edx],0
+je cmdmodv_num
+inc edx
+cmp edx,ad_zdc+200h
+je fin_commande_erreur_param
+jmp boucle_modv2
+
+@@:
+inc edx
+mov edi,edx
+
+
+boucle_modv3:             ;recherche si on as affaire a une resolution + nb bit
+cmp byte[edx],"x"
+je @f
+cmp byte[edx],"X"
+je @f
+cmp byte[edx],"*"
+je @f
+cmp byte[edx],0
+je cmdmodv_resol
+inc edx
+cmp edx,ad_zdc+200h
+je fin_commande_erreur_param
+jmp boucle_modv3
+
+@@:            ;recherche le mode vidéo qui as exactement les bonne caractéristique
+inc edx
+mov eax,100
+int 61h
+mov ebp,ecx   ;ebp=nb bit par pixel
+mov edx,esi
+mov eax,100
+int 61h
+mov esi,ecx  ;esi=resol X
+mov edx,edi
+mov eax,100
+int 61h
+mov edi,ecx  ;edi=resol y
+mov edx,ebp
+
+
+;recherche un mode dans la liste
+xor ecx,ecx
+
+boucle_modv4:
+call vesa_infomode
+cmp ax,004Fh
+jne @f
+cmp [infovesa+12h],si
+jne @f
+cmp [infovesa+14h],di
+jne @f
+cmp [infovesa+19h],dl
+je cmdmodv_ok 
+@@:
+inc ecx
+cmp ecx,400h
+jne boucle_modv4 
+jmp erreurmodv
+
+
+cmdmodv_resol:    ;recherche le mode video de la meilleur résolution 
+mov edx,esi
+mov eax,100
+int 61h
+mov esi,ecx  ;esi=resol X
+mov edx,edi
+mov eax,100
+int 61h
+mov edi,ecx  ;edi=resol y
+mov edx,ebp
+
+
+xor ecx,ecx
+xor ebp,ebp
+xor edx,edx
+boucle_modv5:
+call vesa_infomode
+cmp ax,004Fh
+jne @f
+cmp [infovesa+12h],si
+jne @f
+cmp [infovesa+14h],di
+jne @f
+cmp [infovesa+19h],dl
+jb @f
+mov dl,[infovesa+19h]
+mov ebp,ecx
+@@:
+inc ecx
+cmp ecx,200h
+jne boucle_modv5 
+
+cmp ebp,0
+je erreurmodv
+mov ecx,ebp
+jmp cmdmodv_ok 
+
+
+cmdmodv_num:
+mov edx,esi
 mov eax,101
 int 61h
 test ecx,0FFFF0000h
 jnz erreurmodv
 
+cmdmodv_ok:
 call vesa_infomode    ;lit les informations du mode video
 cmp ax,004Fh
 jne erreurmodv
