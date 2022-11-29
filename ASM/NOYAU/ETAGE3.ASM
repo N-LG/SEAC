@@ -2689,23 +2689,23 @@ cmdmodv:       ;modification mode video
 ;verification qu'aucune fenetre n'est ouverte
 mov ax,selramh
 mov es,ax
-xor ebx,ebx
-boucle_modv0:
-es
-cmp byte[ebx+type_dm],"F"
-je modv_0fen
-es
-cmp byte[ebx+type_dm],"T"
-jne modv_pas_t
-es
-cmp word[ebx+sel_ecranv],0
-jne fonc_video_nok
-modv_pas_t:
-es
-mov eax,[ebx+to_tache]
-add ebx,eax
-jmp boucle_modv0 
-modv_0fen:
+;xor ebx,ebx
+;boucle_modv0:
+;es
+;cmp byte[ebx+type_dm],"F"
+;je modv_0fen
+;es
+;cmp byte[ebx+type_dm],"T"
+;jne modv_pas_t
+;es
+;cmp word[ebx+sel_ecranv],0
+;jne fonc_video_nok
+;modv_pas_t:
+;es
+;mov eax,[ebx+to_tache]
+;add ebx,eax
+;jmp boucle_modv0 
+;modv_0fen:
 
 
 mov edx,ad_zdc          ;recherche le début du parametre

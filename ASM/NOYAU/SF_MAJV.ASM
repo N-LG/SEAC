@@ -106,6 +106,7 @@ mov [majv_yfin],ax
 
 
 ;ajuste les parametre de la mise a jour si c'est hors limite
+;d'abord sur les informations globales
 xor ecx,ecx
 fs
 mov cx,[resy]
@@ -140,6 +141,39 @@ fs
 mov [majv_xdeb],ecx
 majv_ok_xdeb:
 
+
+;puis sur les informations de l'écran de la tache
+xor ecx,ecx
+mov cx,[resy_ecran]
+fs
+cmp [majv_yfin],ecx
+jb majv_ok_yfin2 
+fs
+mov [majv_yfin],ecx
+majv_ok_yfin2:
+dec ecx
+fs
+cmp [majv_ydeb],ecx
+jb majv_ok_ydeb2
+fs
+mov [majv_ydeb],ecx
+majv_ok_ydeb2:
+
+xor ecx,ecx
+mov cx,[resx_ecran]
+fs
+cmp [majv_xfin],ecx
+jb majv_ok_xfin2
+fs
+mov [majv_xfin],ecx
+majv_ok_xfin2:
+dec ecx
+fs
+cmp [majv_xdeb],ecx
+jb majv_ok_xdeb2
+fs
+mov [majv_xdeb],ecx
+majv_ok_xdeb2:
 
 
 
@@ -300,7 +334,7 @@ majv_graph:
 fs
 mov byte[trappe_tache0],53
 
-mov ax,selramh             ;mise a jour écran en linear frame buffer
+mov ax,selramh
 mov es,ax
 fs
 mov eax,[majv_ydeb]
@@ -337,30 +371,32 @@ mov eax,[majv_xfin]
 fs
 sub eax,[majv_xdeb]
 mul ecx
+;?
+add eax,3
+and eax,0FFFFFFFCh
+push eax
+shr eax,2
+;?
 fs
 mov [majv_precal_longeur_ligne],eax
+;?
+pop eax
+
 
 fs
 mov cx,[octpl]
 sub ecx,eax
 fs
-mov [majv_precal_offset_ligne],ecx
+mov [majv_precal_offset_ligne],ecx  ;coté ecran
 
 
-;permet l'alignement des transfert de données en dword
-fs
-mov eax,[majv_precal_longeur_ligne]
-mov ecx,eax
-add ecx,3
-and ecx,0FFFFFFFCh
-push ecx
-shr ecx,2
-fs
-mov [majv_precal_longeur_ligne],ecx
-pop ecx
+mov cx,[octet_ligne]
 sub ecx,eax
 fs
-sub [majv_precal_offset_ligne],ecx
+mov [majv_precal_offset_ligne2],ecx  ;coté application
+
+
+
 
 
 boucle_majv_graph:
@@ -369,7 +405,7 @@ mov ecx,[majv_precal_longeur_ligne]
 cld
 rep movsd
 fs
-add esi,[majv_precal_offset_ligne]
+add esi,[majv_precal_offset_ligne2]
 fs
 add edi,[majv_precal_offset_ligne]
 fs
@@ -2452,6 +2488,7 @@ mov ax,seldat
 mov ds,ax
 mov ax,selramh
 mov es,ax
+or byte[at_csl],0Fh ;signal que le tecop doit être mis a jour
 
 mov ebx,[ad_console0]
 cmp ebx,0
@@ -2529,15 +2566,6 @@ shr ax,3
 shr bx,4
 mov [resx_texte],ax
 mov [resy_texte],bx
-
-
-;octet_ligne equ 3Ch ???????????????????????????????????????????????
-;bit_pixel equ 3Eh 
-;octet_pixel equ 3Fh
-
-
-
-
 pop eax
 mov [to_texte],eax
 mov dword[ad_texte],ad_res_console
@@ -2557,9 +2585,6 @@ cld
 rep movsd
 pop es
 pop ds
-
-
-
 
 
 ;****************reserve la zone tampon écran

@@ -105,8 +105,6 @@ index_tabcar equ 12600h ;index des 32 tables de caractères (dword)
 ;???
 
 
-
-
 zt_maj_descp equ 13800h  ;zone tampon pour la mise a jour des descripteur des partitions
 zt_conversion_ucs equ 14000h  ;definition temporaire
 
@@ -406,6 +404,7 @@ ad_console0 equ 54Ch
 ;précal mise a jour écran en mode graphique uniquement
 majv_precal_longeur_ligne equ 560h
 majv_precal_offset_ligne equ 564h
+majv_precal_offset_ligne2 equ 568h
 
 ;précal mise a jour écran en mode combiné et emulation texte
 majv_precal_resxt equ  560h  ;dword resxt x4
@@ -698,6 +697,7 @@ at_console equ 00h
       ;b3=pas de maj ecran obligatoire après appel fonction int 63h
       ;b4=demande de mise a jour écran
       ;b5=caracteristique ecran réel changé
+      ;b6=mode fenetre
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch

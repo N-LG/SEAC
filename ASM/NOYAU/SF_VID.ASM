@@ -2545,13 +2545,13 @@ mov edi,eax
 boucle_sfv_chaine_pix:
 mov eax,ebx
 add eax,8
-fs
-cmp [resx],ax
+es
+cmp [resx_ecran],ax
 jbe fin_sfv_chaine_pix
 mov eax,ecx
 add eax,16
-fs
-cmp [resy],ax
+es
+cmp [resy_ecran],ax
 jbe fin_sfv_chaine_pix
 call lireutf8
 cmp eax,0
@@ -2610,20 +2610,20 @@ mov ebp,ebx
 
 mov eax,ebx
 add eax,8
-fs
-cmp [resx],ax
+es
+cmp [resx_ecran],ax
 jbe fin_sfv_chaine_pix2
 
 boucle_sfv_chaine_pix2:
 mov eax,ecx
 add eax,16
-fs
-cmp [resy],ax
+es
+cmp [resy_ecran],ax
 jbe fin_sfv_chaine_pix2
 mov eax,ebx
 add eax,8
-fs
-cmp [resx],ax
+es
+cmp [resx_ecran],ax
 jbe ig_sfv_chaine_pix2
 cmp esi,ebx
 jbe ls_sfv_chaine_pix2
@@ -2712,16 +2712,16 @@ push ebx
 push ecx
 push edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 xor edx,edx
 mul ecx
 mov edi,eax
 
 mov eax,ebx
 xor ecx,ecx
-fs
-mov cx,[octpp]
+es
+mov cx,[octet_pixel]
 xor edx,edx
 mul ecx
 add edi,eax
@@ -2731,25 +2731,24 @@ pop edx
 pop ecx
 pop ebx
 
-fs
-cmp byte[bitpp],8
+es
+cmp byte[bit_pixel],8
 je boucle_place_carac8
 
 mov eax,edx
 call conv8_24
 mov edx,eax
-fs
-cmp byte[bitpp],24
+es
+cmp byte[bit_pixel],24
 je boucle_place_carac24
-fs
-cmp byte[bitpp],32
+es
+cmp byte[bit_pixel],32
 je boucle_place_carac32
-
-fs
-cmp byte[bitpp],15
+es
+cmp byte[bit_pixel],15
 je place_carac15
-fs
-cmp byte[bitpp],16
+es
+cmp byte[bit_pixel],16
 je place_carac16
 jmp fin_place_carac
 
@@ -2804,10 +2803,9 @@ jnc place_carac8_b7
 es
 mov [edi+7],dl
 place_carac8_b7:
-
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 inc esi
 test esi,0Fh
@@ -2873,10 +2871,9 @@ jnc place_carac16_b7
 es
 mov [edi+14],dx
 place_carac16_b7:
-fs
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 inc esi
 test esi,0Fh
@@ -2937,8 +2934,8 @@ es
 mov [edi+23],al
 place_carac24_b7:
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 inc esi
 test esi,0Fh
@@ -2995,10 +2992,9 @@ jnc place_carac32_b7
 es
 mov [edi+28],edx
 place_carac32_b7:
-
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 inc esi
 test esi,0Fh
@@ -3030,18 +3026,18 @@ mov ebx,[ad_tache_exec]
 es
 mov ax,[ebx+sel_ecranv]
 mov es,ax
-pop ebx      ;fs=seldat es=ecran virtuelle
+pop ebx      ;fs=seldat es=ecran virtuel
 
 ;met a zéro les MSB des coordonnées
 and ebx,07FFFh
 and ecx,07FFFh
 
 ;verifie que les coordonnées de départ sont bien dans l'image existante
-fs
-cmp [resx],bx
+es
+cmp [resx_ecran],bx
 jb parami_sfv_aff_img
-fs
-cmp [resy],cx
+es
+cmp [resy_ecran],cx
 jb parami_sfv_aff_img
 
 
@@ -3050,16 +3046,16 @@ push ebx
 push ecx
 push edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 xor edx,edx
 mul ecx
 mov edi,eax
 
 mov eax,ebx
 xor ecx,ecx
-fs
-mov cx,[octpp]
+es
+mov cx,[octet_pixel]
 xor edx,edx
 mul ecx
 add edi,eax
@@ -3073,8 +3069,8 @@ pop ebx
 ;calcul du nombre de ligne a afficher (ebp)
 xor eax,eax
 xor ebp,ebp
-fs
-mov ax,[resy]
+es
+mov ax,[resy_ecran]
 mov bp,[edx+4]
 sub eax,ecx     ;eax=pixel entre la position souhaité et le bord de l'écran
 cmp ebp,eax
@@ -3087,8 +3083,8 @@ ajy_sfv_aff_img:
 ;calcul de la largeur de l'image a copier (ecx)
 xor eax,eax
 xor ecx,ecx
-fs
-mov ax,[resx]
+es
+mov ax,[resx_ecran]
 mov cx,[edx+2]
 sub eax,ebx     ;eax=pixel entre la position souhaité et le bord de l'écran
 cmp ecx,eax
@@ -3102,8 +3098,8 @@ ajx_sfv_aff_img:
 mov esi,edx
 mov edx,[esi+6]
 mov al,[esi]
-fs
-mov ah,[bitpp]
+es
+mov ah,[bit_pixel]
 add esi,14
 
 
@@ -3155,7 +3151,6 @@ cmp ax,1820h   ;32->24
 je boucle_sfv_aff_img_32_24
 
 
-call sigmajv
 pop fs
 pop es
 popad
@@ -3178,8 +3173,8 @@ push esi
 push edi
 xor eax,eax
 xor edx,edx
-fs
-mov ax,[octpp]
+es
+mov ax,[octet_pixel]
 mul ecx
 mov ecx,eax    ;on multiplie ecx par le nombre d'octet par pixel pour avoir le nombre d'octet 
 rep movsb
@@ -3189,8 +3184,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_mc
@@ -3227,8 +3222,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_8
@@ -3271,8 +3266,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_15
@@ -3315,8 +3310,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_16
@@ -3363,8 +3358,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_24
@@ -3407,8 +3402,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_4_32
@@ -3441,8 +3436,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_8_8
@@ -3477,8 +3472,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_8_15
@@ -3512,8 +3507,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_8_16
@@ -3549,8 +3544,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_8_24
@@ -3583,8 +3578,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_8_32
@@ -3615,8 +3610,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_24_8
@@ -3646,8 +3641,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_24_15
@@ -3677,8 +3672,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_24_16
@@ -3707,8 +3702,8 @@ pop esi
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_24_32
@@ -3746,8 +3741,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_32_8
@@ -3786,8 +3781,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_32_15
@@ -3825,8 +3820,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_32_16
@@ -3864,8 +3859,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_32_24
@@ -3899,8 +3894,8 @@ pop edx
 pop ecx
 add esi,edx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add edi,eax
 dec ebp
 jnz boucle_sfv_aff_img_32_32
