@@ -183,8 +183,7 @@ majv_ok_xdeb2:
 ;précalcule certaines variables
 
 xor eax,eax
-fs
-mov ax,[resxt]
+mov ax,[resx_texte]
 shl eax,2
 fs
 mov [majv_precal_resxt],eax
@@ -193,8 +192,7 @@ mov eax,[majv_xdeb]
 and eax,0FFFFFFF8h
 xor ecx,ecx
 xor edx,edx
-fs
-mov cx,[octpp]
+mov cl,[octet_pixel]
 mul ecx
 fs
 mov [majv_precal_offsetx_ecran],eax
@@ -2413,13 +2411,17 @@ fs
 mov cx,[octpl]
 mul ecx
 mov edi,eax   
-mov esi,eax
-
-
 fs
 add edi,[ad_zt_ecran] 
 fs
 add edi,[majv_precal_offsetx_ecran]   ;edi=pointeur sur la zone ecran
+
+
+fs
+mov eax,[num_ligne_majv]
+mov cx,[octet_ligne]
+mul ecx
+mov esi,eax
 fs
 add esi,[majv_precal_offsetx_image]   ;esi=pointeur sur la zone image
 

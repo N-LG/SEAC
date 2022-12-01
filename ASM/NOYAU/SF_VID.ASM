@@ -627,8 +627,8 @@ push ds
 mov cx,es
 mov ds,cx
 xor esi,esi
-fs
-mov si,[resxt]
+es
+mov si,[resx_texte]
 shl esi,2
 es
 sub [ad_curseur_texte],esi ;décale le curseur
@@ -1235,14 +1235,15 @@ mov fs,ax
 xor esi,esi
 fs
 mov edx,[ad_tache_exec]
-fs
-mov si,[resxt]
 
 mov ax,selramh
 mov es,ax
 es
 mov ax,[edx+sel_ecranv]
 mov es,ax
+es
+mov si,[resx_texte]
+
 
 
 mov eax,esi
@@ -1346,8 +1347,8 @@ shr ebx,2
 xor edx,edx 
 mov eax,ebx
 xor ecx,ecx
-fs
-mov cx,[resxt]
+es
+mov cx,[resx_texte]
 div ecx
 inc eax
 xor edx,edx
@@ -1380,8 +1381,8 @@ push ds
 mov cx,es
 mov ds,cx
 xor esi,esi
-fs
-mov si,[resxt]
+es
+mov si,[resx_texte]
 shl esi,2
 sub ebx,esi
 es
@@ -1393,8 +1394,8 @@ add esi,edi
 rep movsb
 
 xor ecx,ecx     ;et efface la dernière ligne
-fs
-mov cx,[resxt]
+es
+mov cx,[resx_texte]
 es
 mov edi,[ad_texte]
 es
@@ -1443,8 +1444,8 @@ mov es,ax
 
 xor eax,eax
 xor edx,edx
-fs
-mov ax,[resxt]
+es
+mov ax,[resx_texte]
 mul ecx
 add ebx,eax
 
@@ -1489,8 +1490,8 @@ mov fs,ax
 fs
 mov edx,[ad_tache_exec]
 xor edi,edi
-fs
-mov di,[resxt]
+es
+mov di,[resx_texte]
 shl edi,2
 mov ax,selramh
 mov ds,ax
@@ -1733,25 +1734,28 @@ push ds
 push edx
 mov ax,seldat
 mov ds,ax
-
-;determination position debut
-xor eax,eax
-xor edx,edx
-mov ax,[resxt]
-shl ebx,2
-shl eax,2
-mul ecx
-add ebx,eax
-
 mov edx,[ad_tache_exec]
 mov ax,selramh
 mov ds,ax
 mov ax,[edx+sel_ecranv]
-pop ecx
+pop edx
 cmp ax,0
 je sfv_barre_err1
 mov ds,ax
+
+
+;determination position debut
+push edx
+xor eax,eax
+xor edx,edx
+es
+mov ax,[resx_texte]
+shl ebx,2
+shl eax,2
+mul ecx
+add ebx,eax
 add ebx,[ad_texte]
+pop ecx
 
 cmp ecx,4
 jbe sfv_barre_err2
@@ -1889,25 +1893,25 @@ push eax
 push ebx
 push ecx
 push edx
-fs
-cmp [resx],bx
+es
+cmp [resx_ecran],bx
 jbe fin_place_pix
-fs
-cmp [resy],cx
+es
+cmp [resy_ecran],cx
 jbe fin_place_pix
 
 ;calcul de l'adresse du pixel
 push edx
 xor eax,eax
-fs
-mov ax,[octpp]
+es
+mov al,[octet_pixel]
 xor edx,edx
 mul ebx
 mov ebx,eax
 
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 xor edx,edx
 mul ecx
 add ebx,eax
@@ -2721,7 +2725,7 @@ mov edi,eax
 mov eax,ebx
 xor ecx,ecx
 es
-mov cx,[octet_pixel]
+mov cl,[octet_pixel]
 xor edx,edx
 mul ecx
 add edi,eax
@@ -3055,7 +3059,7 @@ mov edi,eax
 mov eax,ebx
 xor ecx,ecx
 es
-mov cx,[octet_pixel]
+mov cl,[octet_pixel]
 xor edx,edx
 mul ecx
 add edi,eax
@@ -3174,7 +3178,7 @@ push edi
 xor eax,eax
 xor edx,edx
 es
-mov ax,[octet_pixel]
+mov al,[octet_pixel]
 mul ecx
 mov ecx,eax    ;on multiplie ecx par le nombre d'octet par pixel pour avoir le nombre d'octet 
 rep movsb
