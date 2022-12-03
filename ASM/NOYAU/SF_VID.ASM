@@ -1489,16 +1489,16 @@ mov ax,seldat
 mov fs,ax
 fs
 mov edx,[ad_tache_exec]
-xor edi,edi
-es
-mov di,[resx_texte]
-shl edi,2
 mov ax,selramh
 mov ds,ax
 mov ax,[edx+sel_ecranv]
 cmp ax,0
 je sfv_menu_err
 mov ds,ax
+xor edi,edi
+mov di,[resx_texte]
+shl edi,2
+
 
 cmp ch,0
 je sfv_menu_err
@@ -1729,19 +1729,32 @@ sfv_barre:
 ;edx=nombre de carac
 
 pushad
-push ds
+push es
 
 push edx
 mov ax,seldat
-mov ds,ax
+mov es,ax
+es
 mov edx,[ad_tache_exec]
 mov ax,selramh
-mov ds,ax
+mov es,ax
+es
 mov ax,[edx+sel_ecranv]
 pop edx
 cmp ax,0
 je sfv_barre_err1
-mov ds,ax
+mov es,ax
+
+;verification que les coordonné de départ ne déborde pas de l'ecran
+xor eax,eax
+es
+mov ax,[resx_texte]
+cmp ebx,eax
+jae sfv_barre_err2
+es
+mov ax,[resy_texte]
+cmp ecx,eax
+jae sfv_barre_err2
 
 
 ;determination position debut
@@ -1754,8 +1767,30 @@ shl ebx,2
 shl eax,2
 mul ecx
 add ebx,eax
+es
 add ebx,[ad_texte]
+
+
+;vérification que la barre ne déborde pas de l'écran
+xor eax,eax
+xor ecx,ecx
+es
+mov ax,[resx_texte]
+es
+mov cx,[resy_texte]
+mul ecx
+mov ecx,ebx
+es
+sub ecx,[ad_texte]
+shr ecx,2
+sub eax,ecx
 pop ecx
+;tronque la barre si ça dépasse
+cmp ecx,eax
+jb @f
+mov ecx,eax
+@@:
+
 
 cmp ecx,4
 jbe sfv_barre_err2
@@ -1778,11 +1813,11 @@ shl edi,2
 add esi,ebx
 add edi,ebx
 
-
 ;affiche progression
 cmp ebx,esi
 je ignore_boucle1_sfv_barre
 boucle1_sfv_barre:
+es
 mov dword[ebx],070000020h
 add ebx,4
 cmp ebx,esi
@@ -1792,6 +1827,7 @@ ignore_boucle1_sfv_barre:
 cmp ebx,edi
 je ignore_boucle2_sfv_barre
 boucle2_sfv_barre:
+es
 mov dword[ebx],07000020h
 add ebx,4
 cmp ebx,edi
@@ -1807,38 +1843,44 @@ pop ecx
 div ecx
 
 ;affiche le pourcentage
+es
 mov dword[ebx],07000020h
+es
 mov dword[ebx+4],07000020h
 mov ecx,10
 xor edx,edx
 div ecx
 add edx,07000030h
+es
 mov [ebx+8],edx
 cmp eax,0
 je fin_sfv_barre
 xor edx,edx
 div ecx
 add edx,07000030h
+es
 mov [ebx+4],edx
 cmp eax,0
 je fin_sfv_barre
 xor edx,edx
 div ecx
 add edx,07000030h
+es
 mov [ebx],edx
 
 fin_sfv_barre:
+es
 mov dword[ebx+12],07000025h
 
 call sigmajv
 
-pop ds
+pop es
 popad
 xor eax,eax
 iret
 
 sfv_barre_err1:
-pop ds
+pop es
 popad
 mov eax,cer_eabs
 iret
