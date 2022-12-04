@@ -3,19 +3,55 @@
 ^commandes disponibles avec le systeme d'exploitation SEaC:
 
 %-Commandes intégré:
-   ~AF~ ~EFJ~ ~DIR~/~LS~ ~DEF~ ~SUP~ ~COP~ ~VER~
-   ~CD~ ~LD~ ~LM~ ~LV~ ~LT~/~PS~ ~MODV~ ~EFJ~ ~FIX~ ~MTT~ ~STOP~
+ ~AF~ affiche une ligne de texte ou le contenu d'un fichier
+ ~EFJ~ efface le journal systeme
+ ~DIR~/~LS~ liste le contenu d'un dossier
+ ~DEF~ charge un fichier de définition
+ ~SUP~ supprime un fichier
+ ~COP~ copie un fichier
+ ~VER~ affiche la version systeme
+ ~CD~ change de dossier de travail
+ ~LD~ liste les disques et partitions installé
+ ~LM~ affiche l'organistion mémoire 
+ ~LV~ affiche les modes vidéo supporté
+ ~LT~/~PS~ affiche les taches en cours d'execution
+ ~MODV~ modifie le mode video
+ ~EFJ~ efface le journal systeme
+ ~FIX~ définie le dossier systeme
+ ~MTT~ modifie le temps d'execution de la tache
+ ~STOP~ arrete une tache
 %-Editeurs:
-   ~EDT~ ~EDH~ ~EDG~ ~PARTD~ 
+ ~EDT~ éditeur de texte
+ ~EDH~ éditeur hexadécimale
+ ~EDG~ éditeur de table de caractère
+ ~PARTD~ partitionneur/formateur de disque 
 %Divers
-   ~FASM~ ~AJARCH~ ~EXPL~ ~CALC~ ~UTF8~ ~MAN~ ~TERM~ ~LC~
+ ~FASM~ compilateur assembleur x86
+ ~AJARCH~ 
+ ~EXPL~ exploreur de fichier
+ ~CALC~ calculatrice
+ ~UTF8~ conversion unicode en utf8
+ ~MAN~ manuel 
+ ~TERM~ terminal série et TCP
+ ~LC~ liste les périphérique pci installé
+ ~ICS~ interface graphique
 %-Pilote Réseau
-   ~RTL8139~ ~3C90X~ ~I8254X~
+ ~RTL8139~ ~3C90X~ ~I8254X~
 %-Utilisation réseau:
-   ~IPCONFIG~ ~PING~ ~CDNS~ ~TRACE~ ~CIRC~ ~SNIF~ ~SCANIP~
-   ~CHTTP~ ~CFTP~
+ ~IPCONFIG~ configurateur carte réseau
+ ~PING~ test connexion
+ ~CDNS~ client DNS
+ ~TRACE~ trace route
+ ~CIRC~ client IRC
+ ~SNIF~ affiche les métadonnée des trame reçu
+ ~SCANIP~ scanner d'adresse ip
+ ~CHTTP~ clien http
+ ~CFTP~ client ftp
 %-Serveurs: 
-   ~SHTTP~ ~STFTP~ ~STLNT~ 
+ ~SHTTP~ serveur http
+ ~STFTP~ serveur tftp
+ ~STLNT~ server de commande a distance telnet
+
 :ajarch
 ^AJARCH
  ajarch permet de rajouter un fichier quelconque a un fichier noyau (extension .~BAZ~)
@@ -28,7 +64,7 @@
 
 %commande: calc
  entrez manuellement l'expression a calculer
- validez avec entrée, quitter avec echap
+ validez avec entrée, quittez avec echap
  vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
 :cd:cop:sup:ren:dir:ls
 ^Commandes pour la manipulation de fichier
@@ -77,7 +113,7 @@
  Terminal de COmmande Principal
 
  Le tecop est le nom de l'interface qui permet de piloter le systeme d'exploitation SEaC en mode texte
- On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite)
+ On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite) ou par Ctrl+Alt+Tab
  le tecop est constitué de 4 zones:
 :def
 ^DEF
@@ -326,7 +362,7 @@ démarre le pilote pour une carte Intel  ou compatible
  téléchargeur de ressource avec le protocole FTP
 
 %commande: cftp XXX YYYY
- avec: XXX  = adresse de laressource
+ avec: XXX  = adresse de la ressource
        YYYY = paramètres optionnels
 
  paramètres optionnels:
@@ -336,9 +372,22 @@ démarre le pilote pour une carte Intel  ou compatible
  -a:XXX adresse ip du serveur de la ressource
  -u:XXX nom pour le login
  -p:XXX mot de passe pour le login
+:expl
+^EXPL
+ explorateur de fichier
 
+%commande: expl XXX
+ avec: XXX = dossier a ouvrir
 
+:ics:bureau
+^ICS
+ Interface de commande simplifié
 
+%commande: ics XXX
+ avec: XXX  = paramètres optionnels
 
-
-
+ paramètres optionnels:
+ -f:XXX fichier image qui sert de fond
+ -i:XXX fichier image qui sert de definition d'icones
+ -c:XXX couleur du fond s'il n'y as pas d'image
+ -t:X   couleur du texte
