@@ -1,4 +1,4 @@
-;mise a jour totale de l'écran video
+;mise a jour de l'écran video
 mov ax,seldat
 mov fs,ax
 mov ax,selramh

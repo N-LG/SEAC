@@ -169,7 +169,7 @@ nb_zrc equ 3Ah  ;nombre de touche dans la zone de reception clavier
 sv_chas equ 3Ch ;sauvegarde de l'eventuel dernier caractère de chasse rentrée
 sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par ALT+chiffres
 alclat1 equ 44h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
-alclat2 equ 45h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
+alclat2 equ 45h ;touche 2 a presser avec ctrl pour avoir le clavier alternatif
 
 
 xs1 equ 50h      ;position de la souris 1 en X

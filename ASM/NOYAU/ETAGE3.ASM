@@ -2684,29 +2684,8 @@ jmp pascommande
 
 ;****************************************************************
 cmdmodv:       ;modification mode video
-
-
-;verification qu'aucune fenetre n'est ouverte
 mov ax,selramh
 mov es,ax
-;xor ebx,ebx
-;boucle_modv0:
-;es
-;cmp byte[ebx+type_dm],"F"
-;je modv_0fen
-;es
-;cmp byte[ebx+type_dm],"T"
-;jne modv_pas_t
-;es
-;cmp word[ebx+sel_ecranv],0
-;jne fonc_video_nok
-;modv_pas_t:
-;es
-;mov eax,[ebx+to_tache]
-;add ebx,eax
-;jmp boucle_modv0 
-;modv_0fen:
-
 
 mov edx,ad_zdc          ;recherche le début du parametre
 boucle_modv1:
@@ -2983,6 +2962,49 @@ sub eax,ecx
 mov [ad_afcmd],eax  ;numéro du premier caractère qui sert a ecrire la commande en cours (-2 lignes)
 sub eax,ecx
 mov [ad_afrep],eax ;numéro du premier caractère qui sert a ecrire le dossier en cours (-3 lignes)
+
+
+
+;met a 1 le bit "caracteristique ecran réel changé" de chaque ecran de tache
+push es
+mov ax,selramh
+mov fs,ax
+mov ax,selgdt
+mov gs,ax
+xor esi,esi
+xor edi,edi
+mov di,[nb_ecran]
+shl edi,5
+boucle_bit5_cmdmodv:
+cmp word[esi+table_ecran_id],0
+je @f 
+
+;recopie le descripteur de l'écran en ldt dans le descripteur d'ecran
+mov ebx,[esi+table_ecran_ad]
+fs
+mov ax,[ebx+sel_ecranv]
+and eax,0FFF8h
+add ebx,ldt_tache
+add ebx,eax
+fs
+mov eax,[ebx]
+fs
+mov edx,[ebx+4]
+gs
+mov [selecran],eax
+gs
+mov [selecran+4],edx
+
+mov ax,selecran 
+mov es,ax
+es
+or byte[at_console],20h ;met a 1 le bit5
+
+@@:
+add esi,32
+cmp esi,edi
+jne boucle_bit5_cmdmodv 
+pop es
 
 call maj_console0
 jmp pascommande
