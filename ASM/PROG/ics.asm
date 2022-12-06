@@ -11,7 +11,7 @@ mov ds,ax
 mov es,ax
 mov fs,ax
 
-
+redim_ecran:
 mov dx,sel_dat2
 mov ah,6   ;option=mode video + souris
 mov al,0   ;création console     
@@ -425,6 +425,12 @@ int 63h
 
 ;****************************************************************************************
 attend_touche:
+fs
+test byte[at_console],20h
+jnz redim_ecran 
+
+
+
 mov al,5
 int 63h
 cmp al,1  ;echap on quitte
@@ -930,7 +936,7 @@ db "fond.png",0
 fichier_icone:
 db "icones.png",0
 couleur:
-dd 0007070h ;bleu/vert moche de win95
+dd 0FF007070h ;bleu/vert moche de win95
 texte:
 dd 0Fh      ;code 16 couleurs blanc
 

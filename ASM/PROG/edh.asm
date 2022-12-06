@@ -525,6 +525,9 @@ int 63h
 
 ;*******************************************
 touche_boucle:          ;attente touche
+fs
+test byte[at_console],20h
+jnz redim_ecran 
 mov al,5
 int 63h
 cmp al,1
@@ -560,6 +563,32 @@ je souris1
 cmp al,0F2h
 je souris2
 jmp touche_boucle
+
+
+;***********************************************
+redim_ecran:
+mov dx,sel_dat2
+mov ah,5   ;option=mode texte+souris
+mov al,0   ;création console     
+int 63h
+
+
+mov dx,sel_dat2
+mov fs,dx
+
+mov edx,bitpp
+mov al,2   ;information video     
+int 63h
+
+mov eax,[resyt]   ;calcul la quantité de donnée affichable en un seul écran
+sub eax,3
+shl eax,4
+mov [max_affichable],eax
+jmp affichage
+
+
+
+
 
 
 ;***************************************************

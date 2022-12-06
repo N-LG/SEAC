@@ -37,9 +37,27 @@ int 63h
 
 ;si la validation de la saisie est echap alors on termine l'application
 cmp al,1
-jne ok_suite
+jne @f
 int 60h 
-ok_suite:
+@@:
+
+fs
+test byte[at_console],20h
+jz @f
+;redimensinne l'ecran si la taille de celuis ci as changé
+mov dx,sel_dat2
+mov ah,1   ;option=mode texte
+mov al,0   ;création console     
+int 63h
+
+mov dx,sel_dat1
+mov ds,dx
+mov es,dx
+mov dx,sel_dat2
+mov fs,dx
+@@:
+
+
 
 ;**************************************************************
 ;convertit l'expression en notation NPI

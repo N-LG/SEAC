@@ -617,6 +617,9 @@ jb boucle_affiche_fin
 
 ;******************************************************************************************
 touche_boucle:
+fs
+test byte[at_console],20h
+jnz redim_ecran
 
 mov ebx,[curseur_colonne]
 mov ecx,[curseur_ligne]
@@ -708,6 +711,37 @@ sub ebx,eax
 mov [curseur_colonne],ebx
 mov [curseur_ligne],ecx
 jmp affichage
+
+
+
+
+
+;************************************
+redim_ecran:
+mov dx,sel_dat3
+mov ah,5   ;option=mode texte et souris
+mov al,0   ;création console     
+int 63h
+
+mov dx,sel_dat1    ;variable du programme
+mov ds,dx
+mov dx,sel_dat2    ;zone tampon de taille variable pour les données du fichier
+mov es,dx
+mov dx,sel_dat3    ;écran video
+mov fs,dx
+
+mov edx,bitpp
+mov al,2   ;information video     
+int 63h
+
+mov eax,[resyt]
+sub eax,1
+mov [resyt_correc],eax
+jmp affichage
+
+
+
+
 
 
 ;**************************************************************************
