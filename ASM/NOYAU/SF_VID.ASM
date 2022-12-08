@@ -1961,20 +1961,20 @@ es
 add ebx,[ad_graf]
 pop edx
 
-fs
-cmp byte[bitpp],8
+es
+cmp byte[bit_pixel],8
 je place_pix_8
-fs
-cmp byte[bitpp],15
+es
+cmp byte[bit_pixel],15
 je place_pix_16
-fs
-cmp byte[bitpp],16
+es
+cmp byte[bit_pixel],16
 je place_pix_16
-fs
-cmp byte[bitpp],24
+es
+cmp byte[bit_pixel],24
 je place_pix_24
-fs
-cmp byte[bitpp],32
+es
+cmp byte[bit_pixel],32
 je place_pix_24
 fin_place_pix:
 pop edx
@@ -2045,27 +2045,27 @@ xchg ecx,edi
 ajy_sfv_dessine_rec:
 
 ;verifie que les coordonnées de départ sont bien dans l'image existante
-fs
-cmp [resx],bx
+es
+cmp [resx_ecran],bx
 jbe parami_sfv_dessine_rec
-fs
-cmp [resy],cx
+es
+cmp [resy_ecran],cx
 jbe parami_sfv_dessine_rec
 
 
 ;controle si les marges exterieurs sont comprit dans l'image existante
-fs
-cmp si,[resx]
+es
+cmp si,[resx_ecran]
 jb ajxl_sfv_dessine_rec
-fs
-mov si,[resx]
+es
+mov si,[resx_ecran]
 dec esi
 ajxl_sfv_dessine_rec:
-fs
-cmp di,[resy]
+es
+cmp di,[resy_ecran]
 jb ajyl_sfv_dessine_rec
-fs
-mov di,[resy]
+es
+mov di,[resy_ecran]
 dec edi
 ajyl_sfv_dessine_rec:
 
@@ -2079,38 +2079,38 @@ inc edi
 
 push edx
 xor eax,eax
-fs
-mov ax,[octpp]
+es
+mov ax,[octet_pixel]
 xor edx,edx
 mul ebx
 mov ebx,eax
 
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 xor edx,edx
 mul ecx
 add ebx,eax
 es
 add ebx,[ad_graf]
 pop edx
-fs
-cmp byte[bitpp],4
+es
+cmp byte[bit_pixel],4
 je boucle_sfv_dessine_rec_4
-fs
-cmp byte[bitpp],8
+es
+cmp byte[bit_pixel],8
 je boucle_sfv_dessine_rec_8
-fs
-cmp byte[bitpp],15
+es
+cmp byte[bit_pixel],15
 je boucle_sfv_dessine_rec_16
-fs
-cmp byte[bitpp],16
+es
+cmp byte[bit_pixel],16
 je boucle_sfv_dessine_rec_16
-fs
-cmp byte[bitpp],24
+es
+cmp byte[bit_pixel],24
 je boucle_sfv_dessine_rec_24
-fs
-cmp byte[bitpp],32
+es
+cmp byte[bit_pixel],32
 je boucle_sfv_dessine_rec_32
 pop fs
 pop es
@@ -2139,8 +2139,8 @@ or [ebx],dl
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_4
@@ -2154,8 +2154,8 @@ jne boucle2_sfv_dessine_rec_4
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_4
@@ -2173,8 +2173,8 @@ jnz boucle2_sfv_dessine_rec_8
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_8
@@ -2192,8 +2192,8 @@ jnz boucle2_sfv_dessine_rec_16
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_16
@@ -2215,8 +2215,8 @@ jnz boucle2_sfv_dessine_rec_24
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_24
@@ -2234,8 +2234,8 @@ jnz boucle2_sfv_dessine_rec_32
 pop esi
 pop ebx
 xor eax,eax
-fs
-mov ax,[octpl]
+es
+mov ax,[octet_ligne]
 add ebx,eax
 dec edi
 jnz boucle_sfv_dessine_rec_32
@@ -2571,14 +2571,16 @@ mov fs,ax
 xor esi,esi
 fs
 mov ebx,[ad_tache_exec]
-fs
-mov si,[resxt]
+
 
 mov ax,selramh
 mov es,ax
 es
 mov ax,[ebx+sel_ecranv]
 mov es,ax
+es
+mov si,[resx_texte]
+
 
 pop edx
 pop ebx
