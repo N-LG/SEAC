@@ -328,7 +328,10 @@ jmp fin_majv
 
 ;*************************************
 majv_graph:
-
+;fs
+;mov al,[bitpp]
+;cmp al,[bit_pixel]
+;jne majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
 fs
 mov byte[trappe_tache0],53
 
@@ -369,15 +372,12 @@ mov eax,[majv_xfin]
 fs
 sub eax,[majv_xdeb]
 mul ecx
-;?
 add eax,3
 and eax,0FFFFFFFCh
 push eax
 shr eax,2
-;?
 fs
 mov [majv_precal_longeur_ligne],eax
-;?
 pop eax
 
 
@@ -394,7 +394,10 @@ fs
 mov [majv_precal_offset_ligne2],ecx  ;coté application
 
 
-
+;fs
+;mov al,[bitpp]
+;cmp al,[bit_pixel]
+;jne majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
 
 
 boucle_majv_graph:
@@ -414,6 +417,30 @@ fs
 cmp [majv_yfin],eax
 jne boucle_majv_graph
 jmp maj_ztverscarte
+
+
+
+
+boucle_majv_graph2:
+fs
+mov ecx,[majv_precal_longeur_ligne]
+cld
+rep movsd
+fs
+add esi,[majv_precal_offset_ligne2]
+fs
+add edi,[majv_precal_offset_ligne]
+fs
+inc dword[num_ligne_majv]
+fs
+mov eax,[num_ligne_majv]
+fs
+cmp [majv_yfin],eax
+jne boucle_majv_graph
+jmp maj_ztverscarte
+
+
+
 
 
 ;*********************************************************************************************************************************
@@ -858,6 +885,11 @@ jmp maj_ztverscarte
 
 ;******************************************************************************************************************************************
 majv_combi:             ;mise a jour du mode combiné
+fs
+mov al,[bitpp]
+cmp al,[bit_pixel]
+jne majv_texte  ;si le mode video actuel ne correspond pas a celuis de l'écran, on ne met a jour que le texte
+
 fs
 mov byte[trappe_tache0],55
 fs
