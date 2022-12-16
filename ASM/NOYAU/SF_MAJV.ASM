@@ -328,10 +328,6 @@ jmp fin_majv
 
 ;*************************************
 majv_graph:
-;fs
-;mov al,[bitpp]
-;cmp al,[bit_pixel]
-;jne majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
 fs
 mov byte[trappe_tache0],53
 
@@ -382,7 +378,7 @@ pop eax
 
 
 fs
-mov cx,[octpl]
+mov cx,[octpl] ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 sub ecx,eax
 fs
 mov [majv_precal_offset_ligne],ecx  ;coté ecran
@@ -394,10 +390,10 @@ fs
 mov [majv_precal_offset_ligne2],ecx  ;coté application
 
 
-;fs
-;mov al,[bitpp]
-;cmp al,[bit_pixel]
-;jne majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
+fs
+mov al,[bitpp]
+cmp al,[bit_pixel]
+jne boucle_majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
 
 
 boucle_majv_graph:
@@ -420,12 +416,125 @@ jmp maj_ztverscarte
 
 
 
-
+;mise a jour quand la profondeur de couleur de l'image et de l'écran ne correspondent pas (totalement innéficient)
 boucle_majv_graph2:
 fs
 mov ecx,[majv_precal_longeur_ligne]
-cld
-rep movsd
+
+boucle_majv_graph2_partie1:
+cmp byte[bit_pixel],8
+je e8_majv_graph
+cmp byte[bit_pixel],15
+je e15_majv_graph
+cmp byte[bit_pixel],16
+je e16_majv_graph
+cmp byte[bit_pixel],24
+je e24_majv_graph
+cmp byte[bit_pixel],32
+je e32_majv_graph
+
+
+e8_majv_graph:
+lodsb
+call conv8_24
+jmp boucle_majv_graph2_partie2
+
+e15_majv_graph:
+lodsw
+call conv15_24
+jmp boucle_majv_graph2_partie2
+
+e16_majv_graph:
+lodsw
+call conv16_24
+jmp boucle_majv_graph2_partie2
+
+e24_majv_graph:
+mov eax,[esi]
+and eax,0FFFFFFh
+add esi,3
+jmp boucle_majv_graph2_partie2
+
+e32_majv_graph:
+lodsd
+jmp boucle_majv_graph2_partie2
+
+
+
+
+boucle_majv_graph2_partie2:
+fs
+cmp byte[bitpp],8
+je s8_majv_graph
+fs
+cmp byte[bitpp],15
+je s15_majv_graph
+fs
+cmp byte[bitpp],16
+je s16_majv_graph
+fs
+cmp byte[bitpp],24
+je s24_majv_graph
+fs
+cmp byte[bitpp],32
+je s32_majv_graph
+
+
+s8_majv_graph:
+call conv24_8
+stosb
+dec ecx
+jnz boucle_majv_graph2_partie1
+jmp boucle_majv_graph2_partie3
+
+s15_majv_graph:
+call conv24_15
+stosw
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+jmp boucle_majv_graph2_partie3
+
+s16_majv_graph:
+call conv24_16
+stosw
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+jmp boucle_majv_graph2_partie3
+
+s24_majv_graph:
+es
+mov [edi],ax
+shr eax,16
+es
+mov [edi+2],al
+add edi,3
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+jmp boucle_majv_graph2_partie3
+
+s32_majv_graph:
+stosd
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+dec ecx
+jnz boucle_majv_graph2_partie1
+jmp boucle_majv_graph2_partie3
+
+
+
+boucle_majv_graph2_partie3:
 fs
 add esi,[majv_precal_offset_ligne2]
 fs
