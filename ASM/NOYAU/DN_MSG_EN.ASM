@@ -1,10 +1,10 @@
 ﻿dn_msg_en:
-;message systeme uttilisé par SeAC 💩
+;message systeme uttilisé par SeAC
 ;doit être entregistré au format utf8
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.21 November 2022 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,"SEAC V0.21 December 2022 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,"Systeme d'Exploitation Aproximativement Complet",17h,13,0
 
 

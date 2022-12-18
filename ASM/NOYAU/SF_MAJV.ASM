@@ -338,12 +338,30 @@ mov eax,[majv_ydeb]
 fs
 mov [num_ligne_majv],eax
 
+
+xor ecx,ecx
+xor edx,edx
+fs
+mov eax,[majv_xdeb]
+mov cl,[octet_pixel]
+mul ecx
+mov esi,eax
+xor ecx,ecx
+xor edx,edx
+fs
+mov eax,[majv_ydeb]
+mov cx,[octet_ligne]
+mul ecx
+add esi,eax
+add esi,[ad_graf]
+
+
 xor ecx,ecx
 xor edx,edx
 fs
 mov eax,[majv_xdeb]
 fs
-mov cx,[octpp]
+mov cl,[octpp]
 mul ecx
 mov edi,eax
 xor ecx,ecx
@@ -354,46 +372,59 @@ fs
 mov cx,[octpl]
 mul ecx
 add edi,eax
-mov esi,edi
-add esi,[ad_graf]  
 fs
 add edi,[ad_zt_ecran]
 
 xor ecx,ecx
 xor edx,edx
 fs
-mov cx,[octpp]
+mov cl,[octpp]
 fs
 mov eax,[majv_xfin]
 fs
 sub eax,[majv_xdeb]
 mul ecx
-add eax,3
-and eax,0FFFFFFFCh
-push eax
-shr eax,2
 fs
 mov [majv_precal_longeur_ligne],eax
-pop eax
-
-
 fs
-mov cx,[octpl] ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+mov cx,[octpl]
 sub ecx,eax
 fs
 mov [majv_precal_offset_ligne],ecx  ;coté ecran
 
 
+xor ecx,ecx
+xor edx,edx
+mov cl,[octet_pixel]
+fs
+mov eax,[majv_xfin]
+fs
+sub eax,[majv_xdeb]
+mul ecx
 mov cx,[octet_ligne]
 sub ecx,eax
 fs
 mov [majv_precal_offset_ligne2],ecx  ;coté application
 
-
 fs
 mov al,[bitpp]
 cmp al,[bit_pixel]
 jne boucle_majv_graph2  ;si le mode video actuel ne correspond pas a celuis de l'écran, on doit faire des conversions
+
+
+fs
+mov eax,[majv_precal_longeur_ligne]
+mov ecx,eax
+add eax,3
+and eax,0FFFFFFFCh
+sub eax,ecx
+shr ecx,2
+fs
+mov [majv_precal_longeur_ligne],ecx    ;cette variale est exprimé en mot de 32bit
+fs
+add [majv_precal_offset_ligne2],eax
+fs
+add [majv_precal_offset_ligne],eax
 
 
 boucle_majv_graph:
@@ -419,9 +450,11 @@ jmp maj_ztverscarte
 ;mise a jour quand la profondeur de couleur de l'image et de l'écran ne correspondent pas (totalement innéficient)
 boucle_majv_graph2:
 fs
-mov ecx,[majv_precal_longeur_ligne]
-
+mov ecx,[majv_xfin]
+fs
+sub ecx,[majv_xdeb]
 boucle_majv_graph2_partie1:
+cld
 cmp byte[bit_pixel],8
 je e8_majv_graph
 cmp byte[bit_pixel],15
@@ -432,7 +465,9 @@ cmp byte[bit_pixel],24
 je e24_majv_graph
 cmp byte[bit_pixel],32
 je e32_majv_graph
-
+mov dx,0
+call sfv_sf_choix_console
+jmp fin_majv
 
 e8_majv_graph:
 lodsb
@@ -457,7 +492,7 @@ jmp boucle_majv_graph2_partie2
 
 e32_majv_graph:
 lodsd
-jmp boucle_majv_graph2_partie2
+;jmp boucle_majv_graph2_partie2
 
 
 
@@ -478,31 +513,26 @@ je s24_majv_graph
 fs
 cmp byte[bitpp],32
 je s32_majv_graph
-
+mov dx,0
+call sfv_sf_choix_console
+jmp fin_majv
 
 s8_majv_graph:
 call conv24_8
+cld
 stosb
-dec ecx
-jnz boucle_majv_graph2_partie1
 jmp boucle_majv_graph2_partie3
 
 s15_majv_graph:
 call conv24_15
+cld
 stosw
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
 jmp boucle_majv_graph2_partie3
 
 s16_majv_graph:
 call conv24_16
+cld
 stosw
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
 jmp boucle_majv_graph2_partie3
 
 s24_majv_graph:
@@ -512,29 +542,18 @@ shr eax,16
 es
 mov [edi+2],al
 add edi,3
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
 jmp boucle_majv_graph2_partie3
 
 s32_majv_graph:
+cld
 stosd
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
-dec ecx
-jnz boucle_majv_graph2_partie1
-jmp boucle_majv_graph2_partie3
+;jmp boucle_majv_graph2_partie3
 
 
 
 boucle_majv_graph2_partie3:
+dec ecx
+jnz boucle_majv_graph2_partie1
 fs
 add esi,[majv_precal_offset_ligne2]
 fs
@@ -545,7 +564,7 @@ fs
 mov eax,[num_ligne_majv]
 fs
 cmp [majv_yfin],eax
-jne boucle_majv_graph
+jne boucle_majv_graph2
 jmp maj_ztverscarte
 
 
@@ -1578,7 +1597,7 @@ xor edx,edx
 fs
 mov eax,[majv_xdeb]
 fs
-mov cx,[octpp]
+mov cl,[octpp]
 mul ecx
 mov edi,eax
 xor ecx,ecx
@@ -1596,7 +1615,7 @@ add esi,[ad_zt_ecran]
 xor ecx,ecx
 xor edx,edx
 fs
-mov cx,[octpp]
+mov cl,[octpp]
 fs
 mov eax,[majv_xfin]
 fs
@@ -2601,7 +2620,7 @@ fs
 mov [axs1],eax
 and eax,0FFFFh
 fs
-mov cx,[octpp]
+mov cl,[octpp]
 mul ecx
 mov edi,eax
 xor eax,eax
@@ -2747,7 +2766,7 @@ je init_zt_ecrant
 
 mov ax,[resx]
 mov bx,[resy]
-mov cx,[octpp]
+mov cl,[octpp]
 mul ebx
 mul ecx
 mov ecx,eax
