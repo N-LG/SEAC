@@ -4238,8 +4238,8 @@ ret
 conv_univ:    ;convertiseur de couleur en fonction de ah (nombre de bit par couleur en entrée)
 	      ;et la resolution actuelle de l'écran. edx contient la couleur
 push eax
-fs
-mov al,[bitpp]
+es
+mov al,[bit_pixel]
 
 cmp ax,040Fh
 je conv_univ_8_15

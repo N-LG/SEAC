@@ -470,16 +470,19 @@ call sfv_sf_choix_console
 jmp fin_majv
 
 e8_majv_graph:
+xor eax,eax
 lodsb
 call conv8_24
 jmp boucle_majv_graph2_partie2
 
 e15_majv_graph:
+xor eax,eax
 lodsw
 call conv15_24
 jmp boucle_majv_graph2_partie2
 
 e16_majv_graph:
+xor eax,eax
 lodsw
 call conv16_24
 jmp boucle_majv_graph2_partie2
@@ -492,6 +495,7 @@ jmp boucle_majv_graph2_partie2
 
 e32_majv_graph:
 lodsd
+and eax,0FFFFFFh
 ;jmp boucle_majv_graph2_partie2
 
 
