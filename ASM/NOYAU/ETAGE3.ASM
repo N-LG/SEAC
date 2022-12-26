@@ -3074,104 +3074,28 @@ include "CI_DIR.ASM"
 fin_cmddir:
 
 
+
 ;********************************************
 cmdren:
-mov edx,ad_zdc
+mov esi,debut_cmdren
+mov ecx,fin_cmdren-debut_cmdren
+jmp creation_tache_interne
 
-boucle1_cmdren:     ;trouve le debut du nom du fichier
-cmp byte[edx],0
-je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx]," "
-jne boucle1_cmdren          
-cmp byte[edx+1]," "
-je boucle1_cmdren          
+debut_cmdren:
+include "CI_REN.ASM"
+fin_cmdren:
 
-inc edx
-mov esi,edx
-
-boucle2_cmdren:     ;trouve le debut du nouveau nom du fichier
-cmp byte[edx],0
-je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx],":"
-jne boucle2_cmdren   
-
-mov byte[edx],0
-inc edx
-mov edi,edx
-
-xor eax,eax         ;ouvre le fichier
-xor ebx,ebx
-mov edx,esi
-int 64h
-cmp eax,0       
-je suite_cmdren
-cmp eax,12       
-je suite_cmdren
-jmp fin_commande_erreur
-
-suite_cmdren:
-mov al,7   ;modifie les données du nom de fichier
-mov ah,0
-mov edx,edi
-int 64h
-cmp eax,0       
-je finok_cmdren
-jmp fin_commande_erreur
-
-finok_cmdren:
-mov cl,98   
-call affmsgsyst
-mov edx,esi
-call affjournal
-mov cl,97   
-call affmsgsyst
-mov edx,edi
-call affjournal
-mov al,13
-call affcj
-jmp pascommande
 
 
 ;********************************************
 cmdsup:
-mov edx,ad_zdc
-boucle_cmpsup:     ;trouve le debut du nom du fichier
-cmp byte[edx],0
-je fin_commande_erreur_param          ;si on arrive a la fin de la chaine c'est une erreur
-inc edx
-cmp byte[edx]," "
-jne boucle_cmpsup           
-cmp byte[edx+1]," "
-je boucle_cmpsup           
+mov esi,debut_cmdsup
+mov ecx,fin_cmdsup-debut_cmdsup
+jmp creation_tache_interne
 
-
-inc edx
-mov esi,edx
-xor eax,eax         ;ouvre le fichier
-xor ebx,ebx
-int 64h
-cmp eax,0       
-je suite_cmdsup
-cmp eax,12       
-je suite_cmdsup
-jmp fin_commande_erreur
-
-suite_cmdsup:
-mov eax,3
-int 64h
-cmp eax,0       
-jne fin_commande_erreur
-
-
-mov cl,98  
-call affmsgsyst
-mov edx,esi
-call affjournal
-mov cl,96   
-call affmsgsyst
-jmp pascommande
+debut_cmdsup:
+include "CI_SUP.ASM"
+fin_cmdsup:
 
 
 
@@ -3184,11 +3108,6 @@ jmp creation_tache_interne
 debut_cmdcop:
 include "CI_COP.ASM"
 fin_cmdcop:
-
-
-
-
-
 
 
 
