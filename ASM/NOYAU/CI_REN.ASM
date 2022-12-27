@@ -51,11 +51,10 @@ jmp erreur_autres_cmdren
 suite_cmdren:
 mov al,7   ;modifie les données du nom de fichier
 mov ah,0
-mov edx,edi
+mov edx,cmdren_nom_final
 int 64h
 cmp eax,0       
-je finok_cmdren
-jmp erreur_autres_cmdren
+jne erreur_autres_cmdren
 
 finok_cmdren:
 mov al,13
