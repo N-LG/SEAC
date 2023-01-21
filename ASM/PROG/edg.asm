@@ -24,16 +24,11 @@ int 60h
 suite1_init:
 mov dx,sel_dat2
 mov fs,dx
-
-mov edx,bitpp
-mov al,2   ;information video     
-int 63h
-
-
-
-cmp dword[resx],700
+fs
+cmp word[resx_ecran],600
 jb erreur_resolution 
-cmp dword[resy],500
+fs
+cmp word[resy_ecran],400
 jae suite2_init
 
 erreur_resolution:
@@ -412,17 +407,6 @@ cmp bl,1
 je sauvegarder_sous
 ret
 
-
-;mov ecx,eax   ;afficher le message d'erreur correspondnant a eax
-;mov al,13
-;mov ah,1
-;mov ch,0
-;mov edx,zt_nombre
-;int 61h
-;mov al,11
-;mov ah,07h ;couleur
-;mov edx,zt_nombre
-;int 63h 
 
 
 
@@ -1218,8 +1202,12 @@ jmp aff_table
 
 ;***********************************
 raz_ecr:
+push eax
 push ebx
 push ecx
+fs
+test byte[at_console],20h
+jnz raz_totale 
 fs
 mov ebx,[ad_graf]
 fs
@@ -1238,6 +1226,7 @@ fs
 or byte[at_console],2 
 pop ecx
 pop ebx
+pop eax
 ret
 
 
@@ -1247,6 +1236,9 @@ raz_txt:
 push eax
 push ebx
 push ecx
+fs
+test byte[at_console],20h
+jnz raz_totale
 fs
 mov ebx,[ad_texte]
 fs
@@ -1273,6 +1265,20 @@ pop ecx
 pop ebx
 pop eax
 ret
+
+
+
+raz_totale:
+mov dx,sel_dat2
+mov ah,7   ;option=mode graphique+texte+souris
+mov al,0   ;création console     
+int 63h
+pop ecx
+pop ebx
+pop eax
+ret
+
+
 
 
 
@@ -1467,30 +1473,23 @@ db "continuer sans enregistrer?",13,0
 
 
 
-
 zt_nombre:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 256
 
 nom_fichier:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 256
 
 
 
 zone_tampon:
-dd 0
+rb 4
 larg_carac:     ;largeur caractère (valeur possible: 8, 16, et 32)
-db 0     
+rb 1     
 haut_carac:     ;hauteur caractère (valeur possible: 16 et 32)
-db 0    
-dw 0     
+rb 1    
+rb 2     
 num_1er_carac:  ;numéros du premier caractère (doit etre aligné sur 256)
-dd 0,0
+rb 8
 data_carac:
 
 

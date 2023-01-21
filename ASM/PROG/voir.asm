@@ -6,17 +6,6 @@ scode:
 org 0
 
 
-
-objimage_bpp equ 00h ;0 bit par pixel
-objimage_att equ 01h ;1 attribut image
-objimage_x   equ 02h ;2 largeur image
-objimage_y   equ 04h ;4 hauteur image
-objimage_opl equ 06h ;6 nombre d'octet par ligne
-objimage_ctp equ 0Ah ;10 couleur de transparence
-objimage_dat equ 0Eh ;14 image
-
-
-
 ;données du segment CS
 mov ax,sel_dat1
 mov ds,ax
@@ -78,7 +67,7 @@ mov dx,sel_dat2
 mov ah,6   ;option=mode video ;6=video + souris
 test byte[opt],4
 jz @f
-and ah,0FBh   ;désactive la souris
+;and ah,0FBh   ;désactive la souris
 @@:
 mov al,0   ;création console     
 int 63h
@@ -112,27 +101,42 @@ mov [y_image2],ecx
 mov [x_image3],ebx
 mov [y_image3],ecx
 
+;calcul la taille d'une image ecran complete avec la résolution de l'image
+push edx
+xor ecx,ecx
+mov cl,dl
+shr ecx,3
+xor eax,eax
+xor ebx,ebx
+xor edx,edx
+fs
+mov ax,[resx_ecran]
+fs
+mov bx,[resy_ecran]
+mul ecx
+mul ebx
+add eax,14 ;eax=taille de l'image
+pop edx
+
+
 
 ;aggrandit la zone pour pouvoir y charger l'image et les différentes zones intermédiaire de traitement
 shr edx,8 
 push edx
 mov ecx,edx
 add ecx,zt_sfv1    ;zone de chargement de l'image
-fs
-mov eax,[to_graf]
 mov [zt_sfv2],ecx  ;zone du fragment a afficher
 add ecx,edx     
 mov [zt_sfv3],ecx  ;zone de l'image redimensionné
 add ecx,eax         
 add ecx,objimage_dat
-and ecx,0FFFFFFF0h
-mov edx,sel_dat1
+
+mov dx,sel_dat1
 mov eax,8
 int 61h
 pop ecx
 cmp eax,0
 jne erreur_mem
-
 
 
 ;lit l'image
@@ -312,12 +316,9 @@ int 63h
 
 
 
-
-
-
 ;test si il faut afficher du texte
 test byte[opt],1
-jnz boucle_touche
+jnz fin_affichage
 
 ;affiche l'indication pour sortir
 mov ebx,0
@@ -352,14 +353,20 @@ mov al,25
 int 63h
 
 
-;attend l'appuie d'une touche
-boucle_touche:
-
+fin_affichage:
 mov eax,7  ;demande la mise a jour ecran
 int 63h
 
+
+;attend l'appuie d'une touche
+boucle_touche:
 test byte[opt],2
 jne boucle_touche2
+
+fs
+test byte[at_console],20h
+jnz redim_ecran
+
 mov al,5
 int 63h
 cmp al,1  ;echap on quitte
@@ -451,7 +458,6 @@ fs
 mov eax,[posx_souris]
 mov [sauvx_souris],eax
 
-
 ;echange la fleche et la croix
 mov esi,croix
 fs
@@ -467,13 +473,57 @@ add esi,4
 add edi,4
 dec ecx
 jnz @b
-
-
 jmp affichage
+
+
 
 info:
 xor byte[opt],1
 jmp affichage
+
+
+
+redim_ecran:
+mov dx,sel_dat2
+mov ah,6   ;option=mode video ;6=video + souris
+test byte[opt],4
+jz @f
+@@:
+mov al,0   ;création console     
+int 63h
+mov ax,sel_dat2
+mov fs,ax
+fs
+or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
+
+
+;calcul la taille d'une image ecran complete avec la résolution de l'image
+xor ecx,ecx
+mov cl,dl
+shr ecx,3
+xor eax,eax
+xor ebx,ebx
+xor edx,edx
+fs
+mov ax,[resx_ecran]
+fs
+mov bx,[resy_ecran]
+mul ecx
+mul ebx
+add eax,14 ;eax=taille de l'image
+
+;aggrandit la zone pour pouvoir y charger l'image et les différentes zones intermédiaire de traitement
+mov ecx,[zt_sfv3]  ;zone de l'image redimensionné
+add ecx,eax         
+
+mov dx,sel_dat1
+mov eax,8
+int 61h
+cmp eax,0
+jne erreur_mem
+
+jmp affichage
+
 
 
 ;************************************************

@@ -1808,6 +1808,11 @@ jmp affiche_part
 
 raz_ecr:
 fs
+test byte[at_console],20h
+jnz @f
+
+
+fs
 mov ebx,[ad_texte]
 fs
 mov ecx,[to_texte]
@@ -1825,6 +1830,13 @@ xor ebx,ebx
 xor ecx,ecx
 mov al,12
 int 63h     ;place le curseur en 0.0
+ret
+
+@@:
+mov dx,sel_dat2
+mov ah,5   ;option=mode texte+souris
+mov al,0   ;création console     
+int 63h
 ret
 
 

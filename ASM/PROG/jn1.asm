@@ -17,7 +17,7 @@ int 63h
 cmp eax,0
 je @f
 
-
+erreur_init:
 mov edx,msg_err_init
 mov al,6
 int 61h
@@ -84,9 +84,19 @@ fstp qword[lune+posx]
 
 
 boucle:
-;mov ecx,10
-;mov eax,1
-;int 61h
+
+;redimensionne l'ecran au besoin
+fs
+test byte[at_console],20h
+jz @f
+mov dx,sel_dat2
+mov ah,10   ;option=mode video  + pas de rafraichissement automatique
+mov al,0   ;crÃ©ation console     
+int 63h
+cmp eax,0
+jne erreur_init
+@@:
+
 
 ;calcul la variation de vitesse
 fld qword[terre+posx]
