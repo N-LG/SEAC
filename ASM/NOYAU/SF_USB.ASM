@@ -37,11 +37,11 @@ cmp al,0   ;réservation périphérique
 je sf_usb_reserve
 cmp al,1   ;liberation acces périphérique
 je sf_usb_libere
-
 cmp al,2   ;lecture descripteur
 je sfusb_lec_desc
 cmp al,3   ;selection configuration actuelle
 je sfusb_active_config
+
 ;cmp al,4   ;lecture configuration actuelle
 ;cmp al,5   ;envoie commande brute
 ;cmp al,6   ;envoie donnée bulk
@@ -49,6 +49,8 @@ je sfusb_active_config
 ;cmp al,8   ;ouverture connexion isocrone vers terminaison
 ;cmp al,9   ;ouverture connexion interruption vers terminaison
 ;cmp al,10  ;fermeture connexion iso ou int
+;cmp al,11  ;lire données canal isocrone ou int
+;cmp al,12  ;ecrire données canal isocrone ou int
 
 mov eax,cer_parami
 iret

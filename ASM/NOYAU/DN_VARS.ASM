@@ -46,8 +46,9 @@ ad_msg_erreur equ 2000h ;8Ko
 
 ad_tabclav_chasse equ 4000h    ;16Kibi max max
 ad_tabclav_code   equ 8000h   ;512 octet
-;ad_tabclav_usb   equ 8200h    ;inconnu (128 estimé)
-ad_curseur_defaut equ 8600h   ;256 octets
+ad_tabclav_usb    equ 8200h   ;256 octets
+ad_curseur_defaut equ 8300h   ;256 octets
+;
 ad_tabclav_carac  equ 8800h     ;2 fois 2048
 
 zt_lminfo equ 09800h             ;zone tampon de chargement de descripteur fichier pour lecture/modif métadonnées +lecture dossier

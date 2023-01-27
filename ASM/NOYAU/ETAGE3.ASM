@@ -123,7 +123,7 @@ rep movsb      ;ds:si vers es:di
 
 
 
-mov cx,2048    ;copie la table de correspondance touche/ code PS2
+mov cx,512    ;copie la table de correspondance scan code PS2 vers num touche
 mov ax,cs
 mov ds,ax
 mov si,touche_codeps2
@@ -132,6 +132,19 @@ mov es,ax
 mov di,ad_tabclav_code
 cld
 rep movsb      ;ds:si vers es:di
+
+
+
+mov cx,256    ;copie la table de correspondance code usb vers num touche
+mov ax,cs
+mov ds,ax
+mov si,touche_usb
+mov ax,segdat
+mov es,ax
+mov di,ad_tabclav_usb
+cld
+rep movsb      ;ds:si vers es:di
+
 
 
 mov cx,2048    ;copie la table de correspondance touche/caractères
@@ -3249,14 +3262,28 @@ ignore_chasse_cmddef_clav:
 xor edx,edx
 mov dx,[ad_chaine_travail+4]
 cmp edx,0
-je ignore_code_cmddef_clav 
+je ignore_codeps2_cmddef_clav 
 mov al,4
 mov ecx,512
 mov edi,ad_tabclav_code
 int 64h
 cmp eax,0
 jne erreur_cmddef_autres
-ignore_code_cmddef_clav:
+ignore_codeps2_cmddef_clav:
+
+;charge la nouvelle definition de touche usb si existant
+xor edx,edx
+mov dx,[ad_chaine_travail+8]
+cmp edx,0
+je ignore_codeusb_cmddef_clav 
+mov al,4
+mov ecx,256
+mov edi,ad_tabclav_usb 
+int 64h
+cmp eax,0
+jne erreur_cmddef_autres
+ignore_codeusb_cmddef_clav:
+
 
 ;charge la nouvelle definition de caractère touche si existant
 xor edx,edx
