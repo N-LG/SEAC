@@ -10,8 +10,10 @@ fasm date.asm ../../BIN/DATE.FE
 fasm edt.asm ../../BIN/EDT.FE
 fasm edh.asm ../../BIN/EDH.FE
 fasm edg.asm ../../BIN/EDG.FE
+fasm ics.asm ../../BIN/ICS.FE
 fasm partd.asm ../../BIN/PARTD.FE
-fasm lc.asm ../../BIN/LC.FE
+fasm lspci.asm ../../BIN/LSPCI.FE
+fasm lsusb.asm ../../BIN/LSUSB.FE
 fasm term.asm ../../BIN/TERM.FE
 fasm circ.asm ../../BIN/CIRC.FE
 fasm cdns.asm ../../BIN/CDNS.FE
@@ -49,11 +51,11 @@ fasm MBR_RELAIS.ASM ../../BIN/RELAIS.MBR
 cd ../DEF
 #fasm bug1.asm ../../BIN/bug1.def
 fasm fr-txt.asm ../../BIN/fr-txt.def
-#fasm fr-aza.asm ../../BIN/fr-aza.def
+fasm fr-aza.asm ../../BIN/fr-aza.def
 #fasm fr-bpo.asm ../../BIN/fr-bpo.def
 #fasm be-azs.asm ../../BIN/be-azs.def
 fasm en-txt.asm ../../BIN/en-txt.def
-#fasm en-qwi.asm ../../BIN/en-qwi.def
+fasm en-qwi.asm ../../BIN/en-qwi.def
 #fasm 0u0.asm  ../../BIN/0u0.def
 #fasm 25u0.asm  ../../BIN/25u0.def
 #fasm F00u0.asm  ../../BIN/F00u0.def
@@ -63,9 +65,12 @@ ajarch DATE.FE ETAGE4.BIN
 ajarch EDT.FE ETAGE4.BIN
 ajarch EDH.FE ETAGE4.BIN
 ajarch EDG.FE ETAGE4.BIN
+ajarch ICS.FE ETAGE4.BIN
 ajarch PARTD.FE ETAGE4.BIN
-ajarch LC.FE ETAGE4.BIN
+ajarch LSPCI.FE ETAGE4.BIN
 ajarch PCICLASS.TXT ETAGE4.BIN
+ajarch LSUSB.FE ETAGE4.BIN
+ajarch USBCLASS.TXT ETAGE4.BIN
 ajarch TERM.FE ETAGE4.BIN
 ajarch CIRC.FE ETAGE4.BIN
 ajarch CDNS.FE ETAGE4.BIN
@@ -107,11 +112,18 @@ ajarch 25u0.def ETAGE4.BIN
 ajarch F00u0.def ETAGE4.BIN
 ajarch ETAGE24.ASM ETAGE4.BIN
 ajarch logo.png ETAGE4.BIN
+ajarch icones.png ETAGE4.BIN
 cd ../ASM/NOYAU
 fasm ETAGE2_MBR.ASM ../../BIN/SEAC.BAZ
-fasm ETAGE2_IMB.ASM ../../BIN/SEAC.IMB
 #fasm ETAGE2_EFI.ASM ../../BIN/SEAC.EFI
 fasm ETAGE1_DSQ.ASM ../../BIN/SEAC.IMG
 fasm ETAGE1_PXE.ASM ../../BIN/SEAC.PXE
 #fasm ETAGE1_VHD.ASM ../../BIN/SEAC.VHD
+cd ../../BIN/
+#ajarch usb.ids ETAGE4.BIN
+#ajarch pci.ids ETAGE4.BIN
+#ajarch fond.png ETAGE4.BIN
+cd ../ASM/NOYAU
+fasm ETAGE2_IMB.ASM ../../BIN/SEAC.IMB
 cd ..
+echo compilation de SEAC terminé!
