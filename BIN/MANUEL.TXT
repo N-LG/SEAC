@@ -33,7 +33,8 @@
  ~UTF8~ conversion unicode en utf8
  ~MAN~ manuel 
  ~TERM~ terminal série et TCP
- ~LC~ liste les périphérique pci installé
+ ~LSPCI~ liste les périphérique pci installé
+ ~LSUSB~ liste les périphérique usb installé
  ~ICS~ interface graphique
 %-Pilote Réseau
  ~RTL8139~ ~3C90X~ ~I8254X~
@@ -323,14 +324,19 @@ démarre le pilote pour une carte Intel  ou compatible
 %commande: utf8 XX YY
  avec: XX = numéros du caractère/glyphe
        YY = nombre de caractère a visualiser (paramètre optionnel, 1 par défaut)
-:lc
-^LC
+:lspci
+^LSPCI
  permet de visualiser les périphériques branché sur le bus PCI et AGP
-:zip
-^ZIP
+ fonctionne avec le fichier PCICLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier pci.ids comme base de donnée pour le nom des fabricant et de leurs produits
+:lsusb
+^LSUSB
+ permet de visualiser les périphériques branché sur le bus USB
+ fonctionne avec le fichier USBCLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier usb.ids comme base de donnée pour le nom des fabricant et de leurs produits
+:dcp
+^DCP
  décompresse les archives qui sont au format PKzip
 
-%commande: zip XXX 
+%commande: dcp XXX 
  avec: XXX = nom de l'archive a décompresser
 :scanip
 ^SCANIP
