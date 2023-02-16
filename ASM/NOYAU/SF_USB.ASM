@@ -123,7 +123,7 @@ mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
 mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
 mov word[edi+4],0  ;wIndex
-mov word[edi+6],8  ;wLength=8 pour lire les taille réel des data completes
+mov word[edi+6],4  ;wLength=4 pour lire les taille réel des data completes
 push edx
 mov edx,edi
 mov eax,ebx
@@ -132,13 +132,14 @@ pop edx
 cmp eax,0
 jne fin_sfusb_lec_desc
 
+
 xor ecx,ecx
 mov cl,[edi]   ;lit la taille du descripteur
 cmp byte[edi+1],2
-jne suite_sfusb_lec_desc
+jne @f
 mov cx,[edi+2]   ;si le descripteur est un descripteur de configuration, on lit la taille totale
+@@:
 
-suite_sfusb_lec_desc:
 mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
 mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
@@ -1467,7 +1468,7 @@ mov ax,selramh
 mov es,ax        
 mov di,[esi+dcu_es] ;adresse de base du contoleur
 
-;reset le controleur
+;reset le controleur  ;??????????????? a revoir peut être
 mov dx,di
 mov ax,02h
 out dx,ax
@@ -1481,6 +1482,13 @@ mov dx,di
 add dx,ctrl_uhci_usbintr
 mov ax,00h   ;aucune interruption activé
 out dx,ax
+
+;reset le frame number
+mov dx,di
+add dx,ctrl_uhci_frnum
+mov ax,00h
+out dx,ax
+
 
 ;configure l'adresse de la frame listuhci
 mov dx,di
@@ -1511,6 +1519,18 @@ mov dword[ebx],1  ;marqueur d'entrée suivante invalide
 es
 mov dword[ebx+4],1  ;marqueur d'entrée suivante invalide
 
+
+;on s'assure que le start of frame est bien reglé
+mov dx,di
+add dx,ctrl_uhci_sofmod
+mov al,040h
+out dx,al
+
+;reset le status
+mov dx,di
+add dx,ctrl_uhci_usbsts
+mov ax,0FFFFh
+out dx,ax
 
 ;configure le controleur
 mov dx,di

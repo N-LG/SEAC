@@ -151,7 +151,7 @@ mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
 mov byte[usb_commande+2],0 ;LSB wValue (index du descripteur)
 mov byte[usb_commande+3],1  ;MSB wValue (type de descripteur)
 mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],8  ;wLength (normalemnt 18 octet)
+mov word[usb_commande+6],8  ;wLength (normalemnt 18 octet mais on en lit que 8 car on ne connait pas encore la taille max de l'endpoint)
 ;envoie la commande
 mov ax,0 ;adresse+endpoint
 mov edx,usb_commande
@@ -160,7 +160,6 @@ call sfusb_commande
 pop edx
 cmp eax,0
 jne global_erreur_connexionUSB
-
 
 ;enregistre la taille de l'enpoint 0
 mov al,[usb_commande+7]
@@ -209,7 +208,7 @@ jmp fin_test_cnx_usb
 
 ;***************************************
 uhci_supp_periph_usb:
-mov ax,0Ah             ;reset les bit de changement d'état et
+mov ax,0Ah             ;reset les bit de changement d'état
 out dx,ax 
 jmp supp_periph_usb
 
@@ -224,9 +223,7 @@ jmp supp_periph_usb
 ;********************************************************************************************
 global_set_adresse:
 
-
 ;cherche une adresse libre
-
 mov edx,ad_desc_periph_usb
 boucle_global_set_adresse:
 fs
@@ -241,7 +238,6 @@ trouve_global_set_adresse:
 sub edx,ad_desc_periph_usb
 shr edx,6
 mov byte[usb_adresse],dl
-
 
 
 ;prépare la commande
@@ -273,7 +269,7 @@ rep movsd
 
 
 mov eax,[cptsf]
-add eax,200           ;attent 200ms avant de poursuivre
+add eax,400           ;attent 1s avant de poursuivre
 mov [usb_tempo],eax
 mov byte[usb_action],6
 jmp fin_test_cnx_usb
@@ -289,23 +285,17 @@ jmp fin_test_cnx_usb
 
 ;****************************************************************************************************************
 global_fin_conf_usb:
-
-;prépare la commande
-mov byte[usb_commande],80h    ;bmRequestType
-mov byte[usb_commande+1],6  ;bRequest (ici read descriptor)
-mov byte[usb_commande+2],0 ;LSB wValue (index du descripteur)
-mov byte[usb_commande+3],1  ;MSB wValue (type de descripteur)
-mov word[usb_commande+4],0  ;wIndex
-mov word[usb_commande+6],18  ;wLength (normalemnt 18 octet)
-;envoie la commande
-mov al,[usb_adresse] ;adresse
-mov ah,0 ;endpoint
-mov edx,usb_commande
+push ebx
+mov eax,2
+mov bl,[usb_adresse] ;adresse
+mov bh,0 ;endpoint
+mov dl,0   ;numéros de descripteur
+mov dh,1   ;type de descripteur (global)
 mov edi,ad_chaine_travail
-call sfusb_commande
+int 68h
+pop ebx
 cmp eax,0
 jne global_erreur_connexionUSB
-
 
 
 mov byte[ad_chaine_travail],0
@@ -322,16 +312,13 @@ mov edi,ad_chaine_travail+256
 int 68h
 pop ebx
 cmp eax,0
-jne global_erreur_connexionUSB
+jne ignore_lecture_nom_usb
 
 mov esi,ad_chaine_travail+256
 mov edi,ad_chaine_travail
 call conv_chaine_usb
 
 ignore_lecture_nom_usb:
-
-
-
 mov cl,100
 call affmsgsyst
 
