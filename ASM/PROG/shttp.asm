@@ -180,6 +180,8 @@ add esi,to_reception
 dec ecx
 jnz boucle_rech_descr
 
+
+
 mov eax,1 ;si nb max atteind, on supprime la connexion
 int 65h
 jmp test_donnee_rec
@@ -219,6 +221,7 @@ je upgrade_descr
 add esi,to_reception
 dec ecx
 jnz boucle_rech_descr
+
 
 mov eax,1 ;supprime la connexion
 int 65h
@@ -293,11 +296,6 @@ cmp al,20h
 jne debut_nom_trouve
 mov byte[edi],0
 
-;si le nom est "/" c'est le dossier racine
-mov ebx,[dossier_site]
-mov [handle_fichier],ebx
-cmp word[nom_fichier],02Fh
-je envoie_dossier
 
 
 ;transforme les %xx en caractère dans le nom
@@ -351,10 +349,26 @@ cld
 rep movsb
 
 suite_ajustement_chaine_nom:
+cmp byte[ebx],"?"
+jne @f
+mov byte[ebx],0
+@@:
 inc ebx
 cmp ebx,nom_fichier+510
 jne boucle_ajustement_chaine_nom
 popad
+
+
+mov edx,nom_fichier
+mov al,6
+int 61h
+
+
+;si le nom est "/" c'est le dossier racine
+mov ebx,[dossier_site]
+mov [handle_fichier],ebx
+cmp word[nom_fichier],02Fh
+je envoie_dossier
 
 
 ;ouvrir fichier
@@ -860,11 +874,13 @@ msg_er2:
 db "SHTTP: erreur lors de l'ouverture du port 80",13,0
 
 
-
-
+tete_standard0:
+db "Server: SHTTP.FE V0.3",13,10
+db "Content-Type: text/html; charset=utf-8",13,10
+db "Content-Length: "
 
 tete_standard1:
-db "Server: SHTTP.FE V0.2",13,10
+db "Server: SHTTP.FE V0.3",13,10
 db "Content-Length: "
 tete_standard2:
 db 13,10,13,10
@@ -885,7 +901,6 @@ db "HTTP/1.0 500 HTTP Internal Server Error",13,10
 msg_500:
 db "<!DOCTYPE html><html><head><title>Erreur 500</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 500: Erreur Interne serveur.</h1></body></html>"
 fin_500:
-
 
 tete_501:
 db "HTTP/1.0 501 Not Implemented",13,10
