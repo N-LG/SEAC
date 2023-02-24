@@ -602,6 +602,13 @@ jmp ajoute_dossier
 
 ;*****************************************************
 ferme_connexion:
+
+;§§§§§§§§§§§§§§§§§§§§ laisse le temps aux données d'être envoyé avant la fermeture de la connexion
+mov ecx,100
+mov al,1
+int 61h
+;§§§§§§§§§§§§§§§§§§§§  correction temporaire le temps de corriger le bug du pilote ip 
+
 pushad
 ;recherche le descripteur de la connexion
 mov esi,zts_reception
@@ -631,9 +638,7 @@ pushad
 
 ;envoie la fin de l'entête standard
 mov esi,tete_standard1
-mov ecx,tete_standard2-tete_standard1
-mov al,7
-int 65h
+call envoie_tramez
 cmp eax,0
 jne erreur_envoie_fichier
 
@@ -792,9 +797,7 @@ envoie_bloc:
 
 ;envoie la fin de l'entête standard
 mov esi,tete_standard1
-mov ecx,tete_standard2-tete_standard1
-mov al,7
-int 65h
+call envoie_tramez
 
 ;envoie la taille du message
 mov ecx,ebp
@@ -826,6 +829,65 @@ int 65h
 ;supprime la connexion
 call ferme_connexion
 jmp boucle_principale
+
+
+
+
+;*******************************************
+;envoie en-tete
+
+;envoie la fin de l'entête standard
+mov esi,tete_standard1
+call envoie_tramez
+cmp eax,0
+jne erreur_envoie_fichier
+
+
+
+
+;envoie la taille du fichier
+mov ecx,[taille_fichier]
+mov edx,tempo
+mov eax,102
+int 61h
+mov esi,tempo
+mov ecx,tempo
+;boucle1_envoie_fichier:
+inc ecx
+cmp byte[ecx],0
+;jne boucle1_envoie_fichier
+sub ecx,esi
+mov al,7
+int 65h
+
+;envoie le double CRLF
+mov esi,tete_standard2
+mov ecx,4
+mov al,7
+int 65h
+ret
+
+
+
+
+
+
+
+;********************************************
+envoie_tramez:    ;envoie la trame en esi terminé par zéros sur le descripteur de communication ebx
+push esi
+dec esi
+@@:
+inc esi
+cmp byte[esi],0
+jne @b
+mov ecx,esi
+pop esi
+sub ecx,esi
+mov al,7
+int 65h
+ret
+
 
 
 
@@ -874,16 +936,44 @@ msg_er2:
 db "SHTTP: erreur lors de l'ouverture du port 80",13,0
 
 
-tete_standard0:
-db "Server: SHTTP.FE V0.3",13,10
-db "Content-Type: text/html; charset=utf-8",13,10
-db "Content-Length: "
+
 
 tete_standard1:
 db "Server: SHTTP.FE V0.3",13,10
-db "Content-Length: "
+db "Content-Length: ",0
 tete_standard2:
 db 13,10,13,10
+
+
+
+extension:
+dd "HTML",0
+
+tete_type:
+db "content type: ",0
+
+tete_types:
+db 0
+db "JS   application/javascript",0
+db "PDF  application/pdf",0
+db "EXE  application/octet-stream",0
+db "ZIP  application/zip",0
+db "GIF  image/gif",0   
+db "JPEG image/jpeg",0   
+db "JPG  image/jpeg",0   
+db "PNG  image/png",0   
+db "TIFF image/tiff",0    
+db "TIF  image/tiff",0    
+db "SVG  image/svg+xml",0   
+db "CSS  text/css",0    
+db "CSV  text/csv",0    
+db "HTML text/html",0    
+db "HTM  text/html",0    
+db "TXT  text/plain",0,"$" 
+
+
+
+
 
 
 tete_200:
