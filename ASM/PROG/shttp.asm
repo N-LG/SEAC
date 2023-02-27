@@ -349,19 +349,78 @@ cld
 rep movsb
 
 suite_ajustement_chaine_nom:
+
+
+;si c'est le début des options, on marque la fin
 cmp byte[ebx],"?"
 jne @f
 mov byte[ebx],0
 @@:
+
+;si c'est un point on enregistre les 4 lettre suivante dans l'extension
+cmp byte[ebx],"."
+jne @f
+mov eax,[ebx+1]
+mov [extension],eax
+@@:
+
 inc ebx
 cmp ebx,nom_fichier+510
 jne boucle_ajustement_chaine_nom
 popad
 
 
+;transforme l'extension en majuscule
+cmp byte[extension],0
+jne @f
+mov dword[extension],20202020h
+@@:
+cmp byte[extension],"a"
+jb @f
+cmp byte[extension],"z"
+ja @f
+sub byte[extension],20h
+@@:
+cmp byte[extension+1],0
+jne @f
+mov dword[extension+1],20202020h
+@@:
+cmp byte[extension+1],"a"
+jb @f
+cmp byte[extension+1],"z"
+ja @f
+sub byte[extension+1],20h
+@@:
+cmp byte[extension+2],0
+jne @f
+mov dword[extension+2],20202020h
+@@:
+cmp byte[extension+2],"a"
+jb @f
+cmp byte[extension+2],"z"
+ja @f
+sub byte[extension+2],20h
+@@:
+cmp byte[extension+3],0
+jne @f
+mov dword[extension+3],20202020h
+@@:
+cmp byte[extension+3],"a"
+jb @f
+cmp byte[extension+3],"z"
+ja @f
+sub byte[extension+3],20h
+@@:
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§debug
 mov edx,nom_fichier
 mov al,6
 int 61h
+mov edx,extension
+mov al,6
+int 61h
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
 ;si le nom est "/" c'est le dossier racine
@@ -387,9 +446,7 @@ jne envoie_404
 suite_envoie_fichier:
 mov ebx,[esi+adresse_com]
 mov esi,tete_200
-mov ecx,fin_200-tete_200
-mov al,7
-int 65h
+call envoie_tramez
 cmp eax,0
 ;jne ?????????????????????????????????????????????????????????????????????????
 
@@ -407,6 +464,8 @@ jmp boucle_principale
 
 ;*********************************************************
 envoie_dossier:
+mov dword[extension],"HTML"
+
 mov al,0
 mov ebx,[handle_fichier]
 mov edx,nom_index
@@ -510,10 +569,7 @@ mov [handle_fichier],eax
 
 ;mov ebx,[esi+adresse_com]
 mov esi,tete_200
-mov ecx,fin_200-tete_200
-mov al,7
-int 65h
-cmp eax,0
+call envoie_tramez
 ;jne ?????????????????????????????????????????????????????????????????????????
 
 call envoie_fichier
@@ -637,7 +693,7 @@ envoie_fichier:
 pushad
 
 ;envoie la fin de l'entête standard
-mov esi,tete_standard1
+mov esi,tete_length
 call envoie_tramez
 cmp eax,0
 jne erreur_envoie_fichier
@@ -669,8 +725,10 @@ sub ecx,esi
 mov al,7
 int 65h
 
+call envoie_type
+
 ;envoie le double CRLF
-mov esi,tete_standard2
+mov esi,tete_crlfcrlf
 mov ecx,4
 mov al,7
 int 65h
@@ -746,48 +804,36 @@ ret
 envoie_404:             ;(fichier non trouvé)
 mov ebx,[esi+adresse_com]
 mov esi,tete_404
-mov ecx,msg_404-tete_404
-mov al,7
-int 65h
+call envoie_tramez
 
 mov edi,msg_404
-mov ebp,fin_404-msg_404
 jmp envoie_bloc
 
 
 envoie_500:
 mov ebx,[esi+adresse_com]
 mov esi,tete_500
-mov ecx,msg_500-tete_500
-mov al,7
-int 65h
+call envoie_tramez
 
 mov edi,msg_500
-mov ebp,fin_500-msg_500
 jmp envoie_bloc
 
 
 envoie_501:
 mov ebx,[esi+adresse_com]
 mov esi,tete_501
-mov ecx,msg_501-tete_501
-mov al,7
-int 65h
+call envoie_tramez
 
 mov edi,msg_505
-mov ebp,fin_505-msg_505
 jmp envoie_bloc
 
 
 envoie_505:            ;(HTTP Version not supported) 
 mov ebx,[esi+adresse_com]
 mov esi,tete_505
-mov ecx,msg_505-tete_505
-mov al,7
-int 65h
+call envoie_tramez
 
 mov edi,msg_505
-mov ebp,fin_505-msg_505
 ;jmp envoie_bloc
 
 
@@ -796,7 +842,7 @@ mov ebp,fin_505-msg_505
 envoie_bloc:
 
 ;envoie la fin de l'entête standard
-mov esi,tete_standard1
+mov esi,tete_length
 call envoie_tramez
 
 ;envoie la taille du message
@@ -814,17 +860,16 @@ sub ecx,esi
 mov al,7
 int 65h
 
+mov dword[extension],"HTML"
+call envoie_type
+
 ;envoie le double CRLF
-mov esi,tete_standard2
-mov ecx,4
-mov al,7
-int 65h
+mov esi,tete_crlfcrlf
+call envoie_tramez
 
 ;envoie le message
 mov esi,edi
-mov ecx,ebp
-mov al,7
-int 65h
+call envoie_tramez
 
 ;supprime la connexion
 call ferme_connexion
@@ -834,37 +879,32 @@ jmp boucle_principale
 
 
 ;*******************************************
-;envoie en-tete
+;envoie content_type
 
-;envoie la fin de l'entête standard
-mov esi,tete_standard1
+envoie_type:
+push edi
+mov edi,tete_types
+mov eax,[extension]
+boucle_envoie_type:
+cmp byte[edi],0
+jne @f
+cmp [edi+1],eax
+je ok_envoie_type
+@@:
+cmp byte[edi],"$"
+je nok_envoie_type
+inc edi
+jmp boucle_envoie_type
+
+ok_envoie_type:
+add edi,6
+mov esi,tete_type
 call envoie_tramez
-cmp eax,0
-jne erreur_envoie_fichier
+mov esi,edi
+call envoie_tramez
 
-
-
-
-;envoie la taille du fichier
-mov ecx,[taille_fichier]
-mov edx,tempo
-mov eax,102
-int 61h
-mov esi,tempo
-mov ecx,tempo
-;boucle1_envoie_fichier:
-inc ecx
-cmp byte[ecx],0
-;jne boucle1_envoie_fichier
-sub ecx,esi
-mov al,7
-int 65h
-
-;envoie le double CRLF
-mov esi,tete_standard2
-mov ecx,4
-mov al,7
-int 65h
+nok_envoie_type:
+pop edi
 ret
 
 
@@ -938,19 +978,44 @@ db "SHTTP: erreur lors de l'ouverture du port 80",13,0
 
 
 
-tete_standard1:
-db "Server: SHTTP.FE V0.3",13,10
+
+
+;***************************************** construction de la réponse
+tete_200:
+db "HTTP/1.0 200 OK",13,10,0
+
+
+tete_404:
+db "HTTP/1.0 404 Not Found",13,10,0
+msg_404:
+db "<!DOCTYPE html><html><head><title>Erreur 404</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 404: Ressource non trouvée.</h1></body></html>",0
+
+
+tete_500:
+db "HTTP/1.0 500 HTTP Internal Server Error",13,10,0
+msg_500:
+db "<!DOCTYPE html><html><head><title>Erreur 500</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 500: Erreur Interne serveur.</h1></body></html>",0
+
+
+tete_501:
+db "HTTP/1.0 501 Not Implemented",13,10,0
+msg_501:
+db "<!DOCTYPE html><html><head><title>Erreur 501</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 501: Fonctionnalité réclamée non supportée par le serveur.</h1></body></html>",0
+
+
+tete_505:
+db "HTTP/1.0 505 HTTP Version not supported",13,10,0
+msg_505:
+db "<!DOCTYPE html><html><head><title>Erreur 505</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 505: Version HTTP non gérée par le serveur.</h1></body></html>",0
+
+
+
+tete_length:
+db "Server: SHTTP.FE V0.4",13,10
 db "Content-Length: ",0
-tete_standard2:
-db 13,10,13,10
-
-
-
-extension:
-dd "HTML",0
 
 tete_type:
-db "content type: ",0
+db 13,10,"Content-Type: ",0
 
 tete_types:
 db 0
@@ -958,53 +1023,34 @@ db "JS   application/javascript",0
 db "PDF  application/pdf",0
 db "EXE  application/octet-stream",0
 db "ZIP  application/zip",0
-db "GIF  image/gif",0   
-db "JPEG image/jpeg",0   
-db "JPG  image/jpeg",0   
-db "PNG  image/png",0   
-db "TIFF image/tiff",0    
-db "TIF  image/tiff",0    
-db "SVG  image/svg+xml",0   
-db "CSS  text/css",0    
-db "CSV  text/csv",0    
-db "HTML text/html",0    
-db "HTM  text/html",0    
-db "TXT  text/plain",0,"$" 
+db "GIF  image/gif",0
+db "JPEG image/jpeg",0
+db "JPG  image/jpeg",0
+db "PNG  image/png",0
+db "ICO  image/png",0
+db "TIFF image/tiff",0
+db "TIF  image/tiff",0
+db "SVG  image/svg+xml",0
+db "CSS  text/css",0
+db "CSV  text/csv",0
+db "HTML text/html",0
+db "HTM  text/html",0
+db "TXT  text/plain",0
+db "ASM  text/plain",0
+db "C    text/plain",0
+db "H    text/plain",0
+db "CPP  text/plain",0
+db "BAT  text/plain",0,"$"
+
+tete_crlfcrlf:
+db 13,10,13,10,0
 
 
 
 
 
 
-tete_200:
-db "HTTP/1.0 200 OK",13,10
-fin_200:
-
-tete_404:
-db "HTTP/1.0 404 Not Found",13,10
-msg_404:
-db "<!DOCTYPE html><html><head><title>Erreur 404</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 404: Ressource non trouvée.</h1></body></html>"
-fin_404:
-
-tete_500:
-db "HTTP/1.0 500 HTTP Internal Server Error",13,10
-msg_500:
-db "<!DOCTYPE html><html><head><title>Erreur 500</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 500: Erreur Interne serveur.</h1></body></html>"
-fin_500:
-
-tete_501:
-db "HTTP/1.0 501 Not Implemented",13,10
-msg_501:
-db "<!DOCTYPE html><html><head><title>Erreur 501</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 501: Fonctionnalité réclamée non supportée par le serveur.</h1></body></html>"
-fin_501:
-
-tete_505:
-db "HTTP/1.0 505 HTTP Version not supported",13,10
-msg_505:
-db "<!DOCTYPE html><html><head><title>Erreur 505</title><meta charset=",22h,"UTF-8",22h,"/></head><body><h1>erreur 505: Version HTTP non gérée par le serveur.</h1></body></html>"
-fin_505:
-
-
+;*****************************construction de contenu de dossier
 debut_dossier:
 db "<!DOCTYPE html><html><head><title>liste fichier du dossier</title><meta charset=",22h,"UTF-8",22h,"/></head><body>"
 fin_dossier:
@@ -1020,7 +1066,7 @@ db "</a><br/>",0
 
 
 nom_index:
-db "INDEX.HTML",0
+db "index.html",0
 fichier_temporaire:
 db "#dm/shttp.temp",0
 handle_temporaire:
@@ -1035,6 +1081,9 @@ adresse_canal:
 dd 0
 nb_reception:
 dd 50
+
+extension:
+dd 0,0
 
 
 tempo:
