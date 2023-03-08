@@ -542,10 +542,22 @@ mov ecx,[cury]
 shl ecx,4
 add ecx,[curx]
 add ecx,[num_1er_carac]
+;hexadécimal
+push ecx
 mov edx,zt_nombre
 mov eax,103
 int 61h
 mov ebx,0
+mov ecx,0
+mov edx,zt_nombre
+mov eax,0A19h
+int 63h
+;décimal
+pop ecx
+mov edx,zt_nombre
+mov eax,102
+int 61h
+mov ebx,96
 mov ecx,0
 mov edx,zt_nombre
 mov eax,0A19h
