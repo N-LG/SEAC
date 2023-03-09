@@ -25,7 +25,7 @@
  ~EDH~ éditeur hexadécimale
  ~EDG~ éditeur de table de caractère
  ~PARTD~ partitionneur/formateur de disque 
-%Divers
+%-Divers
  ~FASM~ compilateur assembleur x86
  ~AJARCH~ 
  ~EXPL~ exploreur de fichier
@@ -97,7 +97,8 @@
 %commande: lv       
  Liste les modes d'affichage reconnue par la carte video
 %commande: modv XXX
- change le mode video de l'écran pour le mode XXX, il est impossible de changer de mode video si des application utilisent un écran vidéo
+ change le mode video de l'écran pour le mode
+ XXX = numéros du mode, XXX*YYY pour la résolution 
 :efj:af:fix
 ^Commandes de manipulation du journal du ~Tecop~
 
@@ -115,13 +116,47 @@
 
  Le tecop est le nom de l'interface qui permet de piloter le systeme d'exploitation SEaC en mode texte
  On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite) ou par Ctrl+Alt+Tab
- le tecop est constitué de 4 zones:
-:def
+
+ le tecop est constitué de 4 zones (de haut en bas):
+ -Interface disponible (en blanc sur fond bleu)
+ -Journal systeme
+ -adresse de travail (en vert sur fond noir)
+ -commande en cours de rédaction 
+
+ les touches fleches haut et bas ainsi que debut, fin, page up, et page down permettent de naviguer dans le fichier journal
+ les touches inser et maj+inser permettent de naviguer dans l'hisorique des commandes
+ les touches fonctions permettent d'acceder aux interfaces listé en haut de l'écran
+:def:clavier:police:langue
 ^DEF
- chargement d'un fichier de définition 
+ chargement d'un fichier de définition langue, clavier, ou une police supplémentaire
 
 %commande: def XXX
           XXX = nom du fichier a charger
+
+%-langues
+ fr-txt.def  -> message systeme en français
+ en-txt.def  -> message systeme en anglais
+
+%-claviers 
+ fr-aza.def  -> azerty spécial Seac
+ be-azs.def  -> azerty belge
+ en-qwi.def  -> qwerty US international 
+ bepo.def    -> Bépo 
+ dvorak.def  -> Dvorak 
+ colemak.def -> Colemak 
+
+%-polices
+ 0u0.def     -> caractères de 0 a FF 
+ 1u0.def     -> caractères de 100 à 1FF (incomplet)
+ 25u0.def    -> caractères de 2500 à 25FF
+ F00u0.def   -> caractères de F0000 à F00FF
+ les polices sont éditable grâce à ~edg~  
+:edg
+^EDG
+ editeur de police matriciel (dans un fichier ~def~)
+
+%commande: edg XXX
+          XXX = nom du fichier a ouvrir(paramètre optionnel)
 :ex
 ^EX
  execute un script
@@ -183,7 +218,7 @@
  par défaut, a base de donnée est le fichier MANUEL.TXT qui se trouve dans le ~dossier systeme~
  le format du fichier est un simple fichier texte, le premier caractère de chaque ligne indique de quel type est la ligne
  " " la ligne est une simple ligne de texte
- ":" la ligne est une liste de mot clef
+ ":" la ligne est une liste de mot clef et marque de début d'une rubrique
  "^" affiche la ligne en vert clair (titre de la rubrique)
  "%" affiche la ligne en blanc clair (sous titre/information importante)
  une expression entouré de ~~ indique qu'il s'agit d'un mot clef ou d'un lien 
@@ -276,8 +311,6 @@
  SOA (6) serveur faisant autorité sur le nom de domaine et e-mail du responsable de domaine
  MX (15) serveur de mail de cette adresse
  TXT (16) texte brut
- 
-
 :circ
 ^CIRC
  client pour systeme de messagerie utilisant le protocole IRC
@@ -309,7 +342,7 @@ démarre le pilote pour une carte Intel  ou compatible
        YYY = nom du fichier executable a créer
   ^
  /!\ sous SEAC, les nom des fichier executable doivent être en majuscule
-:kio:mio:gio:tio:
+:kio:mio:gio:tio
  Kio = kibioctet = 1024 octets
  Mio = mébioctet = 1024 Kio
  Gio = gibioctet = 1024 Mio
@@ -328,16 +361,25 @@ démarre le pilote pour une carte Intel  ou compatible
 ^LSPCI
  permet de visualiser les périphériques branché sur le bus PCI et AGP
  fonctionne avec le fichier PCICLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier pci.ids comme base de donnée pour le nom des fabricant et de leurs produits
+
+ le fichié pci.ibs est maintenu par le PCI ID Project(~https://pci-ids.ucw.cz~) et peut être téléchargé a l'adresse ~https://pci-ids.ucw.cz/v2.2/pci.ids~
 :lsusb
 ^LSUSB
  permet de visualiser les périphériques branché sur le bus USB
  fonctionne avec le fichier USBCLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier usb.ids comme base de donnée pour le nom des fabricant et de leurs produits
+
+ le fichié usb.ibs est maintenu par Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) et peut être téléchargé a l'adresse ~http://www.linux-usb.org/usb.ids~
 :dcp
 ^DCP
- décompresse les archives qui sont au format PKzip
+ décompresse les archives qui sont au format PKzip Gzip et Tar
 
-%commande: dcp XXX 
- avec: XXX = nom de l'archive a décompresser
+%commande: dcp XXX YYYY
+ avec: XXX  = nom de l'archive a décompresser
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -e     ecrase le fichier de destination
+ -o:XXX adresse du dossier ou seront copié les fichiers
 :scanip
 ^SCANIP
  envoie des ping ICMP a une plage d'adresse ip pour tester leur présence
