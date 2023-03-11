@@ -172,6 +172,7 @@ sv_alt  equ 40h ;sauvegarde de l'eventuel caractère rentré par ALT+chiffres
 alclat1 equ 44h ;touche 1 a presser avec ctrl pour avoir le clavier alternatif
 alclat2 equ 45h ;touche 2 a presser avec ctrl pour avoir le clavier alternatif
 
+code_langue equ 48h ;code de la langue employé pa le systeme
 
 xs1 equ 50h      ;position de la souris 1 en X
 ys1 equ 52h      ;position de la souris 1 en Y

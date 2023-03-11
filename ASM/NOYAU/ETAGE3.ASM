@@ -799,14 +799,16 @@ include "DN_PALG.ASM"
 finpalgraf:
 
 
-
+;définition française au démarrage
 include "DN_MSG_FR.ASM"    ;messages systeme en français
 include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
+langue_demarrage equ "fra "
 
 
+;définition anglaise au démarrage
 ;include "DN_MSG_EN.ASM"    ;messages systeme en anglais
 ;include "DN_CLAV_USI.ASM"    ;clavier US International
-
+;langue_demarrage equ "eng "
 
 tabacc:
 include "DN_ACC.ASM"
@@ -1291,6 +1293,8 @@ test1:
 mov byte[trappe_tache0],5
 
 
+;enregistre la langue initiale
+mov dword[code_langue],langue_demarrage
 
 
 
@@ -3212,6 +3216,11 @@ mov edi,ad_msg_erreur
 int 64h
 cmp eax,0
 jne erreur_cmddef_autres
+
+;enregistre le code de langue
+mov eax,[ad_chaine_travail+12]
+mov [code_langue],eax
+
 
 mov eax,1
 int 64h

@@ -19,6 +19,7 @@
 ;al=17  effacer la zone de copier/coller
 ;al=18  lire le dossier de travail en cours
 ;al=19  recherche les taches que l'on as créer
+;al=20  lire langue actuellement uttilisé
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -90,6 +91,8 @@ cmp al,18
 je sfs_lire_dossier
 cmp al,19
 je sfs_rech_cree
+cmp al,20
+je sfs_langue
 
 
 cmp al,100
@@ -1373,6 +1376,20 @@ fin_sfs_rech_cree:
 pop es
 popad
 iret
+
+
+
+;*********************************************
+sfs_langue:       ;récupère le code de la langue actuellement employé
+push ds
+mov ax,seldat
+mov ds,ax
+mov eax,[code_langue]
+pop ds
+iret
+
+
+
 
 
 
