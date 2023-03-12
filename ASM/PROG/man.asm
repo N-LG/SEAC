@@ -202,9 +202,8 @@ jmp aff_err_motclef
 
 nom_ok:
 call atteint_ligne_suivante
-mov al,6
 mov edx,msg5
-int 61h
+call message_console
 mov al,6
 mov edx,motclef
 int 61h
@@ -380,21 +379,17 @@ cmp edx,0
 je @f
 inc dword[nb_ligne]
 @@:
-
-
 shl dword[nb_collonne],2
 
 
 
-jmp sff_lit_dossier_trie_fin ;temp!!!!!!!!!!!!!!!!!!
-
-
 ;trie les par ordre alphabetique
-mov esi,[taille]
+mov edx,[taille]
 mov edi,[taille]
 
-
 sff_lit_dossier_trie_fichier_suivant:
+cmp word[edi],0D0Dh
+je sff_lit_dossier_trie_fin
 cmp byte[edi],13
 je @f
 cmp byte[edi],0
@@ -409,9 +404,8 @@ mov esi,edx
 sff_lit_dossier_trie_boucle:
 call sff_lit_dossier_test
 jnc @f
-;call sff_lit_dossier_decale
+call sff_lit_dossier_decale
 jmp sff_lit_dossier_trie_fichier_suivant
-
 
 
 @@:
@@ -426,8 +420,6 @@ inc esi
 cmp esi,edi
 je sff_lit_dossier_trie_fichier_suivant
 jmp sff_lit_dossier_trie_boucle
-
-
 
 sff_lit_dossier_trie_fin: 
 
@@ -464,16 +456,15 @@ fin_index:
 
 
 ;affiche la liste
-mov al,6
 mov edx,msg6
-int 61h
-
+call message_console
 
 boucle_ligne:
 ;efface la ligne
 mov eax,20202020h
 mov edi,ligne_vide
 mov ecx,64
+cld
 rep stosd
 
 ;insère les mots clef au bon endroit
@@ -492,13 +483,6 @@ dec edi
 mov byte[edi],20h
 pop edi
 mov [index+ebx],esi
-
-
-
-
-
-
-
 
 ;passe a la colonne suivante
 mov ecx,[max]
@@ -630,6 +614,33 @@ ret
 
 
 
+;***************************
+message_console:  ;affiche un message dans la console en fonction de la langue ds:edx=adresses des message
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_message_console:
+cmp ecx,0
+je ok_message_console
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_message_console
+
+ok_message_console:
+mov al,6
+int 61h
+ret
 
 
 
@@ -640,9 +651,8 @@ ret
 
 ;*****************************************************************************************
 aff_err_motclef:
-mov al,6        ;fonction n°6: ecriture d'une chaine dans le journal
-mov edx,msg1    ;adresse du message a afficher
-int 61h         ;appel fonction systeme générales
+mov edx,msg1  
+call message_console
 mov al,6
 mov edx,motclef
 int 61h
@@ -653,23 +663,20 @@ int 60h
 
 
 aff_err_param:
-mov al,6
 mov edx,msg3
-int 61h
+call message_console
 int 60h  
 
 
 aff_err_fichier:
-mov al,6
 mov edx,msg4
-int 61h
+call message_console
 int 60h
 
 
 aff_err_mem:
-mov al,6
 mov edx,msg8
-int 61h
+call message_console
 int 60h
 
 
@@ -678,20 +685,24 @@ sdata1:   ;données dans le segment de donnée N°1
 org 0
 
 msg1:
+db 13,"MAN: no entry in the manual about ",22h,0
 db 13,"MAN: aucune entrée dans le manuel concernant ",22h,0
 msg2:
 db 22h,13,0
 msg3:
-db 13,"MAN: erreur dans les parametres du motclef",13,0
+db 13,"MAN: error in keyword parameters",13,0
+db 13,"MAN: erreur dans les parametres du mot clef",13,0
 msg4:
+db 13,"MAN: error accessing manual file",13,0
 db 13,"MAN: erreur d'acces au fichier du manuel",13,0
 msg5:
+db 13,"MAN: content of section ",22h,0
 db 13,"MAN: contenu de la rubrique ",22h,0
 msg6:
-db 13,"MAN: liste des rubriques disponibles:",13,13h,0
-msg7:
-db " ",0
+db 13,"MAN: list of available keyword:",13,13h,0
+db 13,"MAN: liste des mots clefs disponibles:",13,13h,0
 msg8:
+db 13,"MAN: memory reservation error",13,0
 db 13,"MAN: erreur de reservation mémoire",13,0
 
 msg_crlf:
@@ -714,6 +725,16 @@ dd 0
 nb_ligne:
 dd 0
 
+
+
+
+fichier:
+db "MANUEL.TXT",0
+handle:
+dd 0
+taille:
+dd 0,0
+
 index:
 rb 256
 
@@ -723,13 +744,6 @@ rb 40
 ligne_vide:
 rb 512
 
-
-fichier:
-db "MANUEL.TXT",0
-handle:
-dd 0
-taille:
-dd 0,0
 
 motclef:
 rb 128
