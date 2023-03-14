@@ -85,10 +85,7 @@ add ebx,400h
 test ebx,7F000000h
 jz boucle_rech_pci
 
-;affiche un message comme quoi aucune carte n'as été detecté
-mov edx,msg1
-mov al,6        
-int 61h
+;aucunes carte n'as été detecté
 popad
 mov eax,1
 ret
@@ -505,26 +502,24 @@ xor eax,eax
 ret
 
 
-
-
-
-
 sdata1:
 org 0
-msg1:
+msgnok:
+db "no compatible 3C90x card was found",13,0
 db "aucune carte compatible 3C90x n'as été detecté",13,0
-msgok1: 
-db "la carte compatible 3C90x"
-type:
-db 0
-db " d'adresse ",0
+msgok1:
+db "the 3C90x compatible card with address ",0
+db "la carte compatible 3C90x d'adresse ",0
 msgok2:
+db " has been initialized",13,0
 db " a été initialisé",13,0
 
 pci_base:
 dd 0
 es_base:
 dd 0
+type:
+db 0
 
 adresse_logique_zt:
 dd 0

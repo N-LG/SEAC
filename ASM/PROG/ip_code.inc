@@ -202,13 +202,16 @@ int 61h
 call init_carte
 cmp eax,0
 je suite_start_carte
+
+;affiche un message comme quoi aucune carte n'as été detecté
+mov edx,msgnok
+call message_console
 int 60h
 
 suite_start_carte:
 ;affiche un message comme quoi la carte est ok
 mov edx,msgok1
-mov al,6        
-int 61h
+call message_console
 
 mov al,111
 mov ecx,adresse_mac
@@ -219,10 +222,48 @@ mov edx,tempo
 int 61h
 
 mov edx,msgok2
-mov al,6        
-int 61h
+call message_console
 
 jmp suite_reinit_carte
+
+
+
+
+
+;***************************
+message_console:  ;affiche un message dans la console en fonction de la langue ds:edx=adresses des message
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_message_console:
+cmp ecx,0
+je ok_message_console
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_message_console
+
+ok_message_console:
+mov al,6
+int 61h
+ret
+
+
+
+
+
+
+
 
 
 

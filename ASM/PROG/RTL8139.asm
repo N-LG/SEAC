@@ -36,10 +36,6 @@ add ebx,400h
 test ebx,7F000000h
 jz boucle_rech_pci
 
-;affiche un message comme quoi aucune carte n'as été detecté
-mov edx,msg1
-mov al,6        
-int 61h
 popad
 mov eax,1
 ret
@@ -402,12 +398,15 @@ ret
 
 sdata1:
 org 0
-msg1:
+msgnok:
+db "no compatible RTL8139 card was found",13,0
 db "aucune carte RTL8139 n'as été detecté",13,0
-msgok1: 
+msgok1:
+db "the RTL8139 card with address ",0
 db "la carte RTL8139 d'adresse ",0
 msgok2:
-db " a été initialisé correctement",13,0
+db " has been initialized",13,0
+db " a été initialisé",13,0
 
 pci_base:
 dd 0

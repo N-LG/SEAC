@@ -98,21 +98,16 @@ add ebx,400h
 test ebx,7F000000h
 jz boucle_rech_pci
 
-;affiche un message comme quoi aucune carte n'as été detecté
-mov edx,msger1
-mov al,6        
-int 61h
 mov eax,1
 jmp erreur_init
 
 
 ;affiche un message signalant l'erreur d'accès a l'EEPROM
 erreur_eeprom:
-mov edx,msger2
-mov al,6        
-int 61h
-mov eax,1
-jmp erreur_init
+mov edx,msgeeprom
+call message_console
+int 60h
+
 
 
 
@@ -816,13 +811,17 @@ ret
 
 sdata1:
 org 0
-msger1:
-db "aucune carte compatible Intel 8254X n'as été detecté",13,0
-msger2:
-db "erreur lors de l'acces a la mémoire EEPROM d'une carte compatible Intel 8254X, impssible de terminer l'initialisation",13,0
+msgnok:
+db "no compatible i8254X card was found",13,0
+db "aucune carte compatible i8254X n'as été detecté",13,0
+msgeeprom:
+db "error accessing the EEPROM memory of an i8254X compatible card, unable to complete initialization",13,0
+db "erreur lors de l'acces a la mémoire EEPROM d'une carte compatible i8254X, impssible de terminer l'initialisation",13,0
 msgok1: 
-db "la carte compatible Intel 8254X d'adresse ",0
+db "the i8254X compatible card with address ",0
+db "la carte compatible i8254X d'adresse ",0
 msgok2:
+db " has been initialized",13,0
 db " a été initialisé",13,0
 
 pci_base:
