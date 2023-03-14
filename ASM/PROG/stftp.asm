@@ -149,6 +149,7 @@ jne aff_err_port
 
 
 mov edx,msgok
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -200,35 +201,41 @@ jmp boucle
 
 aff_err_carte:
 mov edx,msger_carte
+call ajuste_langue
 mov al,6        
 int 61h
 jmp afficheaide
 
 aff_err_param:
 mov edx,msger_param
+call ajuste_langue
 mov al,6        
 int 61h
 jmp afficheaide
 
 aff_err_port:
 mov edx,msger_ouvport
+call ajuste_langue
 mov al,6        
 int 61h
 jmp afficheaide
 
 aff_err_ouv:
 mov edx,msger_ouvdos
+call ajuste_langue
 mov al,6        
 int 61h
 jmp afficheaide
 
 aff_err_ouve:
 mov edx,msger_ouvdose
+call ajuste_langue
 mov al,6        
 int 61h
 
 afficheaide:
 mov edx,msgaide
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -277,6 +284,7 @@ mov byte[nb_emission],15
 mov word[acq_attendu],1
 
 mov edx,msgrrq
+call ajuste_langue
 mov al,6        
 int 61h
 mov edx,code_oper+2
@@ -368,8 +376,9 @@ jmp boucle
 
 
 fin_rrq:
-mov al,6
 mov edx,msgfin
+call ajuste_langue
+mov al,6
 int 61h
 jmp boucle
 
@@ -380,8 +389,9 @@ erreur_lecture:
 push eax
 call envoie_erreur0A
 
-mov al,6
 mov edx,msg_errlec
+call ajuste_langue
+mov al,6
 int 61h
 pop ecx
 
@@ -462,6 +472,7 @@ mov word[acq_attendu],1
 
 
 mov edx,msgwrq
+call ajuste_langue
 mov al,6        
 int 61h
 mov edx,code_oper+2
@@ -612,8 +623,9 @@ int 61h
 dec byte [nb_emission]
 jnz boucle_fin_wrq
 
-mov al,6
 mov edx,msgfin
+call ajuste_langue
+mov al,6
 int 61h
 jmp boucle
 
@@ -853,6 +865,48 @@ stc
 ret
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+ret
+
+
+;***********
+compte0:
+mov ecx,edx
+
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+
+sub ecx,edx
+ret
+
+
 
 
 sdata1:
@@ -877,54 +931,58 @@ dd 0
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0
-msg3:
-db 17h,13,0
 
 
 msgok:
+db "STFTP: TFTP server started",13,0
 db "STFTP: serveur TFTP démarré",13,0
 
 msgrrq:
+db "STFTP: start sending the file: ",0
 db "STFTP: début de l'envoie du fichier: ",0
 msgwrq:
+db "STFTP: start of file reception: ",0
 db "STFTP: début de la réception du fichier: ",0
 msgligne:
 db 13,0
 msgfin:
+db "STFTP: end of file transfer",13,0
 db "STFTP: fin de transfert de fichier",13,0
 
 
 msg_errlec:
+db "STFTP: error while reading file: ",16h,0
 db "STFTP: erreur lors de la lecture du fichier: ",16h,0
 msg_errecr:
+db "STFTP: error writing file: ",16h,0
 db "STFTP: erreur lors de l'écriture du fichier: ",16h,0
 msg_errfin:
 db 17h,0
 
 msger_carte:
+db 13,"STFTP: network card selected absent",13,0
 db 13,"STFTP: carte réseau selectionné absente",13,0
 
 msger_param:
-db 13,"STFTP: erreur dans les parametre de la ligne de commande",13,0
+db 13,"STFTP: error in command line parameters",13,0
+db 13,"STFTP: erreur dans les paramètre de la ligne de commande",13,0
 
 msger_ouvport:
+db 13,"STFTP: error while opening port",13,0
 db 13,"STFTP: erreur lors de l'ouverture port",13,0
 
 msger_ouvdos:
+db 13,"STFTP: unable to open reading folder",13,0
 db 13,"STFTP: impossible d'ouvrir le dossier de lecture",13,0
 
 msger_ouvdose:
+db 13,"STFTP: unable to open write folder",13,0
 db 13,"STFTP: impossible d'ouvrir le dossier d'écriture",13,0
 
 
-
 msgaide:
-db "format de la commande SFTP:",13
-db "STFTP [repertoire] [-c:X] [-w] ",13
-db "[repertoire]  contient fichier disponible a la lecture",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-w] autorise aussi l'écriture de fichier(champ optionnel)",13,0 
-
+db "STFTP: command line syntax error. enter ",22,"man stftp",22," for correct syntax",13,0
+db "STFTP: erreur dans la sytaxe de la ligne de commande. entrez ",22,"man stftp",22," pour avoir la sytaxe correcte",13,0
 
 msgcoder0A:
 db "erreur lors de la lecture du fichier",0

@@ -148,6 +148,7 @@ jne erreur_init_cpnr
 
 ;********************
 mov edx,msg_ok
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -412,15 +413,6 @@ ja @f
 sub byte[extension+3],20h
 @@:
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§debug
-mov edx,nom_fichier
-mov al,6
-int 61h
-mov edx,extension
-mov al,6
-int 61h
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
 ;si le nom est "/" c'est le dossier racine
@@ -934,6 +926,7 @@ ret
 ;*********************************************
 aff_err_param:
 mov edx,msg_er0
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
@@ -941,6 +934,7 @@ int 60h
 
 erreur_ouverture_dossier:
 mov edx,msg_er1
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
@@ -948,31 +942,83 @@ int 60h
 
 erreur_init_cpnr:
 mov edx,msg_er2
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
 
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+ret
+
+
+;***********
+compte0:
+mov ecx,edx
+
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+
+sub ecx,edx
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sdata1:
 org 0
 
-
 msg_ok:
+db "SHTTP: HTTP server started",13,0
 db "SHTTP: serveur HTTP démarré",13,0
 
-
 msg_er0:
-db "SHTTP: erreur dans la sytaxe de la ligne de commande",13
-db "format correcte: SHTTP [repertoire] [-c:X]",13
-db "[repertoire]  contient les fichier du site a afficher",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13,0
-
-
-
+db "SHTTP: command line syntax error. enter ",22,"man shttp",22," for correct syntax",13,0
+db "SHTTP: erreur dans la sytaxe de la ligne de commande. entrez man ",22,"shttp",22," pour avoir la sytaxe correcte",13,0
 
 msg_er1:
+db "SHTTP: error when opening site files folder",13,0
 db "SHTTP: erreur lors de l'ouverture du dossier des fichier du site",13,0
 
 msg_er2:
+db "SHTTP: error opening port 80",13,0
 db "SHTTP: erreur lors de l'ouverture du port 80",13,0
 
 

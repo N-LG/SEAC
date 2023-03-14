@@ -1,6 +1,6 @@
 ﻿stlnt:
 pile equ 4096 ;definition de la taille de la pile
-include "../PROG/fe.inc"
+include "fe.inc"
 db "serveur telnet de commande systeme a distance"
 scode:
 org 0
@@ -128,6 +128,7 @@ cmp byte[zt_transfert],88h
 jne erreur_init
 
 mov edx,msgok
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -167,6 +168,7 @@ int 61h
 
 fin_affiche_adresse:
 mov edx,msgnc
+call ajuste_langue
 mov al,6
 int 61h
 
@@ -207,8 +209,10 @@ int 65h
 
 ;..un petit message de bienvenu
 mov al,7
-mov ecx,msgbasefin-msgbase
-mov esi,msgbase
+mov edx,msgbase
+call ajuste_langue
+call compte0
+mov esi,edx
 int 65h
 
 ;..l'invite de commande
@@ -562,6 +566,7 @@ jmp suite_formatage
 ;***********************************
 erreur_init:
 mov edx,msgnok1
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -569,9 +574,57 @@ int 60h
 
 erreur_param:
 mov edx,msgnok2
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
+
+
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+ret
+
+
+;***********
+compte0:
+mov ecx,edx
+
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+
+sub ecx,edx
+ret
+
+
+
 
 
 sdata1:
@@ -590,22 +643,30 @@ org 0
 ;dw 00ADh,00B1h,2017h,00BEh,00B6h,00A7h,00F7h,00B8h,00B0h,00A8h,00B7h,00B9h,00B3h,00B2h,25A0h,00A0h
 
 msgbase:
+db "*****************************************",10,13
+db "* Welcome to this remote command server *",10,13
+db "*       of a SEAC operating system      *",10,13
+db "*****************************************",10,13,0
 db "********************************************",10,13
 db "*  Bienvenue sur ce serveur de commande a  *",10,13
-db "* distance d'un syteme d'exploitation SEAC *",10,13
-db "********************************************",10,13
-msgbasefin:
+db "* distance d'un sytème d'exploitation SEAC *",10,13
+db "********************************************",10,13,0
+
 
 
 msgok:
-db "STLNT: serveur Telnet démarré"
+db "STLNT: Telnet server started",13,0
+db "STLNT: serveur Telnet démarré",13,0
 msgcrlf:
 db 13,0
 msgnc:
-db "STLNT: connexion par ",0
+db "STLNT: connection established with ",0
+db "STLNT: connexion établie avec ",0
 msgnok1:
+db "STLNT: error opening port",13,0
 db "STLNT: erreur lors de l'ouverture du port",13,0
 msgnok2:
+db "STLNT: incorrect port numbers selected",13,0
 db "STLNT: numéros de port selectionné incorrecte",13,0
 
 
