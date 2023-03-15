@@ -113,6 +113,7 @@ jne bc_raz
 
 mov al,6        
 mov edx,msg1
+call ajuste_langue
 int 61h
 
 
@@ -135,6 +136,8 @@ mov edx,bus
 mov al,105
 int 61h
 mov byte[edx+2]," "
+mov ax,[bus]
+mov [bus2],ax
 
 mov ecx,ebx
 shr ecx,11
@@ -143,6 +146,9 @@ mov edx,carte
 mov al,105
 int 61h
 mov byte[edx+2]," "
+mov ax,[carte]
+mov [carte2],ax
+
 
 mov ecx,ebx
 shr ecx,8
@@ -151,6 +157,8 @@ mov edx,fonction
 mov al,105
 int 61h
 mov byte[edx+2]," "
+mov eax,[fonction]
+mov [fonction2],eax
 
 mov ecx,ebp
 and ecx,0FFFFh
@@ -158,6 +166,8 @@ mov edx,vendor
 mov al,104
 int 61h
 mov byte[edx+4]," "
+mov eax,[vendor]
+mov [vendor2],eax
 
 mov ecx,ebp
 shr ecx,16
@@ -166,6 +176,8 @@ mov edx,id
 mov al,104
 int 61h
 mov byte[edx+4]," "
+mov eax,[id]
+mov [id2],eax
 
 mov dx,0CF8h
 mov eax,ebx
@@ -182,6 +194,8 @@ mov edx,classe
 mov al,105
 int 61h
 mov byte[edx+2],"."
+mov ax,[classe]
+mov [classe2],ax
 
 mov ecx,ebp
 shr ecx,16
@@ -190,6 +204,8 @@ mov edx,sousclasse
 mov al,105
 int 61h
 mov byte[edx+2],"."
+mov ax,[sousclasse]
+mov [sousclasse2],ax
 
 mov ecx,ebp
 shr ecx,8
@@ -198,10 +214,15 @@ mov edx,progif
 mov al,105
 int 61h
 mov byte[edx+2],13
+mov ax,[progif]
+mov [progif2],ax
+
+
 
 ;affiche la ligne des données
 mov eax,6  
 mov edx,desciption
+call ajuste_langue
 int 61h
 
 
@@ -454,14 +475,81 @@ int 60h
 
 
 
+
+
+
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
+
+
+
+
+
 sdata1:
 org 0
 
 
 msg1:
+db 13,"list of detected PCI and AGP devices:",13,0 
 db 13,"liste des périphériques PCI et AGP détecté:",13,0 
 
 desciption:
+db "Bus:"
+bus2:
+dw 0   
+db " Card:"
+carte2:
+dw 0
+db " Function:"
+fonction2:
+dw 0
+db " Vendor:"
+vendor2:
+dd 0
+db " ID:"
+id2:
+dd 0
+db " Classe:"
+classe2:
+dw 0
+db "."
+sousclasse2:
+dw 0
+db "."
+progif2:
+dw 0
+db 13,0
+
 db "Bus:"
 bus:
 dw 0   
@@ -487,6 +575,11 @@ db "."
 progif:
 dw 0
 db 13,0
+
+
+
+
+
 
 
 DEB:

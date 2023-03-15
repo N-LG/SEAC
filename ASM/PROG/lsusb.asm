@@ -113,6 +113,7 @@ jne bc_raz
 ;*******************************************************************************
 mov al,6        
 mov edx,msg2
+call ajuste_langue
 int 61h
 
 
@@ -147,16 +148,20 @@ mov edx,vendor
 mov al,104
 int 61h
 mov byte[edx+4]," "
-
+mov eax,[vendor]
+mov [vendor2],eax
 
 mov ecx,[descripteur_usb+10]
 and ecx,0FFFFh
 mov edx,id
 mov al,104
 int 61h
+mov eax,[id]
+mov [id2],eax
 
 mov al,6        
 mov edx,description1
+call ajuste_langue
 int 61h
 
 
@@ -168,6 +173,8 @@ mov edx,classe
 mov al,105
 int 61h
 mov byte[edx+2],","
+mov ax,[classe]
+mov [classe2],ax
 
 mov ecx,[descripteur_usb+5]
 and ecx,0FFh
@@ -175,6 +182,8 @@ mov edx,sousclasse
 mov al,105
 int 61h
 mov byte[edx+2],","
+mov ax,[sousclasse]
+mov [sousclasse2],ax
 
 mov ecx,[descripteur_usb+6]
 and ecx,0FFh
@@ -182,9 +191,12 @@ mov edx,protocole
 mov al,105
 int 61h
 mov byte[edx+2],13
+mov ax,[protocole]
+mov [protocole2],ax
 
 mov al,6        
 mov edx,description2
+call ajuste_langue
 int 61h
 
 call affiche_nom_fabricant
@@ -236,8 +248,16 @@ mov al,102
 int 61h
 or dword[edx],20202020h
 
+mov ecx,edi
+mov edx,interface2
+mov dword[edx],0
+mov al,102
+int 61h
+or dword[edx],20202020h
+
 mov al,6        
 mov edx,description3
+call ajuste_langue
 int 61h
 
 mov ecx,[esi+5]
@@ -246,6 +266,8 @@ mov edx,classe
 mov al,105
 int 61h
 mov byte[edx+2],","
+mov ax,[classe]
+mov [classe2],ax
 
 mov ecx,[esi+6]
 and ecx,0FFh
@@ -253,6 +275,8 @@ mov edx,sousclasse
 mov al,105
 int 61h
 mov byte[edx+2],","
+mov ax,[sousclasse]
+mov [sousclasse2],ax
 
 mov ecx,[esi+7]
 and ecx,0FFh
@@ -260,9 +284,12 @@ mov edx,protocole
 mov al,105
 int 61h
 mov byte[edx+2],13
+mov ax,[protocole]
+mov [protocole2],ax
 
 mov al,6        
 mov edx,description2
+call ajuste_langue
 int 61h
 
 
@@ -540,7 +567,33 @@ ret
 
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
 
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -554,10 +607,11 @@ org 0
 
 
 msg2:
+db 13,"list of detected USB devices:",13,0 
 db 13,"liste des périphériques USB détecté:",13,0 
 
 description1:
-db "adresse:"
+db "adress:"
 adresse:
 dd 0
 db "vendor:"
@@ -568,15 +622,38 @@ id:
 dd 0
 db 0
 
+db "adresse:"
+adresse2:
+dd 0
+db "vendor:"
+vendor2:
+dd 0
+db " id:"
+id2:
+dd 0
+db 0
+
+
 description2:
-db " classe:"
+db " class:"
 classe:
 dw 0
-db ",sous-classe:"
+db ",subclass:"
 sousclasse:
 dw 0
-db ",protocole:"
+db ",protocol:"
 protocole:
+dw 0
+db 13,0
+
+db " classe:"
+classe2:
+dw 0
+db ",sous-classe:"
+sousclasse2:
+dw 0
+db ",protocole:"
+protocole2:
 dw 0
 db 13,0
 
@@ -584,6 +661,11 @@ db 13,0
 description3:
 db "    interface:"
 interface:
+dd 0
+dd " ",0
+
+db "    interface:"
+interface2:
 dd 0
 dd " ",0
 
