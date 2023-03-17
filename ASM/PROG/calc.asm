@@ -20,6 +20,7 @@ mov fs,dx
 
 
 mov edx,msg_debut
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -323,6 +324,7 @@ jmp fin
 
 erreur_syntaxe:              
 mov edx,err_syn
+call ajuste_langue
 mov al,11
 mov ah,08h
 int 63h
@@ -332,6 +334,7 @@ jmp boucle_principale
 
 erreur_parenthese:              
 mov edx,err_para
+call ajuste_langue
 mov al,11
 mov ah,08h
 int 63h
@@ -772,13 +775,45 @@ ret
 
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
 
 ;**************************************************************
 sdata1:
 org 0
 
 msg_debut:
-db "calculatrice simple"
+db "simple calculator, enter the expression to calculate and validate with enter",13,0
+db "calculatrice simple, entrez l'expression a calculer et validez avec entrée",13,0
+
 ligne:
 db 13,0
 
@@ -791,16 +826,21 @@ db " = ",0
 
 
 err_syn:
+db 13,"error in the syntax of the expression",13,0
 db 13,"erreur dans la syntaxe de l'expression",13,0
 
 err_carac:
+db 13,"unrecognized character in expression",13,0
 db 13,"caractère non reconnue dans l'expression",13,0
 
+
 err_hexa:
+db 13,"hexadecimal character",13,0
 db 13,"caractère héxadécimal",13,0
 
 err_para:
-db 13,"erreur de paranthèse",13,0
+db 13,"parenthesis error",13,0
+db 13,"erreur de parenthèse",13,0
 
 
 xh:

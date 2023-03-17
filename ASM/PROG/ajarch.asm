@@ -146,8 +146,42 @@ jnc fin
 erreur_ecriture_archive:
 call coderr
 mov edx,msg_erreur_ecriture_archive
+call ajuste_langue
 call affmsg
 jmp fin
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
+
 
 coderr:
 mov ecx,eax
@@ -162,24 +196,28 @@ ret
 erreur_ouverture_archive:
 call coderr
 mov edx,msg_erreur_ouverture_archive
+call ajuste_langue
 call affmsg
 jmp fin
 
 erreur_format_archive:
 call coderr
 mov edx,msg_erreur_format_archive
+call ajuste_langue
 call affmsg
 jmp fin
 
 erreur_ouverture_fichier:
 call coderr
 mov edx,msg_erreur_ouverture_fichier
+call ajuste_langue
 call affmsg
 jmp fin
 
 erreur_lecture_fichier:
 call coderr
 mov edx,msg_erreur_lecture_fichier
+call ajuste_langue
 call affmsg
 
 fin:
@@ -193,19 +231,24 @@ include "nlg_se.inc"
 
 
 msg_erreur_ecriture_archive:
-db "erreur lors de l'ecriture de l'archive",13,10,0
+db "AJARCH: error writing archive",13,0
+db "AJARCH: erreur lors de l'ecriture de l'archive",13,0
 
 msg_erreur_ouverture_archive:
-db "impossible d'ouvrir l'archive",13,10,0
+db "AJARCH: unable to open archive",13,0
+db "AJARCH: impossible d'ouvrir l'archive",13,0
 
 msg_erreur_format_archive:
-db "erreur dans le format de l'archive",13,10,0
+db "AJARCH: error in archive format",13,0
+db "AJARCH: erreur dans le format de l'archive",13,0
 
 msg_erreur_ouverture_fichier:
-db "impossible d'ouvrir le fichier",13,10,0
+db "AJARCH: cannot open file",13,0
+db "AJARCH: impossible d'ouvrir le fichier",13,0
 
 msg_erreur_lecture_fichier:
-db "erreur lors de la lecture du fichier",13,10,0
+db "AJARCH: error while reading file",13,0
+db "AJARCH: erreur lors de la lecture du fichier",13,0
 
 donnee_transf:
 dd 0
