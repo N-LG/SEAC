@@ -282,6 +282,7 @@ je ok_chargement
 
 mov al,6
 mov edx,msg_err1
+call ajuste_langue
 int 61h
 
 mov word[esi+2],0
@@ -400,6 +401,7 @@ int 64h
 ;envoie dans fichier le reste des données
 mov al,6
 mov edx,msg_ok_af1
+call ajuste_langue
 int 61h
 
 add esi,4
@@ -446,6 +448,7 @@ affiche_resultat:
 
 mov al,6
 mov edx,msg_ok_af1
+call ajuste_langue
 int 61h
 
 add esi,4
@@ -487,6 +490,7 @@ cmp [taille_totale],ecx
 jne fin_incomplet
 mov al,6
 mov edx,msg_fin1
+call ajuste_langue
 int 61h
 int 60h
 
@@ -494,6 +498,7 @@ int 60h
 fin_inconnue:
 mov al,6
 mov edx,msg_fin2
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -506,6 +511,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin5
+call ajuste_langue
 int 61h
 int 60h
 
@@ -513,6 +519,7 @@ int 60h
 fin_incomplet:
 mov al,6
 mov edx,msg_fin3
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -525,6 +532,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin4
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -537,6 +545,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin5
+call ajuste_langue
 int 61h
 int 60h
 
@@ -546,6 +555,7 @@ int 60h
 aff_err_param:
 mov al,6
 mov edx,msg_err_param
+call ajuste_langue
 int 61h
 int 60h
 
@@ -553,6 +563,7 @@ int 60h
 aff_err_com:
 mov al,6
 mov edx,msg_err_com
+call ajuste_langue
 int 61h
 int 60h
 
@@ -560,18 +571,21 @@ int 60h
 aff_err_cre:
 mov al,6
 mov edx,msg_err_cre
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ouv:
 mov al,6
 mov edx,msg_err_ouv
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ecr:
 mov al,6
 mov edx,msg_err_ecr
+call ajuste_langue
 int 61h
 int 60h
 
@@ -595,7 +609,33 @@ int 65h
 ret
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
 
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -605,34 +645,44 @@ sdata1:
 org 0
 
 msg_ok_af1:
+db "CHTTP: start of document download",13,0
 db "CHTTP: début du téléchargement du document",13,0
-
 msg_fin1:
+db "CHTTP: download complete",13,0
 db "CHTTP: téléchargement complet",13,0
 msg_fin2:
+db "CHTTP: end of download by connection cut by the server, ",0
 db "CHTTP: fin du téléchargement par coupure de connexion par le serveur, ",0
 msg_fin3:
+db "CHTTP: incomplete download, ",0
 db "CHTTP: téléchargement incomplet, ",0
 msg_fin4:
-db " sur ",0
+db " bytes out of ",0
+db " octets sur ",0
 msg_fin5:
-db " octets ont été téléchargé",13,0
+db " have been downloaded",13,0
+db " ont été téléchargé",13,0
 
 
 msg_err1:
+db "CHTTP: The server returned an error:",13,20h,0
 db "CHTTP: le serveur a renvoyé une erreur:",13,20h,0
 
 
-
 msg_err_param:
-db "CHTTP: erreur de parametre",13,0
+db "CHTTP: parameter error",13,0
+db "CHTTP: erreur de paramètre",13,0
 msg_err_com:
+db "CHTTP: communication error",13,0
 db "CHTTP: erreur de communication",13,0
 msg_err_cre:
+db "CHTTP: unable to create file",13,0
 db "CHTTP: impossible de créer le fichier",13,0
 msg_err_ouv:
+db "CHTTP: Impossible to open file",13,0
 db "CHTTP: impossible d'ouvrir le fichier",13,0
 msg_err_ecr:
+db "CHTTP: cannot write to file",13,0
 db "CHTTP: impossible d'écrire dans le fichier",13,0
 
 

@@ -236,6 +236,7 @@ je okdata
 ;si temps écoulé renvoie la demande a un autre serveur
 aucune_reponse:
 mov edx,msg_nrep1
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -248,6 +249,7 @@ mov al,6
 int 61h
 
 mov edx,msg_nrep2
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -268,6 +270,7 @@ jmp boucle_test_different_serveur
 ;***********************
 erreur_ouv_port:
 mov edx,msg_err1
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
@@ -276,6 +279,7 @@ int 60h
 ;*****************
 erreur_param:
 mov edx,msg_err2
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
@@ -316,6 +320,7 @@ cmp ax,0
 je aucune_reponse
 
 mov edx,msg_rep1
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -328,6 +333,7 @@ mov al,6
 int 61h
 
 mov edx,msg_rep2
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -728,9 +734,33 @@ ret
 
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
 
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
 
-
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -753,19 +783,18 @@ dw 255
 
 
 msg_err1:
+db "CDNS: error while opening UDP port",13,0
 db "CDNS: erreur lors de l'ouverture du port UDP",13,0
 msg_err2:
-db "CDNS: erreur dans la commande, sytaxe correct: cdns [nom] [-c:X] [-s:X] [-t:X] ",13
-db "[nom]  nom du serveur a rechercher",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-s:X] serveur a interroger (champ optionnel, liste interne par défaut)",13
-db "[-t:X] type de RR demandé (champ optionnel, ANY/255 par défaut)",13,0 
-
+db "CDNS: command line syntax error. enter ",22,"man cdns",22," for correct syntax",13,0
+db "CDNS: erreur dans la sytaxe de la ligne de commande. entrez ",22,"man cdns",22," pour avoir la sytaxe correcte",13,0
 
 
 msg_rep1:
+db "CDNS: DNS server response ",0
 db "CDNS: Réponse du serveur DNS ",0
 msg_rep2:
+db " for ",0
 db " pour ",0
 msg_rep3:
 db ":",13,0
@@ -803,8 +832,10 @@ msg_espace:
 db "  ",0
 
 msg_nrep1:
+db "CDNS: the ",0
 db "CDNS: le serveur ",0
 msg_nrep2:
+db " server does not know ",0
 db " ne connait pas ",0
 msg_nrep3:
 db 13,0

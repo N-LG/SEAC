@@ -432,6 +432,7 @@ int 64h
 ;envoie dans fichier le reste des données
 mov al,6
 mov edx,msg_ok_af1
+call ajuste_langue
 int 61h
 
 
@@ -467,6 +468,7 @@ affiche_resultat:
 
 mov al,6
 mov edx,msg_ok_af1
+call ajuste_langue
 int 61h
 
 boucle_affiche_resultat:
@@ -504,6 +506,7 @@ cmp [taille_totale],ecx
 jne fin_incomplet
 mov al,6
 mov edx,msg_fin1
+call ajuste_langue
 int 61h
 int 60h
 
@@ -511,6 +514,7 @@ int 60h
 fin_inconnue:
 mov al,6
 mov edx,msg_fin2
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -523,6 +527,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin5
+call ajuste_langue
 int 61h
 int 60h
 
@@ -530,6 +535,7 @@ int 60h
 fin_incomplet:
 mov al,6
 mov edx,msg_fin3
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -542,6 +548,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin4
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -554,6 +561,7 @@ int 61h
 
 mov al,6
 mov edx,msg_fin5
+call ajuste_langue
 int 61h
 int 60h
 
@@ -563,6 +571,7 @@ int 60h
 aff_err_param:
 mov al,6
 mov edx,msg_err_param
+call ajuste_langue
 int 61h
 int 60h
 
@@ -570,30 +579,35 @@ int 60h
 aff_err_com:
 mov al,6
 mov edx,msg_err_com
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_cre:
 mov al,6
 mov edx,msg_err_cre
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ouv:
 mov al,6
 mov edx,msg_err_ouv
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ecr:
 mov al,6
 mov edx,msg_err_ecr
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_exe:
 mov al,6
 mov edx,msg_err_exe
+call ajuste_langue
 int 61h
 int 60h
 
@@ -602,6 +616,7 @@ int 60h
 aff_err_srv:
 mov al,6
 mov edx,msg_err_srv
+call ajuste_langue
 int 61h
 mov edx,zt_decode
 mov al,6
@@ -695,7 +710,33 @@ rep movsb
 jmp test_attend1ligne
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
 
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -703,38 +744,48 @@ sdata1:
 org 0
 
 msg_ok_af1:
+db "CFTP: start of document download",13,0
 db "CFTP: début du téléchargement du document",13,0
-
 msg_fin1:
+db "CFTP: download complete",13,0
 db "CFTP: téléchargement complet",13,0
 msg_fin2:
+db "CFTP: end of download by connection cut by the server, ",0
 db "CFTP: fin du téléchargement par coupure de connexion par le serveur, ",0
 msg_fin3:
+db "CFTP: incomplete download, ",0
 db "CFTP: téléchargement incomplet, ",0
 msg_fin4:
-db " sur ",0
+db " bytes out of ",0
+db " octets sur ",0
 msg_fin5:
-db " octets ont été téléchargé",13,0
+db " have been downloaded",13,0
+db " ont été téléchargé",13,0
 
 
 msg_err_srv:
+db "CFTP: The server returned an error:",13,0
 db "CFTP: le serveur a renvoyé une erreur:",13,0
 
 
-
 msg_err_param:
-db "CFTP: erreur de parametre",13,0
+db "CFTP: parameter error",13,0
+db "CFTP: erreur de paramètre",13,0
 msg_err_com:
+db "CFTP: communication error",13,0
 db "CFTP: erreur de communication",13,0
 msg_err_cre:
+db "CFTP: unable to create file",13,0
 db "CFTP: impossible de créer le fichier",13,0
 msg_err_ouv:
+db "CFTP: Impossible to open file",13,0
 db "CFTP: impossible d'ouvrir le fichier",13,0
 msg_err_ecr:
+db "CFTP: cannot write to file",13,0
 db "CFTP: impossible d'écrire dans le fichier",13,0
 msg_err_exe:
+db "CFTP: error during the exchange with the server",13,0
 db "CFTP: erreur durant l'échange avec le serveur",13,0
-
 
 
 

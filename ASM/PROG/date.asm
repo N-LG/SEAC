@@ -200,8 +200,6 @@ ok_ajuste_langue:
 pop eax
 ret
 
-;it is March 3 of the year 2023 and it is 11:30 p.m. and 23 seconds
-
 sdata1:
 org 0
 msg1:
