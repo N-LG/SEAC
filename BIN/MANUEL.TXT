@@ -99,7 +99,7 @@
 %commande: modv XXX
  change le mode video de l'écran pour le mode
  XXX = numéros du mode, XXX*YYY pour la résolution 
-:efj:af:fix
+:efj:af:fix:journal
 ^Commandes de manipulation du journal du ~Tecop~
 
 %commande: efj
@@ -119,7 +119,7 @@
 
  le tecop est constitué de 4 zones (de haut en bas):
  -Interface disponible (en blanc sur fond bleu)
- -Journal systeme
+ -~Journal~ systeme
  -adresse de travail (en vert sur fond noir)
  -commande en cours de rédaction 
 
@@ -259,11 +259,13 @@
  on définis le dossier systeme avec la commande ~fix~
 :seac
 ^SEaC: systeme d'exploitation approximativement complet
- (plus d'explication a venir)
+
+ c'est un système d'exploitation multitâche préemptif, monolithique en 32bit. Une tache principale est chargé de la gestion du ~TECOP~, de l'interprétation des ~commandes~ envoyé au système, de la mise a jour de l'écran, et de quelques travaux periodique (gestion moteur disquette, etc...). les autres taches sont créer lorsque que l'on exécute une commande associé a un fichier exécutable. pour se déplacer d'une application a une autre (lorsque celle ci as besoin d'ine interface), on uttilise les touche alt+tab.
+ le système utilise un ~journal~ ou chaque tache peut écrire le résultat de ces opérations 
 :snif
 ^SNIF
- intercepteur de trame ethernet
-
+ intercepteur de trame ethernet au stade expérimental, se contente d'afficher dans le journal systeme les métadonnée des trames reçu
+ 
 %commande: snif X 
  avec: X = numéros de l'interface réseau a utiliser
 :ping
@@ -304,13 +306,14 @@
  -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
 
  types de RR reconnue:
- A (1) adresse IPv4
- AAAA (28) adresse IPv6
- NS (2) serveur DNS de zone
- CNAME (5) nom canonique
- SOA (6) serveur faisant autorité sur le nom de domaine et e-mail du responsable de domaine
- MX (15) serveur de mail de cette adresse
- TXT (16) texte brut
+ A     1  adresse IPv4
+ AAAA  28 adresse IPv6
+ NS    2  serveur DNS de zone
+ CNAME 5  nom canonique
+ SOA   6  serveur faisant autorité sur le nom de domaine et e-mail du responsable de domaine
+ MX    15 serveur de mail de cette adresse
+ TXT   16 texte brut
+ tout les RR non reconnu sont affiché sous la forme hexadécimale
 :circ
 ^CIRC
  client pour systeme de messagerie utilisant le protocole IRC
@@ -327,11 +330,13 @@
 ^Pilotes pour carte ethernet/ip
 
 %commande: rtl8139
- démarre le pilote pour une carte Realtek 8139 ou compatible
+ démarre le pilote pour une carte Realtek RTL8139 ou compatible
 %commande: 3c90x
- démarre le pilote pour une carte 3Com  ou compatible
+ démarre le pilote pour une carte 3Com 3C905 ou compatible
 %commande: I8254x
-démarre le pilote pour une carte Intel  ou compatible
+ démarre le pilote pour une carte Intel 82540 ou compatible
+
+ l'adressage se configure avec ~IPCONFIG~ 
 :fasm
 ^FASM
  compilateur assembleur créer par Tomasz Grysztar
@@ -362,13 +367,13 @@ démarre le pilote pour une carte Intel  ou compatible
  permet de visualiser les périphériques branché sur le bus PCI et AGP
  fonctionne avec le fichier PCICLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier pci.ids comme base de donnée pour le nom des fabricant et de leurs produits
 
- le fichié pci.ibs est maintenu par le PCI ID Project(~https://pci-ids.ucw.cz~) et peut être téléchargé a l'adresse ~https://pci-ids.ucw.cz/v2.2/pci.ids~
+ le fichier pci.ibs est maintenu par le PCI ID Project(~https://pci-ids.ucw.cz~) et peut être téléchargé a l'adresse ~https://pci-ids.ucw.cz/v2.2/pci.ids~
 :lsusb
 ^LSUSB
  permet de visualiser les périphériques branché sur le bus USB
  fonctionne avec le fichier USBCLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier usb.ids comme base de donnée pour le nom des fabricant et de leurs produits
 
- le fichié usb.ibs est maintenu par Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) et peut être téléchargé a l'adresse ~http://www.linux-usb.org/usb.ids~
+ le fichier usb.ibs est maintenu par Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) et peut être téléchargé a l'adresse ~http://www.linux-usb.org/usb.ids~
 :dcp
 ^DCP
  décompresse les archives qui sont au format PKzip Gzip et Tar
@@ -391,7 +396,7 @@ démarre le pilote pour une carte Intel  ou compatible
 
  paramètres optionnels:
  -c:XXX numéros de l'interface réseau a utiliser
- -n:XXX nombre de ping a rester par adresse
+ -n:XXX nombre de ping a tester par adresse
 :chttp
 ^CHTTP
  téléchargeur de ressource avec le protocole HTTP
@@ -439,3 +444,13 @@ démarre le pilote pour une carte Intel  ou compatible
  -i:XXX fichier image qui sert de definition d'icones
  -c:XXX couleur du fond s'il n'y as pas d'image
  -t:X   couleur du texte
+:argument:arguments
+^format des argument dans les commandes
+
+ les argument sont séparé par des espaces, si dans votre argument il doit y avoir un espace, il vous faut l'entourer par des guillemets ( " )
+%exemple: man "dossier systeme"
+ 
+ si les arguments ne sont pas dans un ordre particulier, il faut les identifier par une lettre précédé d'un espace au début de l'argument suivie de deux points avec la valeur de l'argument. 
+%exemple: dcp archive.zip -e -o:"dossier temporaire"
+
+ 
