@@ -33,6 +33,7 @@ choix_disque:
 call raz_ecr
 
 mov edx,msgldp1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -50,8 +51,8 @@ int 64h
 cmp eax,0
 jne suite_ldp
 
-test byte[ZT512A+1],080h   ;test si le périphérique est atapi
-jnz suite_ldp
+;test byte[ZT512A+1],080h   ;test si le périphérique est atapi
+;jnz suite_ldp
 
 ;convertit le nom
 mov ebx,ZT512A+36h
@@ -231,6 +232,7 @@ je affiche_part
 er_accd:   ;erreur lors de l'accès disque
 call raz_ecr
 mov edx,msg_eraccd
+call ajuste_langue
 call affiche_erreur_attend
 jmp choix_disque
 
@@ -247,6 +249,7 @@ mov ebx,ZT512B+1BEh
 ;je list_part_gpt
 
 mov edx,msg_mbr
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -329,6 +332,7 @@ int 63h
 
 
 mov edx,msg_action
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -392,6 +396,7 @@ add ecx,18
 int 63h
 
 mov edx,msg_cree_er3   ;message d'eerreur plus de partition de libre
+call ajuste_langue
 call affiche_erreur_attend
 jmp choix_action
 
@@ -408,7 +413,8 @@ mov ebx,0
 mov ecx,[num_partition]
 add ecx,18
 int 63h
-mov edx,msg_cree_type  
+mov edx,msg_cree_type
+call ajuste_langue  
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -431,6 +437,7 @@ mov ecx,[num_partition]
 add ecx,19
 int 63h
 mov edx,msg_cree_adresse
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -500,6 +507,7 @@ mov ecx,[num_partition]
 add ecx,20
 int 63h
 mov edx,msg_cree_taille
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -571,6 +579,7 @@ jbe ok_rentre_dansledisque
 
 partition_rentre_pas:
 mov edx,msg_cree_er2   ;disque trop petit
+call ajuste_langue
 call affiche_erreur_attend
 jmp choix_action
 
@@ -674,6 +683,7 @@ jne boucle_placelibre
 
 
 mov edx,msg_cree_er3   ;pas de partition de libre!
+call ajuste_langue
 call affiche_erreur_attend
 jmp choix_action
 
@@ -818,6 +828,7 @@ ret
 ;***********
 erreur_chevauchement:
 mov edx,msg_cree_er1   ;place déja occupé
+call ajuste_langue
 call affiche_erreur_attend
 jmp choix_action
 
@@ -833,6 +844,7 @@ dec ecx
 int 63h
 
 mov edx,msg_modif1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -872,6 +884,7 @@ sub ecx,4
 int 63h
 
 mov edx,msg_modif2
+call ajuste_langue
 mov al,11
 mov ah,7 ;couleur
 int 63h
@@ -898,6 +911,7 @@ sub ecx,4
 int 63h
 
 mov edx,msg_modif3
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -936,6 +950,7 @@ dec ecx
 int 63h
 
 mov edx,msg_format1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -963,6 +978,7 @@ mov [format_taille_totale],edx
 menu_formatpart:
 call raz_ecr
 mov edx,msg_format2
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -993,6 +1009,7 @@ jmp affiche_part
 ;********************************
 format_partition_efface:
 mov edx,msg_format5       ;demande quel quantité de secteur sont a effacer
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1114,6 +1131,7 @@ formattage_fat:
 
 ;demande choix nombre de table FAT
 mov edx,msg_format3
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1136,6 +1154,7 @@ jbe ok_nombre_fat
 
 nok_nombre_fat:
 mov edx,msg_format4
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -1433,6 +1452,7 @@ jmp sauvegarde_mbr
 ;******************************
 erreur_ecriture_formattage:
 mov edx,msg_format_er1
+call ajuste_langue
 call affiche_erreur_attend
 jmp affiche_part
 
@@ -1446,6 +1466,7 @@ add ecx,12
 int 63h
 
 mov edx,msg_sup1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1494,6 +1515,7 @@ add ecx,18
 int 63h
 
 mov edx,msg_sauvp1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1524,10 +1546,12 @@ add ecx,18
 int 63h
 
 mov edx,msg_sauvp2
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
 mov edx,msg_blanc
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1553,6 +1577,7 @@ add ecx,18
 int 63h
 
 mov edx,msg_chargp1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1594,10 +1619,12 @@ add ecx,18
 int 63h
 
 mov edx,msg_chargp2
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
 mov edx,msg_blanc
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1691,7 +1718,8 @@ mov ecx,[num_partition]
 add ecx,18
 int 63h
 
-mov edx,msg_code1 
+mov edx,msg_code1
+call ajuste_langue 
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1734,7 +1762,8 @@ jbe charge_code
 erreur_taille_code:
 call raz_ecr
 
-mov edx,msg_code2  
+mov edx,msg_code2
+call ajuste_langue  
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1796,7 +1825,8 @@ jmp affiche_part
 fonction_off:
 
 
-mov edx,msg_fonction_off ;message en attendant 
+mov edx,msg_fonction_off ;message en attendant
+call ajuste_langue 
 call affiche_erreur_attend
 call raz_ecr
 jmp affiche_part
@@ -1852,6 +1882,7 @@ mov ah,0Ch ;couleur
 int 63h
 
 mov edx,msg_attend
+call ajuste_langue
 mov ebx,0
 mov ecx,[resyt] 
 dec ecx 
@@ -1888,6 +1919,7 @@ erreur_lit_secteur:
 push eax
 call raz_ecr
 mov edx,msg_err3
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1902,6 +1934,7 @@ mov ah,0Fh ;couleur
 int 63h
 
 mov edx,msg_err1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1917,6 +1950,7 @@ mov ah,0Fh ;couleur
 int 63h
 
 mov edx,msg_err2
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1971,6 +2005,7 @@ erreur_charge_secteur:
 push eax
 call raz_ecr
 mov edx,msg_err4
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1985,6 +2020,7 @@ mov ah,0Fh ;couleur
 int 63h
 
 mov edx,msg_err1
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -2000,6 +2036,7 @@ mov ah,0Fh ;couleur
 int 63h
 
 mov edx,msg_err2
+call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -2032,6 +2069,33 @@ pop ebx
 ret
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -2042,72 +2106,106 @@ sdata1:
 org 0
 
 msgldp1:
-db "choisisez le disque:  (appuyez sur ECHAP pour quitter)",13,0
+db "Choose disk: (press ESC to exit)",13,0
+db "Choisissez le disque: (appuyer sur ECHAP pour quitter)",13,0
+
 
 kiloctet:
+db "KiloBytes",13,0
 db "Kilo-octets",13,0
 
 espace:
 db " ",0
 
 msg_eraccd:
-db "erreur lors de l'accèes au disque, voulez vous?",13
-db "réessayer",13
-db "choisir un autre disque?",0
+db "Error accessing disk, do you want?",13
+
+db "Try again",13
+
+db "Choose another disk?",0
+db "Erreur lors de l'accès au disque, voulez vous?",13
+db "Réessayer",13
+db "Choisir un autre disque?",0
+
 
 msg_vide:
-db "aucune structure n'as été detecté",13,0
+db "No structure was detected",13,0
+db "Aucune structure n'as été detecté",13,0
 
 
 msg_mbr:
+db "current disk structure (MBR partitioning)",13
+db "Type |   size (KB)   | Start address | End address ",13,0
 db "structure actuelle du disque (partitionnement MBR)",13
-db "type | taille (Ko)   | adresse debut | adresse fin ",13,0
+db "Type | taille (Ko)   | Adresse debut | Adresse fin ",13,0
+
 
 chaine_part_mbr:
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 msg_gpt:
-db "structure actuelle du disque (partitionnement GPT)",13
-db "GUID             |  taille (Mo)  | adresse debut    ",13,0
+db "Current disk structure (GPT partitioning)",13
+db "GUID             |   Size (MB)   | Start address     ",13,0
+db "Structure actuelle du disque (partitionnement GPT)",13
+db "GUID             |  Taille (Mo)  | Adresse debut    ",13,0
 
 
 
 
 
 msg_chargp1:
-db "selectionnez le fichier a charger:",0
+db "Select the file to load:",0
+db "Sélectionnez le fichier à charger:",0
 msg_chargp2:
-db "selectionnez la partition a charger",0
+db "Select the partition to load",0
+db "Sélectionnez la partition à charger",0
 
 
 msg_sauvp1:
-db "selectionnez le fichier ou sauvegarder:",0
+db "Select the file where to save:",0
+db "Sélectionnez le fichier où sauvegarder:",0
 msg_sauvp2:
-db "selectionnez la partition a sauvegarder",0
-
+db "Select the partition to backup",0
+db "Sélectionnez la partition à sauvegarder",0
 
 
 msg_action:
-db "choisir un autre disque",13
-db "sauvegarder une image du disque",13
-db "charger une image dans le disque",13
-db "créer une partition",13
-db "modifier type de partition",13
-db "formatter une partition",13
-db "supprimer une partition",13
-db "sauvegarder une image de partition",13
-db "charger une image dans la partition",13
-db "changer le mode de partitionnement",13
-db "changer le programe d'amorçage",13
-db "quitter",13,0
+db "Choose another disc",13
+db "Save a disk image",13
+db "Load an image to disk",13
+db "Create a partition",13
+db "Change partition type",13
+db "Format a partition",13
+db "Delete a partition",13
+db "Backup a partition image",13
+db "Load an image into the partition",13
+db "Change the partitioning mode",13
+db "Change bootloader",13
+db "Quit",13,0
+db "Choisir un autre disque",13
+db "Sauvegarder une image du disque",13
+db "Charger une image dans le disque",13
+db "Créer une partition",13
+db "Modifier type de partition",13
+db "Formater une partition",13
+db "Supprimer une partition",13
+db "Sauvegarder une image de partition",13
+db "Charger une image dans la partition",13
+db "Changer le mode de partitionnement",13
+db "Changer le programme d'amorçage",13
+db "Quitter",13,0
+
 
 
 msg_cree_type:
-db "code du type de partition:",0
+db "Partition type code:",0
+db "Code du type de partition:",0
 msg_cree_taille:
-db "taille de la partition (Ko):",0
+db "Partition size (KB):",0
+db "Taille de la partition (Ko):",0
 msg_cree_adresse:
-db "adresse du premier secteur:",0
+db "First sector address:",0
+db "Adresse du premier secteur:",0
 
 txt_taille:
 db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2126,11 +2224,14 @@ dd 0
 
 
 msg_cree_er1:
-db "impossible de créer la partition, l'espace souhaité est déja occupée",0
+db "Impossible to create the partition, the desired space is already occupied",0
+db "Impossible de créer la partition, l'espace souhaité est déja occupée",0
 msg_cree_er2:
-db "impossible de créer la partition, car elle s'étend au dela de la capacité du disque",0
+db "Cannot create the partition because it extends beyond the capacity of the disk",0
+db "Impossible de créer la partition, car elle s'étend au dela de la capacité du disque",0
 msg_cree_er3:
-db "impossible de créer la partition, il n'y as plus de partition de libre",0
+db "Impossible to create the partition, there is no more free partition",0
+db "Impossible de créer la partition, il n'y as plus de partition de libre",0
 
 
 
@@ -2139,74 +2240,105 @@ db "                                                         ",0
 
 
 msg_modif1:
-db "choisissez la partition a modifier (echap pour annuler)",0
+db "Choose the partition to modify (esc to cancel)",0
+db "Choisissez la partition a modifier (echap pour annuler)",0
+
 msg_modif2:
-db "code du type de partition:",0 
+db "Partition type code:",0 
+db "Code du type de partition:",0 
 msg_modif3:
-db "partition amorçable?                          ",13,"non",13,"oui",0
+db "Bootable partition?                          ",13,"no",13,"yes",0
+db "Partition amorçable?                          ",13,"non",13,"oui",0
 
  
 msg_format1:
-db "choisissez la partition a formatter (echap pour annuler)",0
+db "Choose the partition to format (esc to cancel)",0
+db "Choisissez la partition a formater (echap pour annuler)",0
 
 
 msg_format2:
-db "ne pas Formatter le disque",13
-db "effacer la partition",13
-db "Formattage rapide en FAT16(sans effacement contenu Cluster)",13
-db "Formattage complet en FAT16(avec effacement contenu Cluster)",13
-db "Formattage rapide en FAT32(sans effacement contenu Cluster)",13
-db "Formattage complet en FAT32(avec effacement contenu Cluster)",13,13,0
+db "Do not format disk",13
+db "Erase partition",13
+db "Quick format in FAT16 (without erasing Cluster content)",13
+db "Complete formatting in FAT16 (with deletion of Cluster content)",13
+db "Quick format in FAT32 (without erasing Cluster contents)",13
+db "Complete formatting in FAT32 (with deletion of Cluster content)",13,13,0
+db "Ne pas formater le disque",13
+db "Effacer la partition",13
+db "Formatage rapide en FAT16(sans effacement contenu Cluster)",13
+db "Formatage complet en FAT16(avec effacement contenu Cluster)",13
+db "Formatage rapide en FAT32(sans effacement contenu Cluster)",13
+db "Formatage complet en FAT32(avec effacement contenu Cluster)",13,13,0
 
 
 msg_format3:
-db "combien de table FAT enregistré sur le disque? (2 à 8)",13,0
+db "How many FAT table saved on disk? (2 to 8)",13,0
+db "Combien de table FAT enregistré sur le disque? (2 à 8)",13,0
+
 msg_format4:
-db "valeur incorrecte, veuillez saisir un valeur dans les tolérance pour poursuivre (echap pour annuler)",13,0
+db "Incorrect value, please enter a value within tolerance to continue (esc to cancel)",13,0
+db "Valeur incorrecte, veuillez saisir un valeur dans les tolérance pour poursuivre (echap pour annuler)",13,0
+
 
 msg_format5:
-db "combien de secteur souhaitez vous effacer?",13,0
+db "How many sectors do you want to erase?",13,0
+db "Combien de secteur souhaitez vous effacer?",13,0
 
 
 msg_format_er1:
-db "erreur lors de l'écriture sur le disque",0
+db "Error writing to disk",0
+db "Erreur lors de l'écriture sur le disque",0
 
 msg_sup1:
-db "choisissez la partition a supprimer (echap pour annuler)",0
+db "Choose the partition to delete (esc to cancel)",0
+db "Choisissez la partition a supprimer (echap pour annuler)",0
+
 msg_sup2:
-db "êtes vous CERTAIN de vouloir supprimer cette partition? (O/N)",0
+db "Are you SURE you want to delete this partition? (Y/N)",0
+db "Êtes vous CERTAIN de vouloir supprimer cette partition? (O/N)",0
 
 
 msg_mode1:
-db "pour l'instant, le mode de partitionnement des bios UEFI n'est hélas pas supporté                 ",0
+db "For the moment, the partitioning mode of the UEFI bios is unfortunately not supported",0
+db "Pour l'instant, le mode de partitionnement des bios UEFI n'est hélas pas supporté                 ",0
 
 
 msg_code1:
+db "Please specify the name of the file containing the bootstrap code you want to install:",0
 db "veuillez spécifier le nom du fichier contenant le code d'amorçage que vous souhaitez installer:",0
 msg_code2:
-db "le fichier choisie est plus grand que l'espace du MBR prévu a cet effet, voulez vous?",13 
-db "ne rien faire",13
-db "remplacer uniquement le code",13
-db "remplacer tout le contenue du secteur(et ecraser la table de partition)",0
+db "The chosen file is larger than the MBR space provided for this purpose, do you want",13 
+db "Do nothing",13
+db "Replace code only",13
+db "Replace all contents of the sector (and overwrite the partition table)",0
+db "Le fichier choisie est plus grand que l'espace du MBR prévu a cet effet, voulez vous?",13 
+db "Ne rien faire",13
+db "Remplacer uniquement le code",13
+db "Remplacer tout le contenue du secteur(et ecraser la table de partition)",0
+
 
 
 msg_fonction_off:
-db "cette fonction n'est pas encore active",0
+db "This feature is not active yet",0
+db "Cette fonction n'est pas encore active",0
 
 msg_attend:
-db "appuyez sur une touche pour continuer...",0
-
-
+db "Press any key to continue...",0
+db "Appuyez sur une touche pour continuer...",0
 
 
 msg_err1:
+db " of the disc ",0
 db " du disque ",0
 msg_err2:
-db "h",13,"réessayer",13,"annuler",0
+db "h",13,"Retry",13,"Abort",0
+db "h",13,"Réessayer",13,"Annuler",0
 msg_err3:
-db "erreur lors de la lecture du secteur ",0
+db "Error reading sector ",0
+db "Erreur lors de la lecture du secteur ",0
 msg_err4:
-db "erreur lors de l'écriture du secteur ",0
+db "Error writing sector ",0
+db "Erreur lors de l'écriture du secteur ",0
 
 
 
