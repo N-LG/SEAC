@@ -177,6 +177,7 @@ jne err_cnx
 ;signal le début du test
 mov al,6
 mov edx,msg0a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -189,6 +190,7 @@ int 61h
 
 mov al,6
 mov edx,msg0b
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -280,6 +282,7 @@ jne suite_boucle
 ;affiche le résultat
 mov al,6
 mov edx,msg1a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -331,9 +334,38 @@ boucle_secondaire:
 ;affiche la synthèse
 mov al,6
 mov edx,msg2a
+call ajuste_langue
 int 61h
 
 int 60h
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -376,34 +408,34 @@ db 0
 
 
 msg0a:
+db 13,"SCANIP: start scanning address from ",0
 db 13,"SCANIP: début du balayage de l'adresse ",0
 msg0b:
+db " to ",0
 db " à l'adresse ",0
 msg0c:
 db 13,0
 
 msg1a:
+db "Reply from address ",0
 db "Réponse de l'adresse ",0
 msg1b:
 db 13,0
 
 msg2a:
+db "SCANIP: end of scan",13,0
 db "SCANIP: fin du balayage",13,0
 
 
 
-
 msg_err1:
-db "SCANIP: erreur de parametres, syntaxe correcte: scanip [nom] [-c:X] [-s:X] [-t:X] ",13
-db "[adresse debut]  adresse du début de la plage d'adresse a tester",13
-db "[adresse fin]  adresse de la fin de la plage d'adresse a tester",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0  
-
-
+db "SCANIP: command line syntax error. enter ",22h,"man scanip",22h," for correct syntax",13,0
+db "SCANIP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man scanip",22h," pour avoir la sytaxe correcte",13,0
 
 msg_err2:
+db "SCANIP: error while communicating with the network interface",13,0
 db "SCANIP: erreur lors de la communication avec l'interface réseau",13,0
+
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0

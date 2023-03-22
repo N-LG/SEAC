@@ -184,6 +184,7 @@ jne err_cnx
 ;signal le début du test
 mov al,6
 mov edx,msg0a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -196,6 +197,7 @@ int 61h
 
 mov al,6
 mov edx,msg0b
+call ajuste_langue
 int 61h
 
 
@@ -291,6 +293,7 @@ int 61h
 
 mov al,6
 mov edx,msg1a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -320,6 +323,7 @@ jne boucle_principale
 
 mov al,6
 mov edx,msg_fin
+call ajuste_langue
 int 61h
 
 int 60h
@@ -337,6 +341,7 @@ int 61h
 
 mov al,6
 mov edx,msg2
+call ajuste_langue
 int 61h
 dec byte[ping_erreur]
 jnz boucle_principale
@@ -356,6 +361,7 @@ int 61h
 
 mov al,6
 mov edx,msg3a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -370,9 +376,44 @@ mov al,6
 mov edx,msg_crlf
 int 61h
 
-
-
 int 60h
+
+
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
+
+
+
 
 
 
@@ -380,6 +421,7 @@ int 60h
 err_param:
 mov al,6
 mov edx,msg_err1
+call ajuste_langue
 int 61h
 int 60h
 
@@ -387,8 +429,12 @@ int 60h
 err_cnx:
 mov al,6
 mov edx,msg_err2
+call ajuste_langue
 int 61h
 int 60h
+
+
+
 
 sdata1:
 org 0
@@ -413,19 +459,24 @@ db 4
 
 
 msg0a:
+db 13,"TRACE: test connection path to ",0
 db 13,"TRACE: test du chemin de connexion vers ",0
 msg0b:
 db 13,0
 
 msg2:
+db " Response timeout exceeded",13,0
 db " Délais d'attente de réponse dépassé",13,0
 
 
 
 msg1a:
+db " intermediate ",0
 db " intermédiaire ",0
 
+
 msg3a:
+db " receiver! ",0
 db " destinataire! ",0
 
 
@@ -434,19 +485,19 @@ db 13,0
 
 
 msg_fin:
-db "TRACE: la destination n'as pas put être atteinte",13,0
+db "TRACE: the destination could not be reached",13,0
+db "TRACE: la destination n'a pas pu être atteinte",13,0
 
 
 msg_err1:
-db "TRACE: erreur dans la commande, sytaxe correct: trace [nom] [-c:X] [-s:X] [-t:X] ",13
-db "[nom]  nom du serveur a rechercher",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-s:X] nombre de saut maximum (champ optionnel, 40 par défaut)",13
-db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0 
+db "TRACE: command line syntax error. enter ",22h,"man trace",22h," for correct syntax",13,0
+db "TRACE: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man trace",22h," pour avoir la sytaxe correcte",13,0
 
 
 msg_err2:
+db "TRACE: error while communicating with the network interface",13,0
 db "TRACE: erreur lors de la communication avec l'interface réseau",13,0
+
 
 tempo:
 dd 0,0,0,0,0,0,0,0,0,0,0,0

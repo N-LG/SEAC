@@ -153,6 +153,7 @@ jne err_cnx
 ;signal le début du test
 mov al,6
 mov edx,msg0a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -244,6 +245,7 @@ jne continue_attente
 ;affiche le résultat
 mov al,6
 mov edx,msg1a
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -256,6 +258,7 @@ int 61h
 
 mov al,6
 mov edx,msg1b
+call ajuste_langue
 int 61h
 
 mov eax,12          
@@ -289,6 +292,7 @@ jmp suite_boucle
 temps_court:
 mov al,6
 mov edx,msg1c
+call ajuste_langue
 int 61h
 
 inc byte[ping_ok]
@@ -299,6 +303,7 @@ jmp suite_boucle
 erreur_ping:  
 mov al,6
 mov edx,msg2
+call ajuste_langue
 int 61h
 inc byte[ping_erreur]
 
@@ -316,6 +321,7 @@ jne boucle_principale
 ;affiche la synthèse
 mov al,6
 mov edx,msg3a
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -329,6 +335,7 @@ int 61h
 
 mov al,6
 mov edx,msg3b
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -342,6 +349,7 @@ int 61h
 
 mov al,6
 mov edx,msg3c
+call ajuste_langue
 int 61h
 
 mov al,102
@@ -360,11 +368,42 @@ int 61h
 int 60h
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
 
 ;**************************************************************
 err_param:
 mov al,6
 mov edx,msg_err1
+call ajuste_langue
 int 61h
 int 60h
 
@@ -372,6 +411,7 @@ int 60h
 err_cnx:
 mov al,6
 mov edx,msg_err2
+call ajuste_langue
 int 61h
 int 60h
 
@@ -398,28 +438,37 @@ db 0
 
 
 msg0a:
+db 13,"PING: test connection to ",0
 db 13,"PING: test de connexion vers ",0
 msg0b:
 db 13,0
 
 msg1a:
+db "Response from ",0
 db "Réponse de ",0
 msg1b:
+db " received in ",0
 db " reçu en ",0
 msg1c:
+db "less than 2"
 db "moins de 2"
 msg1d:
 db "ms",13,0
 
+
 msg2:
+db "Response timeout exceeded",13,0
 db "Délais d'attente de réponse dépassé",13,0
 
 
 msg3a:
-db 13,"PING: résultat des tests de connexion:",13,"envoyé: ",0
+db 13,"PING: connection test result:",13,"Sent: ",0
+db 13,"PING: résultat des tests de connexion:",13,"Envoyé: ",0
 msg3b:
+db "  Received: ",0
 db "  Reçu: ",0
 msg3c:
+db "  Lost: ",0
 db "  Perdu: ",0
 msg3d:
 db 13,0
@@ -429,12 +478,11 @@ db 13,0
 
 
 msg_err1:
-db "PING: erreur de parametres, syntaxe correcte: ping [nom] [-c:X] [-s:X] [-t:X] ",13
-db "[nom]  nom du serveur a joindre",13 
-db "[-c:X] numéros de l'interface réseau (champ optionnel, 0 par défaut)",13
-db "[-t:X] nombre de tentative par étape (champ optionnel, 4 par défaut)",13,0 
+db "PING: command line syntax error. enter ",22h,"man ping",22h," for correct syntax",13,0
+db "PING: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man ping",22h," pour avoir la sytaxe correcte",13,0
 
 msg_err2:
+db "PING: error while communicating with the network interface",13,0
 db "PING: erreur lors de la communication avec l'interface réseau",13,0
 
 tempo:
