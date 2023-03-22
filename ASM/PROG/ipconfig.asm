@@ -547,8 +547,8 @@ db "IPCONFIG: the selected card does not exist",13,0
 db "IPCONFIG: la carte selectionné n'existe pas",13,0
 
 msg_info4:
-db "IPCONFIG: command line syntax error. enter ",22,"man ipconfig",22," for correct syntax",13,0
-db "IPCONFIG: erreur dans la sytaxe de la ligne de commande. entrez ",22,"man ipconfig",22," pour avoir la sytaxe correcte",13,0
+db "IPCONFIG: command line syntax error. enter ",22h,"man ipconfig",22h," for correct syntax",13,0
+db "IPCONFIG: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man ipconfig",22h," pour avoir la syntaxe correcte",13,0
 
 msg_info5:
 db "IPCONFIG: communication error with the card",13,0

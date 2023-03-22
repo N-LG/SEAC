@@ -786,8 +786,8 @@ msg_err1:
 db "CDNS: error while opening UDP port",13,0
 db "CDNS: erreur lors de l'ouverture du port UDP",13,0
 msg_err2:
-db "CDNS: command line syntax error. enter ",22,"man cdns",22," for correct syntax",13,0
-db "CDNS: erreur dans la sytaxe de la ligne de commande. entrez ",22,"man cdns",22," pour avoir la sytaxe correcte",13,0
+db "CDNS: command line syntax error. enter ",22h,"man cdns",22h," for correct syntax",13,0
+db "CDNS: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man cdns",22h," pour avoir la syntaxe correcte",13,0
 
 
 msg_rep1:

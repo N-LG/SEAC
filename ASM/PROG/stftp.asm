@@ -981,8 +981,8 @@ db 13,"STFTP: impossible d'ouvrir le dossier d'écriture",13,0
 
 
 msgaide:
-db "STFTP: command line syntax error. enter ",22,"man stftp",22," for correct syntax",13,0
-db "STFTP: erreur dans la sytaxe de la ligne de commande. entrez ",22,"man stftp",22," pour avoir la sytaxe correcte",13,0
+db "STFTP: command line syntax error. enter ",22h,"man stftp",22h," for correct syntax",13,0
+db "STFTP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man stftp",22h," pour avoir la syntaxe correcte",13,0
 
 msgcoder0A:
 db "erreur lors de la lecture du fichier",0

@@ -479,7 +479,7 @@ db 13,0
 
 msg_err1:
 db "PING: command line syntax error. enter ",22h,"man ping",22h," for correct syntax",13,0
-db "PING: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man ping",22h," pour avoir la sytaxe correcte",13,0
+db "PING: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man ping",22h," pour avoir la syntaxe correcte",13,0
 
 msg_err2:
 db "PING: error while communicating with the network interface",13,0

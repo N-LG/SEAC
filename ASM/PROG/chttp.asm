@@ -670,8 +670,8 @@ db "CHTTP: le serveur a renvoyé une erreur:",13,20h,0
 
 
 msg_err_param:
-db "CHTTP: parameter error",13,0
-db "CHTTP: erreur de paramètre",13,0
+db "CHTTP: command line syntax error. enter ",22h,"man chttp",22h," for correct syntax",13,0
+db "CHTTP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man chttp",22h," pour avoir la syntaxe correcte",13,0
 msg_err_com:
 db "CHTTP: communication error",13,0
 db "CHTTP: erreur de communication",13,0

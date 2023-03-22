@@ -491,7 +491,7 @@ db "TRACE: la destination n'a pas pu être atteinte",13,0
 
 msg_err1:
 db "TRACE: command line syntax error. enter ",22h,"man trace",22h," for correct syntax",13,0
-db "TRACE: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man trace",22h," pour avoir la sytaxe correcte",13,0
+db "TRACE: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man trace",22h," pour avoir la syntaxe correcte",13,0
 
 
 msg_err2:

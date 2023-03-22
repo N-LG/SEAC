@@ -769,8 +769,8 @@ db "CFTP: le serveur a renvoyé une erreur:",13,0
 
 
 msg_err_param:
-db "CFTP: parameter error",13,0
-db "CFTP: erreur de paramètre",13,0
+db "CFTP: command line syntax error. enter ",22h,"man cftp",22h," for correct syntax",13,0
+db "CFTP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man cftp",22h," pour avoir la syntaxe correcte",13,0
 msg_err_com:
 db "CFTP: communication error",13,0
 db "CFTP: erreur de communication",13,0

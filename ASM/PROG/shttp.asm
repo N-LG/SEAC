@@ -1010,8 +1010,8 @@ db "SHTTP: HTTP server started",13,0
 db "SHTTP: serveur HTTP démarré",13,0
 
 msg_er0:
-db "SHTTP: command line syntax error. enter ",22,"man shttp",22," for correct syntax",13,0
-db "SHTTP: erreur dans la sytaxe de la ligne de commande. entrez man ",22,"shttp",22," pour avoir la sytaxe correcte",13,0
+db "SHTTP: command line syntax error. enter ",22h,"man shttp",22h," for correct syntax",13,0
+db "SHTTP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man shttp",22h," pour avoir la syntaxe correcte",13,0
 
 msg_er1:
 db "SHTTP: error when opening site files folder",13,0
