@@ -1,10 +1,11 @@
+ï»¿utf8:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
-db "convertit un code de caractère unicode exprimé en hexadécimal en une suite d'octet pour un codage en UTF8"
+db "convertit un code de caractÃ¨re unicode exprimÃ© en hexadÃ©cimal en une suite d'octet pour un codage en UTF8"
 scode:
 org 0
 
-;données du segment CS
+;donnÃ©es du segment CS
 
 mov ax,sel_dat1
 mov ds,ax
@@ -27,7 +28,7 @@ mov ecx,1
 okcarac:
 mov [carac],ecx
 
-mov eax,0104h       ;charge le deuxième param
+mov eax,0104h       ;charge le deuxiÃ¨me param
 mov edx,chaine
 mov cl,200
 int 61h
@@ -84,6 +85,7 @@ cmp ecx,200000h   ;-de 21 bits
 jb insert4
 mov al,6        
 mov edx,msgerr
+call ajuste_langue
 int 61h
 int 60h
 
@@ -238,6 +240,36 @@ int 60h
 
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adaptÃ© a la langue employÃ© par le systÃ¨me
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
 
 sdata1:
 org 0
@@ -247,7 +279,8 @@ dd 0
 nombre:
 dd 0
 msgerr:
-db " -> le code de caractère entrée dépasse les 21bits autorisé par UNICODE"
+db " -> the character code entered exceeds the 21 bits authorized by UNICODE",13,0
+db " -> le code de caractÃ¨re entrÃ©e dÃ©passe les 21 bits autorisÃ© par UNICODE",13,0
 msgfin:
 db 13,0
 msgegal:
@@ -258,11 +291,11 @@ dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 db 0
 sdata2:
 org 0
-;données du segment ES
+;donnÃ©es du segment ES
 sdata3:
 org 0
-;données du segment FS
+;donnÃ©es du segment FS
 sdata4:
 org 0
-;données du segment GS
+;donnÃ©es du segment GS
 findata:
