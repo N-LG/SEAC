@@ -564,18 +564,21 @@ jmp attend_touche
 erreur_mode:
 mov al,6
 mov edx,msg_ereur_mdv
+call ajuste_langue
 int 61h
 int 60h
 
 erreur_icone:
 mov al,6
 mov edx,msg_ereur_ico
+call ajuste_langue
 int 61h
 int 60h
 
 erreur_mem:
 mov al,6
 mov edx,msg_ereur_fde
+call ajuste_langue
 int 61h
 int 60h
 
@@ -583,6 +586,7 @@ int 60h
 erreur_fond:
 mov al,6
 mov edx,msg_ereur_fde
+call ajuste_langue
 int 61h
 int 60h
 
@@ -875,6 +879,33 @@ int 63h
 popad
 ret
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -885,12 +916,16 @@ sdata1:
 org 0
 
 msg_ereur_mdv:
+db "ICS: cannot start in text mode",13,0
 db "ICS: impossible de démarrer en mode texte",13,0
 msg_ereur_ico:
-db "ICS: erreur lors de la lecture du fichier des icones",13,0
+db "ICS: error while reading icon file",13,0
+db "ICS: erreur lors de la lecture du fichier des icônes",13,0
 msg_ereur_mem:
+db "ICS: memory reservation error",13,0
 db "ICS: erreur de reservation mémoire",13,0
 msg_ereur_fde:
+db "ICS: error while reading the wallpaper file",13,0
 db "ICS: erreur lors de la lecture du fichier de fond d'ecran",13,0
 
 
@@ -932,7 +967,6 @@ dd 0
 ;informations par défaut
 fichier_fond:
 db "fond.png",0
-;db "#dd5/CPCDOS/OS/MEDIA/ABS_BLUE.PNG",0
 fichier_icone:
 db "icones.png",0
 couleur:

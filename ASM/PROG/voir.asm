@@ -324,6 +324,7 @@ jnz fin_affichage
 mov ebx,0
 mov ecx,0
 mov edx,msgf
+call ajuste_langue
 mov ah,0Fh
 mov al,25   ;afficher texte    
 int 63h
@@ -530,6 +531,7 @@ jmp affichage
 erreur_ouv:
 mov al,6
 mov edx,msg1
+call ajuste_langue
 int 61h
 int 60h
 
@@ -537,12 +539,14 @@ int 60h
 erreur_form:
 mov al,6
 mov edx,msg2
+call ajuste_langue
 int 61h
 int 60h
 
 erreur_form2:
 mov al,6
 mov edx,msg3
+call ajuste_langue
 int 61h
 int 60h
 
@@ -550,11 +554,39 @@ int 60h
 erreur_mem:
 mov al,6
 mov edx,msg4
+call ajuste_langue
 int 61h
 int 60h
 
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -613,16 +645,21 @@ tempo:
 rb 256
 
 msg1:
-db "impossible d'ouvrir le fichier",13,0
+db "VOIR: Impossible to open the file",13,0
+db "VOIR: Impossible d'ouvrir le fichier",13,0
 msg2:
-db "le format de l'image n'est pas reconnu",13,0
+db "VOIR: The image format is not recognized",13,0
+db "VOIR: Le format de l'image n'est pas reconnu",13,0
 msg3:
-db "erreur dans le codage de l'image",13,0
+db "VOIR: Error in image coding",13,0
+db "VOIR: Erreur dans le codage de l'image",13,0
 msg4:
-db "pas assez de mémoire pour ouvrir l'image",13,0
-
+db "VOIR: Not enough memory to open the image",13,0
+db "VOIR: Pas assez de mémoire pour ouvrir l'image",13,0
 msgf:
-db "appuyez sur echap pour quitter",13,0
+db "Press escape to exit",13,0
+db "Appuyez sur echap pour quitter",13,0
+
 
 zt_sfv2:
 dd 0
