@@ -1,3 +1,4 @@
+ï»¿calc:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "calculatrice"
@@ -6,10 +7,10 @@ org 0
 mov ax,sel_dat1
 mov ds,ax
 
-;crée ecran
+;crÃ©e ecran
 mov dx,sel_dat2
 mov ah,1   ;option=mode texte
-mov al,0   ;création console     
+mov al,0   ;crÃ©ation console     
 int 63h
 
 mov dx,sel_dat1
@@ -29,7 +30,7 @@ int 63h
 
 boucle_principale:
 ;**************************************************************
-;attent saisie chaine de caractère
+;attent saisie chaine de caractÃ¨re
 mov edx,exp_hab
 mov ecx,512
 mov al,6
@@ -45,10 +46,10 @@ int 60h
 fs
 test byte[at_console],20h
 jz @f
-;redimensinne l'ecran si la taille de celuis ci as changé
+;redimensinne l'ecran si la taille de celuis ci as changÃ©
 mov dx,sel_dat2
 mov ah,1   ;option=mode texte
-mov al,0   ;création console     
+mov al,0   ;crÃ©ation console     
 int 63h
 
 mov dx,sel_dat1
@@ -71,7 +72,7 @@ cmp byte[ebx],20h
 jne pas_esp
 
 mov esi,ebx
-bocdecal:        ;boucle de décalage en cas d'espace
+bocdecal:        ;boucle de dÃ©calage en cas d'espace
 mov al,[esi+1]
 mov [esi],al
 inc esi
@@ -86,7 +87,7 @@ jne bocse
 
 mov ebx,exp_hab
 
-bocve:          ;boucle de v‚rification des énormité
+bocve:          ;boucle de vâ€šrification des Ã©normitÃ©
 mov ax,[ebx]
 cmp ax,"(*"
 je erreur_syntaxe
@@ -177,7 +178,7 @@ cmp al,0
 je fin
 jmp erreur_syntaxe
 
-chiffre:           ;les chiffre sont directement placé sur la chaine de sortie
+chiffre:           ;les chiffre sont directement placÃ© sur la chaine de sortie
 mov [edi],al
 inc edi
 inc ebx
@@ -207,7 +208,7 @@ jmp bcdef
 
 
 
-divise:            ;signe divise, on v‚rifie qu'un multiplication n'est pas en haut de la pile
+divise:            ;signe divise, on vâ€šrifie qu'un multiplication n'est pas en haut de la pile
 cmp esp,[sauvesp]
 je pilevide
 pop dx
@@ -218,7 +219,7 @@ je lkp
 jmp norm
 
 moins:               ;signe + on verifie qu'il n'y a pas une multiplication
-cmp esp,[sauvesp]   ;ou une division ou une n‚gation qui soit prioritaire
+cmp esp,[sauvesp]   ;ou une division ou une nâ€šgation qui soit prioritaire
 je pilevide
 pop dx
 cmp dl,"^"
@@ -229,8 +230,8 @@ cmp dl,"/"
 je lkp
 
 dec ebx
-cmp byte[ebx],"("     ;si le signe moin est juste aprŠs une paranthŠse faire
-jne nodebpar         ;commesi il y avait eu un z‚ro entre eux
+cmp byte[ebx],"("     ;si le signe moin est juste aprÅ s une paranthÅ se faire
+jne nodebpar         ;commesi il y avait eu un zâ€šro entre eux
 
 mov byte[edi]," "
 inc di
@@ -243,7 +244,7 @@ inc ebx
 jmp norm
 
 plus:               ;signe + on verifie qu'il n'y a pas une multiplication
-cmp esp,[sauvesp]   ;ou une division ou une n‚gation qui soit prioritaire
+cmp esp,[sauvesp]   ;ou une division ou une nâ€šgation qui soit prioritaire
 je pilevide
 pop dx
 cmp dl,"^"
@@ -257,7 +258,7 @@ je lkp
 
 
 norm:
-push dx           ;rempile ce que l'on vient de dépiler et empile  l'opérande
+push dx           ;rempile ce que l'on vient de dÃ©piler et empile  l'opÃ©rande
 expon:
 pilevide:
 push ax
@@ -268,8 +269,8 @@ inc ebx
 jmp bcdef
 
 
-lkp:                 ;place l'opérande que l'on vient de dépiler en sortie
-push ax              ;et empile l'opérande dernièrement lu
+lkp:                 ;place l'opÃ©rande que l'on vient de dÃ©piler en sortie
+push ax              ;et empile l'opÃ©rande derniÃ¨rement lu
 mov dh," "
 mov [edi],dh
 inc edi
@@ -282,7 +283,7 @@ jmp bcdef
 
 
 
-paranthese1:        ;simplement empile la parantèse (
+paranthese1:        ;simplement empile la parantÃ¨se (
 push ax
 mov al," "
 mov [edi],al
@@ -290,11 +291,11 @@ inc edi
 inc ebx
 jmp bcdef
 
-paranthese2:      ;dépile les opérande et les écrit dans la chaine de sortie
+paranthese2:      ;dÃ©pile les opÃ©rande et les Ã©crit dans la chaine de sortie
 inc bx
 bcdepp2:
-cmp esp,[sauvesp]  ;si on atteind la fin de la pile avant d'avoir trouvé une
-je erreur_parenthese          ;paranthèse ( c'est qu'il y a eu une erreur
+cmp esp,[sauvesp]  ;si on atteind la fin de la pile avant d'avoir trouvÃ© une
+je erreur_parenthese          ;paranthÃ¨se ( c'est qu'il y a eu une erreur
 pop ax
 cmp al,"("
 je bcdef
@@ -310,7 +311,7 @@ jmp bcdepp2
 
 
 fin:
-cmp esp,[sauvesp]  ;d‚pile tout les op‚rateur restant jusque a la fin de la pile
+cmp esp,[sauvesp]  ;dâ€špile tout les opâ€šrateur restant jusque a la fin de la pile
 je okay
 pop ax
 mov ah," "
@@ -364,6 +365,7 @@ mov al,11
 mov ah,0Fh ;couleur
 int 63h
 
+
 ;**************************************************************
 ;effectue le calcule de l'expression NPI
 xor ebx,ebx
@@ -416,7 +418,7 @@ jmp boclcnpi
 
 
 xnpi:
-mov eax,[xh]              ;empile le résultat de l'opération précédente  
+mov eax,[xh]              ;empile le rÃ©sultat de l'opÃ©ration prÃ©cÃ©dente  
 mov ecx,[xb]
 push eax                     
 push ecx
@@ -474,7 +476,7 @@ jmp bouclexponpi
 
 
 finexponpi:
-mov eax,[op3h]              ;rempile le résultat  
+mov eax,[op3h]              ;rempile le rÃ©sultat  
 mov ecx,[op3b]
 push eax                     
 push ecx
@@ -482,7 +484,7 @@ inc ebx
 jmp boclcnpi
 
 
-foisnpi:                         ;dépile les deux dernier nombres
+foisnpi:                         ;dÃ©pile les deux dernier nombres
 pop ecx
 pop eax
 mov [op2h],eax
@@ -503,14 +505,14 @@ mov ecx,[op2b]
 imul ecx
 mov [op3b],eax 
 
-mov eax,[op3h]              ;rempile le résultat  
+mov eax,[op3h]              ;rempile le rÃ©sultat  
 mov ecx,[op3b]
 push eax                     
 push ecx
 inc ebx
 jmp boclcnpi
 
-divisenpi:                  ;dépile les deux dernier nombres
+divisenpi:                  ;dÃ©pile les deux dernier nombres
 pop ecx
 pop eax
 mov [op2h],eax
@@ -531,17 +533,17 @@ mov ecx,[op2h]
 imul ecx
 mov [op3b],eax 
 
-mov eax,[op3h]              ;rempile le résultat  
+mov eax,[op3h]              ;rempile le rÃ©sultat  
 mov ecx,[op3b]
 push eax                     
 push ecx
 inc ebx
 jmp boclcnpi
 
-moinsnpi:                ;dépile les deux dernier nombres
+moinsnpi:                ;dÃ©pile les deux dernier nombres
 pop ecx
 pop eax
-neg eax         ;c'est la seul diff‚rence avec l'op‚ration +
+neg eax         ;c'est la seul diffâ€šrence avec l'opâ€šration +
 mov [op2h],eax
 mov [op2b],ecx
 pop ecx
@@ -550,7 +552,7 @@ mov [op1h],eax
 mov [op1b],ecx
 jmp faitleplus
 
-plusnpi:                ;dépile les deux dernier nombres
+plusnpi:                ;dÃ©pile les deux dernier nombres
 pop ecx
 pop eax
 mov [op2h],eax
@@ -582,7 +584,7 @@ mov eax,[op1h]
 add eax,[op2h]
 mov [op3h],eax
 
-mov eax,[op3h]              ;rempile le résultat  
+mov eax,[op3h]              ;rempile le rÃ©sultat  
 mov ecx,[op3b]
 push eax                     
 push ecx
@@ -591,7 +593,7 @@ jmp boclcnpi
 jmp boclcnpi
 
 
-chiffrenpi:         ;on décode le nomre et on l'empile
+chiffrenpi:         ;on dÃ©code le nomre et on l'empile
 xor edx,edx
 bochifnpi:
 mov al,[bx]
@@ -601,10 +603,10 @@ cmp al," "
 je findecod     ;sion tombe sur un espace c'est qu'on a finit de lire le nombre
 sub al,"0"
 and eax,0Fh
-mov ecx,edx         ;divise edx par dix  1) on dédouble la variable
-shl edx,3           ;2) on multiplie l'un par 8 (décalage de 3 bit)
-shl ecx,1           ;3) on multiplie l'autre par 2 (décalage de 1 bit)
-add edx,ecx         ;4) on additionne les résultat
+mov ecx,edx         ;divise edx par dix  1) on dÃ©double la variable
+shl edx,3           ;2) on multiplie l'un par 8 (dÃ©calage de 3 bit)
+shl ecx,1           ;3) on multiplie l'autre par 2 (dÃ©calage de 1 bit)
+add edx,ecx         ;4) on additionne les rÃ©sultat
 add edx,eax
 inc ebx
 jmp bochifnpi
@@ -630,25 +632,25 @@ je findecodvir     ;ou si on tombe sur la fin de la chaine
 sub al,"0"
 and eax,0Fh
 mov edx,[op3h]
-mov ecx,edx         ;divise edx par dix  1) on dédouble la variable
-shl edx,3           ;2) on multiplie l'un par 8 (décalage de 3 bit)
-shl ecx,1           ;3) on multiplie l'autre par 2 (décalage de 1 bit)
-add edx,ecx         ;4) on additionne les résultat
+mov ecx,edx         ;divise edx par dix  1) on dÃ©double la variable
+shl edx,3           ;2) on multiplie l'un par 8 (dÃ©calage de 3 bit)
+shl ecx,1           ;3) on multiplie l'autre par 2 (dÃ©calage de 1 bit)
+add edx,ecx         ;4) on additionne les rÃ©sultat
 add edx,eax
 mov [op3h],edx
 
 mov edx,[op3b]
-mov ecx,edx         ;divise edx par dix  1) on dédouble la variable
-shl edx,3           ;2) on multiplie l'un par 8 (décalage de 3 bit)
-shl ecx,1           ;3) on multiplie l'autre par 2 (décalage de 1 bit)
-add edx,ecx         ;4) on additionne les résultat
+mov ecx,edx         ;divise edx par dix  1) on dÃ©double la variable
+shl edx,3           ;2) on multiplie l'un par 8 (dÃ©calage de 3 bit)
+shl ecx,1           ;3) on multiplie l'autre par 2 (dÃ©calage de 1 bit)
+add edx,ecx         ;4) on additionne les rÃ©sultat
 mov [op3b],edx
 call ajustement
 inc ebx
 jmp bocvirnpi
 
 findecodvir:
-mov eax,[op3h]              ;rempile le résultat  
+mov eax,[op3h]              ;rempile le rÃ©sultat  
 mov ecx,[op3b]
 push eax                     
 push ecx
@@ -656,17 +658,15 @@ jmp boclcnpi
 
 finpi:
 pop ecx   ;diviseur
-pop eax   ;divisé
+pop eax   ;divisÃ©
 
-mov [xb],ecx    ;sauvegarde le résultat
+mov [xb],ecx    ;sauvegarde le rÃ©sultat
 mov [xh],eax
 
 
 
-
-
 ;**************************************************************
-;affiche le résultat
+;affiche le rÃ©sultat
 pushad
 mov edx,msgegal
 mov al,11
@@ -776,7 +776,7 @@ ret
 
 
 ;***************************
-ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+ajuste_langue:  ;selectionne le message adaptÃ© a la langue employÃ© par le systÃ¨me
 push eax
 mov eax,20
 int 61h
@@ -812,7 +812,7 @@ org 0
 
 msg_debut:
 db "simple calculator, enter the expression to calculate and validate with enter",13,0
-db "calculatrice simple, entrez l'expression a calculer et validez avec entrée",13,0
+db "calculatrice simple, entrez l'expression a calculer et validez avec entrÃ©e",13,0
 
 ligne:
 db 13,0
@@ -831,16 +831,16 @@ db 13,"erreur dans la syntaxe de l'expression",13,0
 
 err_carac:
 db 13,"unrecognized character in expression",13,0
-db 13,"caractère non reconnue dans l'expression",13,0
+db 13,"caractÃ¨re non reconnue dans l'expression",13,0
 
 
 err_hexa:
 db 13,"hexadecimal character",13,0
-db 13,"caractère héxadécimal",13,0
+db 13,"caractÃ¨re hÃ©xadÃ©cimal",13,0
 
 err_para:
 db 13,"parenthesis error",13,0
-db 13,"erreur de parenthèse",13,0
+db 13,"erreur de parenthÃ¨se",13,0
 
 
 xh:
@@ -849,7 +849,7 @@ xb:
 dd 1
 
 
-op1h:     ;op‚rande de calcul
+op1h:     ;opÃ©rande de calcul
 dd 0
 op1b:
 dd 0

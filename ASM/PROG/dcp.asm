@@ -150,6 +150,7 @@ cmp dword[extension],"TAR"
 je tar
 
 mov edx,msg_erreur_format_inconnue
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -359,12 +360,14 @@ je pkzip_type8r
 ;***********
 pkzip_inc:
 mov edx,msg_erreur_deco1  ;type de compression non reconnu
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_deco2
+call ajuste_langue
 mov al,6
 int 61h
 xor ecx,ecx
@@ -376,6 +379,7 @@ mov edx,zt_transfert
 mov al,6
 int 61h
 mov edx,msg_erreur_deco3
+call ajuste_langue
 mov al,6
 int 61h
 jmp suite_boucle_pkzip
@@ -434,24 +438,28 @@ jmp boucle_pkzip
 ;****************
 pkzip_err_cre:
 mov edx,msg_erreur_cre1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_cre2
+call ajuste_langue
 mov al,6
 int 61h
 jmp suite_boucle_pkzip
 
 pkzip_err_lec:
 mov edx,msg_erreur_lec1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_lec2
+call ajuste_langue
 mov al,6
 int 61h
 jmp suite_boucle_pkzip
@@ -459,12 +467,14 @@ jmp suite_boucle_pkzip
 
 pkzip_err_dec:
 mov edx,msg_erreur_dec1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_dec2
+call ajuste_langue
 mov al,6
 int 61h
 jmp suite_boucle_pkzip
@@ -472,12 +482,14 @@ jmp suite_boucle_pkzip
 
 pkzip_err_ecr:
 mov edx,msg_erreur_ecr1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_ecr2
+call ajuste_langue
 mov al,6
 int 61h
 jmp suite_boucle_pkzip
@@ -634,12 +646,14 @@ jmp erreur_structure_archive
 ;*****************
 gzip_err_cre:
 mov edx,msg_erreur_cre1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_cre2
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -649,12 +663,14 @@ int 60h
 ;*****************
 gzip_err_dec:
 mov edx,msg_erreur_dec1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_dec2
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -844,12 +860,14 @@ jmp fin_ok
 tar_erreur_creation:
 push edx
 mov edx,msg_erreur_cre1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_cre2
+call ajuste_langue
 mov al,6
 int 61h
 pop edx
@@ -859,12 +877,14 @@ jmp tar_fichier_suivant
 tar_erreur_ecriture:
 push edx
 mov edx,msg_erreur_ecr1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_ecr2
+call ajuste_langue
 mov al,6
 int 61h
 pop edx
@@ -875,12 +895,14 @@ jmp tar_fichier_suivant
 
 tar_erreur_lecture:
 mov edx,msg_erreur_lec1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
 mov edx,msg_erreur_lec2
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -944,12 +966,13 @@ signal_debut:
 push eax
 push edx
 mov edx,msg_ok_debut
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_1
 mov al,6
 int 61h
-mov edx,msg_ok_deco2
+mov edx,msg_cr
 mov al,6
 int 61h
 pop edx
@@ -965,12 +988,13 @@ signal_decomp_ok:
 push eax
 push edx
 mov edx,msg_ok_deco1
+call ajuste_langue
 mov al,6
 int 61h
 mov edx,nom_2
 mov al,6
 int 61h
-mov edx,msg_ok_deco2
+mov edx,msg_cr
 mov al,6
 int 61h
 pop edx
@@ -994,97 +1018,152 @@ ret
 ;****************************************************************************
 erreur_ouverture_archive:
 mov edx,msg_erreur_ouverture_archive
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
 erreur_format_inconnue:
 mov edx,msg_erreur_format_inconnue
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
 erreur_lecture_archive:
 mov edx,msg_erreur_lec3
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
 erreur_structure_archive:
 mov edx,msg_erreur_structure_archive
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
 erreur_manque_mem:
 mov edx,msg_erreur_manque_mem
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
 fin_ok:
 mov edx,msg_ok_fin
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
 
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
 
 ;*********************************************************************
 sdata1:
 org 0
 
 msg_erreur_ouverture_archive:
+db "DCP: error to open archive",13,0
 db "DCP: erreur pour ouvrir l'archive",13,0
 
 
 msg_erreur_format_inconnue:
+db "DCP: unknown archive format",13,0
 db "DCP: format de l'archive inconnue",13,0
 
+
 msg_erreur_structure_archive:
+db "DCP: error in archive structure",13,0
 db "DCP: erreur dans la structure de l'archive",13,0
 
 msg_ok_debut:
+db "DCP: start of archive decompression ",0
 db "DCP: début de la décompression de l'archive ",0
 
 msg_ok_fin:
+db "DCP: end of archive path",13,0
 db "DCP: fin du parcours de l'archive",13,0
 
 msg_ok_deco1:
-db "DCP: decompression de ",0
-msg_ok_deco2:
-db 13,0
+db "DCP: decompression of ",0
+db "DCP: décompression de ",0
+
 
 msg_erreur_deco1:
-db "DCP: impossible de décompresser le fichier ",22,0
+db "DCP: error while uncompressing file ",34,0
+db "DCP: impossible de décompresser le fichier ",34,0
 msg_erreur_deco2:
-db 22," car le type de compression ",0
+db 34," because the type of compression ",0
+db 34," car le type de compression ",0
 msg_erreur_deco3:
+db " is unknown",13,0
 db " est inconnue",13,0
 
 
 
 msg_erreur_cre1:
+db "DCP: error while uncompressing file ",34,0
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_cre2:
+db 34," unable to create it",13,0
 db 34," impossible de le créer",13,0
 msg_erreur_lec1:
+db "DCP: error while uncompressing file ",34,0
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_lec2:
+db 34," error reading archive",13,0
 db 34," erreur de lecture de l'archive",13,0
 msg_erreur_lec3:
+db "DCP: error while reading the archive",13,0
 db "DCP: erreur lors de la lecture de l'archive",13,0
+
 msg_erreur_ecr1:
+db "DCP: error while uncompressing file ",34,0
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_ecr2:
+db 34," error writing file",13,0
 db 34," erreur lors de l'écriture du fichier",13,0
 msg_erreur_dec1:
+db "DCP: error while uncompressing file ",34,0
 db "DCP: erreur lors de la décompression du fichier ",34,0
 msg_erreur_dec2:
-db 34," erreur dans la sructure",13,0
+db 34," error in structure",13,0
+db 34," erreur dans la structure",13,0
 msg_erreur_manque_mem:
+db "DCP: not enough memory to continue the operation",13,0
 db "DCP: pas assez de mémoire pour poursuivre l'opération",13,0
 
+
+msg_cr:
+db 13,0
 
 msgtrappe:
 dd 0,0,0,0,0,0,0,0
