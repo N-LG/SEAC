@@ -71,6 +71,7 @@ cmp byte[nom_fichier],0
 jne affiche_menu_complet
 
 mov edx,msg_menur
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -92,6 +93,7 @@ jmp fin
 ;***************
 affiche_menu_complet:
 mov edx,msg_menuc
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -135,6 +137,7 @@ jmp fin
 ;***********************************************************
 ferme_fichier:
 mov edx,msg_modif_fer
+call ajuste_langue
 call sauvegarde_conditionnelle
 
 mov dword[taille_fichier],0
@@ -149,6 +152,7 @@ jmp affiche_menu
 ;************************************************************
 nouveau_fichier:
 mov edx,msg_modif_ouv
+call ajuste_langue
 call sauvegarde_conditionnelle
 
 call raz_ecr
@@ -164,6 +168,7 @@ call precharge_nomdossier
 
 ;demande le nom du fichier que l'on veux créer 
 mov edx,msg_nvf1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -212,6 +217,7 @@ cmp eax,cer_nfr
 je nouveau_fichier_dejaexistant
 
 mov edx,msg_nvf_er1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -237,6 +243,7 @@ jmp ferme_fichier
 
 nouveau_fichier_dejaexistant:
 mov edx,msg_nvf_er2
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -276,6 +283,7 @@ jmp affichage
 ;****************************************************************************
 ouvrir_fichier:
 mov edx,msg_modif_ouv
+call ajuste_langue
 call sauvegarde_conditionnelle
 
 call raz_ecr
@@ -284,6 +292,7 @@ call precharge_nomdossier
 
 ;demande le nom du fichier que l'on veux ouvrir
 mov edx,msg3
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -400,7 +409,8 @@ call raz_ecr
 mov edx,nom_fichier    ;affiche le nom du fichier dans l'en tête
 cmp byte[nom_fichier],0
 jne nom_fichierpvide
-mov edx,msg1   
+mov edx,msg1 
+call ajuste_langue  
 nom_fichierpvide:
 mov al,10
 mov ah,7 ;couleur
@@ -409,6 +419,7 @@ mov ecx,0
 int 63h
 
 mov edx,msg2   ;affiche l'en tête
+call ajuste_langue
 mov al,10
 mov ah,7 ;couleur
 mov ebx,[resxt]
@@ -617,10 +628,6 @@ jb boucle_affiche_fin
 
 ;******************************************************************************************
 touche_boucle:
-fs
-test byte[at_console],20h
-jnz redim_ecran
-
 mov ebx,[curseur_colonne]
 mov ecx,[curseur_ligne]
 inc ecx  ;une ligne est reservé
@@ -631,6 +638,9 @@ mov al,12
 int 63h     ;place le curseur
 
 boucle_touche:
+fs
+test byte[at_console],20h
+jnz redim_ecran
 mov al,5
 int 63h
 mov[touche_importante],ah   ;0=majG 1=majD 2=CtrlG 3=CtrlD 4=Alt 5=AltGr
@@ -1286,6 +1296,7 @@ call raz_ecr
 
 ;demande le nom du fichier sous lequel enregistrer le fichier
 mov edx,msg7
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -1335,6 +1346,7 @@ cmp eax,cer_nfr
 je enregsous_dejaexistant
 
 mov edx,msg_ens_er1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -1361,6 +1373,7 @@ jmp affichage
 
 enregsous_dejaexistant:
 mov edx,msg_ens_er2
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -1395,6 +1408,7 @@ jmp affichage
 rechercher_doc:
 call raz_ecr
 mov edx,msg15
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1411,6 +1425,7 @@ jmp affichage
 aller_ligne:
 call raz_ecr
 mov edx,msg5
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1463,24 +1478,29 @@ affiche_config:
 push ebx
 call raz_ecr
 mov edx,msg16a
+call ajuste_langue
 test word[options],1
 jz ecrit_msg16
 mov edx,msg16b
+call ajuste_langue
 ecrit_msg16:
 mov al,11
 mov ah,07h ;couleur
 int 63h
 
 mov edx,msg17a
+call ajuste_langue
 test word[options],2
 jz ecrit_msg17
 mov edx,msg17b
+call ajuste_langue
 ecrit_msg17:
 mov al,11
 mov ah,07h ;couleur
 int 63h
 
 mov edx,msg18
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1752,12 +1772,14 @@ jmp affichage
 ;***********************************************
 fin:
 mov edx,msg_modif_fin
+call ajuste_langue
 call sauvegarde_conditionnelle
 int 60h
 
 fin_err_mem:
 mov al,6        
 mov edx,msg12
+call ajuste_langue
 int 61h
 int 60h
 
@@ -2056,9 +2078,11 @@ int 64h
 call raz_ecr
 pop eax
 mov edx,msg_errlec1
+call ajuste_langue
 cmp eax,cer_fdo
 jne pasdejaouvert_echec_lecture
 mov edx,msg_errlec2
+call ajuste_langue
 pasdejaouvert_echec_lecture:
 mov al,11
 mov ah,07h ;couleur
@@ -2160,9 +2184,11 @@ int 64h
 call raz_ecr
 pop eax
 mov edx,msg_errsauv1
+call ajuste_langue
 cmp eax,cer_fdo
 jne pasdejaouvert_echec_ecriture
 mov edx,msg_errsauv2
+call ajuste_langue
 pasdejaouvert_echec_ecriture:
 mov al,11
 mov ah,07h ;couleur
@@ -2299,6 +2325,38 @@ inc edx
 mov byte[edx],0
 ret
 
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
+
+
+
 ;****************************************************************************
 
 sdata1:
@@ -2421,24 +2479,38 @@ dd 0,0,0,0,0
 
 
 msg1:
+db "Text Editor (new file)",0
 db "EDiteur Texte (nouveau fichier)",0
 msg2:
+db "F1=menu",0
 db "F1=menu",0
 
 
 msg3:
+db "which file do you want to open? (ESC to cancel)",13,0
 db "quel fichier souhaitez vous ouvrir? (ECHAP pour annuler)",13,0
 
 msg_nvf1:
+db "what is the name of the file you want to create? (ESC to cancel)",13,0
 db "quel est le nom du fichier que vous souhaitez créer? (ECHAP pour annuler)",13,0
 
+
 msg_nvf_er1:
+db "error while creating new file, do you want to:",13
+db "try again",13
+db "choose a new file name",13
+db "cancel",13,0
 db "erreur lors de la création de nouveau fichier, voulez vous:",13
 db "réessayer",13
 db "choisir un nouveau nom de fichier",13
 db "annuler",13,0
 
+
 msg_nvf_er2:
+db "the file you want to create already exists, do you want to:",13
+db "choose another file name",13
+db "overwrite existing file",13
+db "open existing file",13,0
 db "le fichier que vous voulez créer existe déja, voulez vous:",13
 db "choisir un autre nom de fichier",13
 db "écraser le fichier existant",13
@@ -2447,13 +2519,53 @@ db "ouvrir le fichier existant",13,0
 
 
 msg_cree2:
-db "le fichier que vous shouhaitez créer existe déjà, voulez vous:",13
-db "ecraser le fichier",13
+db "the file you want to create already exists, do you want to:",13
+db "overwrite file",13
+db "open file",13
+db "choose another file",13,0
+db "le fichier que vous souhaitez créer existe déjà, voulez vous:",13
+db "écraser le fichier",13
 db "ouvrir le fichier",13
 db "choisir un autre fichier",13,0
 
 
 msg_menuc:
+db "continue editing file",13
+
+db "close file",13
+
+db "new file",13
+
+db "open file",13
+
+db "save file",13
+
+db "save file under another name",13
+
+db "go to line",13
+
+db "search",13
+
+db "replace",13
+
+db "configure",13
+
+db "quit",13,13,13
+db "shortcuts available while editing:",13
+
+db "Ctrl+S save file",13
+
+db "Ctrl+F search in file",13
+
+db "F3 go to next search term",13
+
+db "ctrl+F3 jump to previous search term",13
+
+db "Ctrl+X cut",13
+
+db "Ctrl+C copy",13
+
+db "Ctrl+V paste",13,0
 db "continuer l'edition du fichier",13
 db "fermer le fichier",13
 db "nouveau fichier",13
@@ -2465,7 +2577,6 @@ db "rechercher",13
 db "remplacer",13
 db "configurer",13
 db "quitter",13,13,13
-
 db "raccourcis disponible durant l'édition:",13
 db "Ctrl+S enregistrer le fichier",13
 db "Ctrl+F rechercher dans le fichier",13
@@ -2478,10 +2589,28 @@ db "Ctrl+V coller",13,0
 
 
 msg_menur:
+db "new file",13
+
+db "open file",13
+db "quit",13,13,13,13,13,13,13,13,13,13,13
+db "shortcuts available while editing:",13
+
+db "Ctrl+S save file",13
+
+db "Ctrl+F search in file",13
+
+db "F3 go to next search term",13
+
+db "ctrl+F3 jump to previous search term",13
+
+db "Ctrl+X cut",13
+
+db "Ctrl+C copy",13
+
+db "Ctrl+V paste",13,0
 db "nouveau fichier",13
 db "ouvrir fichier",13
 db "quitter",13,13,13,13,13,13,13,13,13,13,13
-
 db "raccourcis disponible durant l'édition:",13
 db "Ctrl+S enregistrer le fichier",13
 db "Ctrl+F rechercher dans le fichier",13
@@ -2495,99 +2624,143 @@ db "Ctrl+V coller",13,0
 
 
 msg5:
+db "which line do you want to display?",0
 db "quelle ligne souhaitez vous afficher?",0
 
 
 
 msg7:
+db "what name do you want to save the file as? (ESC to cancel)",13,0
 db "sous quel nom voulez vous enregistrer le fichier? (ECHAP pour annuler)",13,0
 
 
 msg_ens_er1:
+db "error while creating new file, do you want to:",13
+db "try again?",13
+db "choose another file name?",13
+db "cancel? ",13,0
 db "erreur lors de la création de nouveau fichier, voulez vous:",13
 db "réessayer",13
-db "choisir un nouveau nom de fichier",13
+db "choisir un autre nom de fichier",13
 db "annuler",13,0
 
 
 msg_ens_er2:
+db "the file you want to create already exists, do you want to:",13
+db "choose another file name?",13
+db "overwrite existing file?",13,0
 db "le fichier que vous voulez créer existe déja, voulez vous:",13
-db "choisir un autre nom de fichier",13
-db "écraser le fichier existant",13,0
+db "choisir un autre nom de fichier?",13
+db "écraser le fichier existant?",13,0
 
 
 
 msg_errsauv1:
+db "error while writing the file, do you want to:",13
+db "try again?",13
+db "unsave file?",13,0
 db "erreur lors de l'écriture du fichier, voulez vous:",13
 db "reéssayer?",13
-db "annuler l'enregistrement?",13,0
+db "annuler l'enregistrement du fichier?",13,0
+
 
 msg_errsauv2:
+db "impossible to write in the file, it is already in use, do you want to:",13
+db "try again?",13
+db "cancel? ",13,0
 db "impossible d'écrire dans le fichier, il est déja en cours d'utilisation, voulez vous:",13
 db "reéssayer?",13
 db "annuler? ",13,0
 
 msg_errlec1:
+db "error while reading the file, do you want to:",13
+db "try again?",13
+db "cancel? ",13,0
 db "erreur lors de la lecture du fichier, voulez vous:",13
 db "reéssayer?",13
 db "annuler? ",13,0
 
 msg_errlec2:
+db "impossible to read the file, it is already in use, do you want to:",13
+db "try again?",13
+db "cancel? ",13,0
 db "impossible de lire le fichier, il est déja en cours d'utilisation, voulez vous:",13
 db "reéssayer?",13
 db "annuler? ",13,0
 
 
 
-
-
 msg12:
+db "unable to reserve the memory necessary to continue the execution of the program",13,0 
 db "impossible de réserver la mémoire nécessaire pour poursuivre l'execution du programme",13,0 
 
+
 msg_modif_fer:
+db "the file has been modified, do you want to",13
+db "save changes and close the file?",13
+db "close file without saving?",13,0
 db "le fichier a été modifié, voulez vous",13
-db "enregister les modifications et fermer le fichier?",13
+db "enregistrer les modifications et fermer le fichier?",13
 db "fermer le fichier sans enregistrer?",13,0
 
 
 msg_modif_ouv:
+db "the file has been modified, do you want to",13
+db "save changes before opening another file?",13
+db "open another file without saving?",13,0
 db "le fichier a été modifié, voulez vous",13
-db "enregister les modifications avant d'ouvrir un autre fichier?",13
+db "enregistrer les modifications avant d'ouvrir un autre fichier?",13
 db "ouvrir un autre fichier sans enregistrer?",13,0
 
 
 msg_modif_nou:
+db "the file has been modified, do you want to",13
+db "save changes before creating a new file?",13
+db "create a new file without saving?",13,0
 db "le fichier a été modifié, voulez vous",13
-db "enregister les modifications avant de crer un nouveau fichier?",13
+db "enregistrer les modifications avant de créer un nouveau fichier?",13
 db "créer un nouveau fichier sans enregistrer?",13,0
 
+
 msg_modif_fin:
+db "the file has been modified, do you want to",13
+db "save changes before exiting?",13
+db "exit without saving?",13,0
 db "le fichier a été modifié, voulez vous",13
-db "enregister les modifications avant de quitter?",13
+db "enregistrer les modifications avant de quitter?",13
 db "quitter sans enregistrer?",13,0
 
 
-
 msg15:
+db "what terms do you want to search for?",13,0
 db "quel termes souhaitez vous rechercher?",13,0
 
 
 msg16a:
+db "no display of line numbers",13,0
 db "pas d'affichage numéros de la ligne",13,0
 msg16b:
+db "line number display",13,0
 db "affichage numéros de la ligne",13,0
 
+
 msg17a:
+db "end of line not displayed",13,0
 db "pas d'affichage de la fin de ligne",13,0
 msg17b:
-db "retour a la ligne automatique",13,0
+db "automatic word wrap",13,0
+db "retour à la ligne automatique",13,0
+
 
 msg18:
-db "revenir a l'ecran d'edition",13,0
+db "return to edit screen",13,0
+db "revenir à l'écran d'édition",13,0
 
 
 descriptif2:
+db "Text editing: "
 db "Edition texte: "
+
 
 nom_fichier:
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
