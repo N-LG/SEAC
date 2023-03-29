@@ -45,6 +45,7 @@ mov [cmd_port],ax
 ;***********************************
 changer_port:
 mov edx,msg2
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -87,6 +88,7 @@ jmp changer_port
 config_port:
 
 mov edx,msg3
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -111,6 +113,7 @@ jmp config_port
 
 ok_bit_port:    ;config bit par carac (COM)
 mov edx,msg4
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -130,6 +133,7 @@ jmp ok_bit_port
 
 ok_parite_port:   ;config bit de parité (COM)
 mov edx,msg5
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -158,6 +162,7 @@ jmp ok_parite_port
 
 ok_stop_port:    ;config bit de stop (COM)
 mov edx,msg6
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -233,6 +238,7 @@ config_tcpip:    ;config_adresse_ip
 mov byte[num_port],"T"
 
 mov edx,msg7
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -256,6 +262,7 @@ ok_adresse_ip:
 
 
 mov edx,msg8
+call ajuste_langue
 mov al,11
 mov ah,0Ah ;couleur
 int 63h
@@ -411,6 +418,7 @@ je lit_port
 
 ;affiche un message d'erreur si il y as un probleme d'envoie
 mov edx,msgerr1
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -496,6 +504,7 @@ jmp affichage_rec
 
 port_absent:
 mov edx,msgerr2
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -503,6 +512,7 @@ jmp changer_port
 
 port_reserve:
 mov edx,msgerr3
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -510,6 +520,7 @@ jmp changer_port
 
 erreurp:
 mov edx,msgerr4
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -517,6 +528,7 @@ ret
 
 erreur_init_cpnr:
 mov edx,msgerr5
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -524,6 +536,7 @@ jmp changer_port
 
 erreur_cnxtcp:
 mov edx,msgerr6
+call ajuste_langue
 mov al,11
 mov ah,0Ch ;couleur
 int 63h
@@ -588,6 +601,34 @@ int 63h     ;place le curseur en 0.0
 ret
 
 
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
 
 
 ;***************************************************
@@ -600,7 +641,7 @@ vitesse_port:
 db "9600",0,0,0,0,0,0,0,0
 bits_port:     ;7 ou 8
 db "8",0
-parite_port:  ;N?pas de parité I=parité impaire(odd) P=parité impaire(even)
+parite_port:  ;N=pas de parité I=parité impaire(odd) P=parité impaire(even)
 db "N",0
 stop_port:   ;1 ou 2
 db "1",0
@@ -639,48 +680,63 @@ dd 0,0,0,0
 
 
 
-msg1:
-db "TERM: Terminal de communication par port",0
-
 msg2:
-db "quel port de Communication souhaitez vous uttiliser?",13
+db "which communication port do you want to use?",13
+db "(1 to 8 COM port, T=communication by TCP/IP, esc to quit)",13,0
+db "quel port de Communication souhaitez vous utiliser?",13
 db "(1 à 8 port COM, T=communication par TCP/IP, echap pour quitter)",13,0
+
 msg3:
+db 13,"what transmission speed (in Baud) for this port?",13,0
 db 13,"quel vitesse de transmission (en Baud) pour ce port?",13,0
+
 msg4:
+db 13,"7 or 8 bits per character sent?",13,0
 db 13,"7 ou 8 bits par caractère envoyé?",13,0
+
 msg5:
-db 13,"quel type de parité?  N=pas de parité I=parité impaire(odd) P=parité impaire(even)",13,0
+db 13,"what kind of parity? N=no parity I=odd parity P=even parity",13,0
+db 13,"quel type de parité?  N=pas de parité I=parité impaire(odd) P=parité paire(even)",13,0
+
 msg6:
+db 13,"1 or 2 stop bits per character sent?",13,0
 db 13,"1 ou 2 bit de stop par caractère envoyé?",13,0
+
 msg7:
+db 13,"what is the target IP address?",13,0
 db 13,"quel est l'adresse IP de la cible?",13,0
+
 msg8:
+db 13,"What is the TCP port of the target?",13,0
 db 13,"Quel est le port TCP de la cible?",13,0
+
 msg9:
+db 13,"What is the Local TCP Port to use?",13,0
 db 13,"Quel est le Port TCP local à utiliser?",13,0
 
 
 msgerr1:
-db 13,"erreur d'ecriture sur port ",13,0
-
-
+db 13,"port write error",13,0
+db 13,"erreur d'écriture sur port ",13,0
 
 msgerr2:
+db 13,"this port does not exist",0
 db 13,"ce port n'existe pas",0
 
 msgerr3:
+db 13,"this port is reserved",0
 db 13,"ce port est réservé",0
 
 msgerr4:
+db 13,"incorrect parameter chosen, try again",0
 db 13,"parametre choisi incorrecte, réessayez",0
 
-
 msgerr5:
+db 13,"error when opening the connection, check the settings",0
 db 13,"erreur lors de l'ouverture de la connexion, verifiez les paramètres",0
 
-
 msgerr6:
+db 13,"closure of the TCP connection by the card driver",13,0
 db 13,"fermeture de la connexion TCP par le driver de la carte",13,0
 
 
