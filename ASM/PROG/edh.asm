@@ -64,6 +64,7 @@ call raz_ecr
 mov esi,petite_zt
 
 mov edx,msg_choix_disque1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -100,7 +101,7 @@ mov al,11
 mov ah,07h ;couleur
 int 63h
 
-mov edx,msg_choix_disque2
+mov edx,msg_espace
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -125,6 +126,7 @@ int 63h
 
 pop ecx
 mov edx,msg_choix_disque3
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -132,7 +134,7 @@ jmp suite_ldp
 
 ldp_erreur_taille:
 pop ecx
-mov edx,msg_choix_disque4
+mov edx,msg_cr
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -175,6 +177,7 @@ jmp chargement_partie
 choix_fichier:
 call raz_ecr
 mov edx,msg_choix_fichier
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -296,6 +299,7 @@ affichage:
 call raz_ecr
 
 mov edx,msg_ligne_haut1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -448,6 +452,7 @@ add esi,[offset_affichage]
 add esi,[offset_curseur]
 
 mov edx,msg_ligne_bas1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -463,6 +468,7 @@ mov ah,07h ;couleur
 int 63h
 
 mov edx,msg_ligne_bas2
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -478,6 +484,7 @@ mov ah,07h ;couleur
 int 63h
 
 mov edx,msg_ligne_bas3
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -512,6 +519,7 @@ mov ah,07h ;couleur
 mov ebx,65
 mov ecx,0
 mov edx,msg_ligne_haut2
+call ajuste_langue
 int 63h
 
 mov al,10
@@ -713,6 +721,7 @@ affichage_menu:
 call sauvegarde
 call raz_ecr
 mov edx,msg_menu
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -742,6 +751,7 @@ jmp boucle_affichage_menu
 affichage_aide:
 call raz_ecr
 mov edx,msg_aide
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -780,6 +790,7 @@ mov edx,saisienum
 int 61h
 
 mov edx,msg_choix_adresse
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -823,6 +834,7 @@ mov edx,saisienum
 int 61h
 
 mov edx,msg_choix_secteur
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1145,6 +1157,7 @@ je fin_sauvegarde
 
 call raz_ecr
 mov edx,msg_fin_modif
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h              ;demande si il faut le sauvegarder
@@ -1189,6 +1202,7 @@ je fin_erreur_lecture
 pushad
 call raz_ecr
 mov edx,msg_erreur_lecture
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h              ;demande si il faut réessayer ou quitter
@@ -1311,6 +1325,7 @@ ret
 maj_modif:
 call raz_ecr
 mov edx,msg_modif
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -1391,6 +1406,38 @@ mov al,10
 mov ah,07h ;couleur
 int 63h
 ret
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+push ecx
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop ecx
+pop eax
+ret
+
+
 
 ;****************************************************************************
 
@@ -1486,29 +1533,36 @@ dd 0,0,0,0,0
 hexa32b:
 dd 0,0,0,0,0
 
+
+msg_espace:
+db " ",0
+msg_cr:
+db 13,0
+
 msg_choix_disque1:
+db "choose the disk you want to access:",13
+db "floppy disk",13,0
 db "choisissez le disque auquel vous souhaitez accèder:",13
 db "disquette",13,0
 
-msg_choix_disque2:
-db " ",0
-
 msg_choix_disque3:
-db "kilo-octets"
+db " kilobytes",13,0
+db " kilo-octets",13,0
 
-msg_choix_disque4:
-db 13,0
+
 
 msg_choix_fichier:
+db "enter the name of the file you want to open:",0
 db "entrez le nom du fichier que vous voulez ouvrir:",0
 
-
 msg_ligne_haut1:
+db "EDH Hexadecimal editor                                                         ",13
+db "      OFFSET  x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF  0123456789ABCDEF",0
 db "EDH éditeur Hexadécimal                                                        ",13
 db "     ADRESSE  x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF  0123456789ABCDEF",0
 
-
 msg_ligne_haut2:
+db " sector:",0
 db "secteur:",0
 
 ligne:
@@ -1516,26 +1570,38 @@ dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 msg_ligne_bas1:
+db 13,"F9=help     decimal value 8bits:",0
 db 13,"F9=aide    valeur décimal 8bits:",0
 msg_ligne_bas2:
 db "     16bits:",0
+db "     16bits:",0
 msg_ligne_bas3:
+db "     32bits:",0
 db "     32bits:",0
 
 
 
 
 msg_menu:
+db "EDH Hexadecimal editor",13
+
+db "open disk",13
+
+db "open a file",13
+
+db "quit",13,0
 db "EDH éditeur Hexadécimal",13
 db "ouvrir un disque",13
 db "ouvrir un fichier",13
-db "quitter",13
-db 0
+db "quitter",13,0
 
 msg_choix_secteur:
+db "enter the number of the sector you want to edit:",0
 db "entrez le numéros du secteur que vous souhaitez éditer:",0
 
+
 msg_choix_adresse:
+db "enter the address you want to edit:",0
 db "entrez l'adresse que vous souhaitez éditer:",0
 
 
@@ -1547,8 +1613,24 @@ db "F3=rechercher valeur",13
 db "F4=selectionner adresse/secteur",13
 db "fleche directionnelles=mouvement du curseur",13
 db "appuyez sur une touche pour effacer cet aide",0
+db "echap=quitter le programme",13
+db "F1=menu",13
+db "F2=sauvegarder changement",13
+db "F3=rechercher valeur",13
+db "F4=selectionner adresse/secteur",13
+db "fleche directionnelles=mouvement du curseur",13
+db "appuyez sur une touche pour effacer cet aide",0
 
 msg_modif:
+db "     decimal value  8bits:",13
+db "     decimal value 16bits:",13
+db "     decimal value 24bits:",13
+db " hexadecimal value  8bits:",13
+db " hexadecimal value 16bits:",13
+db " hexadecimal value 32bits:",13
+db 13
+db "undo change",13
+db "validate change",13,0
 db "valeur     décimal  8bits:",13
 db "valeur     décimal 16bits:",13
 db "valeur     décimal 24bits:",13
@@ -1560,28 +1642,36 @@ db "annuler modification",13
 db "valider modification",13,0
 
 msg_encours_modif:
+db "you have made changes, do you want to:",13
+db "save and continue",13
+db "discard changes and continue",13,0
 db "vous avez effectué des modifications, voulez vous:",13
 db "sauvegarder et continuer",13
-db "ignorer les modifications et continuer",13
-db 0
+db "ignorer les modifications et continuer",13,0
 
 msg_fin_modif:
+db "you have made changes, do you want to:",13
+db "save and continue",13
+db "discard changes and continue",13,0
 db "vous avez effectué des modifications, voulez vous:",13
 db "sauvegarder et continuer",13
-db "ignorer les modifications et continuer",13
-db 0
+db "ignorer les modifications et continuer",13,0
 
 msg_erreur_lecture:
+db "read error, do you want:",13
+db "try again",13
+db "cancel and return to menu",13,0
 db "erreur de lecture, voulez vous:",13
 db "réessayer",13
-db "annuler et revenir au menu",13
-db 0
+db "annuler et revenir au menu",13,0
 
 msg_erreur_ecriture:
+db "write error, do you want:",13
+db "try again",13
+db "cancel and return to menu",13,0
 db "erreur d'écriture, voulez vous:",13
 db "réessayer",13
-db "annuler et revenir au menu",13
-db 0
+db "annuler et revenir au menu",13,0
 
 
 
