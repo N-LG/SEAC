@@ -17,6 +17,7 @@ cmp eax,0
 je suite1_init
 
 mov edx,msg_err_init
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -33,6 +34,7 @@ jae suite2_init
 
 erreur_resolution:
 mov edx,msg_err_resol
+call ajuste_langue
 mov al,6
 int 61h
 int 60h
@@ -59,6 +61,7 @@ menubase:
 ;affiche le menu pour le cas ou aucun fichier n'est ouvert
 call raz_txt
 mov edx,msg_menu2
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -85,6 +88,7 @@ jmp fin
 menu:  ;affiche le menu
 call raz_txt
 mov edx,msg_menu1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h
@@ -117,6 +121,7 @@ nouveau:
 call raz_txt
 ;demande le nom du fichier a ouvrir
 mov edx,msg_nouv1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -154,6 +159,7 @@ ouvrir:
 call raz_txt
 ;demande le nom du fichier a ouvrir
 mov edx,msg_ouv1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -206,6 +212,7 @@ je fin_abs
 
 call raz_ecr
 mov edx,msg_modif
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h              ;demande si il faut le sauvegarder
@@ -238,6 +245,7 @@ sauvegarder_sous:
 
 ;demande le nom du fichier sur lequel enregistrer
 mov edx,msg_sav1
+call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
 int 63h 
@@ -326,6 +334,7 @@ call raz_txt
 mov al,11
 mov ah,07h ;couleur
 mov edx,msg_errsauv0
+call ajuste_langue
 int 63h 
 
 mov al,13   ;menu
@@ -347,6 +356,7 @@ call raz_txt
 mov al,11
 mov ah,07h ;couleur
 mov edx,msg_errsauv1
+call ajuste_langue
 int 63h 
 
 mov al,13   ;menu
@@ -369,6 +379,7 @@ call raz_txt
 mov al,11
 mov ah,07h ;couleur
 mov edx,msg_errsauv2
+call ajuste_langue
 int 63h 
 
 mov al,13   ;menu
@@ -392,6 +403,7 @@ call raz_txt
 mov al,11
 mov ah,07h ;couleur
 mov edx,msg_errsauv3
+call ajuste_langue
 int 63h 
 
 mov al,13   ;menu
@@ -1308,6 +1320,39 @@ jne boucle_eff_fichier
 pop ebx
 ret
 
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+push ecx
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop ecx
+pop eax
+ret
+
+
+
 ;*******************************************
 sdata1:
 org 0
@@ -1369,10 +1414,15 @@ num_carac:
 dd 0
 
 msg_err_init:
+db "EDG: unable to start, you must be in graphical mode",13,0
 db "EDG: impossible de démarrer, vous devez être en mode graphique",13,0
+
 msg_err_resol:
+db "EDG: unable to start, you must have a resolution of at least 700*500",13,0
 db "EDG: impossible de démarrer, vous devez avoir une résolution d'au moins 700*500",13,0
+
 msg_err_mem:
+db "EDG: unable to reserve the memory necessary to continue the execution of the program",13,0
 db "EDG: impossible de réserver la mémoire nécessaire pour poursuivre l'execution du programme",13,0
 
 
@@ -1380,6 +1430,19 @@ db "EDG: impossible de réserver la mémoire nécessaire pour poursuivre l'execu
 
 
 msg_menu1:
+db "continue editing",13
+
+db "new",13
+
+db "open",13
+
+db "backup",13
+
+db "save as",13
+
+db "convert",13
+
+db "exit",13,13,0
 db "continuer l'édition",13
 db "nouveau",13
 db "ouvrir",13
@@ -1387,64 +1450,104 @@ db "sauvegarder",13
 db "sauvegarder sous",13
 db "convertir",13
 db "quitter",13,13,0
+
+
 msg_menu2:
+db "new",13
+
+db "open",13
+
+db "exit",13,13,0
 db "nouveau",13
 db "ouvrir",13
 db "quitter",13,13,0
 
 
 
-
-
-
-
-
 msg_nouv1:
+db "what is the name of the file you want to create?",13,0
 db "quel est le nom du fichier que vous souhaitez créer?",13,0
 
 msg_nouv2:
+db "file creation failed",13
 db "la création de fichier a échoué",13
 
-
 msg_ouv1:
+db "which file do you want to open?",13,0
 db "quel fichier souhaitez vous ouvrir?",13,0
 
+
 msg_ouv2:
+db "error while reading file",0
 db "erreur lors de la lecture du fichier",0
 
+
 msg_ouv3:
+db "cannot open the file, it is already in use",0
 db "impossible d'ouvrir le fichier, il est déja en cours d'utilisation",0
 
 
 msg_sav1:
+db "what name do you want to save the file as?",13,0
 db "sous quel nom voulez vous enregistrer le fichier?",13,0
 
 msg_errsauv0:
+db "file already exists, do you want to:",13
+
+db "choose another name?",13
+
+db "overwrite file?",13,0
 db "le fichier existe déjà, voulez vous:",13
 db "choisir un autre nom?",13
 db "écraser le fichier?",13,0
 
 msg_errsauv1:
+db "error creating file, do you want to:",13
+
+db "try again?",13
+
+db "choose another name?",13
+
+db "unregister?",13,0
 db "erreur lors de la création du fichier, voulez vous:",13
 db "reéssayer?",13
 db "choisir un autre nom?",13
 db "annuler l'enregistrement?",13,0
 
 msg_errsauv2:
+db "cannot open file, do you want to:",13
+
+db "try again?",13
+
+db "choose another name?",13
+db "cancel?",13,0
 db "impossible d'ouvrir le fichier, voulez vous:",13
 db "reéssayer?",13
 db "choisir un autre nom?",13
 db "annuler? ",13,0
 
 msg_errsauv3:
+db "error writing to file, do you want to:",13
+
+db "try again?",13
+
+db "choose another name?",13
+
+db "cancel?",13,0
 db "erreur lors de l'écriture dans le fichier, voulez vous:",13
 db "reéssayer?",13
 db "choisir un autre nom?",13
 db "annuler? ",13,0
 
 
-
 msg_choix:
+db ", do you want:",13
+
+db "try again? (R)",13
+
+db "choose another file? (F)",13
+
+db "cancel? (A)", 13,0
 db ", voulez vous:",13
 db "reéssayer? (R)",13
 db "choisir un autre fichier? (F)",13
@@ -1452,8 +1555,24 @@ db "annuler? (A)",13,0
 
 
 
-
 msg_aide:
+db "esc - quit",13
+
+db "F1 - menu",13
+
+db "F9 - help",13
+
+db "enter - character selection",13
+
+db "space - pixel modification",13
+
+db "Ctrl+X - cut",13
+
+db "Ctrl+C - copy",13
+
+db "Ctrl+V - paste",13
+
+db 13,"press any key to clear this help",0
 db "esc    - quitter",13
 db "F1     - menu",13
 db "F9     - aide",13
@@ -1465,21 +1584,15 @@ db "Ctrl+V - coller",13
 db 13,"appuyez sur une touche pour effacer cet aide",0
 
 
-
-
-
-
-
-
-
-
-
-
 msg_modif:
+db "the file has been modified, please",13
+
+db "save changes before continuing?",13
+
+db "continue without saving?",13,0
 db "le fichier a été modifié, voulez vous",13
 db "enregister les modifications avant de continuer?",13
 db "continuer sans enregistrer?",13,0
-
 
 
 
