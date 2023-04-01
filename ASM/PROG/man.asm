@@ -46,6 +46,7 @@ mov ebx,0
 cmp byte[edx],0
 jne ok_ouvrir
 mov edx,fichier
+call ajuste_langue
 mov ebx,1
 ok_ouvrir:
 xor eax,eax
@@ -616,6 +617,17 @@ ret
 
 ;***************************
 message_console:  ;affiche un message dans la console en fonction de la langue ds:edx=adresses des message
+call ajuste_langue
+mov al,6
+int 61h
+ret
+
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+push ecx
 mov eax,20
 int 61h
 xor ecx,ecx
@@ -627,22 +639,20 @@ je @f
 xor ecx,ecx
 @@:
 
-boucle_message_console:
+boucle_ajuste_langue:
 cmp ecx,0
-je ok_message_console
+je ok_ajuste_langue
 cmp byte[edx],0
 jne @f
 dec ecx
 @@:
 inc edx
-jmp boucle_message_console
+jmp boucle_ajuste_langue
 
-ok_message_console:
-mov al,6
-int 61h
+ok_ajuste_langue:
+pop ecx
+pop eax
 ret
-
-
 
 
 
@@ -729,6 +739,7 @@ dd 0
 
 
 fichier:
+db "MANUAL.TXT",0
 db "MANUEL.TXT",0
 handle:
 dd 0

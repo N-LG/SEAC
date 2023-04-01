@@ -559,10 +559,10 @@ msg2:
 db 13,"carte ",0
 db 13,"carte ",0
 msg3:
-db 13,"    MAC adress:   ",0
+db 13,"    MAC address:  ",0
 db 13,"    adresse MAC:  ",0
 msg4:
-db 13,"    IPv4 adress:     ",0
+db 13,"    IPv4 address:    ",0
 db 13,"    adresse IPv4:    ",0
 msg5: 
 db 13,"    IPv4 mask:       ",0
@@ -571,13 +571,13 @@ msg6:
 db 13,"    IPv4 gateway:    ",0
 db 13,"    passerelle IPv4: ",0
 msg7:
-db 13,"    local IPv6 adress:    ",0
+db 13,"    local IPv6 address:   ",0
 db 13,"    adresse IPv6 lien:    ",0
 msg8:
-db 13,"    private IPv6 adress:  ",0
+db 13,"    private IPv6 address: ",0
 db 13,"    adresse IPv6 privée:  ",0
 msg9:
-db 13,"    global IPv6 adress:   ",0
+db 13,"    global IPv6 address:  ",0
 db 13,"    adresse IPv6 globale: ",0
 msg10:
 db 13,0

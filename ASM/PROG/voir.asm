@@ -67,7 +67,7 @@ mov dx,sel_dat2
 mov ah,6   ;option=mode video ;6=video + souris
 test byte[opt],4
 jz @f
-;and ah,0FBh   ;désactive la souris
+and ah,0FBh   ;désactive la souris
 @@:
 mov al,0   ;création console     
 int 63h
