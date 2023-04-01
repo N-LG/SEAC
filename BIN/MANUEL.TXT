@@ -30,12 +30,14 @@
  ~AJARCH~ 
  ~EXPL~ exploreur de fichier
  ~CALC~ calculatrice
+ ~DATE~ horloge interne
  ~UTF8~ conversion unicode en utf8
  ~MAN~ manuel 
  ~TERM~ terminal série et TCP
  ~LSPCI~ liste les périphérique pci installé
  ~LSUSB~ liste les périphérique usb installé
  ~ICS~ interface graphique
+ ~VOIR~ visionneur de fichier image
 %-Pilote Réseau
  ~RTL8139~ ~3C90X~ ~I8254X~
 %-Utilisation réseau:
@@ -452,5 +454,18 @@
  
  si les arguments ne sont pas dans un ordre particulier, il faut les identifier par une lettre précédé d'un espace au début de l'argument suivie de deux points avec la valeur de l'argument. 
 %exemple: dcp archive.zip -e -o:"dossier temporaire"
+:voir
+^VOIR
+ visionneur de fichier image
 
- 
+%commande: voir XXX YYY
+ avec: XXX = nom de l'image
+       YYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX couleur du fond de l'écran
+ -t    cache les informations texte
+ -s    cache le curseur souris
+:date
+^DATE
+ affiche l'heure et la date de l'horloge de la machine
