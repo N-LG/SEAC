@@ -170,17 +170,6 @@ jne erreur_ouv_port
 ;************************
 ;affichage info réponse
 
-
-mov ax,[qdcount]   ;remet dans l'ordre le qdswer count
-xchg al,ah
-mov [qdcount],ax
-
-mov ax,[ancount]   ;remet dans l'ordre le answer count
-xchg al,ah
-mov [ancount],ax
-cmp ax,0
-je aucune_reponse
-
 mov edx,msg_rep1
 call ajuste_langue
 mov al,6        
@@ -231,6 +220,8 @@ cmp dword[ebx],1000500h
 je affichage_cname
 cmp dword[ebx],1000600h
 je affichage_soa
+cmp dword[ebx],1000C00h
+je affichage_ptr
 
 
 
@@ -405,7 +396,23 @@ int 61h
 jmp suite_boucle_affichage
 
 
+;**************
+affichage_ptr:
+call affiche_nom_rr
 
+mov edx,msg_rep_ptr
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,10
+call affiche_nom_rr
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
 
 ;**************
 affichage_ipv6:
@@ -627,14 +634,30 @@ jmp boucle_test_different_serveur
 
 
 
-;************************
-;lecture et affichage info réponse
+;*************
+;lecture réponse
 okdata:
 mov al,6
 mov ebx,[adresse_canal]
 mov ecx,512
 mov edi,port_out
 int 65h
+cmp eax,0
+jne erreur_envoyer_requete
+
+
+
+mov ax,[qdcount]   ;remet dans l'ordre le qdswer count
+xchg al,ah
+mov [qdcount],ax
+
+mov ax,[ancount]   ;remet dans l'ordre le answer count
+xchg al,ah
+mov [ancount],ax
+cmp ax,0
+je aucune_reponse
+xor eax,eax
+
 erreur_envoyer_requete:
 ret
 
@@ -882,7 +905,7 @@ jne ferme_connexion
 
 ;recherche....
 push ebx
-call envoir_requete
+call envoyer_requete
 pop ebx
 cmp eax,0
 jne ferme_connexion 
@@ -978,7 +1001,8 @@ msg_rep_caa:
 db " [CAA] ",0
 msg_rep_cname:
 db " [CNAME] ",0
-
+msg_rep_ptr:
+db " [PTR] ",0
 
 
 msg_point:
