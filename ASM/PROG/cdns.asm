@@ -1,7 +1,7 @@
 ﻿bidon:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
-db "Client DNS"
+db "service de résolution DNS"
 scode:
 org 0
 
@@ -11,16 +11,6 @@ mov ax,sel_dat1
 mov ds,ax
 mov es,ax
 
-
-
-;lit le nom du destinataire a rechercher
-mov al,4   
-mov ah,0   ;numéros de l'option de commande a lire
-mov cl,0 ;0=256 octet max
-mov edx,recherche
-int 61h
-cmp byte[recherche],0
-je erreur_param
 
 
 ;lit le nom du serveur a interroger spécifiquement (param optionel)
@@ -38,25 +28,6 @@ mov edx,tempo
 mov ecx,serveurs_dns
 int 61h
 mov dword[serveurs_dns+4],0
-@@:
-
-
-;lit le numéros du type de requete (param optionel)
-mov al,5
-mov ah,"t" 
-mov cl,0 ;0=256 octet max
-mov edx,tempo
-mov byte[tempo],0
-int 61h
-cmp byte[tempo],0
-je @f
-
-mov al,100  
-mov edx,tempo
-int 61h
-;cmp ecx,0
-;je @f
-mov [no_requete],cx
 @@:
 
 
@@ -153,160 +124,51 @@ cmp byte[data_dns],87h
 jne erreur_ouv_port
 
 
-;créer une requete DNS
-mov dword[index_serveur],serveurs_dns
-boucle_test_different_serveur:
 
-mov word[port_out],53
-mov ebx,[index_serveur]
-mov eax,[ebx]
-cmp eax,0
+
+
+;******************************************************************************************
+;lit le nom du destinataire a rechercher
+mov al,4   
+mov ah,0   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,recherche
+int 61h
+cmp byte[recherche],0
+je service_uniquement
+
+
+;lit le numéros du type de requete (param optionel)
+mov al,5
+mov ah,"t" 
+mov cl,0 ;0=256 octet max
+mov edx,tempo
+mov byte[tempo],0
+int 61h
+cmp byte[tempo],0
+je @f
+
+mov al,100  
+mov edx,tempo
+int 61h
+;cmp ecx,0
+;je @f
+mov [no_requete],cx
+@@:
+
+
+call envoyer_requete
+cmp eax,1
 je fin
-mov [ipv4_out],eax
-
-
-;mov word[requete_dns],????
-mov byte[qropcode],1  
-mov byte[razrcode],0
-mov word[qdcount],100h   ;1 ordre inversé
-mov word[ancount],0
-mov word[nscount],0
-mov word[arcount],0
-
-mov esi,recherche
-mov edi,data_dns+1
-mov ecx,64
-rep movsd
-
-;transforme le nom en chaine valide pour le serveur
-mov esi,data_dns
-mov edi,data_dns+1
-
-boucle_conversion_nom:
-cmp byte[edi],0
-je fin_conversion_nom
-cmp byte[edi],"."
-jne point_conversion_nom
-mov eax,edi
-sub eax,esi
-dec al
-mov [esi],al
-mov esi,edi
-
-point_conversion_nom:
-inc edi
-jmp boucle_conversion_nom 
-
-
-fin_conversion_nom:
-mov eax,edi
-sub eax,esi
-dec al
-mov [esi],al
-mov byte[edi],0
-inc edi
-
-mov ax,[no_requete]
-xchg al,ah
-mov word[edi],ax       ;type (ordre inversé)
-mov word[edi+2],100h     ;classe internet(ordre inversé)
-
-
-
-;envoie la requete dns
-mov al,7
-mov ebx,[adresse_canal]
-mov ecx,edi
-sub ecx,port_out-4
-mov esi,port_out
-int 65h
 cmp eax,0
 jne erreur_ouv_port
-
-
-;attend serveur réponse
-mov al,9
-mov ebx,[adresse_canal]
-mov ecx,300
-int 65h
-cmp eax,cer_ddi
-je okdata
-
-
-;si temps écoulé renvoie la demande a un autre serveur
-aucune_reponse:
-mov edx,msg_nrep1
-call ajuste_langue
-mov al,6        
-int 61h
-
-mov ecx,ipv4_out
-mov edx,tempo
-mov al,112
-int 61h
-mov edx,tempo
-mov al,6
-int 61h
-
-mov edx,msg_nrep2
-call ajuste_langue
-mov al,6        
-int 61h
-
-mov edx,recherche
-mov al,6        
-int 61h
-
-mov edx,msg_nrep3
-mov al,6        
-int 61h
-
-
-add dword[index_serveur],4
-jmp boucle_test_different_serveur
-
-
-
-;***********************
-erreur_ouv_port:
-mov edx,msg_err1
-call ajuste_langue
-mov al,6        
-int 61h
-int 60h
-
-
-;*****************
-erreur_param:
-mov edx,msg_err2
-call ajuste_langue
-mov al,6        
-int 61h
-int 60h
-
-
-
-;***********
-fin:
-int 60h
-
-
 
 
 
 
 
 ;************************
-;lecture et affichage info réponse
-okdata:
-mov al,6
-mov ebx,[adresse_canal]
-mov ecx,512
-mov edi,port_out
-int 65h
-cmp eax,0
-jne erreur_ouv_port
-
+;affichage info réponse
 
 
 mov ax,[qdcount]   ;remet dans l'ordre le qdswer count
@@ -609,6 +471,182 @@ int 60h
 
 
 
+
+
+
+
+
+
+
+
+
+;***********************
+erreur_ouv_port:
+mov edx,msg_err1
+call ajuste_langue
+mov al,6        
+int 61h
+int 60h
+
+
+;*****************
+erreur_param:
+mov edx,msg_err2
+call ajuste_langue
+mov al,6        
+int 61h
+int 60h
+
+
+
+;***********
+fin:
+int 60h
+
+
+
+
+
+
+
+
+;***************************************************
+envoyer_requete:
+;créer une requete DNS
+mov dword[index_serveur],serveurs_dns
+boucle_test_different_serveur:
+
+mov word[port_out],53
+mov ebx,[index_serveur]
+mov eax,[ebx]
+cmp eax,0
+je fin_envoyer_requete
+mov [ipv4_out],eax
+
+
+;mov word[requete_dns],????
+mov byte[qropcode],1  
+mov byte[razrcode],0
+mov word[qdcount],100h   ;1 ordre inversé
+mov word[ancount],0
+mov word[nscount],0
+mov word[arcount],0
+
+mov esi,recherche
+mov edi,data_dns+1
+mov ecx,64
+rep movsd
+
+;transforme le nom en chaine valide pour le serveur
+mov esi,data_dns
+mov edi,data_dns+1
+
+boucle_conversion_nom:
+cmp byte[edi],0
+je fin_conversion_nom
+cmp byte[edi],"."
+jne point_conversion_nom
+mov eax,edi
+sub eax,esi
+dec al
+mov [esi],al
+mov esi,edi
+
+point_conversion_nom:
+inc edi
+jmp boucle_conversion_nom 
+
+
+fin_conversion_nom:
+mov eax,edi
+sub eax,esi
+dec al
+mov [esi],al
+mov byte[edi],0
+inc edi
+
+mov ax,[no_requete]
+xchg al,ah
+mov word[edi],ax       ;type (ordre inversé)
+mov word[edi+2],100h     ;classe internet(ordre inversé)
+
+
+
+;envoie la requete dns
+mov al,7
+mov ebx,[adresse_canal]
+mov ecx,edi
+sub ecx,port_out-4
+mov esi,port_out
+int 65h
+cmp eax,0
+jne erreur_envoyer_requete
+
+
+;attend serveur réponse
+mov al,9
+mov ebx,[adresse_canal]
+mov ecx,300
+int 65h
+cmp eax,cer_ddi
+je okdata
+
+
+;si temps écoulé renvoie la demande a un autre serveur
+aucune_reponse:
+mov edx,msg_nrep1
+call ajuste_langue
+mov al,6        
+int 61h
+
+mov ecx,ipv4_out
+mov edx,tempo
+mov al,112
+int 61h
+mov edx,tempo
+mov al,6
+int 61h
+
+mov edx,msg_nrep2
+call ajuste_langue
+mov al,6        
+int 61h
+
+mov edx,recherche
+mov al,6        
+int 61h
+
+mov edx,msg_nrep3
+mov al,6        
+int 61h
+
+
+add dword[index_serveur],4
+jmp boucle_test_different_serveur
+
+
+
+
+;************************
+;lecture et affichage info réponse
+okdata:
+mov al,6
+mov ebx,[adresse_canal]
+mov ecx,512
+mov edi,port_out
+int 65h
+erreur_envoyer_requete:
+ret
+
+
+fin_envoyer_requete:
+mov eax,1
+ret
+
+
+
+
+
 ;***********************
 passer_nom_rr:
 mov al,[ebx]
@@ -768,6 +806,119 @@ ret
 
 
 
+
+
+
+
+;******************************************
+service_uniquement:
+;test si il existe déja un service dns
+mov word[tempo],0
+mov al,11
+mov ah,8     ;code service résolution dns
+mov cl,16
+mov edx,tempo
+int 61h
+cmp word[tempo],0
+jne fin
+
+;se déclare comme service dns
+mov al,10
+mov ah,8 ;code service résolution dns
+int 61h
+
+mov edx,msg_serv
+call ajuste_langue
+mov al,6        
+int 61h
+
+;boucle service dns
+
+boucle_service:
+int 62h
+
+;recherche si il y as une nouvelle connexion
+mov al,2
+int 65h
+cmp eax,cer_ddi
+jne boucle_service
+
+;lit la requete
+mov al,4
+mov ecx,8 
+mov esi,0
+mov edi,tempo
+int 65h
+cmp eax,0
+jne ferme_connexion
+
+;test de quel type est la requete
+cmp byte[tempo],1
+je requete_info_rr
+
+;ferme la connexion si la requete est inconnue
+ferme_connexion:
+mov al,1
+int 65h
+jmp boucle_service 
+
+
+requete_info_rr:
+;recup champ recherché
+mov ax,[tempo+2]
+mov [no_requete],ax
+
+;recup nom recherché
+mov al,4
+mov ecx,[tempo+4] 
+mov esi,8
+mov edi,recherche
+int 65h
+cmp eax,0
+jne ferme_connexion
+
+
+
+
+;recherche....
+push ebx
+call envoir_requete
+pop ebx
+cmp eax,0
+jne ferme_connexion 
+
+
+;envoie réponse!
+mov byte[tempo],81h
+
+;recopie RR
+;??????????????????????????
+
+mov al,5
+mov ecx,8 
+mov edi,0
+mov esi,tempo
+int 65h
+jmp boucle_service
+
+
+
+
+
+
+
+
+
+
+
+
+jmp boucle_service
+
+
+int 60h
+
+
+
 sdata1:
 org 0
 id_tache:
@@ -781,6 +932,10 @@ dw 0
 no_requete:
 dw 255
 
+
+msg_serv:
+db "CDNS: the DNS resolver service has started",13,0
+db "CDNS: le service de résolution DNS as démarré",13,0
 
 msg_err1:
 db "CDNS: error while opening UDP port",13,0
