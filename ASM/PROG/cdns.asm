@@ -157,6 +157,105 @@ mov [no_requete],cx
 @@:
 
 
+
+;lit si c'est une requete inverse
+mov al,5
+mov ah,"r" 
+mov cl,0 ;0=256 octet max
+mov edx,tempo
+mov byte[tempo],0
+int 61h
+cmp eax,0
+jne pas_reverse
+
+;convertit l'adresse ip en adresse pour le ptr
+mov ebx,recherche
+mov edi,[ebx]
+mov [ebx+128],edi ;et sauvegarde une version normal
+
+@@:
+inc ebx
+cmp byte[ebx],0
+je pas_reverse
+cmp byte[ebx],"."
+jne @b
+
+inc ebx
+mov esi,[ebx]
+mov [ebx+128],esi
+
+@@:
+inc ebx
+cmp byte[ebx],0
+je pas_reverse
+cmp byte[ebx],"."
+jne @b
+
+inc ebx
+mov edx,[ebx]
+mov [ebx+128],edx
+
+@@:
+inc ebx
+cmp byte[ebx],0
+je pas_reverse
+cmp byte[ebx],"."
+jne @b
+
+inc ebx
+mov eax,[ebx]
+mov [ebx+128],eax
+
+@@:
+inc ebx
+cmp byte[ebx],0
+jne @b
+
+
+mov ebx,recherche
+mov [ebx],eax
+
+@@:
+inc ebx
+cmp byte[ebx],0
+jne @b
+
+mov byte[ebx],"."
+inc ebx
+mov [ebx],edx
+
+@@:
+inc ebx
+cmp byte[ebx],"."
+jne @b
+
+inc ebx
+mov [ebx],esi
+
+@@:
+inc ebx
+cmp byte[ebx],"."
+jne @b
+
+inc ebx
+mov [ebx],edi
+
+@@:
+inc ebx
+cmp byte[ebx],"."
+jne @b
+
+mov dword[ebx+1],"in-a" 
+mov dword[ebx+5],"ddr." 
+mov dword[ebx+9],"arpa"
+mov byte[ebx+13],0
+
+
+mov word[no_requete],12
+pas_reverse:
+
+
+
 call envoyer_requete
 cmp eax,1
 je fin
@@ -398,6 +497,37 @@ jmp suite_boucle_affichage
 
 ;**************
 affichage_ptr:
+mov al,5
+mov ah,"r" 
+mov cl,0 ;0=256 octet max
+mov edx,tempo
+mov byte[tempo],0
+int 61h
+cmp eax,0
+jne affichage_ptr_normal
+
+mov edx,recherche+128
+mov al,6        
+int 61h
+
+mov edx,msg_rep4
+mov al,6        
+int 61h
+
+mov edx,ebx
+add edx,10
+call affiche_nom_rr
+
+mov edx,msg_rep5
+mov al,6        
+int 61h
+
+jmp suite_boucle_affichage
+
+
+
+;*****************
+affichage_ptr_normal:
 call affiche_nom_rr
 
 mov edx,msg_rep_ptr
@@ -969,7 +1099,7 @@ db "CDNS: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man cdns"
 
 
 msg_rep1:
-db "CDNS: DNS server response ",0
+db "CDNS: Reply from DNS server ",0
 db "CDNS: Réponse du serveur DNS ",0
 msg_rep2:
 db " for ",0

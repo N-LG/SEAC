@@ -196,8 +196,7 @@ mov edx,tempo
 int 61h
 
 mov al,6
-mov edx,msg0b
-call ajuste_langue
+mov edx,msg_crlf
 int 61h
 
 
@@ -461,8 +460,7 @@ db 4
 msg0a:
 db 13,"TRACE: test connection path to ",0
 db 13,"TRACE: test du chemin de connexion vers ",0
-msg0b:
-db 13,0
+
 
 msg2:
 db " Response timeout exceeded",13,0
