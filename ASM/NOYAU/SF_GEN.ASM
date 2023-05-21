@@ -1587,7 +1587,7 @@ ret
 ;******************************************
 erreur_conv_adresse:
 popad
-mov eax,1
+mov eax,cer_parami
 iret
 
 
@@ -1720,28 +1720,21 @@ iret
 ;******************************************
 conv_asciiz_ipv4:
 pushad
-
 mov esi,edx
-mov al,[esi]
 boucle0_conv_asciiz_ipv4:
-cmp al,"0"
-jb erreur_conv_adresse
-cmp al,"9"
-jbe ok_conv_asciiz_ipv4
-cmp al,"A"
-jb erreur_conv_adresse
-cmp al,"F"
-jbe ok_conv_asciiz_ipv4
-cmp al,"a"
-jb erreur_conv_adresse
-cmp al,"f"
-jbe ok_conv_asciiz_ipv4
+cmp byte[esi],"."
+je @f
+cmp byte[esi],0
+je ok_conv_asciiz_ipv4
+cmp byte[esi],"0"
+jb conv_asciiz_ipv4_dns
+cmp byte[esi],"9"
+ja conv_asciiz_ipv4_dns
+@@:
 inc esi
-mov al,[esi]
-cmp al,0
-jne boucle0_conv_asciiz_ipv4
-ok_conv_asciiz_ipv4:
+jmp boucle0_conv_asciiz_ipv4
 
+ok_conv_asciiz_ipv4:
 mov esi,edx
 mov edi,ecx
 
@@ -1771,7 +1764,7 @@ boucle2_conv_asciiz_ipv4:
 cmp byte[esi],"."
 je point2_conv_asciiz_ipv4
 cmp byte[esi],0
-je erreur_conv_adresse
+je conv_asciiz_ipv4_dns
 inc esi
 jmp boucle2_conv_asciiz_ipv4
 
@@ -1788,7 +1781,7 @@ boucle3_conv_asciiz_ipv4:
 cmp byte[esi],"."
 je point3_conv_asciiz_ipv4
 cmp byte[esi],0
-je erreur_conv_adresse
+je conv_asciiz_ipv4_dns
 inc esi
 jmp boucle3_conv_asciiz_ipv4
 
@@ -1804,7 +1797,146 @@ popad
 xor eax,eax
 iret
 
+conv_asciiz_ipv4_dns:
+popad
+pushad
 
+;reserve une petite zone de mémoire
+push ecx
+mov ecx,1024
+call resmem
+pop ecx
+jc erreur_conv_adresse
+mov ebp,ebx
+add ebp,20h
+
+
+;sauvegarde les param d'entrée
+push ds
+push es
+push ds
+mov ax,selramh
+mov ds,ax
+mov es,ax
+pop eax
+mov [ebx+10h],edx  ;chaine d'entrée
+mov [ebx+14h],ecx  ;sortie
+mov [ebx+18h],ax   ;selecteur
+
+
+;cherche s'il y as un serveur dns
+mov al,11
+mov ah,8     ;code service 
+mov cl,16
+mov edx,ebp
+int 61h
+cmp word[edx],0
+je erreur_conv_adresse2
+
+
+;etablire une connexion
+mov al,0
+mov bx,[edx]
+mov ecx,1024
+mov edx,1
+mov esi,0
+mov edi,0
+int 65h
+cmp eax,0
+jne erreur_conv_adresse2
+
+
+;crée la requete
+push ds
+mov edi,ebp
+sub edi,10h
+mov esi,[edi]
+mov ax,[edi+8]
+mov ds,ax
+add  edi,10h
+
+mov ecx,esi
+@@:
+mov al,[ecx]
+inc ecx
+cmp al,0
+jne @b
+sub ecx,esi
+
+es
+mov byte[edi],1 ;code pour demander un RR
+es
+mov word[edi+2],1 ;type de RR souhaité
+es
+mov [edi+4],ecx  ;taille du nom
+add edi,8
+push ecx
+cld
+rep movsb  ;nom
+pop ecx
+pop ds
+
+;envoie une requete
+mov al,5
+add ecx,8
+mov esi,ebp
+mov edi,0
+int 65h
+cmp eax,0
+jne erreur_conv_adresse2
+
+
+;attend la réponse
+mov al,8
+mov ecx,8000  ;20s
+int 65h
+cmp eax,cer_ddi
+jne erreur_conv_adresse2
+
+
+;lit la réponse du programme
+mov al,4
+mov ecx,20h
+mov esi,0
+mov edi,ebp
+int 65h
+cmp eax,0
+jne erreur_conv_adresse2
+
+;ferme la connexion
+mov al,1
+int 65h
+
+;décode la réponse
+cmp byte[edi],81h
+jne erreur_conv_adresse2
+cmp word[edi+1],100h
+jne erreur_conv_adresse2
+
+mov eax,[edi+11]
+sub edi,10h
+mov esi,[edi+4]
+pop es
+pop ds
+mov [esi],eax
+
+
+;libère la mémoire
+mov ebx,ebp
+sub ebx,20h
+call libmem
+popad
+xor eax,eax
+iret
+
+
+erreur_conv_adresse2:
+mov ebx,ebp
+sub ebx,20h
+call libmem
+pop es
+pop ds
+jmp erreur_conv_adresse 
 
 ;******************************************
 conv_asciiz_ipv6:
