@@ -1040,15 +1040,31 @@ pop ebx
 cmp eax,0
 jne ferme_connexion 
 
+;prépare réponse
+push ebx
+mov byte[tempo],81h
+mov ebx,requete_dns+12
+@@:    ;on passe les question
+call passer_nom_rr
+add ebx,4   
+dec word [qdcount]
+jnz @b
+call passer_nom_rr ;passe le nom de la requete
+xor ecx,ecx
+mov cx,[ebx+8]
+xchg cl,ch
+add ecx,10
+mov esi,ebx
+mov edi,tempo+1
+push ecx
+cld
+rep movsb ;recopie RR
+pop ecx
+pop ebx
 
 ;envoie réponse!
-mov byte[tempo],81h
-
-;recopie RR
-;??????????????????????????
-
 mov al,5
-mov ecx,8 
+inc ecx
 mov edi,0
 mov esi,tempo
 int 65h
@@ -1065,10 +1081,6 @@ jmp boucle_service
 
 
 
-jmp boucle_service
-
-
-int 60h
 
 
 
