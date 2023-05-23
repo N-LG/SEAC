@@ -1036,20 +1036,37 @@ jne ferme_connexion
 ;recherche....
 push ebx
 call envoyer_requete
-pop ebx
 cmp eax,0
-jne ferme_connexion 
+jne reponse_err
 
-;prépare réponse
-push ebx
-mov byte[tempo],81h
+;recherche le RR du type souhaité dans la réponse
+mov cx,[no_requete]
+xchg ch,cl
+
 mov ebx,requete_dns+12
 @@:    ;on passe les question
 call passer_nom_rr
 add ebx,4   
-dec word [qdcount]
+dec word[qdcount]
 jnz @b
-call passer_nom_rr ;passe le nom de la requete
+
+@@:
+call passer_nom_rr
+cmp word[ebx],cx
+je reponse_ok
+xor eax,eax
+add ebx,8
+mov ax,[ebx]
+add ebx,2
+xchg al,ah
+add ebx,eax
+dec word[ancount]
+jz reponse_err 
+jmp @b
+
+
+;recopie le RR dans la réponse
+reponse_ok:
 xor ecx,ecx
 mov cx,[ebx+8]
 xchg cl,ch
@@ -1062,20 +1079,29 @@ rep movsb ;recopie RR
 pop ecx
 pop ebx
 
+
 ;envoie réponse!
+mov byte[tempo],81h
 mov al,5
 inc ecx
 mov edi,0
 mov esi,tempo
 int 65h
-jmp boucle_service
+jmp boucle_service 
 
 
 
 
 
-
-
+reponse_err:
+pop ebx
+mov byte[tempo],0FFh
+mov al,5
+mov ecx,1
+mov edi,0
+mov esi,tempo
+int 65h
+jmp boucle_service 
 
 
 
