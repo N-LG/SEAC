@@ -164,6 +164,26 @@ jne aff_err_com
 ;envoyer la requete:
 
 envoyer_requete:
+
+
+mov al,6
+mov edx,msg_ok1
+int 61h
+mov al,6
+mov edx,serveur
+int 61h
+mov al,6
+mov edx,msg_ok2
+int 61h
+mov al,6
+mov edx,zt_nom
+int 61h
+mov al,6
+mov edx,msg_cr
+int 61h
+
+
+
 mov esi,zt_nom
 mov ecx,zt_nom
 @@:
@@ -359,9 +379,33 @@ offset_reponse:
 dd 0
 
 serveur:
-;db "ianawhois.vip.icann.org",0
 db "whois.iana.org",0
 rb 256
+
+
+
+
+serveur_com:
+serveur_net:
+db "whois.verisign-grs.com",0
+serveur_fr:
+db "whois.nic.fr",0
+serveur_org:
+db "whois.publicinterestregistry.org",0
+serveur_wiki:
+db "whois.nic.wiki",0
+serveur_io:
+db "whois.nic.io",0
+serveur_eu:
+db "whois.eu",0
+serveur_uk:
+db "whois.nic.uk",0
+serveur_de:
+db "whois.denic.de",0
+serveur_be:
+db "whois.dns.be",0
+
+
 
 CRLF:
 db 13,10
@@ -371,8 +415,12 @@ msg_ok_er1:
 db "WHOIS: parametre manquant",13,0
 msg_ok_er2:
 db "WHOIS: impossible de se connecter au serveur",13,0
-
-
+msg_ok1:
+db "WHOIS: interrogation du serveur ",0
+msg_ok2:
+db " pour le dommaine ",0
+msg_cr:
+db 13,0
 
 zt_nom:
 rb 256
