@@ -1,6 +1,4 @@
 ﻿
-
-﻿
 :commands:command:cmd
 ^commands available with the SEaC operating system:
 
@@ -297,6 +295,7 @@
 :cdns
 ^CDNS
  DNS resolver, allows to obtain the info of the machine according to the name
+ do not search for name start persistent service
 
 %command: cdns XXX YYYY
  with: XXX = machine name
@@ -306,15 +305,20 @@
  -s:XXX selects a particular DNS server (internal list by default)
  -t:XXX selects a particular RR type (ANY/255 by default)
  -c:XXX network interface numbers to use (0 by default)
+ -r     perform name lookup from IP
 
  recognized RR types:
- A (1) IPv4 address
- YYYY (28) IPv6 address
- NS (2) zone DNS server
- CNAME (5) canonical name
- SOA (6) authoritative server on the domain name and e-mail of the domain manager
- MX (15) mail server of this address
- TXT (16) plain text
+ A     1  IPv4 address
+ AAAA  28 IPv6 address
+ NS    2  authoritative name server
+ CNAME 5  canonical name
+ SOA   6  authoritative server on the domain name and e-mail of the domain manager
+ MX    15 mail server of this address
+ TXT   16 plain text
+ PTR   12 domain name associated with a reverse search (see below)
+
+ all unrecognized RRs are displayed in hexadecimal form
+ to perform a reverse search, you must search for the PTR(12) type RR with a domain name consisting of the IPv4 address whose 4 values have been reversed with ".in-addr.arpa" at the end
 :circ
 ^CIRC
  client for messaging system using the IRC protocol
@@ -458,3 +462,17 @@ starts the driver for an Intel or compatible card
 :date
 ^DATE
  displays the time and date of the machine's internal clock
+:whois
+
+^WHOIS
+ Displays info on a domain
+
+%command: whois XXX YYY
+ with: XXX = domain name
+       YYY = optional parameters
+
+ optional parameters:
+  -s:XXX server to query
+ the program queries a server dedicated to certain top-level domains
+ (.com .net.org .fr .eu .uk .be .wiki .io .de)
+ for all the others, the whois.iana.org server is queried

@@ -297,6 +297,7 @@
 :cdns
 ^CDNS
  résolveur DNS, permet d'obtenir les info de la machine en fonction du nom
+ ne pas rechercher de nom démarre le service persistant
 
 %commande: cdns XXX YYYY
  avec: XXX  = nom de la machine
@@ -306,6 +307,7 @@
  -s:XXX sélectionne un serveur DNS particuler (liste interne par défaut)
  -t:XXX selectionne un type de RR particulier (ANY/255 par défaut)
  -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -r     effectue une recherche de nom a partir de l'IP
 
  types de RR reconnue:
  A     1  adresse IPv4
@@ -315,7 +317,10 @@
  SOA   6  serveur faisant autorité sur le nom de domaine et e-mail du responsable de domaine
  MX    15 serveur de mail de cette adresse
  TXT   16 texte brut
+ PTR   12 nom de domaine associé a une recherche inverse (voir plus bas) 
+
  tout les RR non reconnu sont affiché sous la forme hexadécimale
+ pour effectuer une recherche inverse, il faut rechercher le RR de type PTR(12) avec un nom de domaine constitué de l'adresse IPv4 dont les 4 valeurs ont été inversé avec ".in-addr.arpa" a la fin
 :circ
 ^CIRC
  client pour systeme de messagerie utilisant le protocole IRC
@@ -469,3 +474,17 @@
 :date
 ^DATE
  affiche l'heure et la date de l'horloge de la machine
+:whois
+^WHOIS
+ affiche info sur un domaine
+
+%commande: whois XXX YYY
+ avec: XXX = nom de domaine
+       YYY = paramètres optionnels
+
+ paramètres optionnels:
+ -s:XXX serveur a interroger
+
+ le programme interroge un serveur dédié a certains domaines de premier niveaux
+ (.com .net. org .fr .eu .uk .be .wiki .io .de)
+ pour tout les autres c'est le serveur whois.iana.org qui est interrogé
