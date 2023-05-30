@@ -567,12 +567,15 @@ dec ecx
 cmp ecx,2
 jb clique_adresse
 sub ecx,2
+mov edx,[ad_onglet]
 cmp ecx,[ligne_aff]
 jae attent_clav
+cmp ecx,[edx+do_nb_nom]
+jae attent_clav
+
 
 add ecx,[ligne_zero]
 shl ecx,5
-mov edx,[ad_onglet]
 add ecx,do_ad_zn
 add ecx,[edx+do_to_zn]
 add ecx,edx
@@ -630,7 +633,10 @@ shr ecx,4
 cmp ecx,4
 jb attent_clav
 sub ecx,4
+mov edx,[ad_onglet]
 cmp ecx,[ligne_aff]
+jae attent_clav
+cmp ecx,[edx+do_nb_nom]
 jae attent_clav
 
 

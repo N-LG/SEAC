@@ -99,10 +99,88 @@ mov [id_tache],ax
 
 
 
+;determine quel serveur doit être consulté
+mov edx,serveur
+cmp byte[edx],0
+jne serveur_ok
+mov ebx,zt_nom
+
+
+boucle_recherche_fin_nom:
+cmp byte[ebx],"."
+jne @f
+mov eax,ebx
+@@:
+inc ebx
+cmp byte[ebx],0
+jne boucle_recherche_fin_nom 
+
+inc eax
+mov edx,serveur_base
+
+
+cmp dword[eax],"io"
+je serveurio
+cmp dword[eax],"eu"
+je serveureu
+cmp dword[eax],"uk"
+je serveuruk
+cmp dword[eax],"de"
+je serveurde
+cmp dword[eax],"be"
+je serveurbe
+cmp dword[eax],"fr"
+je serveurfr
+cmp dword[eax],"com"
+je serveurcom
+cmp dword[eax],"net"
+je serveurnet
+cmp dword[eax],"org"
+je serveurorg
+
+cmp byte[eax+4],0
+jne serveur_ok
+cmp dword[eax],"wiki"
+je serveurwiki
+jmp serveur_ok
+
+
+serveurwiki:
+mov edx,serveur_wiki
+jmp serveur_ok
+serveurcom:
+mov edx,serveur_com
+jmp serveur_ok
+serveurnet:
+mov edx,serveur_net
+jmp serveur_ok
+serveurfr:
+mov edx,serveur_fr
+jmp serveur_ok
+serveurorg:
+mov edx,serveur_org
+jmp serveur_ok
+serveurio:
+mov edx,serveur_io
+jmp serveur_ok
+serveureu:
+mov edx,serveur_eu
+jmp serveur_ok
+serveuruk:
+mov edx,serveur_uk
+jmp serveur_ok
+serveurde:
+mov edx,serveur_de
+jmp serveur_ok
+serveurbe:
+mov edx,serveur_be
+;jmp serveur_ok
+
 ;récupère l'adresse ip du serveur
+serveur_ok:
+mov [ad_serveur],edx
 mov al,109
 mov ecx,ip_serveur
-mov edx,serveur
 int 61h
 cmp eax,0
 jne aff_err_com
@@ -156,34 +234,9 @@ cmp byte[zt_reponse],88h
 jne aff_err_com
 
 
-;determiner le premier domaine a chercher
 
 
-
-
-;envoyer la requete:
-
-envoyer_requete:
-
-
-mov al,6
-mov edx,msg_ok1
-int 61h
-mov al,6
-mov edx,serveur
-int 61h
-mov al,6
-mov edx,msg_ok2
-int 61h
-mov al,6
-mov edx,zt_nom
-int 61h
-mov al,6
-mov edx,msg_cr
-int 61h
-
-
-
+;envoyer la requete
 mov esi,zt_nom
 mov ecx,zt_nom
 @@:
@@ -208,10 +261,29 @@ cmp eax,0
 jne aff_err_com
 
 
+;informer que l'on as envoyé une demande
+mov al,6
+mov edx,msg_ok1
+call ajuste_langue
+int 61h
+mov al,6
+mov edx,[ad_serveur]
+int 61h
+mov al,6
+mov edx,msg_ok2
+call ajuste_langue
+int 61h
+mov al,6
+mov edx,zt_nom
+int 61h
+mov al,6
+mov edx,msg_cr
+int 61h
 
 
 
-temp:
+;lire la réponse
+boucle_lecture_reponse:
 mov al,6
 mov ebx,[adresse_canal]
 mov ecx,1024
@@ -221,9 +293,12 @@ int 65h
 cmp eax,0
 jne fin
 cmp ecx,0
-je temp
+je boucle_lecture_reponse
 add [offset_reponse],ecx
-jmp temp
+mov al,6
+mov edx,msg_point
+int 61h
+jmp boucle_lecture_reponse
 
 
 
@@ -250,39 +325,11 @@ dec ecx
 jne boucle_temp
 
 mov al,6
+mov edx,msg_cr
+int 61h
+mov al,6
 mov edx,zt_reponse
 int 61h
-
-int 60h
-
-
-
-;attendre connexion fermé ou débordement espace reponse
-
-
-
-;est ce que la requete as été traité completement?
-
-
-
-;si oui afficher et quitter
-reponse_complete:
-
-
-
-
-;si non determiner serveur whois suivant
-whois_suivant:
-
-
-jmp envoyer_requete
-
-
-
-;si reception partielle ou impossibilité de determier serveur whois suivant, afficher dernière réponse reçu
-reponse_partielle:
-
-
 
 int 60h
 
@@ -294,12 +341,14 @@ int 60h
 aff_err_param:
 mov al,6
 mov edx,msg_ok_er1
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_com:
 mov al,6
 mov edx,msg_ok_er2
+call ajuste_langue
 int 61h
 int 60h
 
@@ -369,8 +418,8 @@ cmd_ip6:
 
 
 
-
-
+ad_serveur:
+dd 0
 id_tache:
 dw 0
 adresse_canal:
@@ -378,13 +427,8 @@ dd 0
 offset_reponse:
 dd 0
 
-serveur:
+serveur_base:
 db "whois.iana.org",0
-rb 256
-
-
-
-
 serveur_com:
 serveur_net:
 db "whois.verisign-grs.com",0
@@ -412,17 +456,28 @@ db 13,10
 
 
 msg_ok_er1:
+db "WHOIS: missing parameter",13,0
 db "WHOIS: parametre manquant",13,0
 msg_ok_er2:
+
+db "WHOIS: Unable to connect to server",13,0
 db "WHOIS: impossible de se connecter au serveur",13,0
 msg_ok1:
+db "WHOIS: querying server ",0
 db "WHOIS: interrogation du serveur ",0
 msg_ok2:
-db " pour le dommaine ",0
+
+db " for the domain ",0
+db " pour le domaine ",0
+
+msg_point:
+db ".",0
 msg_cr:
 db 13,0
 
 zt_nom:
+rb 256
+serveur:
 rb 256
 zt_reponse:
 
