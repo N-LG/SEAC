@@ -15,6 +15,10 @@ db "cfg.sh"                         ;nom du fichier
 rb 416 - ($ - zone1)mod 416         ;remplissage pour faire une entête de 416 octet
 
 fichier1:
+db "modv 800*600",10,13
+db "voir logo.png -t -s",10,13
+;db "def en-txt.def",10,13
+;db "def en-qwi.def",10,13
 db "rtl8139",10,13
 db "3c90x",10,13
 db "I8254X",10,13
@@ -22,22 +26,16 @@ db "*",10,13
 db "stftp #dm -w",10,13
 db "shttp #dm",10,13
 db "stlnt",10,13
+db "cdns",10,13
 db "ipconfig 0 comp 192.168.1.200 255.255.255.0 192.168.1.1 0:0:0:0:0:0:0:0 0:0:0:0:0:0:0:0",10,13
 ;db "ipconfig 1 comp 192.168.1.201 255.255.255.0 192.168.1.1 0:0:0:0:0:0:0:0 0:0:0:0:0:0:0:0",10,13
 db "*",10,13
+db "stop 2",10,13
 db "af ",10,13
-db "af pour un rappel des principales commandes disponible,",10,13
-db "af entrez la commande «man commandes»",10,13
-;db "cd #dd3",10,13
-;db "dcp test5.zip -e",10,13
-;db "dcp fasm-1.73.08.tgz -e",10,13
-;db "dcp fasm-1.73.08.TAR -e",10,13
-;db "*",10,13
-;db "*",10,13
-;db "*",10,13
-;db "*",10,13
-;db "*",10,13
-;db "edh fasm-1.73.08.TAR -e",10,13
+;db "af pour un rappel des principales commandes disponible,",10,13
+;db "af entrez la commande «man commandes»",10,13
+db "af for a reminder of the available commands,",10,13
+db "af enter the command ",22h,"man command",22h,10,13
 
 fin_fichier1:
 
