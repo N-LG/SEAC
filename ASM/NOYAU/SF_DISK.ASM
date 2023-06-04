@@ -1187,6 +1187,7 @@ mov [zt_clefusb+6],ecx   ;nombre de secteur
 fs
 mov word[zt_clefusb+10],0   ;réservé
 
+mov ebx,2048
 mov ecx,12
 call envoie_cmd_atapi
 pop ecx
@@ -1236,8 +1237,10 @@ inc dx
 out dx,al
 inc dx
 out dx,al
+mov al,bl
 inc dx
 out dx,al
+mov al,bh
 inc dx
 out dx,al
 mov al,0A0h        ;envoye la commande
@@ -1264,8 +1267,8 @@ add esi,2
 sub ecx,2
 jnz boucle_envoie_cmd_atapi
 clc
-fin_envoie_cmd_atapi:
 
+fin_envoie_cmd_atapi:
 popad
 ret
 
@@ -1275,8 +1278,9 @@ lit_bloc_atapi:
 push ecx
 mov ecx,2000
 call attdok          ;attend pour savoir si c'est bon!
-pop ecx
 jnc @f
+
+pop ecx
 stc
 ret
 
@@ -1288,10 +1292,17 @@ in al,dx
 and al,3
 cmp al,2
 je @f    ;si ce n'est pas "out data"
+
+fs
+cmp [cptsf],ecx
+jb @b
+
+pop ecx
 stc
 ret
 
 @@:
+pop ecx
 add dx,2
 xor ebx,ebx
 in al,dx
@@ -1828,6 +1839,7 @@ fs
 mov dx,[edi+dd_adress_ctrl]
 in al,dx     ;lit 1 fois le alternate status register et ignore le résultat
 
+
 fs
 mov dx,[edi+dd_adress_base]
 add dx,7
@@ -1966,7 +1978,7 @@ cld
 rep stosd
 ;signale que le descripteur n'est ni ATA ni ATAPI
 es
-mov word[esi],0FFFFh
+mov word[esi],0080h 
 
 ;un petit reset pour bien commencer
 call reset_clef_bo
@@ -3604,47 +3616,37 @@ sff_lit_tailledisque_atapi:
 ;mov ecx,2048
 ;jmp finfonctionfichieroktriple
 
+
+
 call selection_ata
 jc errlecnt
 
 
 
-;fs
-;mov byte[zt_clefusb],025h  ;commande read format capacity
-;fs
-;mov byte[zt_clefusb+1],0   ;réservé
-;fs
-;mov dword[zt_clefusb+2],0   ;réservé
-;fs
-;mov dword[zt_clefusb+6],0   ;réservé
+fs
+mov byte[zt_clefusb],025h  ;commande read capacity
+fs
+mov byte[zt_clefusb+1],0   ;réservé
+fs
+mov dword[zt_clefusb+2],0   ;réservé
+fs
+mov dword[zt_clefusb+6],0   ;réservé
+mov ecx,12  ;on envoie 12 octet même si la commande n'est sensé n'en avoir que 10!
+mov ebx,8
 
 
-fs
-mov byte[zt_clefusb],012h  ;commande inquiry
-fs
-mov dword[zt_clefusb+1],0   ;réservé
-fs
-mov byte[zt_clefusb+4],36   ;réservé
-fs
-mov dword[zt_clefusb+5],0   ;réservé
-
-
-mov ecx,6
 call envoie_cmd_atapi
 jc errlecnt;????
 
-mov al,"B"
-call affcj
+
 
 mov ax,seldat
 mov es,ax
-mov ecx,36
+mov ecx,8
 mov esi,zt_clefusb+64
 call lit_bloc_atapi
 jc errlecnt;????
 
-mov al,"C"
-call affcj
 
 fs
 mov dx,[edi+dd_adress_base]
@@ -3653,17 +3655,16 @@ in al,dx
 test al,1
 jnz errlecnt;????
 
-mov al,"D"
-call affcj
 
 fs
 mov ebx,[zt_clefusb+64] ;lsb taille
 fs
 mov ecx,[zt_clefusb+68]  ;taille secteur
-xor eax,eax
 xor edx,edx
+
 bswap ebx
 bswap ecx
+inc ebx ;parce que c'est l'adresse du dernier secteur et pas le nombre de secteur
 jmp finfonctionfichieroktriple
 
 
