@@ -1278,9 +1278,8 @@ lit_bloc_atapi:
 push ecx
 mov ecx,2000
 call attdok          ;attend pour savoir si c'est bon!
-jnc @f
-
 pop ecx
+jnc @f
 stc
 ret
 
@@ -1292,17 +1291,10 @@ in al,dx
 and al,3
 cmp al,2
 je @f    ;si ce n'est pas "out data"
-
-fs
-cmp [cptsf],ecx
-jb @b
-
-pop ecx
 stc
 ret
 
 @@:
-pop ecx
 add dx,2
 xor ebx,ebx
 in al,dx
@@ -2722,7 +2714,7 @@ jmp finfonctionfichiererr
 
 
 ;*****************
-init_ahci:   ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
+init_ahci:   ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données ebp=nombre de secteur
 push ebx
 
 ;determiner adresse du port
@@ -2749,6 +2741,9 @@ je @f
 gs
 cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne init_ahci_er1
+
+gs
+mov byte[esi+zsata_conv_secteur],11
 @@:
 
 ;calculer taille en octet
@@ -2758,7 +2753,7 @@ cmp eax,0
 jne init_ahci_256
 mov eax,100h
 init_ahci_256:
-mov bp,ax
+mov ebp,eax
 gs
 mov cl,[esi+zsata_conv_secteur]
 cmp cl,0
@@ -3048,6 +3043,10 @@ cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne @f
 gs
 mov byte[esi+zsata_cfis+2],0A1h ;commande  ata=ECh atapi=A1h
+mov ecx,ebp
+shl ecx,9
+gs
+mov [esi+zsata_prdt+12],ecx
 @@:
 pop ebx
 gs
@@ -3326,25 +3325,16 @@ liresecteursatapi:
 pop ebx
 
 
-;réajuste la PRDT car les secteur font 2048octet et pas 512
-gs
-mov eax,[esi+zsata_prdt+12]
-inc eax
-shl eax,2
-dec eax
-gs
-mov [esi+zsata_prdt+12],eax
-shl ecx,2
 
 ;préparer FIS
 gs
 mov byte[esi+zsata_cfis],27h     ;type de FIS: host to device
 gs
-mov byte[esi+zsata_cfis+1],000h   ;attribut     ????????????????????
+mov byte[esi+zsata_cfis+1],080h   ;attribut
 gs
 mov byte[esi+zsata_cfis+2],0A0h  ;commande  packet 
 gs
-mov byte[esi+zsata_cfis+3],0     ;feature 1 ????????????????? 
+mov byte[esi+zsata_cfis+3],5    ;feature 1
 gs 
 mov byte[esi+zsata_cfis+4],0     ;LBA  (0-7)
 gs
@@ -3375,21 +3365,8 @@ bswap eax
 bswap ebx
 bswap ebp
 
-;gs
-;mov byte[esi+zsata_acmd],88h     ;commande ATAPI lecture 16
-;gs
-;mov byte[esi+zsata_acmd+1],0     ;vide
-;gs
-;mov dword[esi+zsata_acmd+2],eax  ;adresse du secteur (MSB)
-;gs
-;mov dword[esi+zsata_acmd+6],ebx  ;adresse du secteur (LSB)
-;gs
-;mov dword[esi+zsata_acmd+10],ebp ;nb de secteur
-;gs
-;mov word[esi+zsata_acmd+14],0    ;vide
-
 gs
-mov byte[esi+zsata_acmd],0A8h     ;commande ATAPI lecture 16
+mov byte[esi+zsata_acmd],0A8h     ;commande ATAPI READ(12)
 gs
 mov byte[esi+zsata_acmd+1],0     ;vide
 gs
@@ -3397,12 +3374,17 @@ mov dword[esi+zsata_acmd+2],ebx  ;adresse du secteur (LSB)
 gs
 mov dword[esi+zsata_acmd+6],ebp ;nb de secteur
 gs
-mov word[esi+zsata_acmd+10],0    ;vide
+mov dword[esi+zsata_acmd+10],0    ;vide
+gs
+mov word[esi+zsata_acmd+14],0     ;vide
+
+
+
 
 
 ;préparer table commande
 gs
-mov byte[esi+zsata_liste],065h ;5dword de commande+ATAPI
+mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
 gs
 mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
 gs
@@ -3425,9 +3407,13 @@ gs
 mov dword[esi+zsata_liste+28],0
 
 
+call fin_ahci ;on essaye 2 fois en cas d'erreur
+cmp eax,0
+je @f
 call fin_ahci
 cmp eax,0
 jne fin2_liresecteursata
+@@:
 
 ;recopie les données
 mov ax,selramh
@@ -3440,9 +3426,6 @@ rep movsd
 xor eax,eax
 
 jmp fin2_liresecteursata
-
-
-
 
 
 ;**************************************************************

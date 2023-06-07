@@ -19,7 +19,7 @@ file "../../BIN/BIOS.MBR"
 
 
 rb 446 + MBR - $ 
-;partition de protection du systeme de fichier iso9660 (finalement innutile)
+;partition de protection du systeme de fichier iso9660 (finalement inutile)
 ;db 0      ;partition bootable?
 ;db 0,0,0  ;coordonnée CHS
 ;db 031h    ;type de partition(bidon)
@@ -120,7 +120,7 @@ db 4         ;type d'emulation (4=disque dur)
 dw 0         ;segment ou charger l'image
 db 0         ;system type
 db 0         ;innutilisé
-dw finsecteur_partition_boot/2048       ;nombre de secteur chargé au démarrage
+dw 1;finsecteur_partition_boot/2048       ;nombre de secteur chargé au démarrage
 dd 0       ;adresse du secteur ou commence l'image 
 dd 0,0,0,0,0 ;innutilisé
 
