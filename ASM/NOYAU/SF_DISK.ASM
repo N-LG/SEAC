@@ -2741,9 +2741,6 @@ je @f
 gs
 cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne init_ahci_er1
-
-gs
-mov byte[esi+zsata_conv_secteur],11
 @@:
 
 ;calculer taille en octet
@@ -2756,10 +2753,6 @@ init_ahci_256:
 mov ebp,eax
 gs
 mov cl,[esi+zsata_conv_secteur]
-cmp cl,0
-jne init_ahci_zero
-mov cl,9
-init_ahci_zero: 
 shl eax,cl
 mov ecx,eax
 
@@ -2806,6 +2799,7 @@ ret
 fin_ahci:
 push ebx
 push edx
+push ebp
 ;activer execution première commande
 gs
 mov ebx,[esi+zsata_ad_port]
@@ -2814,8 +2808,7 @@ mov dword[ebx+38h],1
 
 
 fs
-mov edx,[cptsf]
-add edx,600
+add ebp,[cptsf]
 wbinvd
 @@:
 gs
@@ -2823,48 +2816,43 @@ cmp dword[ebx+38h],0  ;attendre fin execution
 je @f
 int 62h
 fs
-cmp edx,[cptsf]
+cmp ebp,[cptsf]
 ja @b
 
 
 call reset_port_ahci
 call start_port_ahci
+pop ebp
 pop edx
 pop ebx
 mov eax,cer_prd
 ret
 
-ok_fin_ahci:
 @@:
 gs
 cmp[esi+zsata_liste+4],ecx  ;attend d'avoir envoyé/reçu les données
 je @f
 int 62h
 fs
-cmp edx,[cptsf]
+cmp ebp,[cptsf]
 ja @b
 
 call reset_port_ahci
 call start_port_ahci
+pop ebp
 pop edx
 pop ebx
 mov eax,cer_prd
 ret
 
 @@:
-
+pop ebp
 pop edx
 pop ebx
 xor eax,eax
 ret
 
-erreur_fin_ahci:
-call reset_port_ahci
-call start_port_ahci
-pop edx
-pop ebx
-mov eax,cer_ahci
-ret
+
 
 
 
@@ -3043,6 +3031,8 @@ cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne @f
 gs
 mov byte[esi+zsata_cfis+2],0A1h ;commande  ata=ECh atapi=A1h
+gs
+mov byte[esi+zsata_conv_secteur],11 ;enregistre que la taille des secteur est de 2048 octets
 mov ecx,ebp
 shl ecx,9
 gs
@@ -3100,7 +3090,7 @@ mov dword[esi+zsata_liste+24],0
 gs
 mov dword[esi+zsata_liste+28],0
 
-
+mov ebp,200
 call fin_ahci
 cmp eax,0
 jne fin2_infodisquesata
@@ -3119,13 +3109,6 @@ pop esi
 xor eax,eax
 
 
-;test si il faut envoyer la commande de démarrage
-cmp word[edx+14h],37C8h
-je @f
-cmp word[edx+14h],738Ch
-je @f
-
-
 fin2_infodisquesata:
 mov ebx,edx
 call libmem
@@ -3137,91 +3120,7 @@ ret
 
 
 
-@@:
-mov al,"?"   ;fonction désactivé tant que j'ai pas une machine ou la tester
-call affcj
-mov al,"S"
-call affcj
-mov al,"F"
-call affcj
-mov al,"D"
-call affcj
 
-mov al,"?"
-call affcj
-mov al,13
-call affcj
-xor eax,eax
-
-
-;effacer PRDT
-;gs
-;mov dword[esi+zsata_prdt],0
-;gs
-;mov dword[esi+zsata_prdt+4],0
-;gs
-;mov dword[esi+zsata_prdt+8],0
-;gs
-;mov dword[esi+zsata_prdt+12],0
-;xor ecx,ecx
-
-
-;préparer FIS
-;gs
-;mov byte[esi+zsata_cfis],27h    ;type de FIS: host to device
-;gs
-;mov byte[esi+zsata_cfis+1],80h    ;attribut
-;gs
-;mov byte[esi+zsata_cfis+2],0EFh ;commande set feature 
-;gs
-;mov byte[esi+zsata_cfis+3],7    ;feature 1: fonctionnalité "Power-Up In Standby feature set device spin-up"
-;gs 
-;mov dword[esi+zsata_cfis+4],0     ;LBA  (0-23)
-;gs
-;mov byte[esi+zsata_cfis+7],0    ;device 
-;gs
-;mov byte[esi+zsata_cfis+8],0       ;LBA (24-31)
-;gs
-;mov word[esi+zsata_cfis+9],0       ;LBA (32-47)
-;gs
-;mov byte[esi+zsata_cfis+11],0   ;feature 2
-;gs
-;mov word[esi+zsata_cfis+12],0   ;count 
-;gs
-;mov byte[esi+zsata_cfis+14],0   ;ICC
-;gs
-;mov byte[esi+zsata_cfis+15],0   ;controle
-;gs
-;mov dword[esi+zsata_cfis+16],0   ;auxilliaire
-
-
-;préparer table commande
-;gs
-;mov byte[esi+zsata_liste],05h ;5dword de commande
-;gs
-;mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
-;gs
-;mov word[esi+zsata_liste+2],0 ;nombre d'entrée dans la PRDT
-;gs
-;mov dword[esi+zsata_liste+4],0 ;
-;mov eax,esi
-;add eax,100000h+zsata_cfis
-;gs
-;mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
-;gs
-;mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
-;gs
-;mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
-;gs
-;mov dword[esi+zsata_liste+20],0
-;gs
-;mov dword[esi+zsata_liste+24],0
-;gs
-;mov dword[esi+zsata_liste+28],0
-
-
-;call fin_ahci
-jmp fin2_infodisquesata
 
 
 ;**************************************************************
@@ -3296,7 +3195,7 @@ mov dword[esi+zsata_liste+24],0
 gs
 mov dword[esi+zsata_liste+28],0
 
-
+mov ebp,200
 call fin_ahci
 cmp eax,0
 jne fin2_liresecteursata
@@ -3406,7 +3305,7 @@ mov dword[esi+zsata_liste+24],0
 gs
 mov dword[esi+zsata_liste+28],0
 
-
+mov ebp,600
 call fin_ahci ;on essaye 2 fois en cas d'erreur
 cmp eax,0
 je @f
@@ -3518,7 +3417,7 @@ mov dword[esi+zsata_liste+24],0
 gs
 mov dword[esi+zsata_liste+28],0
 
-
+mov ebp,200
 call fin_ahci
 ;cmp eax,0
 ;jne fin2_ecriresecteursata
@@ -3533,7 +3432,7 @@ ret
 
 
 ecriresecteursatapi:
-mov eax,cer_ecr ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov eax,cer_ecr ;tant qu'on ne gère pas la gravure
 jmp fin2_ecriresecteursata
 
 
@@ -3653,6 +3552,9 @@ jmp finfonctionfichieroktriple
 
 sff_lit_tailledisque_sata:
 call init_ahci    ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
+mov ebx,edx
+call libmem
+
 gs
 mov ebx,[esi+zsata_ad_port]
 gs
@@ -3667,15 +3569,120 @@ gs
 mov cl,[esi+zsata_conv_secteur]
 shl eax,cl
 mov ecx,eax
+
+
 jmp finfonctionfichieroktriple
+
+
+
+
 
 
 sff_lit_tailledisque_satapi:
-;??????????????????????????????????????????????????????????????
-mov ebx,0FFFFFFFFh
-mov edx,0FFFFFFFFh
-mov ecx,2048
+mov ecx,8
+gs
+mov [esi+zsata_prdt+12],ecx
+
+
+
+;préparer FIS
+gs
+mov byte[esi+zsata_cfis],27h     ;type de FIS: host to device
+gs
+mov byte[esi+zsata_cfis+1],080h   ;attribut
+gs
+mov byte[esi+zsata_cfis+2],0A0h  ;commande  packet 
+gs
+mov byte[esi+zsata_cfis+3],5    ;feature 1
+gs 
+mov byte[esi+zsata_cfis+4],0     ;LBA  (0-7)
+gs
+mov word[esi+zsata_cfis+5],0   ;LBA (8-23)
+gs
+mov byte[esi+zsata_cfis+7],0     ;device
+gs
+mov byte[esi+zsata_cfis+8],0     ;LBA (24-31)
+gs
+mov word[esi+zsata_cfis+9],0     ;LBA (32-47)
+gs
+mov byte[esi+zsata_cfis+11],0    ;feature 2
+gs
+mov word[esi+zsata_cfis+12],0    ;count
+gs
+mov byte[esi+zsata_cfis+14],0    ;ICC
+gs
+mov byte[esi+zsata_cfis+15],0    ;controle
+gs
+mov dword[esi+zsata_cfis+16],0   ;auxilliaire
+
+
+
+gs
+mov byte[esi+zsata_acmd],025h  ;commande read capacity
+gs
+mov byte[esi+zsata_acmd+1],0     ;vide
+gs
+mov dword[esi+zsata_acmd+2],0    ;vide
+gs
+mov dword[esi+zsata_acmd+6],0    ;vide
+gs
+mov dword[esi+zsata_acmd+10],0    ;vide
+gs
+mov word[esi+zsata_acmd+14],0     ;vide
+
+
+
+
+;préparer table commande
+gs
+mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
+gs
+mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+gs
+mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
+gs
+mov dword[esi+zsata_liste+4],0 ;
+mov eax,esi
+add eax,100000h+zsata_cfis
+gs
+mov [esi+zsata_liste+8],eax     ;lsb de l'adresse de la commande
+gs
+mov dword[esi+zsata_liste+12],0 ;msb adresse de la commande
+gs
+mov dword[esi+zsata_liste+16],0 ;réservé mais on vide quand même
+gs
+mov dword[esi+zsata_liste+20],0
+gs
+mov dword[esi+zsata_liste+24],0
+gs
+mov dword[esi+zsata_liste+28],0
+
+mov ebp,600
+call fin_ahci ;on essaye 2 fois en cas d'erreur
+cmp eax,0
+je @f
+call fin_ahci
+cmp eax,0
+jne fin2_liresecteursata
+@@:
+
+
+gs
+mov ebx,[edx+10h] ;lsb taille
+gs
+mov ecx,[edx+14h]  ;taille secteur
+bswap ebx
+bswap ecx
+inc ebx ;parce que c'est l'adresse du dernier secteur et pas le nombre de secteur
+
+push ebx
+mov ebx,edx
+call libmem
+pop ebx
+
+xor edx,edx
 jmp finfonctionfichieroktriple
+
 
 
 

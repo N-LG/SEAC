@@ -384,6 +384,9 @@ es
 mov [edi+zsata_ad_ahci],esi  ;enregistre l'adresse de base du controleur
 es
 mov [edi+zsata_ad_port],ebx  ;enregistre l'adresse port de base de cette interface
+es
+mov byte[edi+zsata_conv_secteur],9 ;enregistre par defaut que les secteurs font 512 octets
+
 
 mov eax,edi
 add eax,zsata_liste+100000h   ;configure l'adresse de la liste de commande
