@@ -51,8 +51,8 @@ int 64h
 cmp eax,0
 jne suite_ldp
 
-;test byte[ZT512A+1],080h   ;test si le périphérique est atapi
-;jnz suite_ldp
+test byte[ZT512A+1],080h   ;test si le périphérique est atapi
+jnz suite_ldp
 
 ;convertit le nom
 mov ebx,ZT512A+36h
@@ -2134,9 +2134,9 @@ db "Aucune structure n'as été detecté",13,0
 
 
 msg_mbr:
-db "current disk structure (MBR partitioning)",13
+db "Current disk structure (MBR partitioning)",13
 db "Type |   size (KB)   | Start address | End address ",13,0
-db "structure actuelle du disque (partitionnement MBR)",13
+db "Structure actuelle du disque (partitionnement MBR)",13
 db "Type | taille (Ko)   | Adresse debut | Adresse fin ",13,0
 
 
