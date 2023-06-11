@@ -1,9 +1,37 @@
-;image disque amorÁable, a la fois pour cdrom et pour disque dur
-
-
-cdrom:     ;voir chapitre2.5 de la spec "el torito" pour avoir le descriptif des tables
+Ôªøcdrom:    ;image disque amor√ßable, a la fois pour cdrom et pour disque dur 
 use16
 org 0h
+
+
+
+
+;macro pour la g√©n√©ration de donn√©e sp√©cifique a iso9660
+
+
+;doubles dw 
+macro dwlm v
+ {
+        dw v
+        db (v shr 8)
+        db (v and 0xFF)
+ }
+
+
+;double dd
+macro ddlm v
+ {
+        dd v
+        db ((v shr 24) and 0xFF)
+        db ((v shr 16) and 0xFF)
+        db ((v shr  8) and 0xFF)
+        db (v and 0xFF)
+}
+
+
+
+
+
+
 
 
 
@@ -13,7 +41,7 @@ org 0h
 
 
 ;*******************************************************
-;partie pour dÈmarrer sur disque dur 
+;partie pour d√©marrer sur disque dur 
 MBR:
 file "../../BIN/BIOS.MBR"
 
@@ -21,18 +49,18 @@ file "../../BIN/BIOS.MBR"
 rb 446 + MBR - $ 
 ;partition de protection du systeme de fichier iso9660 (finalement inutile)
 ;db 0      ;partition bootable?
-;db 0,0,0  ;coordonnÈe CHS
+;db 0,0,0  ;coordonn√©e CHS
 ;db 031h    ;type de partition(bidon)
-;db 0,0,0  ;coordonnÈ CHS de fin
-;dd 1 ;adresse de dÈbut
+;db 0,0,0  ;coordonn√© CHS de fin
+;dd 1 ;adresse de d√©but
 ;dd (secteur_partition_boot/512)-1 ;taille
 
 ;partition contenant l'image boutable
 db 0      ;partition bootable?
-db 0,0,0  ;coordonnÈe CHS
+db 0,0,0  ;coordonn√©e CHS
 db 030h   ;type de partition (30h=partition image boot seac)
-db 0,0,0  ;coordonnÈ CHS de fin
-dd secteur_partition_boot/512 ;adresse de dÈbut
+db 0,0,0  ;coordonn√© CHS de fin
+dd secteur_partition_boot/512 ;adresse de d√©but
 dd ((finsecteur_partition_boot-secteur_partition_boot)/512) ;taille
 
 
@@ -62,9 +90,9 @@ secteur_iso9660:           ;primary volume descriptor https://wiki.osdev.org/ISO
 db 1,"CD001",1,0
 rb 32  ;system identifier
 rb 32  ;volume identifier
-rb 8  ;innutilisÈ
-rb 8  ;nomre de secteur du volume
-rb 32  ;innutilisÈ
+rb 8   ;innutilis√©
+ddlm (fin_image_iso/2048)   ;nombre de secteur du volume
+rb 32  ;innutilis√©
 dw 0,0 ;
 dw 0,0 ;
 dw 0,0 ;
@@ -73,7 +101,18 @@ dd 0   ;
 dd 0   ;
 dd 0   ;
 dd 0   ;
-rb 34  ;
+
+;descripteur du dossier racine
+db 34,0 ;longueur descripteur
+ddlm (secteur_dossier/2048);position fichier
+ddlm (fin_secteur_dossier-secteur_dossier) ;taille fichier
+db 85,4,28,12,20,0,4
+db 0,0,0 ;attributs
+dwlm 0 ;num√©ros de volume
+db 10 ;taille du nom du fichier
+db 0
+
+
 rb 128 ;
 rb 128 ;
 rb 128 ;
@@ -86,16 +125,21 @@ rb 17  ;
 rb 17  ;
 rb 17  ;
 db 1   ;version
-db 0   ;innutilisÈ
-
-
-
-
-
-
+db 0   ;innutilis√©
 
 
 rb 2048 + secteur_iso9660 - $ 
+
+
+
+
+
+
+
+
+;voir chapitre2.5 de la spec "el torito" pour avoir le descriptif des tables
+
+
 
 secteur_eltorito:     ;secteur de boot
 db 0
@@ -103,7 +147,7 @@ db "CD001"
 db 1
 db "EL TORITO SPECIFICATION"
 rb 41
-dd 18   ;numÈro du secteur ou se trouve le catalogue
+dd 18   ;num√©ro du secteur ou se trouve le catalogue
 
 rb 2048 + secteur_eltorito - $ 
 
@@ -113,38 +157,123 @@ secteur_catalogue:
 dd 1,0,0,0,0,0,0
 db 0AAh,055h,055h,0AAh
 
-;entrÈe par defaut
-;emulation de disque dur
-db 88h       ;signale que boutable
-db 4         ;type d'emulation (4=disque dur)
-dw 0         ;segment ou charger l'image
-db 0         ;system type
-db 0         ;innutilisÈ
-dw 1;finsecteur_partition_boot/2048       ;nombre de secteur chargÈ au dÈmarrage
-dd 0       ;adresse du secteur ou commence l'image 
-dd 0,0,0,0,0 ;innutilisÈ
+;entr√©e par defaut
 
-;emulation de disquette
+;sans emulation
 ;db 88h       ;signale que boutable
-;db 2         ;type d'emulation (2=disquette)
+;db 0         ;type d'emulation (0=sans)
+;dw 7E0h      ;segment ou charger l'image
+;db 0         ;system type
+;db 0         ;innutilis√©
+;dw (finsecteur_partition_boot-secteur_partition_boot)/2048      ;nombre de secteur charg√© au d√©marrage
+;dd secteur_partition_boot/2048       ;adresse du secteur ou commence l'image 
+;dd 0,0,0,0,0 ;innutilis√©
+
+;emulation de disque dur
+;db 88h       ;signale que boutable
+;db 4         ;type d'emulation (4=disque dur)
 ;dw 0         ;segment ou charger l'image
 ;db 0         ;system type
-;db 0         ;innutilisÈ
-;dw 720       ;nombre de secteur chargÈ au dÈmarrage
-;dd 19        ;adresse du secteur ou commence l'image 
-;dd 0,0,0,0,0 ;innutilisÈ
+;db 0         ;innutilis√©
+;dw finsecteur_partition_boot/2048      ;nombre de secteur charg√© au d√©marrage
+;dd 0       ;adresse du secteur ou commence l'image 
+;dd 0,0,0,0,0 ;innutilis√©
+
+;emulation de disquette
+db 88h       ;signale que boutable
+db 2         ;type d'emulation (2=disquette)
+dw 0         ;segment ou charger l'image
+db 0         ;system type
+db 0         ;innutilis√©
+dw 720       ;nombre de secteur charg√© au d√©marrage?
+dd (secteur_fichier_image/2048)       ;adresse du secteur ou commence l'image 
+dd 0,0,0,0,0 ;innutilis√©
 
 
-;entrÈe finale
+;entr√©e finale
 dd 91h,0,0,0
 dd 0,0,0,0
 
 rb 2048 + secteur_catalogue - $ 
 
 
-;secteur_fichier_image:
-;file "../../BIN/SEAC.IMG"
-;rb ((($/2048)+1)*2048)-$ 
+;*************************************************dossier racine de l'image de cdrom
+secteur_dossier:
+db 44,0 ;longueur descripteur
+ddlm 0 ;position fichier
+ddlm fin_image_iso ;taille fichier
+db 85,4,28,12,20,0,4
+db 0,0,0 ;attributs
+dwlm 0 ;num√©ros de volume
+db 10 ;taille du nom du fichier
+db "SEAC.ISO;1"
+db 0
+
+db 46,0 ;longueur descripteur
+ddlm (secteur_readme/2048) ;position fichier
+ddlm (finsecteur_readme-secteur_readme) ;taille fichier
+db 85,4,28,12,20,0,4
+db 0,0,0 ;attributs
+dwlm 0 ;num√©ros de volume
+db 12 ;taille du nom du fichier
+db "README.TXT;1"
+db 0
+
+db 44,0 ;longueur descripteur
+ddlm (secteur_fichier_image/2048) ;position fichier
+ddlm 1474560 ;taille fichier
+db 85,4,28,12,20,0,4
+db 0,0,0 ;attributs
+dwlm 0 ;num√©ros de volume
+db 10 ;taille du nom du fichier
+db "SEAC.IMG;1"
+db 0
+
+db 44,0 ;longueur descripteur
+ddlm (secteur_archive/2048) ;position fichier
+ddlm (finsecteur_archive-secteur_archive) ;taille fichier
+db 85,4,28,12,20,0,4
+db 0,0,0 ;attributs
+dwlm 0 ;num√©ros de volume
+db 10 ;taille du nom du fichier
+db "SEAC.ZIP;1"
+db 0
+
+
+fin_secteur_dossier:
+
+
+rb 2048 + secteur_dossier - $ 
+
+
+
+
+;*************************************************dossier racine de l'image de cdrom
+secteur_readme:
+db "you are on a bootable cdrom of the SEAC operating system",13,10
+db "SEAC.ISO = hybrid bootable image file of CDrom and hard disk",13,10
+db "SEAC.IMG = bootable floppy image file",13,10
+db 13,10
+db "vous √™tes sur un cdrom amor√ßable du systeme d'exploitation SEAC",13,10
+db "SEAC.ISO = fichier image hybride amor√ßable de CDrom et disque dur",13,10
+db "SEAC.IMG = fichier image amor√ßable de disquette",13,10
+
+
+finsecteur_readme:
+
+rb 2048 + secteur_readme - $
+
+secteur_archive:
+file "../../BIN/SEAC.ZIP"
+rb ((($/2048)+1)*2048)-$ 
+finsecteur_archive:
+
+
+
+
+secteur_fichier_image:
+file "../../BIN/SEAC.IMG"
+rb ((($/2048)+1)*2048)-$ 
 
 
 secteur_partition_boot:
@@ -153,3 +282,6 @@ rb ((($/2048)+1)*2048)-$-1
 db 0
 finsecteur_partition_boot:
 
+
+
+fin_image_iso:
