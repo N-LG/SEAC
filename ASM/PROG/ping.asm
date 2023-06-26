@@ -450,8 +450,8 @@ msg1b:
 db " received in ",0
 db " reçu en ",0
 msg1c:
-db "less than 2"
-db "moins de 2"
+db "less than 2ms",13,0
+db "moins de 2ms",13,0
 msg1d:
 db "ms",13,0
 
