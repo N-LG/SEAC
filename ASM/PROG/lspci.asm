@@ -97,6 +97,8 @@ mov dword[taille_bdd2+4],0
 mov ebx,bdd1
 mov ecx,[taille_bdd1]
 add ecx,[taille_bdd2]
+cmp ecx,0
+je @f
 bc_raz:
 cmp byte[ebx],10
 je ok_raz
@@ -108,7 +110,7 @@ nok_raz:
 inc ebx
 dec ecx
 jne bc_raz
-
+@@:
 
 
 mov al,6        

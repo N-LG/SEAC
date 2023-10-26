@@ -66,6 +66,7 @@ mov al,8
 int 61h
 
 
+
 ;charge fichier de base de donnée des classe
 mov ebx,[handle_bdd1]
 mov ecx,[taille_bdd1]
@@ -93,10 +94,13 @@ mov dword[taille_bdd2+4],0
 @@:
 
 
+
 ;remplace tout les marqueurs de fin de ligne par des zéro
 mov ebx,bdd1
 mov ecx,[taille_bdd1]
 add ecx,[taille_bdd2]
+cmp ecx,0
+je @f
 bc_raz:
 cmp byte[ebx],10
 je ok_raz
@@ -107,8 +111,8 @@ mov byte[ebx],0
 nok_raz:
 inc ebx
 dec ecx
-jne bc_raz
-
+jnz bc_raz
+@@:
 
 ;*******************************************************************************
 mov al,6        
