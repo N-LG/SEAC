@@ -1444,6 +1444,21 @@ mov al,5
 int 63h
 cmp al,0
 je majafcsl
+
+
+;touches ctrl+
+test ah,0Ch
+jz @f
+cmp al,61
+je ctrlx
+cmp al,62
+je ctrlc
+cmp al,63
+je ctrlv
+jmp majafcsl
+@@:
+
+;touches normale
 cmp al,0F0h
 je souris_tecop
 cmp al,0F0h
@@ -1466,6 +1481,8 @@ cmp al,79
 je supprcsl
 cmp al,30
 je backcsl
+cmp al,31
+je autocompl
 cmp al,85
 je avcsl
 cmp al,83
@@ -1797,11 +1814,11 @@ or byte[at_csl],020h    ;met a un le bit "on doit afficher la fin du journal
 or byte[at_csl],02h ;signale que l'affichage du journal doit être mis a jour
 jmp majafcsl
 
-cmd_prec:      ;remplit la zone de commande en cours de r?daction par la commande pr?c?dente
+cmd_prec:      ;remplit la zone de commande en cours de rédaction par la commande précédente
 test ah,3h
 jnz cmd_suiv
 inc byte[num_cmd]
-and byte[num_cmd],03Fh ;on ne peut afficher que les 64 derni?res commandes
+and byte[num_cmd],03Fh ;on ne peut afficher que les 64 dernières commandes
 jmp recop_cmd
 
 
@@ -1853,6 +1870,98 @@ dec edi          ;et on ne compte ps le zéro finale
 mov [to_cce],di
 mov [cu_cce],di
 jmp majafcsl
+
+
+autocompl:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+;réserve un petite partie mémoire
+
+
+
+;charge la liste des fichier
+
+
+
+;recherche parmis les fichier ce qui est proche
+
+
+;s'il n'y as eu qu'une correspondance on complete
+jmp majafcsl
+
+
+;fonctions du presse papier dans le tecop
+ctrlx:
+mov al,15
+mov edx,ad_cce 
+xor ecx,ecx
+mov cx,[to_cce]
+int 61h
+
+mov word[to_cce],0
+mov word[cu_cce],0
+or byte[at_csl],08h ;signale que l'affichage de la commande doit être mis a jour
+jmp majafcsl
+
+
+ctrlc:
+mov al,15
+mov edx,ad_cce 
+xor ecx,ecx
+mov cx,[to_cce]
+int 61h
+jmp majafcsl
+
+ctrlv:
+mov al,16
+mov edx,ad_zdc 
+mov ecx,255
+int 61h
+cmp ecx,0
+je majafcsl
+
+mov ebx,255
+sub bx,[to_cce]
+cmp ebx,ecx
+jb @f ;??????????????????????????????
+mov ebx,ecx
+@@:
+
+xor eax,eax
+xor ecx,ecx
+mov ax,[cu_cce]
+add cx,[to_cce]
+sub ecx,eax
+jz @f
+
+mov esi,ad_cce
+add si,[to_cce]
+dec esi
+mov  edi,esi
+add edi,ebx
+std
+rep movsb
+@@:
+
+
+mov ecx,ebx
+mov esi,ad_zdc
+mov edi,ad_cce
+add di,[cu_cce]
+cld
+rep movsb
+
+
+add [to_cce],ebx
+add [cu_cce],ebx
+or byte[at_csl],08h ;signale que l'affichage de la commande doit être mis a jour
+jmp majafcsl
+
+
+
+
 
 
 ;change l'ecran affiché
