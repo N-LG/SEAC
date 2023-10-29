@@ -1872,24 +1872,146 @@ mov [cu_cce],di
 jmp majafcsl
 
 
+
 autocompl:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+;recherche le début du mot a completer
+mov esi,ad_cce
+mov edi,ad_cce
+add esi,[cu_cce]
+cmp esi,ad_cce
+je majafcsl
+@@:
+mov al,[esi]
+cmp al," "
+je @f
+cmp al,22h ;"
+je @f
+cmp al,":"
+je @f
+dec esi
+cmp esi,edi
+jne @b
+jmp autocompl_commande
+
+@@:
+inc esi
 
 
 
 ;réserve un petite partie mémoire
+mov ecx,40000h
+call resmem
+jc majafcsl
+mov ebp,ebx
 
 
+;charge la liste des fichier du dossier de travail
+mov ax,selramh
+mov ds,ax
 
-;charge la liste des fichier
+mov al,16
+mov ebx,0
+mov ecx,40000h
+mov edx,0
+mov edi,ebp
+add edi,10h
+int 64h
+cmp eax,0
+jne erreur_autocompl
+jmp autocompl_recherche
 
 
+autocompl_commande:
+;réserve un petite partie mémoire
+mov ecx,40000h
+call resmem
+jc majafcsl
+mov ebp,ebx
 
-;recherche parmis les fichier ce qui est proche
+
+;charge la liste des fichier du dossier systeme
+mov ax,selramh
+mov ds,ax
+
+mov al,16
+mov ebx,0
+mov ecx,40000h
+mov edx,0
+mov edi,ebp
+add edi,10h
+int 64h
+cmp eax,0
+jne erreur_autocompl
 
 
-;s'il n'y as eu qu'une correspondance on complete
+;purge la liste de tout les fichier pas en .FE
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;supprime les .FE
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;passe en minuscule
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp majafcsl
+
+;recherche parmis la liste ce qui est proche
+autocompl_recherche:
+mov edi,ebp
+add edi,10h
+
+
+autocomple_recherche_boucle:
+push esi
+push edi
+@@:
+mov al,[esi]
+es
+mov ah,[edi]
+cmp al,ah
+jne autocompl_nomsuivant
+inc ecx
+inc esi
+inc edi
+cmp edi,ebx
+jne @b
+
+
+
+
+autocompl_nomsuivant:
+pop edi
+pop esi
+
+
+jmp autocomple_recherche_boucle
+
+
+
+
+
+;décale les données
+mov ax,seldat
+mov ds,ax
+mov es,ax
+
+
+
+;recopie la chaine
+mov ax,selramh
+mov ds,ax
+
+
+
+
+erreur_autocompl:
+mov ebx,ebp
+call libmem
+mov ax,seldat
+mov ds,ax
+mov es,ax
+jmp majafcsl
+
+
 
 
 ;fonctions du presse papier dans le tecop
@@ -1925,7 +2047,7 @@ je majafcsl
 mov ebx,255
 sub bx,[to_cce]
 cmp ebx,ecx
-jb @f ;??????????????????????????????
+jb @f
 mov ebx,ecx
 @@:
 
@@ -2617,8 +2739,8 @@ cmp eax,"efj"
 je cmdefj
 cmp eax,"dir"
 je cmddir
-cmp eax,"fix"
-je cmdfix
+cmp eax,"fds"
+je cmdfds
 cmp eax,"mtt"
 je cmdmtt
 cmp eax,"cop"
@@ -3160,7 +3282,7 @@ jmp pascommande
 
 
 ;****************************************************************
-cmdfix:             ;enregisre le dossier actuel comme étant le dossier systeme
+cmdfds:             ;enregisre le dossier actuel comme étant le dossier systeme
 
 ;recopie l'adresse
 mov ax,seldat
