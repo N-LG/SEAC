@@ -17,7 +17,7 @@
  ~LT~/~PS~ show running tasks
  ~MODV~ changes the video mode
  ~EFJ~ clear system log
- ~FIX~ set system folder
+ ~FDS~ set system folder
  ~MTT~ modifies the execution time of the task
  ~STOP~ stop a task
 %-Editors:
@@ -101,12 +101,12 @@
 %command: modv XXX
  change the video mode of the screen to the mode
  XXX = mode numbers, XXX*YYY for resolution
-:efj:af:fix
+:efj:af:fds
 ^Log Manipulation Commands
 
 %command: efj
  Erase the contents of the system log
-%command: fix
+%command: fds
  Makes system record that the folder in use is the system folder
 %command: ver
  Show system version in system log
@@ -258,7 +258,7 @@
 :system folder:system
 ^System Folder
  the system folder is the folder where the executables of the additional commands are stored as well as the files necessary for the proper functioning of the operating system (definition file, help file, etc.)
- we define the system folder with the command ~fix~
+ we define the system folder with the command ~fds~
 :seac
 ^SEaC: approximately complete operating system
  (more explanation to come)
@@ -476,3 +476,19 @@ starts the driver for an Intel or compatible card
  the program queries a server dedicated to certain top-level domains
  (.com .net.org .fr .eu .uk .be .wiki .io .de)
  for all the others, the whois.iana.org server is queried
+:ctftp
+^CTFTP
+ TFTP client
+
+%Command: ctftp XXXX YYYY ZZZZ
+ with XXXX = server address
+      YYYY = operation to be performed
+      ZZZZ = optional parameters
+
+ operation to be performed:
+ -r:XXX read file XXX from server
+ -w:XXX write file XXX to server
+
+ optional parameters:
+ -c:XXX network interface numbers to use
+ -e allows to overwrite the destination file
