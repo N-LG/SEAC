@@ -1875,6 +1875,7 @@ jmp majafcsl
 
 autocompl:
 ;recherche le début du mot a completer
+xor ecx,ecx
 mov esi,ad_cce
 mov edi,ad_cce
 add esi,[cu_cce]
@@ -1889,6 +1890,7 @@ je @f
 cmp al,":"
 je @f
 dec esi
+inc ecx
 cmp esi,edi
 jne @b
 jmp autocompl_commande
@@ -1929,6 +1931,10 @@ jc majafcsl
 mov ebp,ebx
 
 
+;charge la liwste des commandes internes???????
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
 ;charge la liste des fichier du dossier systeme
 mov ax,selramh
 mov ds,ax
@@ -1938,7 +1944,7 @@ mov ebx,0
 mov ecx,40000h
 mov edx,0
 mov edi,ebp
-add edi,10h
+add edi,10h  ;??????a modifier si on ajoute la liste des commandes en interne
 int 64h
 cmp eax,0
 jne erreur_autocompl
@@ -1954,31 +1960,31 @@ jne erreur_autocompl
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp majafcsl
 
+
+
+
 ;recherche parmis la liste ce qui est proche
 autocompl_recherche:
 mov edi,ebp
 add edi,10h
 
-
 autocomple_recherche_boucle:
 push esi
 push edi
+
 @@:
-mov al,[esi]
 es
+mov al,[esi]
 mov ah,[edi]
 cmp al,ah
 jne autocompl_nomsuivant
-inc ecx
 inc esi
 inc edi
-cmp edi,ebx
-jne @b
+dec ecx
+jnz @b
 
+ 
 
-
-
-autocompl_nomsuivant:
 pop edi
 pop esi
 
@@ -1986,6 +1992,23 @@ pop esi
 jmp autocomple_recherche_boucle
 
 
+autocompl_nomsuivant:
+pop edi
+pop esi
+
+@@:
+inc edi
+cmp byte[edi],0
+je autocomple_recherche_fin 
+cmp byte[edi],"|"
+jne @b
+inc edi
+jmp autocomple_recherche_boucle
+
+
+
+autocomple_recherche_fin:
+jmp majafcsl
 
 
 
