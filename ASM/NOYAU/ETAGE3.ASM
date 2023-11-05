@@ -1878,7 +1878,7 @@ autocompl:
 xor ecx,ecx
 mov esi,ad_cce
 mov edi,ad_cce
-add esi,[cu_cce]
+add si,[cu_cce]
 cmp esi,ad_cce
 je majafcsl
 @@:
@@ -1896,13 +1896,16 @@ jne @b
 jmp autocompl_commande
 
 @@:
+dec ecx
 inc esi
 
 
 
 ;réserve un petite partie mémoire
+push ecx
 mov ecx,40000h
 call resmem
+pop ecx
 jc majafcsl
 mov ebp,ebx
 
@@ -1911,6 +1914,7 @@ mov ebp,ebx
 mov ax,selramh
 mov ds,ax
 
+push ecx
 mov al,16
 mov ebx,0
 mov ecx,40000h
@@ -1918,12 +1922,15 @@ mov edx,0
 mov edi,ebp
 add edi,10h
 int 64h
+pop ecx
 cmp eax,0
 jne erreur_autocompl
 jmp autocompl_recherche
 
 
 autocompl_commande:
+jmp majafcsl   ;partie desactivé parce que pas finis
+
 ;réserve un petite partie mémoire
 mov ecx,40000h
 call resmem
@@ -1964,11 +1971,16 @@ jmp majafcsl
 
 
 ;recherche parmis la liste ce qui est proche
+;edi=nom a rechercher
+;ecx=taille du nom
 autocompl_recherche:
 mov edi,ebp
 add edi,10h
+xor ebx,ebx    ;taille du nom
+xor edx,edx    ;adresse du nom
 
 autocomple_recherche_boucle:
+push ecx
 push esi
 push edi
 
@@ -1983,19 +1995,45 @@ inc edi
 dec ecx
 jnz @b
 
- 
-
+;traite une corespondance 
 pop edi
 pop esi
+pop ecx
 
 
-jmp autocomple_recherche_boucle
 
+cmp ebx,0 ;test si une autre corespondance as déja été trouvé
+jne autocompl_multip
+
+mov edx,edi
+
+;compte le nombre de carac
+push edx
+@@:
+cmp byte[edx],"|"
+je @f
+cmp byte[edx],0
+je @f
+inc ebx
+inc edx
+jmp @b
+@@:
+pop edx
+
+jmp autocompl_nomsuivant2
+
+
+
+autocompl_multip:
+;compte le nombre de carac en commun
+
+jmp autocompl_nomsuivant2
 
 autocompl_nomsuivant:
 pop edi
 pop esi
-
+pop ecx
+autocompl_nomsuivant2:
 @@:
 inc edi
 cmp byte[edi],0
@@ -2008,21 +2046,50 @@ jmp autocomple_recherche_boucle
 
 
 autocomple_recherche_fin:
-jmp majafcsl
 
 
+
+mov edi,edx
+add edi,ebx
+mov byte[edi],0
+mov al,6
+int 61h
+jmp erreur_autocompl
+
+
+
+
+
+;si il y as un espace dans le nom, rajoute deux guillement
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+;si il y as un guillement au début, rajout un a la fin
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 ;décale les données
 mov ax,seldat
 mov ds,ax
 mov es,ax
-
-
+pushad
+mov esi,ad_cce
+add si,[to_cce]
+dec esi
+mov  edi,esi
+add edi,ebx
+std
+rep movsb
+popad
 
 ;recopie la chaine
 mov ax,selramh
 mov ds,ax
-
+mov ecx,ebx
+mov esi,edx
+mov edi,ad_cce
+add di,[cu_cce]
+cld
+rep movsb
 
 
 

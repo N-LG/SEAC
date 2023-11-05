@@ -16,7 +16,6 @@ rb 416 - ($ - zone1)mod 416         ;remplissage pour faire une entête de 416 o
 
 fichier1:
 db "modv 800*600",10,13
-db "voir logo.png -t -s",10,13
 ;db "def en-txt.def",10,13
 ;db "def en-qwi.def",10,13
 db "rtl8139",10,13
@@ -30,7 +29,6 @@ db "cdns",10,13
 db "ipconfig 0 comp 192.168.1.200 255.255.255.0 192.168.1.1 0:0:0:0:0:0:0:0 0:0:0:0:0:0:0:0",10,13
 ;db "ipconfig 1 comp 192.168.1.201 255.255.255.0 192.168.1.1 0:0:0:0:0:0:0:0 0:0:0:0:0:0:0:0",10,13
 db "*",10,13
-db "stop 2",10,13
 db "af ",10,13
 ;db "af pour un rappel des principales commandes disponible,",10,13
 ;db "af entrez la commande «man commandes»",10,13
