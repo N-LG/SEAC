@@ -2018,16 +2018,32 @@ inc ebx
 inc edx
 jmp @b
 @@:
-pop edx
 
+pop edx
 jmp autocompl_nomsuivant2
 
 
 
 autocompl_multip:
 ;compte le nombre de carac en commun
+xor ebx,ebx
+push edx
+push edi
+@@:
+mov al,[edx]
+cmp al,[edi]
+jne @f
+inc ebx
+inc edx
+inc edi
+jmp @b
+@@:
 
+pop edi
+pop edx
 jmp autocompl_nomsuivant2
+
+
 
 autocompl_nomsuivant:
 pop edi
@@ -2035,26 +2051,31 @@ pop esi
 pop ecx
 autocompl_nomsuivant2:
 @@:
-inc edi
 cmp byte[edi],0
 je autocomple_recherche_fin 
 cmp byte[edi],"|"
-jne @b
+je @f
+inc edi
+jmp @b
+@@:
 inc edi
 jmp autocomple_recherche_boucle
 
 
 
 autocomple_recherche_fin:
+cmp ebx,0 ;si on as rien trouvé on quitte
+je erreur_autocompl 
 
 
 
-mov edi,edx
-add edi,ebx
-mov byte[edi],0
-mov al,6
-int 61h
-jmp erreur_autocompl
+
+;mov edi,edx
+;add edi,ebx
+;mov byte[edi],0
+;mov al,6
+;int 61h
+;jmp erreur_autocompl
 
 
 
@@ -2066,6 +2087,9 @@ jmp erreur_autocompl
 
 ;si il y as un guillement au début, rajout un a la fin
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
 
 ;décale les données
 mov ax,seldat
@@ -2084,13 +2108,20 @@ popad
 ;recopie la chaine
 mov ax,selramh
 mov ds,ax
+pushad
+mov edi,esi
 mov ecx,ebx
 mov esi,edx
-mov edi,ad_cce
-add di,[cu_cce]
 cld
 rep movsb
+popad
 
+mov ax,seldat
+mov ds,ax
+mov eax,ebx
+sub eax,ecx
+add [cu_cce],ax
+add [to_cce],ax
 
 
 erreur_autocompl:
