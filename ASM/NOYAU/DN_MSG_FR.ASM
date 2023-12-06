@@ -10,14 +10,14 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 Octobre 2023 version de dévellopement",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 Décembre 2023 version de dévellopement",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 db 13,16h,"Commande inconnue: ",0 ;1
 db 13,16h,"Répertoire introuvable: ",0   ;2
 db 13,16h,"Erreur lors de l'execution de la commande ",34,0     ;3
 db 13,16h,"Tâche non trouvé: ",0 ;4
-db 0  ;5
+db 13,16h,"Impossible de remonter plus dans l'arborescence des fichiers",17h,13,0  ;5
 db "Format de fichier non reconnue",13,0  ;6
 db 13,16h,"Mode video non supporté",17h,13,0 ;7
 db 0 ;8
@@ -127,7 +127,7 @@ db " a été copié en ",0  ;95
 db " a été supprimé",13,0  ;96
 db " a été rennommé ",0  ;97
 db "le fichier ",0  ;98
-db 0  ;99
+db "erreur durant l'initialisation du périphérique HID",13,0  ;99
 db "le périphérique USB «",0  ;100
 db "» a été connecté a l'adresse ",0 ;101
 db "erreur lors de la connexion d'un nouveau périphérique USB",13,0 ;102

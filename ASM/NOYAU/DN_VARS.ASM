@@ -61,6 +61,8 @@ infovesa equ 0A400h ;zone tampon utillisé par les fonction VESA pour y charger l
 
 ;???
 
+ad_hid equ 0AE00h  ;table de 8*64octet de descripteur de peripherique usb de type HID
+
 ad_desc_periph_usb equ 0B000h 
 dc_desc_periph_usb equ 6 ;element de 64 octets
 nb_desc_periph_usb equ 128 
@@ -160,9 +162,9 @@ attcl equ 30h   ;attribut clavier
 ;b3=
 ;b4=pause activé
 ;b5=
-;b6=commande de maj led envoyé
+;b6=commande de maj led envoyé en ps/2
 ;b7=jeu de caractère clavier alternatif activé
-
+ledcl equ 31h   ;led actuellement affiché sur le clavier
 ztcl equ 32h    ;zone tampon clavier
 nlafj equ 36h   ;pointeur sur la fin du journal
 pfinj equ 38h   ;pointeur sur la fin du journal
@@ -178,7 +180,7 @@ xs1 equ 50h      ;position de la souris 1 en X
 ys1 equ 52h      ;position de la souris 1 en Y
 axs1 equ 54h     ;position d'affichage actuel en x de la souris 1
 ays1 equ 56h     ;position d'affichage actuel en y de la souris 1
-nbzt1 equ 58h    ;nombre d'octet dans la trame a d‚coder
+nbzt1 equ 58h    ;nombre d'octet dans la trame a décoder
 nbts1 equ 59h    ;nombre d'octet de la trame a attendre avant de la dédoder
 atts1 equ 5Ah    ;attribut souris 1
 		 ;bo=souris activé
@@ -452,7 +454,16 @@ usb_tag       equ 608h     ;tag (dword)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
+decod_hid_report_size equ 620h
+decod_hid_report_count equ 624h
+decod_hid_offset_in equ 628h
+decod_hid_offset_out equ 62Ch
+decod_hid_nb_usage equ 630h
+decod_hid_ad_usage equ 634h
+decod_hid_page_usage equ 638h
+decod_hid_id equ 63Ch
 
+decod_hid_usage_minimum equ 640h
 
 
 at_processeur equ 700h

@@ -297,7 +297,6 @@ pop ebx
 cmp eax,0
 jne global_erreur_connexionUSB
 
-
 mov byte[ad_chaine_travail],0
 
 mov dl,[ad_chaine_travail+15]   ;index du descripteur
@@ -313,6 +312,7 @@ int 68h
 pop ebx
 cmp eax,0
 jne ignore_lecture_nom_usb
+
 
 mov esi,ad_chaine_travail+256
 mov edi,ad_chaine_travail
@@ -352,16 +352,18 @@ jne global_erreur_connexionUSB
 
 
 
+
 ;cherche dans le descripteur de configuration si il y  as une fonction géré par le systeme
 mov edi,ad_chaine_travail
 xor eax,eax
 mov ebp,edi
 mov ax,[ad_chaine_travail+2]
 add ebp,eax
+xor edx,edx
 
 boucle_active_config_usb:
-cmp byte[edi+1],4
-jne suite_active_config_usb
+cmp byte[edi+1],4   ;si ça n'est pas une interface on ignore
+jne ignore_active_config_usb
 
 
 cmp byte[edi+5],3
@@ -372,6 +374,8 @@ cmp byte[edi+5],9
 je config_hub_usb
 
 suite_active_config_usb:
+inc edx
+ignore_active_config_usb:
 xor eax,eax
 mov al,[edi]
 add edi,eax
@@ -382,36 +386,293 @@ mov dword[usb_tempo],0
 mov byte[usb_action],0
 jmp suite_test_cnx_usb
 
-
+;**********************************************
 config_hid_usb:
-cmp byte[edi+7],1
-je config_clavier_usb
-cmp byte[edi+7],2
-je config_souris_usb
+pushad
+mov ebx,edx
+;créer une entré dans la table des périphérique hid
+mov esi,ad_hid
+@@:
+cmp byte[esi],0
+je @f
+add esi,64
+cmp esi,ad_hid+512
+jne @b
+jmp suite_active_config_usb  ;si plus de place, on abandonne
+
+@@:
+mov al,[usb_adresse] ;adresse
+mov [esi],al
+
+;??????????????????????????????d'autres choses a enregistrer
+
+
+mov edi,ad_chaine_travail+256
+
+;lit le descripteur hid
+mov al,[usb_adresse] ;adresse
+xor ah,ah
+mov byte[edi],81h    ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov word[edi+2],2100h ;wValue (LSB=index du descripteur MSB=type de descripteur)
+mov word[edi+4],bx  ;wIndex
+mov word[edi+6],9  ;wLength
+mov edx,edi
+call sfusb_commande
+cmp eax,0
+jne erreur_activation_hid 
+
+mov cx,[edi+7] ;lit la taille du descripteur de rapport
+
+;lit le descripteur de rapport
+mov al,[usb_adresse] ;adresse
+xor ah,ah
+mov byte[edi],81h    ;bmRequestType
+mov byte[edi+1],6  ;bRequest (ici read descriptor)
+mov word[edi+2],2200h ;wValue (LSB=index du descripteur MSB=type de descripteur)
+mov word[edi+4],bx  ;wIndex
+mov word[edi+6],cx  ;wLength
+mov edx,edi
+call sfusb_commande
+cmp eax,0
+jne erreur_activation_hid 
+
+
+
+;interprete le descripteur de rapport et complete la table des descripteur hid
+
+
+pushad ;temporaire: afficher le report descriptor
+@@:
+mov al,[edi]
+call affh0j
+mov al,"-"
+call affcj
+inc edi
+dec ecx
+jne @b
+mov al,13
+call affcj
+popad
+
+
+pushad
+mov esi,edi
+mov ebp,edi
+add ebp,ecx
+
+boucle_parseHIDusb:
+mov al,[esi]
+;cmp al,??
+;je longelem
+mov cl,[esi]
+mov edx,[esi+1]
+and ax,0FCh
+and ecx,3h
+inc esi
+
+cmp cl,3
+jne @f
+inc cl
+@@:
+
+cmp cl,0
+jne @f
+xor edx,edx
+@@:
+cmp cl,1
+jne @f
+and edx,0FFh
+test edx,80h
+jz @f
+or edx,0FFFFFF00h
+@@:
+cmp cl,2
+jne @f
+and edx,0FFFFh
+test edx,8000h
+jz @f
+or edx,0FFFF0000h
+@@:
+
+
+;temporaire
+pushad
+call affh0j
+mov al,"-"
+call affcj
+mov eax,edx
+call affh2j
+mov al,13
+call affcj
+popad
+
+
+cmp al,004h
+je hid04
+cmp al,008h
+je hid08
+cmp al,018h
+je hid18
+cmp al,074h
+je hid74
+cmp al,080h
+je hid80
+cmp al,090h
+je hid90
+cmp al,094h
+je hid94
+;rajouter ID
+
+jmp suite_parseHIDusb
+
+hid04:   ;usage page
+mov [decod_hid_page_usage],edx
+jmp suite_parseHIDusb
+
+hid08:    ;usage  voir 6.2.2.7 et HUT
+cmp dword[decod_hid_nb_usage],0
+jne @f
+mov [decod_hid_ad_usage],esi
+@@:
+inc dword[decod_hid_nb_usage]
+jmp suite_parseHIDusb
+
+
+
+hid18:   ;usage minimum
+mov [decod_hid_usage_minimum],edx
+jmp suite_parseHIDusb
+
+hid74:   ;report count
+mov [decod_hid_report_count],edx
+jmp suite_parseHIDusb
+
+hid94:   ;report size
+mov [decod_hid_report_size],edx
+jmp suite_parseHIDusb
+
+
+hid80:    ;input  voir 6.2.2.5
+;????
+
+;usage clavier bitmap
+;usage clavier table
+;usage bouton
+;usage x
+;usage y
+;usage molette
+
+
+
+xor edx,edx
+mov eax,[decod_hid_report_size]
+mov ecx,[decod_hid_report_count]
+mul ecx
+add [decod_hid_offset_in],eax
+jmp suite_parseHIDusb
+
+
+
+hid90:    ;output
+;????
+
+
+;usage led
+
+xor edx,edx
+mov eax,[decod_hid_report_size]
+mov ecx,[decod_hid_report_count]
+mul ecx
+add [decod_hid_offset_out],eax
+jmp suite_parseHIDusb
+
+
+
+
+
+
+
+suite_parseHIDusb:
+add esi,ecx
+cmp esi,ebp
+jb boucle_parseHIDusb
+
+;jmp boucle_parseHIDusb
+
+fin_parseHIDusb:
+popad
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;active idle
+mov al,[usb_adresse] ;adresse
+xor ah,ah
+mov byte[edi],21h    ;bmRequestType
+mov byte[edi+1],0Ah  ;bRequest (set idle)
+mov word[edi+2],0000h ;wValue (LSB=tout report MSB=indefiniment)
+mov word[edi+4],bx  ;wIndex
+mov word[edi+6],0  ;wLength
+mov edx,edi
+call sfusb_commande
+;cmp eax,0
+;jne erreur_activation_hid ;pas de controle d'erreur parce que l'option n'est pas obligatoirement reconnu
+
+
+;active le report descriptor
+mov al,[usb_adresse] ;adresse
+xor ah,ah
+xor ecx,ecx
+mov byte[edi],21h    ;bmRequestType
+mov byte[edi+1],0Bh  ;bRequest (set protocol)
+mov word[edi+2],1  ;wValue (0=boot protocol 1=report protocol)
+mov word[edi+4],bx  ;wIndex
+mov word[edi+6],0  ;wLength
+mov edx,edi
+call sfusb_commande
+;cmp eax,0
+;jne erreur_activation_hid ;pas de controle d'erreur parce que l'option n'est pas obligatoirement reconnu
+
+
+popad
 jmp suite_active_config_usb
 
 
-config_msd_usb:
+erreur_activation_hid:
+mov cl,99
+call affmsgsyst
+popad
+jmp suite_active_config_usb
+
+
+
+
+;*******************************************
+config_msd_usb:  ;configuration clef usb/disque dur
 cmp word[edi+6],05006h
 je config_bulkonly_usb
 jmp suite_active_config_usb
 
-
+;*******************************************
 config_hub_usb:
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp suite_active_config_usb
 
 
-config_souris_usb:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp suite_active_config_usb
 
 
-config_clavier_usb:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp suite_active_config_usb
-
-
+;*******************************************
 config_bulkonly_usb:
 push edx
 push edi
@@ -665,7 +926,44 @@ fin_test_cnx_usb:
 
 
 
+;*********************************************************
+;lit les données envoyé par les peripheriques hid usb
 
+
+;???????????????????????????????????????
+
+
+
+
+
+;*********************************************************
+;envoie les eventuelles modification des leds claviers
+;jmp pas_modif_led_clavier 
+mov ax,seldat
+mov ds,ax
+mov al,[attcl]
+mov ah,[ledcl]
+and ax,707h
+cmp al,ah
+je pas_modif_led_clavier 
+
+;ps2
+mov al,0EDh       ;commande led
+out 60h,al
+or byte[attcl],40h
+
+
+
+
+;usb hid
+
+
+
+
+mov al,[attcl]
+and al,7
+mov [ledcl],al
+pas_modif_led_clavier:
 
 
 

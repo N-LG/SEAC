@@ -42,12 +42,20 @@ je sfusb_lec_desc
 cmp al,3   ;selection configuration actuelle
 je sfusb_active_config
 
-;cmp al,4   ;lecture configuration actuelle
-;cmp al,5   ;envoie commande brute
+;cmp al,4   ;lecture configuration actuelle 
+;je 
+
+cmp al,5   ;envoie commande brute
+je sfusb_commande_ext
+
 ;cmp al,6   ;envoie donnée bulk
 ;cmp al,7   ;reception donnée bulk
-;cmp al,8   ;ouverture connexion isocrone vers terminaison
-;cmp al,9   ;ouverture connexion interruption vers terminaison
+
+cmp al,8   ;ouverture connexion isocrone vers terminaison
+je sfusb_iso
+cmp al,9   ;ouverture connexion interruption vers terminaison
+je sfusb_int
+
 ;cmp al,10  ;fermeture connexion iso ou int
 ;cmp al,11  ;lire données canal isocrone ou int
 ;cmp al,12  ;ecrire données canal isocrone ou int
@@ -98,32 +106,39 @@ iret
 
 
 
-
-
-
-
-
-
-
-
-
-;bl=adresse
-;bh=endpoint
-
-
-
-
-
-
 ;**********************************************************
 sfusb_lec_desc:    ;dl=index du descripteur dh=type de descripteur
 push ecx
 push edx
+push ebp
+
+xor ebp,ebp
+cmp dh,3       ; si c'est un string descriptor, on récupère l'ID de la langue
+jne @f
+
+mov byte[edi],80h    ;bmRequestType
+mov byte[edi+1],6    ;bRequest (ici read descriptor)
+mov word[edi+2],300h ;wValue (LSB=index du descripteur MSB=type de descripteur)
+mov word[edi+4],0    ;wIndex
+mov word[edi+6],4    ;wLength=4 pour lire juste le descripteur de langue
+push edx
+mov edx,edi
+mov eax,ebx
+call sfusb_commande
+pop edx
+cmp eax,0
+jne fin_sfusb_lec_desc
+
+mov bp,[edi+2]
+@@:
+
+
+
 mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
 mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
-mov word[edi+4],0  ;wIndex
-mov word[edi+6],4  ;wLength=4 pour lire les taille réel des data completes
+mov word[edi+4],bp  ;wIndex
+mov word[edi+6],8  ;wLength=8 pour lire les taille réel des data completes
 push edx
 mov edx,edi
 mov eax,ebx
@@ -143,13 +158,14 @@ mov cx,[edi+2]   ;si le descripteur est un descripteur de configuration, on lit 
 mov byte[edi],80h    ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
 mov word[edi+2],dx ;wValue (LSB=index du descripteur MSB=type de descripteur)
-mov word[edi+4],0  ;wIndex
+mov word[edi+4],bp  ;wIndex
 mov word[edi+6],cx  ;wLength
 mov edx,edi
 mov eax,ebx
 call sfusb_commande
 
 fin_sfusb_lec_desc:
+pop ebp
 pop edx
 pop ecx
 iret
@@ -180,7 +196,7 @@ cmp eax,0
 jne fin_sfusb_active_config
 
 
-;actrive la configuration
+;active la configuration
 mov cx,[edi+2]
 push ecx 
 push edx
@@ -199,6 +215,7 @@ pop ecx
 cmp eax,0
 jne fin_sfusb_active_config
 
+
 ;lit la totalité du descripteur
 mov byte[edi],80h  ;bmRequestType
 mov byte[edi+1],6  ;bRequest (ici read descriptor)
@@ -211,7 +228,6 @@ mov eax,ebx
 call sfusb_commande
 cmp eax,0
 jne fin_sfusb_active_config
-
 
 
 ;parcours le descripteur et enregistre les infos des terminaisons (endpoint)
@@ -275,6 +291,11 @@ iret
 
 ;**************************************************************************************************************************************************************************************************************
 ;**************************************************************************************************************************************************************************************************************
+sfusb_commande_ext:
+call sfusb_commande
+iret
+
+
 ;envoie commande USB
 sfusb_commande:        ;al=périphérique ah=endpoint ds:edx=zt des 8 octet de la commande ds:edi=adresse des données optionnel de commande
 pushad
@@ -419,10 +440,9 @@ xor edx,edx
 mov eax,[ebx+uhci_bulkmem_param_tframe]
 mov ecx,[ebx+uhci_bulkmem_param_tod]
 div ecx
-add eax,3
+add eax,4
 shl eax,5
 add eax,uhci_bulkmem_td
-mov eax,200h
 mov [ebx+uhci_bulkmem_param_adata],eax
 
 
@@ -824,7 +844,7 @@ ret
 ;**************************************************************************************************************************************************************************************************************
 ;**************************************************************************************************************************************************************************************************************
 ;crée canal isocrone usb
-sfusb_iso:        ;al=périphérique ah=endpoint ??????????????????????????????????????????
+sfusb_iso:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame
 pushad
 push ds
 push es
@@ -873,15 +893,126 @@ pop es
 pop ds
 popad
 mov eax,cer_parami
-ret
+iret
 
 
 
 
 ;********************************************************
 sfusb_iso_uhci:
+mov dl,1        ;dl=periodicité de la trame
+sfusb_int_uhci:
+mov ebp,ebx
+
+;calcul la taille de la ZT nécessaire
+;=(1024/periodicité)*(TD+ZT)
+push ecx
+push edx
+push ecx
+xor ecx,ecx
+mov eax,1024
+mov cl,dl
+xor edx,edx
+div ecx
+pop ecx
+add ecx,32
+mul ecx
+
+;réserve une zone mémoire tampon
+call resmem
+pop edx
+pop ecx
+jc sfusb_iso_err_mem
+mov dword[ebx+8],czm_iso_usb
+
+
+
+
+
+
+
+;crée les TDs
 ;???????????????????????????????????????????????????
-ret
+
+
+
+;insère les TD dans la frame liste uhci
+;???????????????????????????????????????????????????
+
+
+
+sfusb_iso_err_mem:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;crée canal interruption usb
+sfusb_int:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame dl=périodicité de la trame
+pushad
+push ds
+push es
+push fs
+
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
+mov bx,seldat
+mov fs,bx
+
+xor ebx,ebx
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov esi,ebx                ;esi=adresse du descripteur de périphérique
+
+fs
+test byte[esi+dpu_att],01b
+jz sfusb_iso_err_param
+
+xor ebx,ebx
+fs
+mov bl,[esi+dpu_ctrl] 
+shl ebx,dc_desc_ctrl_usb
+add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
+             
+fs
+cmp byte[ebx+dcu_type],01
+je sfusb_int_uhci ;(voir du coté isochrone)
+;fs
+;cmp byte[ebx+dcu_type],02
+;je sfusb_int_ohci
+;fs
+;cmp byte[ebx+dcu_type],03
+;je sfusb_int_ehci
+;fs
+;cmp byte[ebx+dcu_type],04
+;je sfusb_int_xhci
+sfusb_int_err_param:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+
 
 
 
@@ -1500,20 +1631,19 @@ out dx,eax
 mov ebx,[esi+dcu_mem] 
 mov ecx,1024
 mov edx,1002h  ;position du premier QH + indication que l'on pointe sur un QH (bit1=1)
-add edx,ebx    ;edx=pointeur vers le seul qh
+add edx,ebx    ;edx=pointeur vers le qh toutes periodes
 sub ebx,100000h
-
-boucle_table_uhci:
+@@:
 es
 mov [ebx],edx
 add ebx,4
 dec ecx
-jnz boucle_table_uhci
+jnz @b
 
 
-;créer qh des interruption
+;créer QH vide qu est pointé par chaque entrée de la frame list
 mov ebx,[esi+dcu_mem] 
-sub ebx,0FF000h   ;-1Mo +4Ko
+sub ebx,0FF000h   ;-1Mo +4Ko (juste après la frame list)
 es
 mov dword[ebx],1  ;marqueur d'entrée suivante invalide
 es

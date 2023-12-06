@@ -4,15 +4,15 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 October 2023 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 December 2023 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 
 db 13,16h,"unknown command: ",0 ;1
 db 13,16h,"directory not found: ",0   ;2
 db 13,16h,"Error while executing the command ",34,0     ;3
-db 13,16h, "Task not found: ",0 ;4
-db 0  ;5
+db 13,16h,"Task not found: ",0 ;4
+db 13,16h,"Unable to go further up the file tree",17h,13,0  ;5
 db 13,16h,"unrecognized file format",13,0  ;6
 db 13,16h,"Video mode not supported",13,0 ;7
 db 0 ;8
@@ -122,7 +122,7 @@ db " has been copied to ",0  ;95
 db " has been removed",13,0  ;96
 db " file has been renamed to ",0  ;97
 db "the ",0  ;98
-db 0  ;99
+db "error during HID device initialization",13,0  ;99
 db "USB device ",34,0; 100
 db 34," has been connected to address ", 0; 101
 db "error when connecting a new USB device",13,0; 102

@@ -5349,7 +5349,7 @@ je ajoute_carac_zt
 cmp [ebx],eax
 jne pas_chasse_trouve
 mov [sv_chas],eax
-jmp bougled
+jmp finircl
 pas_chasse_trouve:
 add ebx,12
 cmp ebx,ad_tabclav_chasse+3FFCh
@@ -5358,7 +5358,7 @@ jne boucle_recherche_chasse
 ajoute_carac_zt:
 xor ebx,ebx              ;ajoute le caractère dans la ZT clavier
 cmp byte[nb_zrc],42
-je bougled
+je finircl
 mov bl,[nb_zrc]
 inc byte[nb_zrc]
 mov edx,ebx      ;mul ebx par 6
@@ -5367,33 +5367,25 @@ shl edx,1
 add ebx,edx
 mov [ebx+zt_rcl],cx
 mov [ebx+zt_rcl+2],eax
-
-bougled:
-mov al,0EDh       ;commande led
-out 60h,al
-or byte[attcl],40h
 jmp finircl
-
-
-
 
 ;****************************************
 ;gestion des touches spéciales
 touche_num:
 xor byte[attcl],02h
-jmp bougled
+jmp finircl
 
 touche_maj:
 xor byte[attcl],04h
-jmp bougled
+jmp finircl
 
 touche_scroll:
 xor byte[attcl],01h
-jmp bougled
+jmp finircl
 
 touche_pause:
 xor byte[attcl],10h
-jmp bougled
+jmp finircl
 
 touche0_pavenum:
 xor ebx,ebx
@@ -5449,7 +5441,7 @@ out 61h,al        ;éteint le bipper
 
 mov dx,0
 call sfv_sf_choix_console
-jmp bougled
+jmp finircl
 
 
 debut_alttab:    ;alt+tab
@@ -5458,12 +5450,12 @@ mov ax,[nb_ecran]
 cmp [no_ecran],ax
 jae @f
 call majv_complet
-jmp bougled
+jmp finircl
 
 @@:
 mov word[no_ecran],0
 call majv_complet
-jmp bougled
+jmp finircl
 
 
 fin_alttab:
@@ -5472,7 +5464,7 @@ mov bx,[no_ecran]
 shl ebx,5
 mov dx,[ebx+table_ecran_id]
 call sfv_sf_choix_console
-jmp bougled
+jmp finircl
 
 
 ;*****************************************************

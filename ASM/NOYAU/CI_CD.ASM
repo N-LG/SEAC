@@ -15,8 +15,19 @@ inc edx
 cmp byte[edx]," "
 je bcdeb2cd             ;ensuite le début du nom
 
-cmp byte[edx],"#"      ;si c'est un croisillon c'est un nom de disque
-je nvchemin
+
+cmp byte[edx],22h   ;ignore le guillemet du début
+jne @f
+inc edx
+@@:
+
+
+
+cmp byte[edx],"#"      ;si le premier caractere est un croisillon c'est un nom de disque
+je nvchemin            ;on part alors d'un chemin vide
+
+
+cmdcd_decode:
 
 mov esi,ad_repertoire  ;recopie le chemin actuel dans la chaine de travail
 mov edi,ad_chaine_travail
@@ -29,17 +40,19 @@ cmp al,0
 jne borchem
 dec edi
 
-tcdslash:  ;retire les slash, antislash et les espaces a la fin de la chaine
+@@:  ;retire les slash, antislash, et les espaces a la fin de la chaine actuelle
 dec edi
 cmp byte[edi],"/"
-je tcdslash
+je @b
 cmp byte[edi],"\"
-je tcdslash
+je @b
 cmp byte[edi]," "
-je tcdslash
+je @b
 inc edi
 
-cmp byte[edx],"/"      ;verifie la présence de slash et antislash
+
+cmdcd_1:
+cmp byte[edx],"/"      ;verifie la présence de slash et antislash au début de la nouvelle chaine
 jne passlashcdr
 inc edx                ; et les supprime
 passlashcdr:
@@ -49,26 +62,62 @@ inc edx
 pasaslashcdr:
 
 
+;cherche
+mov eax,[edx]
+and eax,0FFFFFFh
+cmp eax,".."
+je @f
+cmp eax,222E2Eh ; .."
+je @f
+cmp eax,"../"
+je @f
+cmp eax,"..\"
+jne cmdcd_ajchemin
+
+@@:     ;supprime le dernier dossier
+dec edi
+cmp byte[edi],"/"
+je @f
+cmp byte[edi],"\"
+je @f
+cmp edi,ad_chaine_travail
+jne @b
+jmp cderr2 
+@@:
+
+add edx,2
+cmp byte[edx],0
+je @f
+cmp byte[edx],22h
+jne cmdcd_1
+@@:
+mov byte[edi],0
+jmp cdouvdossier
+
+
+
+cmdcd_ajchemin:
 mov byte[edi],"/"   ;ajoute le chemin dans la commande au chemin actuelle
-inc edi             ;avec un slash devant
-bcreccd:
+inc edi
+jmp @f
+
+
+nvchemin:
+mov edi,ad_chaine_travail
+
+@@:
 mov al,[edx]
-mov [edi],al
+mov[edi],al
 inc edx
 inc edi
 cmp al,0
-jne bcreccd
-jmp cdouvdossier
+je @f
+cmp al,22h
+jne @b
+dec edi
+mov byte[edi],0
+@@:
 
-nvchemin:
-mov ebx,ad_chaine_travail
-bnvchem:
-mov al,[edx]
-mov[ebx],al
-inc edx
-inc ebx
-cmp al,0
-jne bnvchem
 
 cdouvdossier:   ;ouvre le dossier
 xor eax,eax
@@ -124,49 +173,16 @@ jmp pascommande
 
 
 
+cderr2:       ;si on as demandé le fichier racine, afficher un message
+mov cl,5
+call affmsgsyst
+jmp pascommande
 
 
 
-
-;****************************************************************
 cmdcdpp:
-mov esi,ad_repertoire  ;recopie le chemin actuel dans la chaine de travail
-mov edi,ad_chaine_travail
-recopiechem:
-mov al,[esi]
-mov[edi],al
-inc esi
-inc edi
-cmp al,0
-jne recopiechem
-dec edi         ;edi pointe sur le zéro de la fin de la chaine
-cmp edi,ad_chaine_travail 
-je cderr        ;si edi est vide c'est une erreur
+mov edx,ad_zdc+2
+jmp cmdcd_decode
 
-tcdppslash:  ;retire les slash, antislash et les espaces a la fin de la chaine
-dec edi
-cmp byte[edi],"/"
-je tcdppslash
-cmp byte[edi],"\"
-je tcdppslash
-cmp byte[edi]," "
-je tcdppslash
-cmp byte[edi],0
-je tcdppslash
-cmp edi,ad_chaine_travail 
-je cderr        ;si on est au d?but de la chaine c'est une erreur
 
-bccdpp:     ;supprime le dernier dossier
-dec edi
-cmp byte[edi],"/"
-je finbccpp
-cmp byte[edi],"\"
-je finbccpp
-cmp edi,ad_chaine_travail
-jne bccdpp
-jmp cderr
-
-finbccpp:
-mov byte[edi],0
-jmp cdouvdossier
 
