@@ -69,7 +69,8 @@ dd 0,0,0,0
 type_ip:
 dw 0
 
-
+arg_0:
+dd 0,0,0,0
 
 ad_table_arp_nds:
 dd 0

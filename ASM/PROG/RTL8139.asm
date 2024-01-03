@@ -18,27 +18,61 @@ init_carte:
 pushad
 
 
-;recherche une carte portant la signature vendor ID et Device ID spécifique a la carte
+;convertit l'adresse passée en argument en "adresse pci"
+cmp byte[arg_0+2],":"
+jne erreur_adresse
+cmp byte[arg_0+5],"."
+jne erreur_adresse
+cmp byte[arg_0+7],0
+jne erreur_adresse
+
 mov ebx,80000000h
-boucle_rech_pci:
+
+mov edx,arg_0
+mov eax,101
+int 61h
+test ecx,0FFFFFF00h
+jnz erreur_adresse
+shl ecx,16
+or ebx,ecx
+
+mov edx,arg_0+3
+mov eax,101
+int 61h
+test ecx,0FFFFFFE0h
+jnz erreur_adresse
+shl ecx,11
+or ebx,ecx
+
+mov edx,arg_0+6
+mov eax,101
+int 61h
+test ecx,0FFFFFFF8h
+jnz erreur_adresse
+shl ecx,8
+or ebx,ecx
+
 mov dx,0CF8h
 mov eax,ebx
 out dx,eax
 mov dx,0CFCh
 in eax,dx
 
+;verifie que le type est compatible
 cmp eax,813910ECh   ;carte realtek 8139
 je pci_trouv
 
 ;????????????????????????????il existe apparament des clones; a verifier
 
-add ebx,400h
-test ebx,7F000000h
-jz boucle_rech_pci
-
 popad
 mov eax,1
 ret
+
+
+erreur_adresse:
+mov edx,msgadresse
+call message_console
+int 60h
 
 
 pci_trouv:
@@ -399,8 +433,11 @@ ret
 sdata1:
 org 0
 msgnok:
-db "no compatible RTL8139 card was found",13,0
-db "aucune carte RTL8139 n'as été detecté",13,0
+db "RTL8139: card selected not compatible",13,0
+db "RTL8139: carte selectionné non compatible",13,0
+msgadresse:
+db "RTL8139: error in address format",13,0
+db "RTL8139: erreur dans le format de l'adresse",13,0
 msgok1:
 db "the RTL8139 card with address ",0
 db "la carte RTL8139 d'adresse ",0

@@ -34,14 +34,47 @@ init_carte:
 pushad
 
 
-;recherche une carte portant la signature vendor ID et Device ID spécifique a la carte
+;convertit l'adresse passée en argument en "adresse pci"
+cmp byte[arg_0+2],":"
+jne erreur_adresse
+cmp byte[arg_0+5],"."
+jne erreur_adresse
+cmp byte[arg_0+7],0
+jne erreur_adresse
+
 mov ebx,80000000h
-boucle_rech_pci:
+
+mov edx,arg_0
+mov eax,101
+int 61h
+test ecx,0FFFFFF00h
+jnz erreur_adresse
+shl ecx,16
+or ebx,ecx
+
+mov edx,arg_0+3
+mov eax,101
+int 61h
+test ecx,0FFFFFFE0h
+jnz erreur_adresse
+shl ecx,11
+or ebx,ecx
+
+mov edx,arg_0+6
+mov eax,101
+int 61h
+test ecx,0FFFFFFF8h
+jnz erreur_adresse
+shl ecx,8
+or ebx,ecx
+
 mov dx,0CF8h
 mov eax,ebx
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+
+;verifie que le type est compatible
 
 ;3C90X
 cmp eax,900010B7h   ;PCI 10/100 Mbps; shared 10BASE-T/100BASE-TX connector
@@ -81,15 +114,14 @@ je pci_trouv_c
 
 ;????????????????????????????il existe apparament d'autres cartes compatibles, a insérer ici
 
-add ebx,400h
-test ebx,7F000000h
-jz boucle_rech_pci
-
-;aucunes carte n'as été detecté
 popad
 mov eax,1
 ret
 
+erreur_adresse:
+mov edx,msgadresse
+call message_console
+int 60h
 
 pci_trouv_a:
 mov byte[type]," "
@@ -505,8 +537,11 @@ ret
 sdata1:
 org 0
 msgnok:
-db "no compatible 3C90x card was found",13,0
-db "aucune carte compatible 3C90x n'as été detecté",13,0
+db "3C90X: card selected not compatible",13,0
+db "3C90X: carte selectionné non compatible",13,0
+msgadresse:
+db "3C90X: error in address format",13,0
+db "3C90X: erreur dans le format de l'adresse",13,0
 msgok1:
 db "the 3C90x compatible card with address ",0
 db "la carte compatible 3C90x d'adresse ",0

@@ -32,15 +32,47 @@ push esi
 push edi
 
 
-;recherche une carte portant la signature vendor ID et Device ID spécifique a la carte
+;convertit l'adresse passée en argument en "adresse pci"
+cmp byte[arg_0+2],":"
+jne erreur_adresse
+cmp byte[arg_0+5],"."
+jne erreur_adresse
+cmp byte[arg_0+7],0
+jne erreur_adresse
+
 mov ebx,80000000h
-boucle_rech_pci:
+
+mov edx,arg_0
+mov eax,101
+int 61h
+test ecx,0FFFFFF00h
+jnz erreur_adresse
+shl ecx,16
+or ebx,ecx
+
+mov edx,arg_0+3
+mov eax,101
+int 61h
+test ecx,0FFFFFFE0h
+jnz erreur_adresse
+shl ecx,11
+or ebx,ecx
+
+mov edx,arg_0+6
+mov eax,101
+int 61h
+test ecx,0FFFFFFF8h
+jnz erreur_adresse
+shl ecx,8
+or ebx,ecx
+
 mov dx,0CF8h
 mov eax,ebx
 out dx,eax
 mov dx,0CFCh
 in eax,dx
 
+;verifie que le type est compatible
 cmp eax,10198086h   ;82547EI-A0 82547EI-A1 82547EI-B0 82547GI-B0
 je pci_trouv
 cmp eax,101A8086h   ;82547EI-B0(mobile) 
@@ -94,10 +126,6 @@ je pci_trouv
                 
 ;???????????il n'existe selon la doc pas d'autres cartes compatibles,mais sinon a insérer ici
 
-add ebx,400h
-test ebx,7F000000h
-jz boucle_rech_pci
-
 mov eax,1
 jmp erreur_init
 
@@ -109,7 +137,10 @@ call message_console
 int 60h
 
 
-
+erreur_adresse:
+mov edx,msgadresse
+call message_console
+int 60h
 
 
 ;***********************
@@ -812,11 +843,14 @@ ret
 sdata1:
 org 0
 msgnok:
-db "no compatible i8254X card was found",13,0
-db "aucune carte compatible i8254X n'as été detecté",13,0
+db "I8254X: card selected not compatible",13,0
+db "I8254X: carte selectionné non compatible",13,0
 msgeeprom:
-db "error accessing the EEPROM memory of an i8254X compatible card, unable to complete initialization",13,0
-db "erreur lors de l'acces a la mémoire EEPROM d'une carte compatible i8254X, impssible de terminer l'initialisation",13,0
+db "I8254X: error accessing the EEPROM memory, unable to complete initialization",13,0
+db "I8254X: erreur lors de l'acces a la mémoire EEPROM, impssible de terminer l'initialisation",13,0
+msgadresse:
+db "I8254X: error in address format",13,0
+db "I8254X: erreur dans le format de l'adresse",13,0
 msgok1: 
 db "the i8254X compatible card with address ",0
 db "la carte compatible i8254X d'adresse ",0

@@ -199,6 +199,14 @@ mov al,10
 mov ah,6
 int 61h
 
+
+;récupère l'adresse du périphérique
+mov al,4   
+mov ah,0   ;numéros de l'option de commande a lire
+mov cl,16
+mov edx,arg_0
+int 61h
+
 call init_carte
 cmp eax,0
 je suite_start_carte
@@ -274,7 +282,7 @@ int 61h
 mov[cptsf],eax
 mov[cptsf+4],edx
 
-;verifie que l'adresse ipv4 est toujour valide
+;verifie que l'adresse ipv4 est toujours valide
 cmp byte[dhcp_phase],10
 jne ignore_tempo_dhcp
 
