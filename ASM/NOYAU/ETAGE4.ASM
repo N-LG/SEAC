@@ -18,9 +18,7 @@ fichier1:
 db "modv 800*600",10,13
 ;db "def en-txt.def",10,13
 ;db "def en-qwi.def",10,13
-db "rtl8139",10,13
-db "3c90x",10,13
-db "I8254X",10,13
+db "pilote pci",10,13
 db "*",10,13
 db "stftp #dm -w",10,13
 db "shttp #dm",10,13

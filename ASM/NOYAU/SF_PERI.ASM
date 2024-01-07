@@ -386,14 +386,14 @@ mov dword[usb_tempo],0
 mov byte[usb_action],0
 jmp suite_test_cnx_usb
 
-;**********************************************
+;********************************************************************************
 config_hid_usb:
 pushad
 mov ebx,edx
 ;créer une entré dans la table des périphérique hid
 mov esi,ad_hid
 @@:
-cmp byte[esi],0
+cmp byte[esi+dhu_adresse],0
 je @f
 add esi,64
 cmp esi,ad_hid+512
@@ -401,10 +401,31 @@ jne @b
 jmp suite_active_config_usb  ;si plus de place, on abandonne
 
 @@:
-mov al,[usb_adresse] ;adresse
-mov [esi],al
+mov al,[usb_adresse]  ;adresse
+mov [esi+dhu_adresse],al
+mov [esi+dhu_interface],bl    ;n°interface
 
-;??????????????????????????????d'autres choses a enregistrer
+
+@@:
+xor eax,eax
+mov al,[edi]
+add edi,eax
+cmp byte[edi+1],21h
+je @b                    ;si c'est le descripteur hid on l'ignore
+cmp byte[edi+1],22h
+je @b                    ;si c'est le descripteur de rapport on l'ignore
+cmp byte[edi+1],05
+jne erreur_activation_hid ;si apres le descripteur d'interface ce n'est pas non plus un descripteur de terminaison c'est qu'il y as une erreur
+test byte[edi+2],80h
+jz @b
+
+mov al,[edi+2]
+and al,0Fh
+mov [esi+dhu_terminaisonIn],al;terminaison in
+mov ax,[edi+4]
+mov [esi+dhu_tailleIn],ax     ;taille de la terminaison
+mov al,[edi+6]
+mov [esi+dhu_frequenceIn],al  ;fréquence de la terminaison
 
 
 mov edi,ad_chaine_travail+256
@@ -422,6 +443,7 @@ call sfusb_commande
 cmp eax,0
 jne erreur_activation_hid 
 
+xor ecx,ecx
 mov cx,[edi+7] ;lit la taille du descripteur de rapport
 
 ;lit le descripteur de rapport
@@ -438,38 +460,325 @@ cmp eax,0
 jne erreur_activation_hid 
 
 
-
 ;interprete le descripteur de rapport et complete la table des descripteur hid
-
-
-pushad ;temporaire: afficher le report descriptor
-@@:
-mov al,[edi]
-call affh0j
-mov al,"-"
-call affcj
-inc edi
-dec ecx
-jne @b
-mov al,13
-call affcj
-popad
-
-
 pushad
-mov esi,edi
 mov ebp,edi
 add ebp,ecx
 
+;raz  tout au démarrage
+mov dword[decod_hid_offset_in],0
+mov dword[decod_hid_offset_out],0
+mov dword[decod_hid_report_size],0
+mov dword[decod_hid_report_count],0
+mov dword[decod_hid_nb_usage],0
+mov dword[decod_hid_ad_usage],0
+mov dword[decod_hid_page_usage],0
+mov dword[decod_hid_id],0
+mov dword[decod_hid_usage_minimum],0
+mov dword[decod_hid_type],0
+
+
+
+
 boucle_parseHIDusb:
-mov al,[esi]
-;cmp al,??
-;je longelem
-mov cl,[esi]
-mov edx,[esi+1]
-and ax,0FCh
+call extrait_item_hidreport
+cmp al,004h
+je hid04
+cmp al,008h
+je hid08
+cmp al,018h
+je hid18
+cmp al,074h
+je hid74
+cmp al,080h
+je hid80
+cmp al,084h
+je hid84
+cmp al,090h
+je hid90
+cmp al,094h
+je hid94
+jmp suite_parseHIDusb
+
+
+
+;************************
+hid04:   ;usage page
+mov [decod_hid_page_usage],edx
+mov dword[decod_hid_nb_usage],0
+jmp suite_parseHIDusb
+
+
+;************************
+hid08:    ;usage  voir 6.2.2.7 et HUT
+cmp dword[decod_hid_nb_usage],0
+jne @f
+mov [decod_hid_ad_usage],edi
+@@:
+inc dword[decod_hid_nb_usage]
+jmp suite_parseHIDusb
+
+
+;************************
+hid18:   ;usage minimum
+mov [decod_hid_usage_minimum],edx
+jmp suite_parseHIDusb
+
+
+;************************
+hid74:   ;report size
+mov [decod_hid_report_size],edx
+jmp suite_parseHIDusb
+
+
+;************************
+hid80:    ;input  voir 6.2.2.5
+;si c'est une constante on ignore
+test edx,1
+jnz fin_parseHIDusb_input
+mov [decod_hid_type],edx
+;si il n'y as pas d'usage on test l'usage page
+cmp dword[decod_hid_nb_usage],0
+jne @f
+;ici on test les usages pages
+cmp dword[decod_hid_page_usage],7             ;keycode
+je parseHIDusb_input_clav
+cmp dword[decod_hid_page_usage],9             ;button
+je parseHIDusb_input_bouton
+jmp fin_parseHIDusb_input
+@@:
+
+
+;parcours les usage et enregistre ceux reconnue
+pushad
+mov edi,[decod_hid_ad_usage]
+mov ebp,[decod_hid_offset_in]
+
+
+boucle_parseHIDusb_input:
+call extrait_item_hidreport
+cmp eax,080h
+je fin_parseHIDusb_input2 
+cmp eax,0C0h
+je fin_parseHIDusb_input2 
+cmp eax,8
+jne suite_parseHIDusb_input
+mov eax,[decod_hid_page_usage]
+shl eax,16
+mov ax,dx  ;eax=usage page+usage
+
+;compare si c'est un usage connu
+cmp eax,10030h             ;generic desktop:X
+je parseHIDusb_input_xs
+cmp eax,10031h             ;generic desktop:y souris
+je parseHIDusb_input_ys
+cmp eax,10038h             ;generic desktop:molette
+je parseHIDusb_input_molette
+
+;si c'est un usage inconnu on incrémente simplement l'adresse
+add ebp,[decod_hid_report_size]
+
+suite_parseHIDusb_input:
+add edi,ecx
+jmp boucle_parseHIDusb_input 
+
+fin_parseHIDusb_input2:
+popad
+
+fin_parseHIDusb_input:
+push ecx
+mov dword[decod_hid_nb_usage],0
+xor edx,edx
+mov eax,[decod_hid_report_size]
+mov ecx,[decod_hid_report_count]
+mul ecx
+pop ecx
+add [decod_hid_offset_in],eax
+jmp suite_parseHIDusb
+
+
+;*********
+parseHIDusb_input_clav:  ;touche
+pushad
+mov al,"T"
+call affcj
+mov al," "
+call affcj
+mov eax,[decod_hid_offset_in]
+call affh2j
+mov al,13
+call affcj
+popad
+jmp fin_parseHIDusb_input
+
+
+;*********
+parseHIDusb_input_bouton:  ;bouton
+pushad
+mov al,"B"
+call affcj
+mov al," "
+call affcj
+mov eax,[decod_hid_offset_in]
+call affh2j
+mov al,13
+call affcj
+popad
+jmp fin_parseHIDusb_input
+
+;*********
+parseHIDusb_input_xs:  ;x souris
+pushad
+mov al,"X"
+call affcj
+mov al," "
+call affcj
+mov eax,ebp
+call affh2j
+mov al,13
+call affcj
+popad
+add ebp,[decod_hid_report_size]
+jmp suite_parseHIDusb_input
+
+
+
+;*********
+parseHIDusb_input_ys:  ;y souris
+pushad
+mov al,"Y"
+call affcj
+mov al," "
+call affcj
+mov eax,ebp
+call affh2j
+mov al,13
+call affcj
+popad
+add ebp,[decod_hid_report_size]
+jmp suite_parseHIDusb_input
+
+
+
+;*********
+parseHIDusb_input_molette:  ;molette
+pushad
+mov al,"M"
+call affcj
+mov al," "
+call affcj
+mov eax,ebp
+call affh2j
+mov al,13
+call affcj
+popad
+add ebp,[decod_hid_report_size]
+jmp suite_parseHIDusb_input
+
+
+
+;************************
+hid84:   ;ID
+mov [decod_hid_id],edx
+mov dword[decod_hid_nb_usage],0
+mov dword[decod_hid_offset_in],8
+mov dword[decod_hid_offset_out],8
+jmp suite_parseHIDusb
+
+
+;************************
+hid90:    ;output
+;si c'est une constante on ignore
+test edx,1
+jnz fin_parseHIDusb_output
+mov [decod_hid_type],edx
+;si il n'y as pas d'usage on test l'usage page
+cmp dword[decod_hid_nb_usage],0
+jne @f
+;ici on test les usages pages
+cmp dword[decod_hid_page_usage],8             ;generic desktop:LED
+je parseHIDusb_output_led
+jmp fin_parseHIDusb_output
+@@:
+
+
+;parcours les usage et enregistre ceux reconnue
+;pushad
+;mov edi,[decod_hid_ad_usage]
+;mov ebp,[decod_hid_offset_out]
+
+;boucle_parseHIDusb_output:
+;call extrait_item_hidreport
+;cmp eax,090h
+;je fin_parseHIDusb_output2 
+;cmp eax,0C0h
+;je fin_parseHIDusb_output2 
+;cmp eax,8
+;jne suite_parseHIDusb_output
+;mov eax,[decod_hid_page_usage]
+;shl eax,16
+;mov ax,dx  ;eax=usage page+usage
+
+
+
+
+;compare si c'est un usage connu
+;(aucuns pour le moment)
+
+;si c'est un usage inconnu on incrémente simplement l'adresse
+;add ebp,[decod_hid_report_size]
+
+;suite_parseHIDusb_output:
+;add edi,ecx
+;jmp boucle_parseHIDusb_output 
+
+;fin_parseHIDusb_output2:
+;popad
+
+fin_parseHIDusb_output:
+push ecx
+xor edx,edx
+mov eax,[decod_hid_report_size]
+mov ecx,[decod_hid_report_count]
+mul ecx
+pop ecx
+add [decod_hid_offset_out],eax
+
+mov dword[decod_hid_nb_usage],0
+jmp suite_parseHIDusb
+
+
+
+;*********
+parseHIDusb_output_led:  ;type sortie led
+pushad
+mov al,"L"
+call affcj
+mov al,""
+call affcj
+mov eax,[decod_hid_offset_out]
+call affh2j
+mov al,13
+call affcj
+popad
+jmp fin_parseHIDusb_output
+
+
+;************************
+hid94:   ;report count
+mov [decod_hid_report_count],edx
+jmp suite_parseHIDusb
+
+
+;**************************
+extrait_item_hidreport:
+mov al,[edi]
+cmp al,0FEh
+je extrait_item_hidreport_long
+mov cl,[edi]
+mov edx,[edi+1]
+and eax,0FCh
 and ecx,3h
-inc esi
 
 cmp cl,3
 jne @f
@@ -494,124 +803,27 @@ test edx,8000h
 jz @f
 or edx,0FFFF0000h
 @@:
+inc ecx
+ret
 
-
-;temporaire
-pushad
-call affh0j
-mov al,"-"
-call affcj
-mov eax,edx
-call affh2j
-mov al,13
-call affcj
-popad
-
-
-cmp al,004h
-je hid04
-cmp al,008h
-je hid08
-cmp al,018h
-je hid18
-cmp al,074h
-je hid74
-cmp al,080h
-je hid80
-cmp al,090h
-je hid90
-cmp al,094h
-je hid94
-;rajouter ID
-
-jmp suite_parseHIDusb
-
-hid04:   ;usage page
-mov [decod_hid_page_usage],edx
-jmp suite_parseHIDusb
-
-hid08:    ;usage  voir 6.2.2.7 et HUT
-cmp dword[decod_hid_nb_usage],0
-jne @f
-mov [decod_hid_ad_usage],esi
-@@:
-inc dword[decod_hid_nb_usage]
-jmp suite_parseHIDusb
-
-
-
-hid18:   ;usage minimum
-mov [decod_hid_usage_minimum],edx
-jmp suite_parseHIDusb
-
-hid74:   ;report count
-mov [decod_hid_report_count],edx
-jmp suite_parseHIDusb
-
-hid94:   ;report size
-mov [decod_hid_report_size],edx
-jmp suite_parseHIDusb
-
-
-hid80:    ;input  voir 6.2.2.5
-;????
-
-;usage clavier bitmap
-;usage clavier table
-;usage bouton
-;usage x
-;usage y
-;usage molette
-
-
-
-xor edx,edx
-mov eax,[decod_hid_report_size]
-mov ecx,[decod_hid_report_count]
-mul ecx
-add [decod_hid_offset_in],eax
-jmp suite_parseHIDusb
-
-
-
-hid90:    ;output
-;????
-
-
-;usage led
-
-xor edx,edx
-mov eax,[decod_hid_report_size]
-mov ecx,[decod_hid_report_count]
-mul ecx
-add [decod_hid_offset_out],eax
-jmp suite_parseHIDusb
-
-
-
-
+extrait_item_hidreport_long:
+xor eax,eax
+xor ecx,ecx
+mov edx,[edi+3] ;bof parce qu'il peut théoriquement avoir plus
+mov al,[edi+2]
+mov cl,[edi+1]
+add ecx,3
+ret
 
 
 
 suite_parseHIDusb:
-add esi,ecx
-cmp esi,ebp
+add edi,ecx
+cmp edi,ebp
 jb boucle_parseHIDusb
-
-;jmp boucle_parseHIDusb
 
 fin_parseHIDusb:
 popad
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -658,16 +870,13 @@ jmp suite_active_config_usb
 
 
 
-;*******************************************
+;**********************************************************************
 config_msd_usb:  ;configuration clef usb/disque dur
 cmp word[edi+6],05006h
 je config_bulkonly_usb
 jmp suite_active_config_usb
 
-;*******************************************
-config_hub_usb:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp suite_active_config_usb
+
 
 
 
@@ -777,7 +986,10 @@ jmp boucle_config_bulkonly_usb
 
 
 
-
+;**********************************************************************
+config_hub_usb:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+jmp suite_active_config_usb
 
 
 

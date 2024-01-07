@@ -454,16 +454,20 @@ usb_tag       equ 608h     ;tag (dword)
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
+
+;zone ou sont stocké temporairement des données lors du décodage de report descriptor HID
 decod_hid_report_size equ 620h
 decod_hid_report_count equ 624h
 decod_hid_offset_in equ 628h
 decod_hid_offset_out equ 62Ch
+
 decod_hid_nb_usage equ 630h
 decod_hid_ad_usage equ 634h
 decod_hid_page_usage equ 638h
 decod_hid_id equ 63Ch
 
 decod_hid_usage_minimum equ 640h
+decod_hid_type equ 644h
 
 
 at_processeur equ 700h
@@ -662,6 +666,15 @@ dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
 dpu_togl equ 6 ;état du dernier data toggle utilisé lors d'un transfer bulk pour chaque endpoint
 ;?????
 dpu_ted equ 32 ;taille de transfert max par endpoints 16*2
+
+;****************************************************************************
+;descripteur de péripherique HID USB
+dhu_adresse       equ 0
+dhu_interface     equ 1
+dhu_terminaisonIn equ 2
+dhu_frequenceIn   equ 3
+dhu_tailleIn      equ 4
+dhu_objet         equ 6
 
 
 ;****************************************************************************
