@@ -696,7 +696,7 @@ mov [decod_hid_type],edx
 cmp dword[decod_hid_nb_usage],0
 jne @f
 ;ici on test les usages pages
-cmp dword[decod_hid_page_usage],8             ;generic desktop:LED
+cmp dword[decod_hid_page_usage],8             ;usage page:LED
 je parseHIDusb_output_led
 jmp fin_parseHIDusb_output
 @@:

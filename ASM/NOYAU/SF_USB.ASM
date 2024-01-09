@@ -42,24 +42,21 @@ je sfusb_lec_desc
 cmp al,3   ;selection configuration actuelle
 je sfusb_active_config
 
-;cmp al,4   ;lecture configuration actuelle 
-;je 
 
-cmp al,5   ;envoie commande brute
+
+
+cmp al,10   ;envoie commande brute
 je sfusb_commande_ext
-
-;cmp al,6   ;envoie donnée bulk
-;cmp al,7   ;reception donnée bulk
-
-cmp al,8   ;ouverture connexion isocrone vers terminaison
-je sfusb_iso
-cmp al,9   ;ouverture connexion interruption vers terminaison
-je sfusb_int
-
-;cmp al,10  ;fermeture connexion iso ou int
-;cmp al,11  ;lire données canal isocrone ou int
-;cmp al,12  ;ecrire données canal isocrone ou int
-
+cmp al,11   ;echange donnée bulk
+je sfusb_bulk_ext
+cmp al,12   ;ouverture canal vers terminaison isocrone 
+je sfusb_open_iso_ext
+cmp al,13   ;ouverture canal vers terminaison interruption
+je sfusb_open_int_ext
+cmp al,14  ;fermeture canal iso ou int
+je sfusb_close_ext
+cmp al,15  ;échange donnée canal isocrone ou int
+je sfusb_isoint_ext
 mov eax,cer_parami
 iret
 
@@ -100,6 +97,7 @@ pop ds
 pop ebx
 xor eax,eax
 iret
+
 
 
 
@@ -282,20 +280,48 @@ iret
 
 
 
-
-
-
-
-
-
-
-;**************************************************************************************************************************************************************************************************************
-;**************************************************************************************************************************************************************************************************************
+;*****************************************
 sfusb_commande_ext:
 call sfusb_commande
 iret
 
 
+;*****************************************
+sfusb_bulk_ext:
+call sfusb_bulk
+iret
+
+
+;*****************************************
+sfusb_open_iso_ext:
+call sfusb_open_iso
+iret
+
+
+;*****************************************
+sfusb_open_int_ext:
+call sfusb_open_int
+iret
+
+
+;*****************************************
+sfusb_close_ext:
+call sfusb_close
+iret
+
+
+;*****************************************
+sfusb_isoint_ext:
+call sfusb_isoint
+iret
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
 ;envoie commande USB
 sfusb_commande:        ;al=périphérique ah=endpoint ds:edx=zt des 8 octet de la commande ds:edi=adresse des données optionnel de commande
 pushad
@@ -833,190 +859,6 @@ pop ds
 popad
 mov eax,cer_uhci
 ret
-
-
-
-
-
-
-
-
-;**************************************************************************************************************************************************************************************************************
-;**************************************************************************************************************************************************************************************************************
-;crée canal isocrone usb
-sfusb_iso:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame
-pushad
-push ds
-push es
-push fs
-
-
-push ds
-pop es
-mov bx,selramh
-mov ds,bx
-mov bx,seldat
-mov fs,bx
-
-xor ebx,ebx
-mov bl,al
-shl ebx,dc_desc_periph_usb
-add ebx,ad_desc_periph_usb 
-mov esi,ebx                ;esi=adresse du descripteur de périphérique
-
-fs
-test byte[esi+dpu_att],01b
-jz sfusb_iso_err_param
-
-xor ebx,ebx
-fs
-mov bl,[esi+dpu_ctrl] 
-shl ebx,dc_desc_ctrl_usb
-add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
-
-             
-fs
-cmp byte[ebx+dcu_type],01
-je sfusb_iso_uhci
-;fs
-;cmp byte[ebx+dcu_type],02
-;je sfusb_iso_ohci
-;fs
-;cmp byte[ebx+dcu_type],03
-;je sfusb_iso_ehci
-;fs
-;cmp byte[ebx+dcu_type],04
-;je sfusb_iso_xhci
-sfusb_iso_err_param:
-pop fs
-pop es
-pop ds
-popad
-mov eax,cer_parami
-iret
-
-
-
-
-;********************************************************
-sfusb_iso_uhci:
-mov dl,1        ;dl=periodicité de la trame
-sfusb_int_uhci:
-mov ebp,ebx
-
-;calcul la taille de la ZT nécessaire
-;=(1024/periodicité)*(TD+ZT)
-push ecx
-push edx
-push ecx
-xor ecx,ecx
-mov eax,1024
-mov cl,dl
-xor edx,edx
-div ecx
-pop ecx
-add ecx,32
-mul ecx
-
-;réserve une zone mémoire tampon
-call resmem
-pop edx
-pop ecx
-jc sfusb_iso_err_mem
-mov dword[ebx+8],czm_iso_usb
-
-
-
-
-
-
-
-;crée les TDs
-;???????????????????????????????????????????????????
-
-
-
-;insère les TD dans la frame liste uhci
-;???????????????????????????????????????????????????
-
-
-
-sfusb_iso_err_mem:
-pop fs
-pop es
-pop ds
-popad
-mov eax,cer_parami
-iret
-
-
-
-
-
-
-
-;**************************************************************************************************************************************************************************************************************
-;**************************************************************************************************************************************************************************************************************
-;crée canal interruption usb
-sfusb_int:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame dl=périodicité de la trame
-pushad
-push ds
-push es
-push fs
-
-
-push ds
-pop es
-mov bx,selramh
-mov ds,bx
-mov bx,seldat
-mov fs,bx
-
-xor ebx,ebx
-mov bl,al
-shl ebx,dc_desc_periph_usb
-add ebx,ad_desc_periph_usb 
-mov esi,ebx                ;esi=adresse du descripteur de périphérique
-
-fs
-test byte[esi+dpu_att],01b
-jz sfusb_iso_err_param
-
-xor ebx,ebx
-fs
-mov bl,[esi+dpu_ctrl] 
-shl ebx,dc_desc_ctrl_usb
-add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
-
-             
-fs
-cmp byte[ebx+dcu_type],01
-je sfusb_int_uhci ;(voir du coté isochrone)
-;fs
-;cmp byte[ebx+dcu_type],02
-;je sfusb_int_ohci
-;fs
-;cmp byte[ebx+dcu_type],03
-;je sfusb_int_ehci
-;fs
-;cmp byte[ebx+dcu_type],04
-;je sfusb_int_xhci
-sfusb_int_err_param:
-pop fs
-pop es
-pop ds
-popad
-mov eax,cer_parami
-iret
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1558,6 +1400,202 @@ pop ds
 popad
 mov eax,cer_uhci
 ret
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;crée canal isocrone usb
+sfusb_open_iso:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame
+pushad
+push ds
+push es
+push fs
+
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
+mov bx,seldat
+mov fs,bx
+
+xor ebx,ebx
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov esi,ebx                ;esi=adresse du descripteur de périphérique
+
+fs
+test byte[esi+dpu_att],01b
+jz sfusb_iso_err_param
+
+xor ebx,ebx
+fs
+mov bl,[esi+dpu_ctrl] 
+shl ebx,dc_desc_ctrl_usb
+add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
+             
+fs
+cmp byte[ebx+dcu_type],01
+je sfusb_iso_uhci
+;fs
+;cmp byte[ebx+dcu_type],02
+;je sfusb_iso_ohci
+;fs
+;cmp byte[ebx+dcu_type],03
+;je sfusb_iso_ehci
+;fs
+;cmp byte[ebx+dcu_type],04
+;je sfusb_iso_xhci
+sfusb_iso_err_param:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+;********************************************************
+sfusb_iso_uhci:
+mov dl,1        ;dl=periodicité de la trame
+sfusb_int_uhci:
+mov ebp,ebx
+
+;calcul la taille de la ZT nécessaire
+;=(1024/periodicité)*(TD+ZT)
+push ecx
+push edx
+push ecx
+xor ecx,ecx
+mov eax,1024
+mov cl,dl
+xor edx,edx
+div ecx
+pop ecx
+add ecx,32
+mul ecx
+
+;réserve une zone mémoire tampon
+call resmem
+pop edx
+pop ecx
+jc sfusb_iso_err_mem
+mov dword[ebx+8],czm_iso_usb
+
+
+
+
+
+
+
+;crée les TDs
+;???????????????????????????????????????????????????
+
+
+
+;insère les TD dans la frame liste uhci
+;???????????????????????????????????????????????????
+
+
+
+sfusb_iso_err_mem:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;crée canal interruption usb
+sfusb_open_int:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame dl=périodicité de la trame
+pushad
+push ds
+push es
+push fs
+
+
+push ds
+pop es
+mov bx,selramh
+mov ds,bx
+mov bx,seldat
+mov fs,bx
+
+xor ebx,ebx
+mov bl,al
+shl ebx,dc_desc_periph_usb
+add ebx,ad_desc_periph_usb 
+mov esi,ebx                ;esi=adresse du descripteur de périphérique
+
+fs
+test byte[esi+dpu_att],01b
+jz sfusb_iso_err_param
+
+xor ebx,ebx
+fs
+mov bl,[esi+dpu_ctrl] 
+shl ebx,dc_desc_ctrl_usb
+add ebx,ad_desc_ctrl_usb   ;ebx=adresse du descripteur de controleur
+
+             
+fs
+cmp byte[ebx+dcu_type],01
+je sfusb_int_uhci ;(voir du coté isochrone)
+;fs
+;cmp byte[ebx+dcu_type],02
+;je sfusb_int_ohci
+;fs
+;cmp byte[ebx+dcu_type],03
+;je sfusb_int_ehci
+;fs
+;cmp byte[ebx+dcu_type],04
+;je sfusb_int_xhci
+sfusb_int_err_param:
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+iret
+
+
+
+
+
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;ferme une connexion int ou iso
+sfusb_close:
+;????????????????????????
+ret
+
+;**************************************************************************************************************************************************************************************************************
+;**************************************************************************************************************************************************************************************************************
+;echange donnée sur canal int ou iso
+sfusb_isoint:
+;????????????????????????
+ret
+
+
+
+
 
 
 
