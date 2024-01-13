@@ -4,8 +4,10 @@ Systeme d'exploitation (operating system)
 ![](https://raw.githubusercontent.com/N-LG/SEAC/master/IMGWIKI/exemple1.png)
 
 ### [en]more information in the [wiki](https://github-com.translate.goog/N-LG/SEAC/wiki?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=fr&_x_tr_pto=wapp) automatically translated by Google Translate
+channel dedicated to project developments on the discord server of [osdev](https://discord.com/channels/440442961147199490/1091753976443187222)
 
 ### [fr]voir dans le [wiki](https://github.com/N-LG/SEAC/wiki) pour plus d'info
+salon dédié aux evolutions du projet sur le serveur discord de [devse](https://discord.com/channels/746454130448531546/1043677858301759528)
 
 # organisation du dépot:
 
