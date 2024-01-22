@@ -430,7 +430,6 @@ test byte[at_console],20h
 jnz redim_ecran 
 
 
-
 mov al,5
 int 63h
 cmp al,1  ;echap on quitte
@@ -440,7 +439,7 @@ je clique
 cmp al,0F1h
 je declique
 cmp al,0F2h
-;je clique_droit
+je clique_droit
 
 cmp byte[mode],0
 je attend_touche
@@ -560,6 +559,43 @@ jmp attend_touche
 
 
 
+
+
+;************************************************
+clique_droit:
+call recherche_objet
+cmp esi,0
+je menu_param
+
+menu_fichier:
+mov edx,texte_menu_fichier
+call menu
+
+;??????????????
+
+jmp affichage
+
+
+
+
+
+;************************************************
+menu_param:
+mov edx,texte_menu_param
+call menu
+
+;????????
+
+
+jmp affichage
+
+
+
+
+
+
+
+
 ;*************************************************
 erreur_mode:
 mov al,6
@@ -594,7 +630,128 @@ int 60h
 
 
 
+;********************************
+menu:
+mov [Xmenu],ebx
+mov [Ymenu],ecx
+call ajuste_langue
+mov [Tmenu],edx
 
+
+;compte les colonnes et ligne du menu
+mov eax,1
+xor ecx,ecx
+xor ebx,ebx
+
+boucle_menu1:
+cmp byte[edx],0
+je fin_menu1
+inc ecx
+cmp byte[edx],13
+jne @f
+inc eax
+xor ecx,ecx
+@@:
+cmp ebx,ecx
+ja @f
+mov ebx,ecx
+@@:
+inc edx
+jmp boucle_menu1
+
+fin_menu1:
+mov [Lmenu],eax
+mov [Cmenu],ebx
+
+
+
+menu_affichage:
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+mov esi,[Cmenu]
+mov edi,[Lmenu]
+shl esi,3
+shl edi,4
+add esi,2
+add edi,2
+add esi,[Xmenu]
+add edi,[Ymenu]
+call bouton
+
+;affiche une surbrillance
+pushad
+inc ebx
+inc ecx
+dec esi
+dec edi
+fs
+cmp [posx_souris],bx
+jb @f
+fs
+cmp [posy_souris],cx
+jb @f
+fs
+cmp [posx_souris],si
+jae @f
+fs
+cmp [posy_souris],di
+jae @f
+xor eax,eax
+fs
+mov ax,[posy_souris]
+sub eax,ecx
+and eax,0FFFFFFF0h 
+add ecx,eax
+mov edi,ecx
+add edi,16
+call bouton
+@@:
+popad
+
+
+mov al,26
+mov ah,0
+add ebx,1
+add ecx,1
+mov edx,[Tmenu]
+mov edi,40
+int 63h
+
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+
+
+menu_touche:
+mov al,5
+int 63h
+cmp al,1  ;echap on quitte
+je menu_sortie
+cmp al,0F0h
+je menu_clique
+jmp menu_affichage
+
+
+
+
+
+
+
+
+menu_clique:
+ret
+
+
+
+menu_sortie:
+ret
+
+
+
+
+
+
+;****************************
 recherche_objet:
 mov esi,objetsgraf
 boucle_recherche_objet:
@@ -804,75 +961,22 @@ ret
 
 
 
-
-
-
-
+;****************
 bouton:
 pushad
-mov edx,0777777h
-mov ebp,edx
-mov edx,esi
-mov ebx,[edx+8]
-mov ecx,[edx+12]
-mov esi,[edx+16]
-mov edi,[edx+20]
-
-mov edx,ebp
-sub edx,0606060h ;afficher un carré (contour tres sombre)
+mov edx,0C0C0C0h ;afficher un carré (contour clair)
 mov al,22   
 mov ah,24
 int 63h
-
+inc ecx  
 dec esi
-dec edi
-
-mov edx,ebp
-add edx,0606060h ;afficher un carré (contour tres clair)
+mov edx,404040h  ;afficher un carré (contour sombre)
 mov al,22   
 mov ah,24
 int 63h
-
 inc ebx
-inc ecx
-
-mov edx,ebp
-sub edx,0505050h ;afficher un carré (contour sombre)
-mov al,22   
-mov ah,24
-int 63h
-
-dec esi
 dec edi
-
-mov edx,ebp
-add edx,0505050h ;afficher un carré (contour clair)
-mov al,22   
-mov ah,24
-int 63h
-
-inc ebx
-inc ecx
-
-mov edx,ebp
-sub edx,0282828h ;afficher un carré (contour sombre)
-mov al,22   
-mov ah,24
-int 63h
-
-dec esi
-dec edi
-
-mov edx,ebp
-add edx,0282828h ;afficher un carré (contour clair)
-mov al,22   
-mov ah,24
-int 63h
-
-inc ebx
-inc ecx
-
-mov edx,ebp  ;afficher un carré (centre)
+mov edx,808080h  ;afficher un carré (centre)
 mov al,22   
 mov ah,24
 int 63h
@@ -964,6 +1068,44 @@ fin_mem:
 dd 0
 
 
+;variables menu
+Xmenu:
+dd 0
+Ymenu:
+dd 0
+Lmenu:
+dd 0
+Cmenu:
+dd 0
+Tmenu:
+dd 0
+
+texte_menu_param:
+db "change wallpaper",13
+db "add icon set",13
+db "delete icon set",0
+
+db "changer fond d'écran",13
+db "ajouter jeu d'icones",13
+db "supprimer jeu d'icônes",0
+
+
+
+texte_menu_fichier:
+db "change icon",13
+db "change name",13
+db "change command",13
+db "delete",0
+
+db "changer icône",13
+db "changer nom",13
+db "changer commande",13
+db "supprimer",0
+
+
+
+
+
 ;informations par défaut
 fichier_fond:
 db "fond.png",0
@@ -995,46 +1137,47 @@ dd @f-$     ;taille de l'objet
 db 0        ;attributs b0=visible b1=selectionné
 db 0        ;numéros de l'icone
 dw 0        ;vide
-dd 32,128   ;coordonné coin supérieur gauche
-db "console de commande",0  ;texte de l'icone
+dd 160,16   ;coordonné coin supérieur gauche
+db "Console de commande",0  ;texte de l'icone
 db 0  ;commande de l'icone
 @@:
 
 dd @f-$     ;taille de l'objet
 db 0        ;attributs b0=visible b1=selectionné
-db 5        ;numéros de l'icone
+db 9        ;numéros de l'icone
+dw 0        ;vide
+dd 32,128    ;coordonné coin supérieur gauche
+db "Editeur binaire",0  ;texte de l'icone
+db "edh",0  ;commande de l'icone
+@@:
+
+dd @f-$     ;taille de l'objet
+db 0        ;attributs b0=visible b1=selectionné
+db 10        ;numéros de l'icone
+dw 0        ;vide
+dd 160,128    ;coordonné coin supérieur gauche
+db "Editeur Texte",0  ;texte de l'icone
+db "edt",0  ;commande de l'icone
+@@:
+
+dd @f-$     ;taille de l'objet
+db 0        ;attributs b0=visible b1=selectionné
+db 7        ;numéros de l'icone
 dw 0        ;vide
 dd 32,240    ;coordonné coin supérieur gauche
-db "terminal série et TCP",0  ;texte de l'icone
-db "term",0  ;commande de l'icone
+db "installation",0  ;texte de l'icone
+db "install",0  ;commande de l'icone
 @@:
 
 dd @f-$     ;taille de l'objet
 db 0        ;attributs b0=visible b1=selectionné
-db 2        ;numéros de l'icone
+db 4        ;numéros de l'icone
 dw 0        ;vide
-dd 32,352    ;coordonné coin supérieur gauche
-db "partitionneur",0  ;texte de l'icone
-db "partd",0  ;commande de l'icone
+dd 160,240    ;coordonné coin supérieur gauche
+db "Aide",0  ;texte de l'icone
+db "aide",0  ;commande de l'icone
 @@:
 
-dd @f-$     ;taille de l'objet
-db 0        ;attributs b0=visible b1=selectionné
-db 8        ;numéros de l'icone
-dw 0        ;vide
-dd 144,128    ;coordonné coin supérieur gauche
-db "jeu N°1",0  ;texte de l'icone
-db "jn1",0  ;commande de l'icone
-@@:
-
-dd @f-$     ;taille de l'objet
-db 0        ;attributs b0=visible b1=selectionné
-db 3        ;numéros de l'icone
-dw 0        ;vide
-dd 144,16    ;coordonné coin supérieur gauche
-db "calculatrice",0  ;texte de l'icone
-db "calc",0  ;commande de l'icone
-@@:
 
 dd 0
 
