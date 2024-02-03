@@ -11,33 +11,40 @@ mov ds,ax
 mov es,ax
 mov fs,ax
 
-redim_ecran:
-mov dx,sel_dat2
-mov ah,6   ;option=mode video + souris
-mov al,0   ;création console     
-int 63h
+
+
+;initialise la mémoire
+mov ecx,sdata2
+mov edx,ad_objet-8
+@@:
+add edx,8
+mov [edx],ecx
+add ecx,[edx+4]
+cmp edx,ad_tempo
+jne @b
+mov [edx],ecx
+add ecx,[edx+4]
+mov dx,sel_dat1
+mov eax,8
+int 61h
 cmp eax,0
-jne erreur_mode
-
-;récupère le curseur basique (ou alors faut il directement l'integrer?)
-mov ax,sel_dat1
-mov es,ax
-mov ax,sel_dat2
-mov ds,ax
-mov edi,curnorm
-mov esi,[ad_curseur]
-mov ecx,64
-rep movsd
+jne erreur_mem
 
 
-mov ax,sel_dat1
-mov ds,ax
-mov es,ax
-mov ax,sel_dat2
-mov fs,ax
-fs
-or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
+;initialise les données des icones
 
+
+
+
+mov ecx,fin_objet_base-tempo
+mov edx,ad_objet
+call redim_mem
+
+
+mov esi,tempo
+mov edi,[ad_objet]
+cld
+rep movsb
 
 
 
@@ -73,361 +80,52 @@ mov [texte],ecx
 @@:
 
 
-
-;************************************************
 ;récupère les icones
 mov al,5   
 mov ah,"i"   ;numéros de l'option de commande a lire
 mov cl,16   
-mov edx,tempo
+mov edx,fichier_icones
 int 61h
-mov edx,fichier_icone
-cmp eax,0
-jne @f
-cmp byte[tempo],0
-je @f
-mov edx,tempo
-@@:
-
-;ouvre le fichier
-mov al,0
-xor ebx,ebx
-int 64h
-cmp eax,0
-jne erreur_icone
-mov [handle_fichier],ebx
-
-
-;lit les carac de l'image
-mov ebx,[handle_fichier]
-mov al,51
-int 63h
-cmp eax,0
-jne erreur_icone
-mov [taille_icone],ebx
 
 
 
-;aggrandit la zone pour pouvoir y charger l'image et la zone de traitement icone
-xor eax,eax
-mov al,dl
-shr edx,8 
-add edx,14
-shr eax,3
-mov ecx,sdata2
-mov [reserve_icone],ecx
-add ecx,edx
-mov [travail_icone],ecx
 
-
-push edx
-xor edx,edx
-mov ebx,[taille_icone]
-mul ebx
-mul ebx
-add eax,14 ;eax=taille de la zone consacré au travail de l'icone
-add ecx,eax
-mov [fond_ecran],ecx
-
-
-mov dx,sel_dat1
-mov eax,8
-int 61h
-cmp eax,0
-jne erreur_mem
-
-
-;lit l'image
-mov ebx,[handle_fichier]
-mov edi,[reserve_icone]
-mov al,52
-int 63h
-cmp eax,0
-jne erreur_icone
-
-
-;ferme le fichier
-mov al,1
-mov ebx,[handle_fichier]
-int 64h
-
-
-;crée l'icone vide
-mov ebx,[taille_icone] 
-mov ecx,[taille_icone]
-mov edi,[reserve_icone]
-mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
-mov edi,[travail_icone]
-mov al,50
-int 63h
-cmp eax,0
-jne erreur_icone
-
-
-
-;*****************************************
-;récupère l'image de fond
+;recupère l'image de fond
 mov al,5   
 mov ah,"f"   ;numéros de l'option de commande a lire
 mov cl,16   
-mov edx,tempo
-int 61h
 mov edx,fichier_fond
-cmp eax,0
-jne @f
-cmp byte[tempo],0
-je @f
-mov edx,tempo
-@@:
-
-
-;ouvre le fichier
-mov al,0
-xor ebx,ebx
-int 64h
-cmp eax,0
-jne pas_de_fond
-mov [handle_fichier],ebx
-
-
-;lit les carac de l'image
-mov ebx,[handle_fichier]
-mov al,51
-int 63h
-cmp eax,0
-jne erreur_fond
-
-
-;calcule la taille de l'image de fond
-pushad
-xor ecx,ecx
-mov cl,dl
-shr ecx,3
-xor eax,eax
-xor ebx,ebx
-xor edx,edx
-fs
-mov ax,[resx_ecran]
-fs
-mov bx,[resy_ecran]
-mul ecx
-mul ebx
-add eax,14 ;eax=taille de l'image
-add eax,[fond_ecran]
-mov [fin_mem],eax
-popad
-
-
-
-;aggrandit la zone pour pouvoir y charger l'image de fond et la version brute
-shr edx,8 
-mov [taille_fond],edx
-shl edx,1
-mov ecx,[fin_mem]
-add ecx,edx
-mov dx,sel_dat1
-mov eax,8
 int 61h
-cmp eax,0
-jne erreur_mem
 
 
-;lit l'image
-mov ebx,[handle_fichier]
-mov edi,[fin_mem]
-mov al,52
-int 63h
-cmp eax,0
-jne erreur_fond
 
-
-;ferme le fichier
-mov al,1
-mov ebx,[handle_fichier]
-int 64h
-
-
-;cree  l'image de fond vide
-xor ebx,ebx
-xor ecx,ecx
-fs
-mov bx,[resx_ecran] 
-fs
-mov cx,[resy_ecran]
-mov edi,[fin_mem]
-mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
-mov edi,[fond_ecran]
-mov al,50
-int 63h
-
-
-;calcul la taille intermédiaire
-xor eax,eax
-xor ecx,ecx
-mov esi,[fond_ecran]
-mov edi,[fin_mem]
-mov ax,[esi+objimage_x]
-mov cx,[edi+objimage_y]
-mul ecx
-mov cx,[esi+objimage_y]
-div ecx
-cmp ax,[edi+objimage_x]
-ja autre_carac_base
-
-xor ebx,ebx
-xor ecx,ecx
-mov edi,[fin_mem]
-mov cx,[edi+objimage_y]
-mov bx,ax
-mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
-mov edi,[fin_mem]
-add edi,[taille_fond]
-mov al,50
-int 63h
-jmp fin_calcul_intermediaire
-
-
-autre_carac_base:
-xor eax,eax
-xor ecx,ecx
-mov esi,[fond_ecran]
-mov edi,[fin_mem]
-mov ax,[esi+objimage_y]
-mov cx,[edi+objimage_x]
-mul ecx
-mov cx,[esi+objimage_x]
-div ecx
-cmp ax,[edi+objimage_y]
-ja autre_carac_base
-
-xor ebx,ebx
-xor ecx,ecx
-mov edi,[fin_mem]
-mov bx,[edi+objimage_x]
-mov cx,ax
-mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
-mov edi,[fin_mem]
-add edi,[taille_fond]
-mov al,50
-int 63h
-fin_calcul_intermediaire:
-
-
-;extrait le fragment
-mov esi,[fin_mem]
-mov edi,[fin_mem]
-add edi,[taille_fond]
-xor ebx,ebx
-xor ecx,ecx
-mov bx,[esi+objimage_x]
-mov cx,[esi+objimage_y]
-sub bx,[edi+objimage_x]
-sub cx,[edi+objimage_y]
-shr ebx,1
-shr ecx,1
-mov al,54
-int 63h
-
-
-;remet a niveau
-mov esi,[fin_mem]
-add esi,[taille_fond]
-mov edi,[fond_ecran]
-mov al,53
-int 63h
-
-
-;libère mémoire
-mov ecx,[fin_mem]
-mov dx,sel_dat1
-mov eax,8
+;recupère les data 
+mov al,5   
+mov ah,"b"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,fichier_data
 int 61h
-cmp eax,0
-jne erreur_mem
-jmp affichage
 
 
 
-pas_de_fond:
-;calcule la taille de l'image de fond
-xor ecx,ecx
-mov cl,dl
-shr ecx,3
-xor eax,eax
-xor ebx,ebx
-xor edx,edx
-fs
-mov ax,[resx_ecran]
-fs
-mov bx,[resy_ecran]
-mul ecx
-mul ebx
-add eax,14 ;eax=taille de l'image
-add eax,[fond_ecran]
-mov [fin_mem],eax
+call charge_icones
 
-
-;aggrandit la zone pour pouvoir y charger l'image de fond
-mov ecx,[fin_mem]
-mov dx,sel_dat1
-mov eax,8
-int 61h
-cmp eax,0
-jne erreur_mem
-
-
-;cree  l'image de fond vide
-xor ebx,ebx
-xor ecx,ecx
-fs
-mov bx,[resx_ecran] 
-fs
-mov cx,[resy_ecran]
-mov ah,24
-mov edx,[couleur]
-mov edi,[fond_ecran]
-mov al,50
-int 63h
-
+redim_ecran:
+call charge_ecran
 
 
 
 
 ;************************************************************************************************
 affichage:
-;affiche le fond
-xor ebx,ebx
-xor ecx,ecx
-mov edx,[fond_ecran]
-mov al,27   ;afficher image    
-int 63h
-
-
-;affiche les icones
-mov esi,objetsgraf
-@@:
-cmp dword[esi],0
-je @f
-call affiche_icone
-mov eax,[esi]
-add esi,eax
-jmp @b
-@@:
-
-
-mov eax,7  ;demande la mise a jour ecran
-int 63h
+call affiche_ecran
 
 
 ;****************************************************************************************
 attend_touche:
 fs
 test byte[at_console],20h
-jnz redim_ecran 
+jnz redim_ecran
 
 
 mov al,5
@@ -569,13 +267,28 @@ je menu_param
 
 menu_fichier:
 mov edx,texte_menu_fichier
+push esi
 call menu
-
-;??????????????
-
+pop esi
+cmp eax,0
+je test0
+cmp eax,1
+je test4
+cmp eax,4
+je test4
 jmp affichage
 
+test0:
+inc byte[esi+5]
+jmp affichage
 
+test1:
+dec byte[esi+5]
+jmp affichage
+
+test4:
+call supprime_icone
+jmp affichage
 
 
 
@@ -584,12 +297,10 @@ menu_param:
 mov edx,texte_menu_param
 call menu
 
-;????????
-
+cmp eax,3
+je touche_esc
 
 jmp affichage
-
-
 
 
 
@@ -613,7 +324,7 @@ int 60h
 
 erreur_mem:
 mov al,6
-mov edx,msg_ereur_fde
+mov edx,msg_ereur_mem
 call ajuste_langue
 int 61h
 int 60h
@@ -625,6 +336,478 @@ mov edx,msg_ereur_fde
 call ajuste_langue
 int 61h
 int 60h
+
+
+
+;***************************************************************************************************
+;**********************************************
+affiche_ecran:
+;affiche le fond
+xor ebx,ebx
+xor ecx,ecx
+mov edx,[ad_fond]
+mov al,27   ;afficher image    
+int 63h
+
+
+;affiche les icones
+mov esi,[ad_objet]
+@@:
+cmp dword[esi],0
+je @f
+call affiche_icone
+mov eax,[esi]
+add esi,eax
+jmp @b
+@@:
+
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+ret
+
+
+
+
+
+
+;*************************************************************************************************************************************
+charge_ecran:     ;configure l'ecran et charge l'image de fond
+mov dx,sel_dat2
+mov ah,6   ;option=mode video + souris
+mov al,0   ;création console     
+int 63h
+cmp eax,0
+jne erreur_mode
+
+;récupère le curseur basique (ou alors faut il directement l'integrer?)
+mov ax,sel_dat1
+mov es,ax
+mov ax,sel_dat2
+mov ds,ax
+mov edi,curnorm
+mov esi,[ad_curseur]
+mov ecx,64
+cld
+rep movsd
+
+
+mov ax,sel_dat1
+mov ds,ax
+mov es,ax
+mov ax,sel_dat2
+mov fs,ax
+fs
+or byte[at_console],8  ;met a 1 le bit de non mise a jour de l'ecran apres int 63h
+
+
+
+
+;ouvre le fichier
+mov al,0
+mov ebx,1
+mov edx,fichier_fond
+cmp byte[edx],0
+jne @f
+mov edx,fichier_fond_def
+@@:
+int 64h
+cmp eax,0
+jne pas_de_fond
+mov [handle_fichier],ebx
+
+
+;lit les carac de l'image
+mov ebx,[handle_fichier]
+mov al,51
+int 63h
+cmp eax,0
+jne erreur_fond
+
+
+;agrandit la zone tampon pour l'acceuillir
+push edx
+shr edx,7       ;8 pour la taille, -1 pour doubler cette taille
+mov ecx,edx
+mov edx,ad_tempo
+call redim_mem
+pop edx
+
+;calcule la taille de l'image de fond et aggrandit la zone
+mov ecx,edx
+and edx,0FFh
+push edx
+shr ecx,2
+fs
+mov ax,[resx_ecran]
+fs
+mov bx,[resy_ecran]
+mul ecx
+mul ebx
+add eax,14 ;eax=taille de l'image
+
+mov ecx,eax
+mov edx,ad_fond
+call redim_mem
+
+
+
+;cree  l'image de fond vide
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov bx,[resx_ecran] 
+fs
+mov cx,[resy_ecran]
+pop eax
+mov ah,al
+mov edx,[couleur]
+mov edi,[ad_fond]
+mov al,50
+int 63h
+
+
+;lit l'image
+mov ebx,[handle_fichier]
+mov edi,[ad_tempo]
+mov al,52
+int 63h
+cmp eax,0
+jne erreur_fond
+
+
+;ferme le fichier
+mov al,1
+mov ebx,[handle_fichier]
+int 64h
+
+
+
+
+
+;calcul la taille intermédiaire
+xor eax,eax
+xor ecx,ecx
+mov esi,[ad_fond]
+mov edi,[ad_tempo]
+mov ax,[esi+objimage_x]
+mov cx,[edi+objimage_y]
+mul ecx
+mov cx,[esi+objimage_y]
+div ecx
+cmp ax,[edi+objimage_x]
+jb autre_carac_base
+
+xor ebx,ebx
+xor ecx,ecx
+mov cx,[edi+objimage_y]
+mov bx,ax
+jmp fin_calcul_intermediaire
+
+
+autre_carac_base:
+xor eax,eax
+xor ecx,ecx
+mov ax,[esi+objimage_y]
+mov cx,[edi+objimage_x]
+mul ecx
+mov cx,[esi+objimage_x]
+div ecx
+
+;cmp ax,[edi+objimage_y]
+;ja autre_carac_base
+
+
+xor ebx,ebx
+xor ecx,ecx
+mov bx,[edi+objimage_x]
+mov cx,ax
+
+
+fin_calcul_intermediaire:
+;crée l'image intermédiaire
+mov ah,[edi+objimage_bpp]
+mov edx,[couleur]
+mov edi,[to_tempo]
+shr edi,1
+add edi,[ad_tempo]
+mov al,50
+int 63h
+
+
+;extrait le fragment
+xor ebx,ebx
+xor ecx,ecx
+mov edi,[to_tempo]
+shr edi,1
+mov esi,[ad_tempo]
+add edi,[ad_tempo]
+mov bx,[esi+objimage_x]
+mov cx,[esi+objimage_y]
+sub bx,[edi+objimage_x]
+sub cx,[edi+objimage_y]
+shr ebx,1
+shr ecx,1
+mov al,54
+int 63h
+
+
+;remet a niveau
+mov esi,[to_tempo]
+shr esi,1
+add esi,[ad_tempo]
+
+mov edi,[ad_fond]
+mov al,53
+int 63h
+
+
+;libère mémoire
+mov ecx,0
+mov edx,ad_tempo
+call redim_mem
+ret
+
+
+pas_de_fond:
+;calcule la taille de l'image de fond et aggrandit la zone
+mov ecx,4
+fs
+mov ax,[resx_ecran]
+fs
+mov bx,[resy_ecran]
+mul ecx
+mul ebx
+add eax,14 ;eax=taille de l'image
+
+mov ecx,eax
+mov edx,ad_fond
+call redim_mem
+
+
+
+;cree  l'image de fond vide
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov bx,[resx_ecran] 
+fs
+mov cx,[resy_ecran]
+mov ah,32
+mov edx,[couleur]
+mov edi,[ad_fond]
+mov al,50
+int 63h
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+;***************************************************
+charge_icones:
+
+
+;ouvre le fichier
+mov al,0
+mov ebx,1
+mov edx,fichier_icones
+cmp byte[edx],0
+jne @f
+mov edx,fichier_icones_def
+@@:
+int 64h
+cmp eax,0
+jne erreur_icone
+mov [handle_fichier],ebx
+
+
+;lit les carac de l'image
+mov ebx,[handle_fichier]
+mov al,51
+int 63h
+cmp eax,0
+jne erreur_icone
+
+
+
+
+;aggrandit la zone pour pouvoir y charger l'image et la zone de traitement icone
+mov [taille_icone],ebx
+push edx
+push ecx
+shr edx,8 
+mov ecx,edx
+mov edx,ad_icones
+call redim_mem
+xor edx,edx
+pop ecx
+pop eax
+and eax,0FFh
+shr eax,3
+mul ebx
+mul ecx
+add eax,14 ;eax=taille de la zone consacré au travail de l'icone
+add ecx,eax
+mov edx,ad_icone
+call redim_mem
+
+
+;lit l'image
+mov ebx,[handle_fichier]
+mov edi,[ad_icones]
+mov al,52
+int 63h
+cmp eax,0
+jne erreur_icone
+
+
+;ferme le fichier
+mov al,1
+mov ebx,[handle_fichier]
+int 64h
+
+
+;crée l'icone vide
+mov ebx,[taille_icone] 
+mov ecx,[taille_icone]
+mov edi,[ad_icones]
+mov ah,[edi+objimage_bpp]
+mov edx,[couleur]
+mov edi,[ad_icone]
+mov al,50
+int 63h
+cmp eax,0
+jne erreur_icone
+ret
+
+
+
+
+;***************************************
+redim_mem:
+pushad
+
+cmp edx,ad_tempo
+jne @f
+
+
+mov [to_tempo],ecx
+add ecx,[ad_tempo]
+mov dx,sel_dat1
+mov eax,8
+int 61h
+cmp eax,0
+jne erreur_mem
+popad
+mov [edx+4],ecx
+ret
+
+
+@@:
+mov eax,[edx+4]
+cmp ecx,eax
+ja redim_mem_plus
+
+;la zone est réduite
+
+;décale les données
+pushad
+mov esi,[edx]
+mov edi,[edx]
+add esi,eax
+add edi,ecx
+mov ecx,[ad_tempo]
+add ecx,[to_tempo]
+sub ecx,esi
+cmp ecx,0
+je @f
+cld 
+rep movsb
+@@:
+popad
+
+;décale les adresses
+sub eax,ecx
+@@:
+add edx,8
+sub [edx],eax
+cmp edx,ad_tempo
+jne @b
+
+
+
+
+;change la taille
+mov ecx,[to_tempo]
+add ecx,[ad_tempo]
+mov dx,sel_dat1
+mov eax,8
+int 61h
+cmp eax,0
+jne erreur_mem
+popad
+mov [edx+4],ecx
+ret
+
+
+;la zone est augmenté
+redim_mem_plus:
+pushad
+;décale les adresses
+sub ecx,eax
+@@:
+add edx,8
+add [edx],ecx
+cmp edx,ad_tempo
+jne @b
+
+;change la taille
+mov ecx,[to_tempo]
+add ecx,[ad_tempo]
+mov dx,sel_dat1
+mov eax,8
+int 61h
+cmp eax,0
+jne erreur_mem
+popad
+
+;décale les données
+mov edi,[ad_tempo]
+add edi,[to_tempo]
+dec edi
+mov esi,edi
+sub esi,ecx
+add esi,eax
+mov ecx,[ad_tempo]
+add ecx,[to_tempo]
+sub ecx,[edx+8]
+
+cmp ecx,0
+je @f
+std 
+rep movsb
+@@:
+
+
+
+popad
+mov [edx+4],ecx
+ret
+
+
+
+
+
+
 
 
 
@@ -645,7 +828,7 @@ xor ebx,ebx
 
 boucle_menu1:
 cmp byte[edx],0
-je fin_menu1
+je suite_menu1
 inc ecx
 cmp byte[edx],13
 jne @f
@@ -659,10 +842,36 @@ mov ebx,ecx
 inc edx
 jmp boucle_menu1
 
-fin_menu1:
-mov [Lmenu],eax
+suite_menu1:
+shl ebx,3
+shl eax,4
+add ebx,2
+add eax,2
 mov [Cmenu],ebx
+mov [Lmenu],eax
 
+
+;verifie que le menu ne déborde pas de l'ecran et corrige si besoin
+xor eax,eax
+mov edx,[Xmenu]
+fs
+mov ax,[resx_ecran]
+add edx,[Cmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Cmenu]
+mov [Xmenu],eax
+@@:
+xor eax,eax
+mov edx,[Ymenu]
+fs
+mov ax,[resy_ecran]
+add edx,[Lmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Lmenu]
+mov [Ymenu],eax
+@@:
 
 
 menu_affichage:
@@ -670,10 +879,6 @@ mov ebx,[Xmenu]
 mov ecx,[Ymenu]
 mov esi,[Cmenu]
 mov edi,[Lmenu]
-shl esi,3
-shl edi,4
-add esi,2
-add edi,2
 add esi,[Xmenu]
 add edi,[Ymenu]
 call bouton
@@ -739,11 +944,37 @@ jmp menu_affichage
 
 
 menu_clique:
+
+;test si la fenetre est dans la
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+inc esi
+inc edi
+cmp bx,si
+jb menu_sortie
+cmp cx,di
+jb menu_sortie
+add esi,[Cmenu]
+add edi,[Lmenu]
+sub esi,2
+sub edi,2
+cmp bx,si
+jae menu_sortie
+cmp cx,di
+jae menu_sortie
+
+
+sub ecx,[Ymenu]
+dec ecx
+and ecx,0FFFFFFF0h 
+shr ecx,4
+mov eax,ecx
 ret
 
 
 
 menu_sortie:
+mov eax,-1
 ret
 
 
@@ -753,7 +984,7 @@ ret
 
 ;****************************
 recherche_objet:
-mov esi,objetsgraf
+mov esi,[ad_objet]
 boucle_recherche_objet:
 cmp dword[esi],0
 je recherche_objet_pastrouve
@@ -792,13 +1023,29 @@ ret
 
 
 
+;***************************************
+supprime_icone:
+pushad
+
+mov eax,[esi]
+mov edi,esi
+add esi,eax
+mov ecx,[to_objet]
+add ecx,[ad_objet]
+sub ecx,edi
+cld
+rep movsb
+
+mov ecx,[to_objet]
+mov edx,ad_objet
+sub ecx,eax
+call redim_mem
+
+popad
+ret
 
 
-
-
-
-
-
+;********************
 affiche_icone:
 xor eax,eax
 mov al,[esi+5]
@@ -807,15 +1054,15 @@ mul ecx
 mov ecx,eax
 xor ebx,ebx
 push esi
-mov esi,[reserve_icone]
-mov edi,[travail_icone]
+mov esi,[ad_icones]
+mov edi,[ad_icone]
 mov al,54
 int 63h
 pop esi
 
 mov ebx,[esi+8]
 mov ecx,[esi+12]
-mov edx,[travail_icone]
+mov edx,[ad_icone]
 mov al,27
 int 63h
 
@@ -1015,7 +1262,7 @@ ret
 
 
 
-
+;***********************************************************************************************************************************
 sdata1:
 org 0
 
@@ -1031,6 +1278,78 @@ db "ICS: erreur de reservation mémoire",13,0
 msg_ereur_fde:
 db "ICS: error while reading the wallpaper file",13,0
 db "ICS: erreur lors de la lecture du fichier de fond d'ecran",13,0
+
+
+texte_menu_param:
+db "change wallpaper",13
+db "add icon set",13
+db "delete icon set",13
+db "quit",0
+
+db "changer fond d'écran",13
+db "ajouter jeu d'icones",13
+db "supprimer jeu d'icônes",13
+db "quitter",0
+
+
+
+texte_menu_fichier:
+db "change icon",13
+db "change name",13
+db "change command",13
+db "delete",0
+
+db "selectionner icône suivante",13
+db "selectionner icône précédente",13
+db "changer nom",13
+db "changer commande",13
+db "supprimer",0
+
+
+
+db "changer icône",13
+db "changer nom",13
+db "changer commande",13
+db "supprimer",0
+
+
+
+
+
+
+
+
+
+
+
+
+ad_objet:
+dd 0
+to_objet:
+dd 0
+
+ad_fond:
+dd 0
+to_fond:
+dd 0
+
+ad_icones:
+dd 0
+to_icones:
+dd 0
+
+ad_icone:
+dd 0
+to_icone:
+dd 0
+
+ad_tempo:
+dd 0
+to_tempo:
+dd 8192
+
+
+
 
 
 dernier_clique:
@@ -1053,19 +1372,10 @@ taille_icone:   ;largeur icone
 dd 0
 
 
-taille_fond:   ;taille prise par le fichier image du fond
-dd 0
 
 
-;adresses des zones mémoire
-reserve_icone:
-dd 0
-travail_icone:
-dd 0
-fond_ecran:
-dd 0
-fin_mem:
-dd 0
+
+
 
 
 ;variables menu
@@ -1080,37 +1390,17 @@ dd 0
 Tmenu:
 dd 0
 
-texte_menu_param:
-db "change wallpaper",13
-db "add icon set",13
-db "delete icon set",0
-
-db "changer fond d'écran",13
-db "ajouter jeu d'icones",13
-db "supprimer jeu d'icônes",0
-
-
-
-texte_menu_fichier:
-db "change icon",13
-db "change name",13
-db "change command",13
-db "delete",0
-
-db "changer icône",13
-db "changer nom",13
-db "changer commande",13
-db "supprimer",0
 
 
 
 
 
 ;informations par défaut
-fichier_fond:
+fichier_fond_def:
 db "fond.png",0
-fichier_icone:
+fichier_icones_def:
 db "icones.png",0
+
 couleur:
 dd 0FF007070h ;bleu/vert moche de win95
 texte:
@@ -1122,14 +1412,19 @@ dd 0Fh      ;code 16 couleurs blanc
 
 
 
-objetsgraf:
+curcrx:
+include "../PROG/curs_crx.inc"
+
+
+
+tempo:
 
 dd @f-$     ;taille de l'objet
 db 0        ;attributs b0=visible b1=selectionné
 db 1        ;numéros de l'icone
 dw 0        ;vide
 dd 32,16    ;coordonné coin supérieur gauche
-db "explorateur de fichier",0  ;texte de l'icone
+db "Explorateur de fichier",0  ;texte de l'icone
 db "expl #",0  ;commande de l'icone
 @@:
 
@@ -1165,7 +1460,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 7        ;numéros de l'icone
 dw 0        ;vide
 dd 32,240    ;coordonné coin supérieur gauche
-db "installation",0  ;texte de l'icone
+db "Installation",0  ;texte de l'icone
 db "install",0  ;commande de l'icone
 @@:
 
@@ -1178,23 +1473,30 @@ db "Aide",0  ;texte de l'icone
 db "aide",0  ;commande de l'icone
 @@:
 
-
 dd 0
+fin_objet_base: 
+
+
+rb $-tempo+2048
 
 
 
 
 
 
+fichier_fond:
+rb 512
 
-curcrx:
-include "../PROG/curs_crx.inc"
+fichier_icones:
+rb 512
+
+fichier_data:
+rb 512
 
 curnorm:
 rb 256
 
-tempo:
-rb 256
+
 
 
 
