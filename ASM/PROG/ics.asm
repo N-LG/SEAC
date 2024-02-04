@@ -31,23 +31,6 @@ cmp eax,0
 jne erreur_mem
 
 
-;initialise les données des icones
-
-
-
-
-mov ecx,fin_objet_base-tempo
-mov edx,ad_objet
-call redim_mem
-
-
-mov esi,tempo
-mov edi,[ad_objet]
-cld
-rep movsb
-
-
-
 
 ;test si il faut une couleur de fond spéciale
 mov al,5   
@@ -103,8 +86,73 @@ int 61h
 mov al,5   
 mov ah,"b"   ;numéros de l'option de commande a lire
 mov cl,16   
-mov edx,fichier_data
+mov edx,fichier_objets
 int 61h
+
+
+
+;initialise les objets
+
+;ouvre le fichier
+mov al,0
+mov ebx,1
+mov edx,fichier_objets
+cmp byte[edx],0
+jne @f
+mov edx,fichier_objets_def
+@@:
+int 64h
+cmp eax,0
+jne objet_de_base
+mov [handle_fichier],ebx
+
+
+;lit la taille
+mov al,6
+mov ah,1
+mov ebx,[handle_fichier]
+mov edx,tempo
+int 64h
+cmp eax,0
+jne erreur_objet
+
+
+;agrandit la zone tampon pour l'acceuillir
+mov ecx,[tempo]
+mov edx,ad_objet
+call redim_mem
+
+
+;lit les objets
+mov al,4
+mov ebx,[handle_fichier]
+mov ecx,[tempo]
+xor edx,edx
+mov edi,[ad_objet]
+int 64h
+cmp eax,0
+jne erreur_objet
+
+;ferme le fichier
+mov eax,1
+mov ebx,[handle_fichier]
+int 64h
+jmp @f
+
+
+
+objet_de_base:
+mov ecx,fin_objet_base-tempo
+mov edx,ad_objet
+call redim_mem
+
+mov esi,tempo
+mov edi,[ad_objet]
+cld
+rep movsb
+@@:
+
+
 
 
 
@@ -180,6 +228,7 @@ int 60h
 declique:
 mov byte[mode],0
 call aff_curseur_normal
+call sauvegarde_objets
 jmp attend_touche
 
 
@@ -271,22 +320,22 @@ push esi
 call menu
 pop esi
 cmp eax,0
-je test0
+je menu_fichier0
 cmp eax,1
-je test4
-cmp eax,4
-je test4
+je menu_fichier1
+cmp eax,3
+je menu_fichier3
 jmp affichage
 
-test0:
+menu_fichier0:
 inc byte[esi+5]
 jmp affichage
 
-test1:
+menu_fichier1:
 dec byte[esi+5]
 jmp affichage
 
-test4:
+menu_fichier3:
 call supprime_icone
 jmp affichage
 
@@ -297,10 +346,48 @@ menu_param:
 mov edx,texte_menu_param
 call menu
 
+cmp eax,0
+je menu_param0
+
 cmp eax,3
 je touche_esc
 
 jmp affichage
+
+
+
+menu_param0:
+;ajouter une icone
+mov esi,[to_objet]
+mov ecx,[to_objet]
+add ecx,25
+mov edx,ad_objet
+call redim_mem
+
+add esi,[ad_objet]
+sub esi,4
+
+mov dword[esi],25
+mov dword[esi+4],0
+mov eax,[Xmenu]
+mov ebx,[Ymenu]
+mov [esi+8],eax
+mov [esi+12],ebx
+mov dword[esi+16],"Nouv"
+mov dword[esi+20],"eau"
+mov byte[esi+24],0
+mov dword[esi+25],0
+
+call sauvegarde_objets
+jmp affichage
+
+
+
+
+
+
+
+
 
 
 
@@ -329,10 +416,16 @@ call ajuste_langue
 int 61h
 int 60h
 
-
 erreur_fond:
 mov al,6
 mov edx,msg_ereur_fde
+call ajuste_langue
+int 61h
+int 60h
+
+erreur_objet:
+mov al,6
+mov edx,msg_ereur_ldo
 call ajuste_langue
 int 61h
 int 60h
@@ -1023,6 +1116,73 @@ ret
 
 
 
+
+;***************************************
+sauvegarde_objets:
+pushad
+;ouvre le fichier
+mov al,0
+mov ebx,1
+mov edx,fichier_objets
+cmp byte[edx],0
+jne @f
+mov edx,fichier_objets_def
+@@:
+int 64h
+cmp eax,0
+je @f
+
+
+
+;ou le créer
+mov al,2
+int 64h
+
+
+@@:
+mov [handle_fichier],ebx
+
+
+;redimensionne
+mov ecx,[to_objet]
+mov dword[tempo+4],0
+mov [tempo],ecx
+mov ebx,[handle_fichier]
+mov edx,tempo
+mov al,7
+mov ah,1 ;taille fichier
+int 64h
+
+;ecrit les objets
+mov al,5
+mov ebx,[handle_fichier]
+mov ecx,[to_objet]
+xor edx,edx
+mov esi,[ad_objet]
+int 64h
+
+;ferme le fichier
+mov eax,1
+mov ebx,[handle_fichier]
+int 64h
+popad
+ret
+
+sauvegarde_objets_erreur:
+mov al,6
+mov edx,msg_ereur_svo
+call ajuste_langue
+int 61h
+
+;ferme le fichier
+mov eax,1
+mov ebx,[handle_fichier]
+int 64h
+popad
+ret
+
+
+
 ;***************************************
 supprime_icone:
 pushad
@@ -1041,6 +1201,8 @@ mov edx,ad_objet
 sub ecx,eax
 call redim_mem
 
+
+call sauvegarde_objets
 popad
 ret
 
@@ -1278,17 +1440,23 @@ db "ICS: erreur de reservation mémoire",13,0
 msg_ereur_fde:
 db "ICS: error while reading the wallpaper file",13,0
 db "ICS: erreur lors de la lecture du fichier de fond d'ecran",13,0
+msg_ereur_ldo:
+db "ICS: error loading icon definition",13,0
+db "ICS: erreur erreur lors du chargement de la définition des icônes",13,0
+msg_ereur_svo:
+db "ICS: error saving icon definition",13,0
+db "ICS: erreur lors de la sauvegarde de la définition des icônes",13,0
 
 
 texte_menu_param:
+db "add new icon",13
 db "change wallpaper",13
-db "add icon set",13
-db "delete icon set",13
+db "change icon set",13
 db "quit",0
 
+db "ajouter une icônes",13
 db "changer fond d'écran",13
-db "ajouter jeu d'icones",13
-db "supprimer jeu d'icônes",13
+db "changer jeu d'icones",13
 db "quitter",0
 
 
@@ -1298,14 +1466,6 @@ db "change icon",13
 db "change name",13
 db "change command",13
 db "delete",0
-
-db "selectionner icône suivante",13
-db "selectionner icône précédente",13
-db "changer nom",13
-db "changer commande",13
-db "supprimer",0
-
-
 
 db "changer icône",13
 db "changer nom",13
@@ -1400,6 +1560,9 @@ fichier_fond_def:
 db "fond.png",0
 fichier_icones_def:
 db "icones.png",0
+fichier_objets_def:
+db "ICS.DAT",0
+
 
 couleur:
 dd 0FF007070h ;bleu/vert moche de win95
@@ -1490,7 +1653,7 @@ rb 512
 fichier_icones:
 rb 512
 
-fichier_data:
+fichier_objets:
 rb 512
 
 curnorm:
