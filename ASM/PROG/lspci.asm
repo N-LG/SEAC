@@ -455,12 +455,12 @@ popad
 passecarte:
 mov dx,0CF8h
 mov eax,ebx
-add eax,0Ch
+add eax,03h
 out dx,eax
 mov dx,0CFCh
 in eax,dx
 test eax,00800000h
-;jz simplefonction
+jz simplefonction
 
 add ebx,100h          ;on passe a la fonction suivante
 test ebx,7F000000h

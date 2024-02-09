@@ -179,11 +179,28 @@ cmp eax,0FFFFFFFFh
 je @f
 call cherche_base
 @@:
+
+add ebx,3
+mov dx,0CF8h
+mov eax,ebx
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+test eax,00800000h
+jz @f
+
+and ebx,0FFFFFF00h
 add ebx,100h
 test ebx,7F000000h
 jz boucle_rech_pci
 int 60h
 
+@@:
+and ebx,0FFFFF800h
+add ebx,800h
+test ebx,7F000000h
+jz boucle_rech_pci
+int 60h
 
 
 erreur_bdd:
