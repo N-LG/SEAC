@@ -64,6 +64,36 @@ add ecx,1AFh
 and ecx,0FFFFFFF0h
 mov [taille_zone],ecx
 
+;retire le nom du dossier du nom du fichier
+mov edx,nom_fichier
+mov esi,nom_fichier
+
+boucle_retiredossier:
+cmp byte[edx],0
+je fin_retiredossier
+cmp byte[edx],"/"
+jne @f
+mov esi,edx
+@@:
+cmp byte[edx],"\"
+jne @f
+mov esi,edx
+@@:
+inc edx
+jmp boucle_retiredossier
+
+fin_retiredossier:
+cmp esi,nom_fichier
+je  @f
+inc esi
+mov edi,nom_fichier
+mov ecx,nom_fichier+400
+sub ecx,esi
+cld
+rep movsb
+@@:
+
+
 
 mov ebx,[handle_archive]  ;ecrit le descripteur du fichier a ajouter
 mov ecx,416
