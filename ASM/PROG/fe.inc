@@ -1,4 +1,4 @@
-;en-tête prémaché pour compiler un fichier de type FE sous Fasm
+ï»¿fe.inc:;en-tÃªte prÃ©machÃ© pour compiler un fichier de type FE sous Fasm
 org 0
 format binary
 use32
@@ -8,7 +8,7 @@ dd pile                          ;taille de la pile
 dd scode                          ;adresse de la zone de code
 dd sdata1                         ;taille du segment de code   
 
-dd 0                             ;réservé pour un usage ultérieur
+dd 0                             ;rÃ©servÃ© pour un usage ultÃ©rieur
 dd 0
 dd 0
 dd 0
@@ -18,20 +18,20 @@ dd scode+sdata1+sdata2              ;adresse des data 2 dans le fichier
 dd scode+sdata1+sdata2+sdata3        ;adresse des data 3 dans le fichier
 dd scode+sdata1+sdata2+sdata3+sdata4  ;adresse des data 4 dans le fichier
 
-dd sdata2                         ;taille du segment de donnée 1 dans le fichier
-dd sdata3                         ;taille du segment de donnée 2 dans le fichier 
-dd sdata4                         ;taille du segment de donnée 3 dans le fichier 
-dd findata                       ;taille du segment de donnée 4 dans le fichier
+dd sdata2                         ;taille du segment de donnÃ©e 1 dans le fichier
+dd sdata3                         ;taille du segment de donnÃ©e 2 dans le fichier 
+dd sdata4                         ;taille du segment de donnÃ©e 3 dans le fichier 
+dd findata                       ;taille du segment de donnÃ©e 4 dans le fichier
 
-dd 0                             ;octets supplémentaire début du segment de données 1 
-dd 0                             ;octets supplémentaire début du segment de données 2
-dd 0                             ;octets supplémentaire début du segment de données 3
-dd 0                             ;octets supplémentaire début du segment de données 4
+dd 0                             ;octets supplÃ©mentaire dÃ©but du segment de donnÃ©es 1 
+dd 0                             ;octets supplÃ©mentaire dÃ©but du segment de donnÃ©es 2
+dd 0                             ;octets supplÃ©mentaire dÃ©but du segment de donnÃ©es 3
+dd 0                             ;octets supplÃ©mentaire dÃ©but du segment de donnÃ©es 4
 
-dd 0                             ;octets supplémentaire fin du segment de données 1 
-dd 0                             ;octets supplémentaire fin du segment de données 2
-dd 0                             ;octets supplémentaire fin du segment de données 3
-dd 0                             ;octets supplémentaire fin du segment de données 4
+dd 0                             ;octets supplÃ©mentaire fin du segment de donnÃ©es 1 
+dd 0                             ;octets supplÃ©mentaire fin du segment de donnÃ©es 2
+dd 0                             ;octets supplÃ©mentaire fin du segment de donnÃ©es 3
+dd 0                             ;octets supplÃ©mentaire fin du segment de donnÃ©es 4
 
 ;selecteur de segment de la LDT de la tache
 sel_res1   equ 004h  ;segment LDT 0  DPL0
@@ -61,15 +61,17 @@ at_console equ 00h
       ;b0=mote texte actif
       ;b1=mode graphique actif
       ;b2=souris ative
-      ;b3=pas de maj ecran obligatoire après appel fonction int 63h
-      ;b4=caracteristique ecran réel changé
+      ;b3=pas de maj ecran obligatoire aprÃ¨s appel fonction int 63h
+      ;b4=demande de mise a jour Ã©cran
+      ;b5=caracteristique ecran rÃ©el changÃ©
+      ;b6=mode fenetre
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch
 to_graf equ 10h
 ad_curseur equ 14h
 to_curseur equ 18h
-ad_curseur_texte equ 1Ch ;adresse du caractère sur lequel se trouve le curseur texte
+ad_curseur_texte equ 1Ch ;adresse du caractÃ¨re sur lequel se trouve le curseur texte
 bm_clavier equ 20h
 posx_souris equ 30h
 posy_souris equ 32h
@@ -85,7 +87,18 @@ dmaj_xfin equ 44h
 dmaj_ydeb equ 48h
 dmaj_yfin equ 4Ch
 
-ad_res_console equ 100h  ;adresse reservé
+ad_res_console equ 100h  ;adresse reservÃ©
+
+
+
+;structure d'un objet image
+objimage_bpp equ 00h ;0 bit par pixel
+objimage_att equ 01h ;1 attribut image
+objimage_x   equ 02h ;2 largeur image
+objimage_y   equ 04h ;4 hauteur image
+objimage_opl equ 06h ;6 nombre d'octet par ligne
+objimage_ctp equ 0Ah ;10 couleur de transparence
+objimage_dat equ 0Eh ;14 image
 
 
 
@@ -93,34 +106,34 @@ ad_res_console equ 100h  ;adresse reservé
 ;code d'erreur
 cer_parami equ 1  ;parametre incorrecte
 cer_lec    equ 2  ;erreur de lecture
-cer_lecnt  equ 3  ;lecteur/disque/fichier non trouvé
-cer_sysf   equ 4  ;erreur du systême de fichier
-cer_ecr    equ 5  ;erreur d'écriture
-cer_prd    equ 6  ;pas de réponse disque
-cer_do     equ 7  ;disque occupé
+cer_lecnt  equ 3  ;lecteur/disque/fichier non trouvÃ©
+cer_sysf   equ 4  ;erreur du systÃªme de fichier
+cer_ecr    equ 5  ;erreur d'Ã©criture
+cer_prd    equ 6  ;pas de rÃ©ponse disque
+cer_do     equ 7  ;disque occupÃ©
 cer_fdo    equ 8  ;fichier deja ouvert
 cer_il     equ 9  ;interdiction de lecture
 cer_ie     equ 10 ;interdicion d'ouverture
-cer_pasm   equ 11 ;plus assez de mémoire
+cer_pasm   equ 11 ;plus assez de mÃ©moire
 cer_dov    equ 12 ;le fichier ouvert est un dossier
-cer_inc    equ 13 ;erreur d'origine inconnue (normallement jamais utilisé, sauf erreur)
+cer_inc    equ 13 ;erreur d'origine inconnue (normallement jamais utilisÃ©, sauf erreur)
 cer_nci    equ 14 ;nombre de couleur non reconnue
 cer_eabs   equ 15 ;ecran absent
-cer_ano    equ 16 ;action non autorisé
+cer_ano    equ 16 ;action non autorisÃ©
 cer_ztv    equ 17 ;zone tampon vide
 cer_ztp    equ 18 ;zone tampon pleine
-cer_crp    equ 19 ;controleur ne répond pas
+cer_crp    equ 19 ;controleur ne rÃ©pond pas
 cer_cab    equ 20 ;controleur absent
 cer_dnv    equ 21 ;dossier non vide (dans le cas d'une suppression)
-cer_cin    equ 22 ;caractère interdit dans le nom de fichier
-cer_cfi    equ 23 ;création de fichier impossible
-cer_nfr    equ 24 ;nom de fichier deja uttilisé
-cer_prt    equ 25 ;pas de réponse 
+cer_cin    equ 22 ;caractÃ¨re interdit dans le nom de fichier
+cer_cfi    equ 23 ;crÃ©ation de fichier impossible
+cer_nfr    equ 24 ;nom de fichier deja uttilisÃ©
+cer_prt    equ 25 ;pas de rÃ©ponse 
 cer_ers    equ 26 ;erreur dans la structure
-cer_ddi    equ 27 ;données disponible
-cer_dnd    equ 28 ;données non disponible
-cer_znd    equ 29 ;zone de mémoire indisponible
-cer_zhm    equ 30 ;zone de mémoire hors mémoire physique
+cer_ddi    equ 27 ;donnÃ©es disponible
+cer_dnd    equ 28 ;donnÃ©es non disponible
+cer_znd    equ 29 ;zone de mÃ©moire indisponible
+cer_zhm    equ 30 ;zone de mÃ©moire hors mÃ©moire physique
 cer_uhci   equ 31 ;erreur controleur UHCI
 cer_ohci   equ 32 ;erreur controleur OHCI
 cer_ehci   equ 33 ;erreur controleur EHCI

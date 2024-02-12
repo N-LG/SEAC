@@ -686,7 +686,7 @@ db "    ",0
 
 
 nom_bdd1:
-db "USBCLASS.TXT",0
+db "LSUSB.CFG",0
 handle_bdd1:
 dd 0
 taille_bdd1:

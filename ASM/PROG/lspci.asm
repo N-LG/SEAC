@@ -595,7 +595,7 @@ db 17h,13,0
 
 
 nom_bdd1:
-db "PCICLASS.TXT",0
+db "LSPCI.CFG",0
 handle_bdd1:
 dd 0
 taille_bdd1:

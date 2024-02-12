@@ -373,9 +373,9 @@ org 0
 
 
 bdd_pci:
-db "PILPCI.TXT",0
+db "PILOTEPCI.CFG",0
 ;bdd_usb:
-;db "PILUSB.TXT",0
+;db "PILOTEUSB.CFG",0
 
 msg_type:
 db "PILOTE: unknown device type",13,0
