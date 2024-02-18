@@ -10,28 +10,29 @@ channel dedicated to project developments on the discord server of [osdev](https
 salon dédié aux evolutions du projet sur le serveur discord de [devse](https://discord.com/channels/746454130448531546/1043677858301759528)
 
 # organisation du dépot:
+> ***compilation.bat*** scripte batch pour compiler le systeme (windows)
+> ***compilation.sh*** scripte batch pour compiler le systeme (Gnu/Linux)
+> ***makefile*** options pour make
 
-ASM: contient toutes les sources en assembleur  
-> ***ASM/NOYAU*** noyau  
-> ***ASM/BOOT*** bootloader  
-> ***ASM/PROG*** applications  
-> ***ASM/DEF*** fichier de définitions  
-> ***ASM/compilation.bat*** scripte batch pour compiler le systeme (windows)  
-> ***ASM/compilation.sh*** scripte batch pour compiler le systeme (Gnu/Linux)
-    
-BIN: contient tout les binaires précompilé dont Fasm qui n'est pas sur ce dépot  
-> ****.fe*** fichier executable du systeme  
->  ****.baz*** code de base du noyau / fichier amorçable réseau  
-> ****.imb*** fichier multiboot 1  
-> ****.img*** image de disquette  
-> ****.mbr*** code pour Master Boot Record  
-> ****.def*** fichier de définition (clavier, message, et caractères matriciels)
+ASM: contient toutes les sources en assembleur
+> ***ASM/NOYAU*** noyau 
+> ***ASM/BOOT*** bootloader
+> ***ASM/PROG*** applications
+> ***ASM/DEF*** fichiers de définitions
+
+BIN: contient tout les binaires précompilé dont Fasm qui n'est pas sur ce dépot
+> ****.fe*** fichier executable du systeme
+>  ****.baz*** code de base du noyau / fichier amorçable réseau
+> ****.imb*** fichier multiboot 1
+> ****.img*** image de disquette
+> ****.mbr*** code pour Master Boot Record
+> ****.def*** fichier de définition (clavier, messages, et polices de caractères matriciels)
 
 IMGWIKI: images pour illustrer cetrains parties du wiki
 
 OUTILS: outils de dévellopement
-> ***ajarch*** uttilisé pour créer le noyau (version windows et Gnu/Linux)  
-> ***bootnet*** permet de booter en PXE (disponible que pour windows hélas)  
+> ***ajarch*** uttilisé pour créer le noyau (version windows et Gnu/Linux)
+> ***bootnet*** permet de booter en PXE (disponible que pour windows hélas)
 
 
 
