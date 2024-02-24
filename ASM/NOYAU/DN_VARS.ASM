@@ -648,13 +648,13 @@ po_ztcom_ecr  equ 0Ch ;pointeur d'ecriture dans la zt
 
 
 ;****************************************************************************
-;descripteur de controleur de bus USB
+;descripteur de controleur de bus USB (32 octets)
 dcu_type    equ 00h   ;type 1=controleur UHCI 2=OHCI 3=EHCI 4=XHCI FFh=Hub
 dcu_nb_port equ 01h
-dcu_es      equ 02h 
-dcu_pci     equ 04h
-dcu_mem     equ 08h
-dcu_to      equ 0ch
+dcu_es      equ 04h 
+dcu_pci     equ 08h
+dcu_mem     equ 0Ch
+dcu_to      equ 10h
 
 
 ;****************************************************************************
@@ -754,7 +754,7 @@ ad_res_console equ 100h  ;adresse reservé
 
 ;**********************************************************************
 ;organisation mémoire zt de dialogue sata
-
+;(les 16 premier octet sont le descripteur mémoire de base)
 zsata_ad_ahci equ 10h
 zsata_ad_port equ 14h
 zsata_nb_secteur equ 18h
@@ -768,6 +768,30 @@ zsata_acmd   equ 250h   ;commanda atapi
 zsata_prdt   equ 290h   ;physical region descriptor table
 
 zsata_liste  equ 410h   ;liste de pointeur vers les commandes
+
+
+
+
+;**********************************************************************
+;organisation mémoire canal usb pour controleur uhci
+;(les 16 premier octet sont le descripteur mémoire de base)
+uhci_bulkmem_cmd   equ 10h            ;les 8 octet d'une commande Usb
+;uhci_bulkmem_cmdto equ uhci_bulkmem_cmd+6
+uhci_bulkmem_param_adterm equ 18h     ;adresse et terminiaison
+uhci_bulkmem_param_tframe equ 1Ch     ;
+uhci_bulkmem_param_datainout equ 20h  ;sauvegarde temporaire de l'adresse des données passé en argument
+uhci_bulkmem_param_pcs equ 24h        ;précalcul du control et status word
+uhci_bulkmem_param_desc_perif equ 28h ;adresse du descripteur de périphérique
+uhci_bulkmem_param_desc_ctrl equ 2Ch  ;adresse du descripteur de controleur
+uhci_bulkmem_param_tod equ 30h        ;taille des donnée par transfert
+uhci_bulkmem_param_adata equ 34h      ;adresse du début des donnée dans la zone mémoire
+uhci_bulkmem_qh    equ 40h            ;queue head
+uhci_bulkmem_td    equ 50h            ;transfert descriptor (32 octets chaques)
+
+
+
+
+
 
 
 ;**********************************************************************

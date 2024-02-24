@@ -4,7 +4,7 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 January 2024 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.22 February 2024 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 
@@ -125,7 +125,7 @@ db "the ",0  ;98
 db "error during HID device initialization",13,0  ;99
 db "USB device ",34,0; 100
 db 34," has been connected to address ", 0; 101
-db "error when connecting a new USB device",13,0; 102
+db "error when connecting a new USB device during phase ",0; 102
 db "disconnection of USB device", 0; 103
 
 

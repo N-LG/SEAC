@@ -75,13 +75,15 @@ mov eax,[cptsf]
 fs
 cmp eax,[majv_dern]
 jb majv_juste_souris
-add eax,25
+add eax,16
 fs
 mov [majv_dern],eax
                      
 test byte[at_console],010h  ;test si on doit mettre a jour l'écran
 jz majv_juste_souris
 and byte[at_console],0EFh
+or  byte[at_console],080h
+
 fs
 or byte[at_vid],01
 fs
@@ -1544,7 +1546,7 @@ fs
 cmp eax,[xs1]
 je maj_ztverscarte_sourishz
 
-;si oui on agrandit eventuellement la zone pour effacer le vieux cursur
+;si oui on agrandit eventuellement la zone pour effacer le vieux curseur
 xor eax,eax
 fs
 mov ax,[axs1]
@@ -2798,6 +2800,8 @@ fin_majv:
 fs
 and byte[at_vid],0F0h
 
+
+
 fs                ;met a jour le bitmap clavier
 mov eax,[atbp]
 fs
@@ -2814,4 +2818,4 @@ mov [bm_clavier+12],edx
 fs                          ;met a jour la position souris
 mov eax,[axs1]
 mov [posx_souris],eax
-
+and  byte[at_console],07Fh
