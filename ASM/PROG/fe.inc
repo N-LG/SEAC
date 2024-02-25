@@ -65,6 +65,7 @@ at_console equ 00h
       ;b4=demande de mise a jour écran
       ;b5=caracteristique ecran réel changé
       ;b6=mode fenetre
+      ;b7=mise a jour de l'ecran en cours
 ad_texte equ 04h
 to_texte equ 08h
 ad_graf equ 0Ch

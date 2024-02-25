@@ -32,62 +32,7 @@ jne erreur_mem
 
 
 
-;test si il faut une couleur de fond spéciale
-mov al,5   
-mov ah,"c"   ;numéros de l'option de commande a lire
-mov cl,16   
-mov edx,tempo
-int 61h
-cmp eax,0
-jne @f
-mov al,101
-mov edx,tempo
-int 61h
-or ecx,0FF000000h
-mov [couleur],ecx
-@@:
 
-
-;test si il faut une couleur de texte spéciale
-mov al,5   
-mov ah,"t"   ;numéros de l'option de commande a lire
-mov cl,16   
-mov edx,tempo
-int 61h
-cmp eax,0
-jne @f
-mov al,101
-mov edx,tempo
-int 61h
-mov [texte],ecx
-@@:
-
-
-;récupère les icones
-mov al,5   
-mov ah,"i"   ;numéros de l'option de commande a lire
-mov cl,16   
-mov edx,fichier_icones
-int 61h
-
-
-
-
-;recupère l'image de fond
-mov al,5   
-mov ah,"f"   ;numéros de l'option de commande a lire
-mov cl,16   
-mov edx,fichier_fond
-int 61h
-
-
-
-;recupère les data 
-mov al,5   
-mov ah,"b"   ;numéros de l'option de commande a lire
-mov cl,16   
-mov edx,fichier_objets
-int 61h
 
 
 
@@ -151,6 +96,76 @@ mov edi,[ad_objet]
 cld
 rep movsb
 @@:
+
+
+
+
+;test si il faut une couleur de fond spéciale
+mov al,5   
+mov ah,"c"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,tempo
+int 61h
+cmp eax,0
+jne @f
+mov al,101
+mov edx,tempo
+int 61h
+or ecx,0FF000000h
+mov [couleur_fond],ecx
+@@:
+
+
+;test si il faut une couleur de texte spéciale
+mov al,5   
+mov ah,"t"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,tempo
+int 61h
+cmp eax,0
+jne @f
+mov al,101
+mov edx,tempo
+int 61h
+mov [couleur_texte],cl
+@@:
+
+
+;récupère les icones
+mov al,5   
+mov ah,"i"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,fichier_icones
+int 61h
+
+
+
+
+;recupère l'image de fond
+mov al,5   
+mov ah,"f"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,fichier_fond
+int 61h
+
+
+
+;recupère les data 
+mov al,5   
+mov ah,"b"   ;numéros de l'option de commande a lire
+mov cl,16   
+mov edx,fichier_objets
+int 61h
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -435,6 +450,16 @@ int 60h
 ;***************************************************************************************************
 ;**********************************************
 affiche_ecran:
+
+;attend que les précédentes modif d'ecrant ait été effectué
+@@:
+fs
+test byte[at_console],90h
+jz @f
+int 62h
+jmp @b 
+@@:
+
 ;affiche le fond
 xor ebx,ebx
 xor ecx,ecx
@@ -554,7 +579,7 @@ fs
 mov cx,[resy_ecran]
 pop eax
 mov ah,al
-mov edx,[couleur]
+mov edx,[couleur_fond]
 mov edi,[ad_fond]
 mov al,50
 int 63h
@@ -620,7 +645,7 @@ mov cx,ax
 fin_calcul_intermediaire:
 ;crée l'image intermédiaire
 mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
+mov edx,[couleur_fond]
 mov edi,[to_tempo]
 shr edi,1
 add edi,[ad_tempo]
@@ -687,7 +712,7 @@ mov bx,[resx_ecran]
 fs
 mov cx,[resy_ecran]
 mov ah,32
-mov edx,[couleur]
+mov edx,[couleur_fond]
 mov edi,[ad_fond]
 mov al,50
 int 63h
@@ -774,7 +799,7 @@ mov ebx,[taille_icone]
 mov ecx,[taille_icone]
 mov edi,[ad_icones]
 mov ah,[edi+objimage_bpp]
-mov edx,[couleur]
+mov edx,[couleur_fond]
 mov edi,[ad_icone]
 mov al,50
 int 63h
@@ -1075,6 +1100,157 @@ ret
 
 
 
+
+
+
+
+
+
+;********************************
+texte:
+mov [Xmenu],ebx
+mov [Ymenu],ecx
+;call ajuste_langue
+mov [Tmenu],edx
+
+xor ebx,ebx
+xor ecx,ecx
+mov bl,al
+mov cl,ah
+shl ebx,3
+shl ecx,4
+add ebx,20
+add ecx,20
+mov [Cmenu],ebx
+mov [Lmenu],ecx
+
+
+;verifie que le menu ne déborde pas de l'ecran et corrige si besoin
+xor eax,eax
+mov edx,[Xmenu]
+fs
+mov ax,[resx_ecran]
+add edx,[Cmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Cmenu]
+mov [Xmenu],eax
+@@:
+xor eax,eax
+mov edx,[Ymenu]
+fs
+mov ax,[resy_ecran]
+add edx,[Lmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Lmenu]
+mov [Ymenu],eax
+@@:
+
+
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+mov esi,[Cmenu]
+mov edi,[Lmenu]
+add esi,[Xmenu]
+add edi,[Ymenu]
+call bouton
+
+
+
+
+
+texte_affichage:
+
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,1
+add ecx,1
+mov esi,[Cmenu]
+mov edi,[Lmenu]
+
+
+mov edx,0FFFFFFh ;afficher un carré blanc
+mov al,22   
+mov ah,24
+int 63h
+
+
+
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+mov al,26
+mov ah,0
+add ebx,1
+add ecx,1
+mov edx,[Tmenu]
+mov edi,40
+int 63h
+
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+
+
+texte_touche:
+mov al,5
+int 63h
+cmp al,1  ;echap on quitte
+je texte_sortie_nok
+cmp al,0F0h
+je texte_clique
+jmp texte_affichage
+
+
+
+
+
+
+
+
+texte_clique:
+
+;test si la fenetre est dans la
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+inc esi
+inc edi
+cmp bx,si
+jb texte_sortie_nok
+cmp cx,di
+jb texte_sortie_nok
+add esi,[Cmenu]
+add edi,[Lmenu]
+sub esi,2
+sub edi,2
+cmp bx,si
+jae texte_sortie_nok
+cmp cx,di
+jae texte_sortie_nok
+
+
+;?????????????
+
+jmp texte_affichage
+
+
+texte_sortie_ok:
+xor eax,eax
+ret
+
+
+texte_sortie_nok:
+mov eax,-1
+ret
+
+
+
+
+
+
+
+
+
 ;****************************
 recherche_objet:
 mov esi,[ad_objet]
@@ -1327,7 +1503,7 @@ pop esi
 pop edx
 pop ecx
 sub ebx,eax
-mov ah,[texte]
+mov ah,[couleur_texte]
 mov al,26
 int 63h
 pop esi
@@ -1564,9 +1740,9 @@ fichier_objets_def:
 db "ICS.DAT",0
 
 
-couleur:
+couleur_fond:
 dd 0FF007070h ;bleu/vert moche de win95
-texte:
+couleur_texte:
 dd 0Fh      ;code 16 couleurs blanc
 
 

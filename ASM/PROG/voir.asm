@@ -277,6 +277,17 @@ mov al,53
 int 63h
 
 
+;attend que les précédentes modif d'ecrant ait été effectué
+@@:
+fs
+test byte[at_console],90h
+jz @f
+int 62h
+jmp @b 
+@@:
+
+
+
 ;affiche un fond
 xor ebx,ebx
 xor ecx,ecx
@@ -425,10 +436,12 @@ imul ecx
 idiv ebx
 add [offset_imagey],eax
 
+
+
+fs
+mov eax,[posx_souris]
+mov [sauvx_souris],eax
 jmp affichage
-
-
-
 
 
 
@@ -441,13 +454,92 @@ int 60h
 zom:
 cmp dword[zoom],2000
 jbe boucle_touche
+
+mov ebx,[zoom]
+mov ecx,10000
+
+xor eax,eax
+fs
+mov ax,[posx_souris]
+mul ecx
+div ebx
+add eax,[offset_imagex]
+mov esi,eax
+
+xor eax,eax
+fs
+mov ax,[posy_souris]
+mul ecx
+div ebx
+add eax,[offset_imagey]
+mov edi,eax
+
 sub dword[zoom],1000
+sub ebx,1000
+
+xor eax,eax
+fs
+mov ax,[posx_souris]
+mul ecx
+div ebx
+sub esi,eax
+mov [offset_imagex],esi
+
+xor eax,eax
+fs
+mov ax,[posy_souris]
+mul ecx
+div ebx
+sub edi,eax
+mov [offset_imagey],edi
+
 jmp calczoom
+
+
 
 zop:
 cmp dword[zoom],80000
 jae boucle_touche
+
+mov ebx,[zoom]
+mov ecx,10000
+
+xor eax,eax
+fs
+mov ax,[posx_souris]
+mul ecx
+div ebx
+add eax,[offset_imagex]
+mov esi,eax
+
+xor eax,eax
+fs
+mov ax,[posy_souris]
+mul ecx
+div ebx
+add eax,[offset_imagey]
+mov edi,eax
+
 add dword[zoom],1000
+add ebx,1000
+
+xor eax,eax
+fs
+mov ax,[posx_souris]
+mul ecx
+div ebx
+sub esi,eax
+mov [offset_imagex],esi
+
+xor eax,eax
+fs
+mov ax,[posy_souris]
+mul ecx
+div ebx
+sub edi,eax
+mov [offset_imagey],edi
+
+
 jmp calczoom
 
 
