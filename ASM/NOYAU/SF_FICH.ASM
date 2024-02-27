@@ -4108,7 +4108,7 @@ chargefat2_ok:
 
 
 fs
-btc word[at_fat],0   ;la zone 1 est la dernière mise a jour
+bts word[at_fat],0   ;la zone 2 est la dernière mise a jour
 fs
 mov ch,[no_part]
 fs
@@ -6878,6 +6878,7 @@ cmp byte[zt_lminfo+0Bh],0Fh
 je vfat_sff_lit_dossier_fat
 
 mov esi,zt_lminfo             ;fichier fat classique
+cld
 movsb
 cmp edi,ecx
 je finzt_sff_lit_dossier_iso9660
@@ -6933,6 +6934,7 @@ cmp eax,0202020h
 je ffn_sff_lit_dossier_fat
 
 mov al,"."
+cld
 stosb
 cmp edi,ecx
 je finzt_sff_lit_dossier_iso9660

@@ -1018,9 +1018,9 @@ mov ecx,8000h  ;32ko
 cmp dword[nb_ram],800000h ;si inf a 8Mo zt de fat de 32Ko
 jb @f
 mov ecx,20000h  ;128ko
-cmp dword[nb_ram],4000000h  ;si inf a 64Mo zt de fat de 128Ko
-jb @f
-mov ecx,80000h  ;512ko
+;cmp dword[nb_ram],4000000h  ;si inf a 64Mo zt de fat de 128Ko
+;jb @f
+;mov ecx,80000h  ;512ko
 @@:
 
 call resmem
