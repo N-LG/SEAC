@@ -1223,7 +1223,8 @@ xor edx,edx
 mul ecx
 mov ecx,[format_taille_reserve]
 add ecx,[format_cluster_par_secteur_fat]
-add ecx,eax    ;dernier secteur a effacer+1
+shl ecx,4
+add ecx,eax    ;dernier secteur a effacer+16
 mov edi,ecx
 
 boucle_effacedata:
@@ -1365,6 +1366,14 @@ formattage_fat32:
 mov dword[ZT512C],0FFFFFFF8h   ;marque le premier cluster comme une fin de fichier car il n'existe pas
 mov dword[ZT512C+4],0FFFFFFF8h ;marque le deuxième cluster comme une fin de fichier car il n'existent pas
 mov dword[ZT512C+8],0FFFFFFF8h ;marque le troisième cluster comme une fin de fichier car c'est le cluster de départ du repertoire racine
+mov dword[ZT512C+12],3 ;marque du troisième au 11em cluster comme un fichier car c'est les clusters du repertoire racine
+mov dword[ZT512C+16],4
+mov dword[ZT512C+20],5
+mov dword[ZT512C+24],6
+mov dword[ZT512C+28],7
+mov dword[ZT512C+32],8
+mov dword[ZT512C+36],9
+mov dword[ZT512C+40],0FFFFFFF8h
 xor eax,eax
 mov ebx,[format_offset_partition]
 mov ax,[secteur_reserve_fat32]
