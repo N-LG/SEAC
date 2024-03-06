@@ -187,6 +187,10 @@ fstp qword[lune+vitx]
 pasdepousse:
 
 
+fs
+test byte[at_console],90h   ;si précédentes modif d'ecran n'ont pas été effectué on ne change rien a l'affichage
+jnz ignore_affichage
+
 ;***********************efface l'affichage
 mov ebx,0
 mov ecx,0
@@ -339,8 +343,6 @@ fistp dword[tempo+4]
 add ebx,[tempo]
 add ecx,[tempo+4]
 
-push ebx
-push ecx
 
 mov al,24   ;afficher un disque
 mov ah,4    ;4bit par pixel pour la couleur
@@ -350,9 +352,27 @@ int 63h
 
 mov al,7     ;mise a jour de l'écran
 int 63h
-
+ignore_affichage:
 
 ;met a jour la table des coordonné
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov bx,[resx_ecran]
+fs
+mov cx,[resy_ecran]
+shr bx,1
+shr cx,1
+
+fld qword[lune+posx]
+fistp dword[tempo]
+fld qword[lune+posy]
+fistp dword[tempo+4]
+add ebx,[tempo]
+add ecx,[tempo+4]
+
+push ebx
+push ecx
 mov esi,liste_point+1016
 mov edi,liste_point+1020
 mov ecx,255
