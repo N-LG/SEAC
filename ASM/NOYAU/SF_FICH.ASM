@@ -2814,7 +2814,8 @@ cmp eax,0
 jne ignore_ajclust_change_en_dossier_fat
 
 xor edx,edx
-call ajn_cluster   ;ajoute nouveau cluster
+mov ecx,4000h
+call ajnx_cluster   ;reserve une taille minimum
 cmp eax,0
 jne fin_change_en_dossier_fat
 fs
@@ -4744,8 +4745,6 @@ ret
 
 
 
-
-
 ;*********************************************************
 ajn_cluster:               ;ajoute un nouveau cluster 
 ;entrée: edx=dernier cluster du fichier
@@ -4808,24 +4807,67 @@ ajnx_cluster:               ;ajoute un ou plusieurs nouveaux cluster
 push ebx                      ;on verifie d'abord si le cluster suivant est disponible 
 push ecx
 push edi
-push edx
 
-recommence_ajnx_cluster: 
+fs
+mov al,[at_fichier]
+and al,7Fh
+cmp al,00011011b       ;si c'est un dossier racine fat32 on lui rajoute 256Ko d'un coup
+je ajnx_dossier
+and al,03h
+cmp al,10b            ;ou bien si c'est un simple dossier
+jne @f
+cmp ecx,40000h        ;sauf si on as déja demandé plus
+jae @f
+ajnx_dossier:
+mov ecx,40000h
+@@:
+
+
+call ajnx_nouveau_cluster
+push edx ;sauvegarde le premier numéméros des nouveaux cluster
+cmp eax,0
+jne finabs_ajnx_cluster 
+
+@@:
+fs
+cmp ecx,[to_1cluster]
+jbe finabs_ajnx_cluster
+fs
+sub ecx,[to_1cluster]
+call ajnx_nouveau_cluster
+cmp eax,0
+jne finabs_ajnx_cluster 
+jmp @b
+
+finabs_ajnx_cluster:
+call sauvegarde_zt_fat
+pop edx
+pop edi
+pop ecx
+pop ebx
+ret
+
+
+
+
+
+
+ajnx_nouveau_cluster:
 mov edi,edx     ;edi=sauvegarde du précédent cluster
 inc edx
 mov ebx,edx
 call lireindexfat
 cmp eax,0
-jne finerr_ajnx_cluster
+jne @f
 cmp ebx,0
 je trouve_rech_nouvx_cluster 
 
-mov edx,2                      ;sinon on recommence depuis le début
+mov edx,2                      ;sinon on recommence depuis le début (????????a améliorer pour chercher d'abord 
 boucle1_rech_nouvx_cluster:
 mov ebx,edx
 call lireindexfat
 cmp eax,0
-jne finerr_ajnx_cluster
+jne @f
 cmp ebx,0
 je trouve_rech_nouvx_cluster 
 inc edx
@@ -4836,10 +4878,10 @@ mov ebx,edx
 mov eax,0FFFFFFF8h
 call ecrireindexfat_sp
 cmp eax,0
-jne finerr_ajnx_cluster
+jne @f
 
 cmp edi,0
-je suite_ajnx_cluster  ;si le précédent cluster n'existait pas on ignore cette étape
+je @f  ;si le précédent cluster n'existait pas on ignore cette étape
 mov eax,edx
 mov ebx,edi
 push eax
@@ -4848,41 +4890,13 @@ call lireindexfat
 pop ebx
 pop eax
 call ecrireindexfat_sp
-
-cmp eax,0
-jne finerr_ajnx_cluster
-
-suite_ajnx_cluster:
-fs
-cmp ecx,[to_1cluster]
-jbe finabs_ajnx_cluster
-fs
-sub ecx,[to_1cluster]
-jmp recommence_ajnx_cluster
-
-finabs_ajnx_cluster:
-call sauvegarde_zt_fat
-pop ebx
-call lireindexfat
-cmp eax,0
-jne finerr2_ajnx_cluster
-mov edx,ebx
-pop edi
-pop ecx
-pop ebx
+@@:
 ret
 
-finerr_ajnx_cluster:
-pop eax
-xor edx,edx
-finerr2_ajnx_cluster:
-push eax
-call sauvegarde_zt_fat
-pop eax
-pop edi
-pop ecx
-pop ebx
-ret
+
+
+
+
 
 
 
