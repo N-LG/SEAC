@@ -2689,6 +2689,7 @@ mov dx,seldat
 mov ds,dx
 mov es,dx
 
+or byte[at_csl],10h
 
 cmp word[to_ztcmd],0   ;la fifo des commandes est elle vide?
 je pascommande
@@ -4006,6 +4007,9 @@ call affcj
 
 ;********************************************************
 pascommande:
+mov ax,seldat
+mov ds,ax
+and byte[at_csl],0EFh
 sti
 include "SF_PERI.ASM"         ;gestion periodique du materiel
 int 62h

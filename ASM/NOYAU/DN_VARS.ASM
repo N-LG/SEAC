@@ -256,14 +256,14 @@ nb_zone_tache equ 0E4h
 nb_zone_com equ 0E6h 
 
 ;*************************************************************************
-;gestion de la console systŠme
+;gestion de la console systême
 
 at_csl equ 0F0h  ;attribut console  
 ;b0=la liste des écran a été modifié 
 ;b1=le journal a été modifié
 ;b2=le dossier courant a été modifié
 ;b3=la commande a été modifié
-
+;b4=une commande est en cours de décodage
 ;b5=on doit afficher la fin du journal
 
 

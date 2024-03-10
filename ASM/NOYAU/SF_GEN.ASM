@@ -1344,6 +1344,9 @@ es
 cmp word[to_ztcmd],0
 jne @b
 es
+test byte[at_csl],10h
+jnz @b
+es
 mov dx,[id_tache_exec]
 
 mov bx,selramh
