@@ -178,6 +178,7 @@ test byte[cmdex_option_exec],01h
 jnz ignore_ligne_script
 
 @@:
+int 62h
 mov al,19
 mov cl,128
 mov edx,cmdex_taches_attente
@@ -185,7 +186,6 @@ mov word[edx],0
 int 61h
 cmp word[cmdex_taches_attente],0
 je ignore_ligne_script
-int 62h
 jmp @b
 
 

@@ -1340,6 +1340,7 @@ mov bx,seldat
 mov es,bx
 @@:
 int 62h
+es
 cmp word[to_ztcmd],0
 jne @b
 es
@@ -1368,8 +1369,8 @@ add esi,2
 
 ignore_sfs_rech_cree:
 es
-mov ecx,[ebx+to_tache]
-add ebx,ecx
+mov eax,[ebx+to_tache]
+add ebx,eax
 jmp boucle_sfs_rech_cree
 
 fin_sfs_rech_cree:
