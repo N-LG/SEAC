@@ -4914,6 +4914,14 @@ cmp edx,[to_fichier]
 ja errprmsf            ;on ne peut écrire au dela de la taille existante du fichier
 
 fs
+mov al,[at_fichier]   ;on ne peut pas ecrire dans un dossier
+and al,011b
+cmp al,11b
+je errprmsf
+cmp al,11b
+je errprmsf
+
+fs
 mov al,[at_fichier]
 and al,00111100b
 cmp  al,1000b
