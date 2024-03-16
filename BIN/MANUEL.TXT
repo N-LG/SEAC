@@ -38,6 +38,7 @@
  ~LSUSB~ liste les périphérique usb installé
  ~ICS~ interface graphique
  ~VOIR~ visionneur de fichier image
+ ~PILOTE~ gestionnaire de pilotes
 %-Pilote Réseau
  ~RTL8139~ ~3C90X~ ~I8254X~
 %-Utilisation réseau:
@@ -337,14 +338,16 @@
 :rtl8139:3c90x:i8254x:ethernet:ip
 ^Pilotes pour carte ethernet/ip
 
-%commande: rtl8139
+%commande: rtl8139 XXX
  démarre le pilote pour une carte Realtek RTL8139 ou compatible
-%commande: 3c90x
+%commande: 3c90x XXX
  démarre le pilote pour une carte 3Com 3C905 ou compatible
-%commande: I8254x
+%commande: I8254x XXX
  démarre le pilote pour une carte Intel 82540 ou compatible
 
- l'adressage se configure avec ~IPCONFIG~ 
+ avec: XXX = ~adresse pci~ de la carte
+
+ la configuration du pilote s'effectue avec ~IPCONFIG~ 
 :fasm
 ^FASM
  compilateur assembleur créer par Tomasz Grysztar
@@ -505,3 +508,17 @@
  paramètres optionnels:
  -c:XXX numéros de l'interface réseau a utiliser
  -e     autorise d'écraser le fichier de destination
+:pilote
+^PILOTE
+ démarre le pilote d'un périphérique 
+
+%Commande: pilote XXX YYY
+ avec XXX = type de pilote a charger uniquement "pci" pour l'instant
+      YYY = adresse du peripherique a charger, si ce parametre est absent on démarre tout les périphérique detecté
+:adresse pci:pci
+^Adresse PCI
+ une adresse pci a le format suivant:
+%XX:YY.Z
+ avec XX = numéros du bus
+      YY = numéros de la carte
+      Z  = numéros de la fonction

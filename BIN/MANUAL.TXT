@@ -334,12 +334,16 @@
 :rtl8139:3c90x:i8254x:ethernet:ip
 ^Drivers for ethernet/ip card
 
-%command: rtl8139
+%command: rtl8139 XXX
  starts the driver for a Realtek 8139 or compatible card
-%order: 3c90x
+%order: 3c90x XXX
  starts the driver for a 3Com or compatible card
-%command: I8254x
-starts the driver for an Intel or compatible card
+%command: I8254x XXX
+ starts the driver for an Intel or compatible card
+
+ with: XXX = ~pci address~ of the card
+
+ driver configuration is done with ~IPCONFIG~
 :fasm
 ^FASM
  assembler compiler created by Tomasz Grysztar
@@ -492,3 +496,28 @@ starts the driver for an Intel or compatible card
  optional parameters:
  -c:XXX network interface numbers to use
  -e allows to overwrite the destination file
+^PILOTE
+
+  starts a device driver
+
+
+
+%Command: driver XXX YYY
+ 
+ with XXX = type of driver to load only "pci" for the moment
+
+      YYY = address of the device to load, if this parameter is absent we start all the detected devices
+
+:pci address:pci
+
+^PCI address
+
+ a pci address has the following format:
+
+%XX:YY.Z
+
+ with XX = bus numbers
+
+      YY = card numbers
+
+      Z  = function numbers
