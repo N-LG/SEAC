@@ -214,12 +214,12 @@ db "ETAGE3.BIN"                     ;nom du fichier
 rb 416 - ($ - fichiers_mem)mod 416  ;remplissage pour faire une entête de 416 octet
 
 data_etage3:
-file "../../BIN/ETAGE3.BIN"
+file "ETAGE3.BIN"
 fin_etage3:
 
 rb 16 - ($ - fichiers_mem)mod 16   ;remplissage pour faire que le fichier ai une granularité de 16 octets
  
 
 data_etage4:
-file "../../BIN/ETAGE4.BIN"
+file "ETAGE4.BIN"
 fin_etage4:
