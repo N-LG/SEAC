@@ -522,3 +522,29 @@
  avec XX = numéros du bus
       YY = numéros de la carte
       Z  = numéros de la fonction
+:installation
+^Etapes pour faire une installation manuelle de Seac
+
+  1) d'abord il faut déterminer le nom du disque sur lequel l'ordinateur démarre, on pourra trouver cette information dans le bios
+  2) on démarre Seac via une clef usb, un cdrom, une disquette, ou pxe
+  3) on ouvre l'application "partd"
+  4) on sélectionne le disque trouvé a l'étape 1
+  5) on crée une partition de type 30h et de taille 1Mo
+  6) on crée et on formate (si elle n'existe déjà pas) une partition fat (code type 0Bh)
+  7) on redémarre Seac pour avoir les numéros de partiton numéroté lors de la phase de boot
+  8) on créer un dossier système (on peut le nommer n'importe comment) dans la partition fat
+  9) on copie la totalité du répertoire #dm dans le répertoire système nouvellement crée
+ 10) on copie le script de démarrage "cfg.sh" dans "boot.sh"
+ 11) on ouvre le script de démarrage cfg.sh
+ 12) on efface la totalité du fichier et on remplace par les ligne: 
+   "cd [adresse du dossier system]"
+   "fix"
+   "ex boot.sh -v"
+ 13) on compile le script de démarrage par la commande "FASM ETAGE4.ASM ETAGE4.BIN"
+ 14) on compile l'image amorçable par la commande "FASM ETAGE2_MBR.ASM SEAC.BIN"
+ 15) on ouvre l'application "partd" et on sélectionne le disque trouvé a l'étape 1
+ 16) on charge l'image de démarrage "SEAC.BIN" dans la partition de type 30h
+ 17) on change le programme d'amorçage par "BIOS.MBR"
+
+%le système est prêt!
+%vous pouvez maintenant personnaliser la phase de démarrage en éditant le fichier "boot.sh"

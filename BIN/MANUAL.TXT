@@ -38,6 +38,7 @@
  ~LSUSB~ list installed usb devices
  ~ICS~ GUI
  ~VOIR~ image file viewer
+ ~PILOTE~ driver manager
 %-Network Driver
  ~RTL8139~ ~3C90X~ ~I8254X~
 %-Network usage:
@@ -496,9 +497,10 @@
  optional parameters:
  -c:XXX network interface numbers to use
  -e allows to overwrite the destination file
+:pilote
 ^PILOTE
 
-  starts a device driver
+ starts a device driver
 
 
 
@@ -521,3 +523,31 @@
       YY = card numbers
 
       Z  = function numbers
+
+:install
+^Steps to do a manual installation of Seac
+
+  1) first you need to determine the name of the disk on which the computer boots, you can find this information in the bios
+  2) start Seac via a usb key, a cdrom, a floppy disk, or pxe
+  3) open the “partd” application
+  4) select the disk found in step 1
+  5) create a partition of type 30h and size 1MB
+  6) create and format (if it does not already exist) a fat partition (type code 0Bh)
+  7) restart Seac to have the partition numbers numbered during the boot phase
+  8) create a system folder (you can name it whatever) in the fat partition
+  9) copy the entire #dm directory into the newly created system directory
+ 10) copy the startup script "cfg.sh" into "boot.sh"
+ 11) open the cfg.sh startup script
+ 12) we delete the entire file and replace with the lines:
+    "cd [system folder address]"
+    "fix"
+    "ex boot.sh -v"
+ 13) compile the startup script using the command “FASM ETAGE4.ASM ETAGE4.BIN”
+ 14) compile the bootable image using the command “FASM ETAGE2_MBR.ASM SEAC.BIN”
+ 15) open the "partd" application and select the disk found in step 1
+ 16) load the “SEAC.BIN” boot image into the 30h type partition
+ 17) change the boot program to “BIOS.MBR”
+
+%the system is ready!
+%you can now customize the boot phase by editing the "boot.sh" file
+
