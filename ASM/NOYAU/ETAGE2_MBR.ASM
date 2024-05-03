@@ -127,6 +127,41 @@ mov dword[10000Ch],"????"
 
 
 ;**********************************************************************
+;cherche le rsdp (sert a rien pour l'instant)
+
+;dans l'EBDA
+xor edx,edx
+mov dx,[40Eh]
+shl edx,4
+mov ebx,edx
+add ebx,1024
+boucle1_rechrsdp:
+cmp dword[edx],"RSD "
+jne @f
+cmp dword[edx+4],"PTR "
+je rsdp_trouve
+@@:
+add edx,16
+cmp edx,ebx
+jne boucle1_rechrsdp 
+
+;dans la rom Bios
+mov edx,0E0000h
+boucle2_rechrsdp:
+cmp dword[edx],"RSD "
+jne @f
+cmp dword[edx+4],"PTR "
+je rsdp_trouve
+@@:
+add edx,16
+cmp edx,100000h
+jne boucle2_rechrsdp 
+
+rsdp_trouve:
+;!!!!!!!!!que faire du RSDP!!!!!!!!!!!
+
+
+;**********************************************************************
 ;ajoute les fichier RAM
 mov esi,fichiers_mem
 mov edi,100000h
