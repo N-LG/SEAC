@@ -68,13 +68,13 @@ fasm ASM/DEF/bepo.asm BIN/bepo.def
 fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
 #fasm ASM/DEF/0u0.asm  BIN/0u0.def
-#fasm ASM/DEF/25u0.asm  BIN/25u0.def
-#fasm ASM/DEF/F00u0.asm BIN/F00u0.def
 
+#création du zip de base
 cd BIN
 zip -9 SEAC.ZIP *.ids
 zip -9 SEAC.ZIP *.FE
 zip -9 SEAC.ZIP *.png
+zip -9 SEAC.ZIP *.def
 cd ..
 
 #ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
@@ -146,6 +146,7 @@ cd ..
 ./ajarch BIN/0u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/1u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/25u0.def BIN/ETAGE4.BIN
+./ajarch BIN/FFu0.def BIN/ETAGE4.BIN
 ./ajarch BIN/F00u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/ETAGE24.ASM BIN/ETAGE4.BIN
 ./ajarch BIN/icones.png BIN/ETAGE4.BIN

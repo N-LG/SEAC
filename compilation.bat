@@ -69,8 +69,6 @@ fasm ASM/DEF/bepo.asm BIN/bepo.def
 fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
 :fasm ASM/DEF/0u0.asm  BIN/0u0.def
-:fasm ASM/DEF/25u0.asm  BIN/25u0.def
-:fasm ASM/DEF/F00u0.asm BIN/F00u0.def
 
 
 
@@ -126,9 +124,7 @@ ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
 ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ajarch BIN/JN1.FE BIN/ETAGE4.BIN
-ajarch BIN/MANUEL.TXT BIN/ETAGE4.BIN
-ajarch BIN/MANUAL.TXT BIN/ETAGE4.BIN
-
+ajarch BIN/MAN.ZIP BIN/ETAGE4.BIN
 
 
 :ajout des fichiers de définition à l'archive du noyau
@@ -144,13 +140,15 @@ ajarch BIN/dvorak.def BIN/ETAGE4.BIN
 ajarch BIN/0u0.def BIN/ETAGE4.BIN
 ajarch BIN/1u0.def BIN/ETAGE4.BIN
 ajarch BIN/25u0.def BIN/ETAGE4.BIN
+ajarch BIN/FFu0.def BIN/ETAGE4.BIN
 ajarch BIN/F00u0.def BIN/ETAGE4.BIN
-ajarch BIN/ETAGE24.ASM BIN/ETAGE4.BIN
 ajarch BIN/icones.png BIN/ETAGE4.BIN
 
 
 
 :compilation des différents format du noyau
+copy BIN\ETAGE3.BIN  ASM\NOYAU\ETAGE3.BIN 
+copy BIN\ETAGE4.BIN  ASM\NOYAU\ETAGE4.BIN 
 fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
 :fasm ASM/NOYAU/ETAGE2_EFI.ASM BIN/SEAC.EFI
 fasm ASM/NOYAU/ETAGE1_DSQ.ASM BIN/SEAC.IMG
