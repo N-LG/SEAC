@@ -2,6 +2,7 @@ modv 800*600
 #def en-txt.def
 #def en-qwi.def
 pilote pci
+dcp MAN.ZIP
 *
 stftp #dm -w
 shttp #dm
