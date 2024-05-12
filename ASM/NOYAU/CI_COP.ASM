@@ -10,7 +10,9 @@ cmdcop_taille_entree equ 810h
 cmdcop_offset_transfert equ 814h
 cmdcop_taille_dossier equ 818h
 cmdcop_zone_tampon equ 81Ch
-cmdcop_taille_tampon equ 100000h
+cmdcop_taille_tampon equ 200000h
+cmdcop_zone_dossier equ cmdcop_zone_tampon + cmdcop_taille_tampon
+
 
 
 ;change la taille de la zt
@@ -19,7 +21,7 @@ mov dx,sel_dat1
 mov ecx,cmdcop_zone_tampon+cmdcop_taille_tampon
 int 61h
 cmp eax,0
-jne erreur_autres_cmdcop
+jne erreur_memoire_cmdcop
 
 mov ax,sel_dat1
 mov ds,ax
@@ -188,17 +190,77 @@ jmp @b
 
 
 cmdcop_multifichier:
+
+;change la taille de la zt
+mov al,8
+mov dx,sel_dat1
+mov ecx,cmdcop_zone_dossier+cmdcop_taille_tampon
+int 61h
+cmp eax,0
+jne erreur_memoire_cmdcop
+
+
 ;lit le contenu du dossier
+mov eax,16        ;lire partie liste fichier
+mov ebx,[cmdcop_handle_dossier_entree]
+mov ecx,cmdcop_taille_tampon
+mov edx,0
+mov edi,cmdcop_zone_dossier
+int 64h
+cmp eax,0
+jne erreur_entree_cmdcop
+
+
 
 
 ;filtre le dossier
+cmp dword[cmdcop_nom_entree],"*.*"
+je fin_filtrage_cmdcop
+;???????????????pas d'autres options de filtrage pour l'instant
+mov eax,cer_parami
+call message_erreur_cmdcop
+int 60h
 
 
+fin_filtrage_cmdcop:
+
+
+
+mov edx,cmdcop_zone_dossier
+cmp byte[edx],0
+je fin_multifichier_cmdcop
 
 boucle_multifichier_cmdcop:
+mov esi,cmdcop_nom_entree
+mov edi,cmdcop_nom_sortie
+
+@@:
+mov al,[edx]
+cmp al,0
+je @f
+cmp al,"|"
+je @f
+mov byte[esi],al
+mov byte[edi],al
+inc edx
+inc esi
+inc edi
+jmp @b
 
 
+@@:
+mov byte[esi],0
+mov byte[edi],0
 
+
+call copiefichier_cmdcop
+cmp byte[edx],0
+je fin_multifichier_cmdcop
+inc edx
+jmp boucle_multifichier_cmdcop
+
+
+fin_multifichier_cmdcop:
 int 60h
 
 
@@ -213,9 +275,10 @@ call copiefichier_cmdcop
 
 int 60h
 
-
+erreur_memoire_cmdcop:
 erreur_entree_cmdcop:
 erreur_sortie_cmdcop:
+
 
 call message_erreur_cmdcop
 
