@@ -105,43 +105,6 @@ rep movsd
 @@:
 
 
-;***********************************************
-mov word[cmdcop_zone_tampon],13
-
-mov al,6
-mov edx,cmdcop_nom_entree
-int 61h
-
-mov al,6
-mov edx,cmdcop_zone_tampon
-int 61h
-
-mov al,6
-mov edx,cmdcop_nom_sortie
-int 61h
-
-mov al,6
-mov edx,cmdcop_zone_tampon
-int 61h
-
-mov al,6
-mov edx,cmdcop_dossier_entree
-int 61h
-
-mov al,6
-mov edx,cmdcop_zone_tampon
-int 61h
-
-mov al,6
-mov edx,cmdcop_dossier_sortie
-int 61h
-
-mov al,6
-mov edx,cmdcop_zone_tampon
-int 61h
-;*********************************
-
-
 
 ;ouvre le dossier d'entrée
 xor eax,eax
@@ -156,8 +119,40 @@ jne erreur_entree_cmdcop
 mov [cmdcop_handle_dossier_entree],ebx
 
 
-;ouvre le dossier de sortie
+;test si il faut ouvrir ou crer le dossier de sortie
 xor eax,eax
+jmp ouvre_dossier_sortie_cmdcop
+mov al,5   
+mov ah,"n"   ;lettre de l'option de commande a lire
+mov cl,1 ;0=256 octet max
+mov edx,cmdcop_zone_tampon
+int 61h
+xor ebx,ebx
+xchg ebx,eax
+cmp ebx,0
+jne ouvre_dossier_sortie_cmdcop
+
+mov edx,cmdcop_dossier_sortie
+@@:     
+inc edx
+cmp byte[edx],0
+jne @b
+
+@@:  
+dec edx
+cmp byte[edx]," "
+je @b
+cmp byte[edx],"\"
+je @b
+cmp byte[edx],"/"
+je @b
+inc edx
+mov dword[edx],002E2Fh  ;on rajoute une cotice et point a la fin du nom de dossier
+
+mov eax,2
+ouvre_dossier_sortie_cmdcop:
+
+;ouvre ou cree le dossier de sortie
 xor ebx,ebx
 mov edx,cmdcop_dossier_sortie
 cmp byte[edx],0
@@ -294,6 +289,8 @@ xor eax,eax         ;ouvre le fichier source
 mov ebx,[cmdcop_handle_dossier_entree]
 mov edx,cmdcop_nom_entree
 int 64h
+cmp eax,cer_dov
+je copiedossier_cmdcop
 cmp eax,0
 jne erreur_autres_cmdcop
 mov [cmdcop_handle_entree],ebx
@@ -412,6 +409,96 @@ mov word[cmdcop_zone_tampon],13
 mov al,6
 mov edx,cmdcop_zone_tampon
 int 61h
+popad
+ret
+
+
+
+
+
+copiedossier_cmdcop:
+mov edi,cmdcop_zone_tampon
+mov dword[edi],"cop "
+add edi,4
+
+mov esi,cmdcop_dossier_entree
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov byte[edi],"/"
+inc edi
+
+mov esi,cmdcop_nom_entree
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+
+mov dword[edi],"/*.*"
+mov byte[edi+4]," "
+add edi,5
+
+mov esi,cmdcop_dossier_sortie
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov byte[edi],"/"
+inc edi
+
+mov esi,cmdcop_nom_sortie
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov dword[edi]," -n"
+
+
+
+
+
+
+mov al,0    ;envoie la commande au systeme
+mov edx,cmdcop_zone_tampon 
+int 61h
+
+
+@@:
+int 62h
+mov al,19
+mov cl,128
+mov edx,cmdcop_zone_tampon
+mov word[edx],0
+int 61h
+cmp word[cmdcop_zone_tampon],0
+jne @b
+
+
 popad
 ret
 
