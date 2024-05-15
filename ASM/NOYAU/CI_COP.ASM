@@ -388,6 +388,14 @@ int 61h
 mov al,6
 int 61h
 
+
+mov al,6
+mov edx,cmdcop_dossier_entree
+int 61h
+mov al,6
+mov edx,cmdcop_zone_tampon
+mov word[edx],"/"
+int 61h
 mov al,6
 mov edx,cmdcop_nom_entree
 int 61h
@@ -401,6 +409,14 @@ int 61h
 mov al,6
 int 61h
 
+
+mov al,6
+mov edx,cmdcop_dossier_sortie
+int 61h
+mov al,6
+mov edx,cmdcop_zone_tampon
+mov word[edx],"/"
+int 61h
 mov al,6
 mov edx,cmdcop_nom_sortie
 int 61h
@@ -525,11 +541,44 @@ mov al,6
 int 61h
 
 
-mov al,3
+;mov al,3
+;mov edx,cmdcop_zone_tampon
+;int 61h
+;mov al,6
+;int 61h
+
+
+mov al,6
 mov edx,cmdcop_zone_tampon
+mov dword[edx],"cop "
+mov byte[edx+4],0
+mov al,6
+mov edx,cmdcop_dossier_entree
 int 61h
 mov al,6
+mov edx,cmdcop_zone_tampon
+mov word[edx],"/"
 int 61h
+mov al,6
+mov edx,cmdcop_nom_entree
+int 61h
+mov al,6
+mov edx,cmdcop_zone_tampon
+mov word[edx]," "
+int 61h
+mov al,6
+mov edx,cmdcop_dossier_sortie
+int 61h
+mov al,6
+mov edx,cmdcop_zone_tampon
+mov word[edx],"/"
+int 61h
+mov al,6
+mov edx,cmdcop_nom_sortie
+int 61h
+
+
+
 
 mov word[cmdcop_zone_tampon],0D22h  ;" puis CR
 
