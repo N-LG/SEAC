@@ -1382,10 +1382,12 @@ mov byte[option_ouverture],1 ;on reprend la création de dossier
 mov eax,[edx]        ; si le fichier suivant est un . alors on arrete la
 and eax,0FFFFFFh
 cmp eax,002E2Fh
-je finchainefichier
+je @f
 cmp eax,002E5Ch
 jne debutslash 
-
+@@:
+fs
+mov byte[option_ouverture],2
 
 finchainefichier:
 ;verifie que l'on est déja plus en mode création de fichier 

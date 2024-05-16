@@ -3959,7 +3959,7 @@ inc edx
 mov eax,2        ;créer le dossier
 xor ebx,ebx
 int 64h
-cmp eax,cer_nfr      
+cmp eax,cer_dov     
 jne fin_commande_erreur
 
 mov eax,1
