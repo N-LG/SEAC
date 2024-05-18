@@ -127,6 +127,48 @@ db "USB device ",34,0; 100
 db 34," has been connected to address ", 0; 101
 db "error when connecting a new USB device during phase ",0; 102
 db "disconnection of USB device", 0; 103
+db 0;104
+db 0;105
+db 0;106
+db 0;107
+db 0;108
+db 0;109
+db "error while opening input file",0 ;110
+
+db "error while opening output file",0 ;111
+
+db "error while opening input folder",0 ;112
+
+db "error while opening output folder",0 ;113
+
+db "error while creating input file",0 ;114
+
+db "error while creating output file",0 ;115
+
+db "error while creating input folder",0 ;116
+
+db "error while creating output folder",0 ;117
+
+db "error while reading from input file",0 ;118
+
+db "error while reading from output file",0 ;119
+
+db "error while reading from input folder",0 ;120
+
+db "error while reading from output folder",0 ;121
+
+db "error while writing to input file",0 ;122
+
+db "error while writing to output file",0 ;123
+
+db "error while writing to input folder",0 ;124
+
+db "error while writing to output folder",0 ;125
+
+
+
+
+
 
 
 ;************************************************************************

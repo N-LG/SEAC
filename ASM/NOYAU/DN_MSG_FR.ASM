@@ -132,6 +132,36 @@ db "le périphérique USB «",0  ;100
 db "» a été connecté a l'adresse ",0 ;101
 db "erreur lors de la connexion d'un nouveau périphérique USB durant la phase ",0 ;102
 db "déconnexion du périphérique USB ",0 ;103
+db 0;104
+db 0;105
+db 0;106
+db 0;107
+db 0;108
+db 0;109
+db "erreur durant l'ouverture du fichier d'entrée",0      ;110
+db "erreur durant l'ouverture du fichier de sortie",0     ;111
+db "erreur durant l'ouverture du dossier d'entrée",0      ;112
+db "erreur durant l'ouverture du dossier de sortie",0     ;113
+db "erreur durant la création du fichier d'entrée",0      ;114
+db "erreur durant la création du fichier de sortie",0     ;115
+db "erreur durant la création du dossier d'entrée",0      ;116
+db "erreur durant la création du dossier de sortie",0     ;117
+db "erreur durant la lecture dans le fichier d'entrée",0  ;118
+db "erreur durant la lecture dans le fichier de sortie",0 ;119
+db "erreur durant la lecture dans le dossier d'entrée",0  ;120
+db "erreur durant la lecture dans le dossier de sortie",0 ;121
+db "erreur durant l'écriture dans le fichier d'entrée",0  ;122
+db "erreur durant l'écriture dans le fichier de sortie",0 ;123
+db "erreur durant l'écriture dans le dossier d'entrée",0  ;124
+db "erreur durant l'écriture dans le dossier de sortie",0 ;125
+
+
+
+
+
+
+
+
 
 
 messages_erreur:
@@ -178,8 +208,29 @@ db "division par zéro",13,0                     ;erreur 39
 db "débordement numérique",13,0                 ;erreur 40
 db "sous capacité numérique",13,0               ;erreur 41
 db "résultat inexacte",13,0                     ;erreur 42
-
-
+db 0                                            ;erreur 43
+db 0                                            ;erreur 44
+db 0                                            ;erreur 45
+db 0                                            ;erreur 46
+db 0                                            ;erreur 47
+db 0                                            ;erreur 48
+db 0                                            ;erreur 49
+db "erreur durant l'ouverture du fichier d'entrée:",0      ;erreur 50
+db "erreur durant l'ouverture du fichier de sortie:",0     ;erreur 51
+db "erreur durant l'ouverture du dossier d'entrée:",0      ;erreur 52
+db "erreur durant l'ouverture du dossier de sortie:",0     ;erreur 53
+db "erreur durant la création du fichier d'entrée:",0      ;erreur 54
+db "erreur durant la création du fichier de sortie:",0     ;erreur 55
+db "erreur durant la création du dossier d'entrée:",0      ;erreur 56
+db "erreur durant la création du dossier de sortie:",0     ;erreur 57
+db "erreur durant la lecture dans le fichier d'entrée:",0  ;erreur 58
+db "erreur durant la lecture dans le fichier de sortie:",0 ;erreur 59
+db "erreur durant la lecture dans le dossier d'entrée:",0  ;erreur 60
+db "erreur durant la lecture dans le dossier de sortie:",0 ;erreur 61
+db "erreur durant l'écriture dans le fichier d'entrée:",0  ;erreur 62
+db "erreur durant l'écriture dans le fichier de sortie:",0 ;erreur 63
+db "erreur durant l'écriture dans le dossier d'entrée:",0  ;erreur 64
+db "erreur durant l'écriture dans le dossier de sortie:",0 ;erreur 65
 
 
 fin_messages:

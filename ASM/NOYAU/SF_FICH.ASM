@@ -39,14 +39,18 @@ mov gs,ax
 
 testsifcfichierlibre:
 cli
-fs
-test byte[at_fc_fichier],01h
-jz fcfichierlibre
+
 fs
 or byte[at_fc_fichier],20h ;signal que l'on attend apres la liberation des fonctions fichier
 sti
+@@:
 int 62h
-jmp testsifcfichierlibre
+fs
+test byte[at_fc_fichier],01h
+jnz @b
+fs
+and byte[at_fc_fichier],0DFh
+
 
 fcfichierlibre:
 fs
