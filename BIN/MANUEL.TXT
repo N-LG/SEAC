@@ -1,0 +1,555 @@
+﻿
+:commandes:commande:cmd
+^commandes disponibles avec le systeme d'exploitation SEaC:
+
+%-Commandes intégré:
+ ~AF~ affiche une ligne de texte ou le contenu d'un fichier
+ ~EFJ~ efface le journal systeme
+ ~DIR~/~LS~ liste le contenu d'un dossier
+ ~DEF~ charge un fichier de définition
+ ~SUP~ supprime un fichier
+ ~COP~ copie un fichier
+ ~VER~ affiche la version systeme
+ ~CD~ change de dossier de travail
+ ~LD~ liste les disques et partitions installé
+ ~LM~ affiche l'organistion mémoire 
+ ~LV~ affiche les modes vidéo supporté
+ ~LT~/~PS~ affiche les taches en cours d'execution
+ ~MODV~ modifie le mode video
+ ~EFJ~ efface le journal systeme
+ ~FDS~ définie le dossier systeme
+ ~MTT~ modifie le temps d'execution de la tache
+ ~STOP~ arrete une tache
+%-Editeurs:
+ ~EDT~ éditeur de texte
+ ~EDH~ éditeur hexadécimale
+ ~EDG~ éditeur de table de caractère
+ ~PARTD~ partitionneur/formateur de disque 
+%-Divers
+ ~FASM~ compilateur assembleur x86
+ ~AJARCH~ 
+ ~EXPL~ exploreur de fichier
+ ~CALC~ calculatrice
+ ~DATE~ horloge interne
+ ~UTF8~ conversion unicode en utf8
+ ~MAN~ manuel 
+ ~TERM~ terminal série et TCP
+ ~LSPCI~ liste les périphérique pci installé
+ ~LSUSB~ liste les périphérique usb installé
+ ~ICS~ interface graphique
+ ~VOIR~ visionneur de fichier image
+ ~PILOTE~ gestionnaire de pilotes
+%-Pilote Réseau
+ ~RTL8139~ ~3C90X~ ~I8254X~
+%-Utilisation réseau:
+ ~IPCONFIG~ configurateur carte réseau
+ ~PING~ test connexion
+ ~CDNS~ client DNS
+ ~TRACE~ trace route
+ ~CIRC~ client IRC
+ ~SNIF~ affiche les métadonnée des trame reçu
+ ~SCANIP~ scanner d'adresse ip
+ ~CHTTP~ clien http
+ ~CFTP~ client ftp
+ ~CTFTP~ client tftp
+%-Serveurs: 
+ ~SHTTP~ serveur http
+ ~STFTP~ serveur tftp
+ ~STLNT~ server de commande a distance telnet
+
+:ajarch
+^AJARCH
+ ajarch permet de rajouter un fichier quelconque a un fichier noyau (extension .~BAZ~)
+
+%commande: ajarch XXX YYY
+ avec XXX=nom du fichier a rajouter
+      YYY=nom du fichier noyau
+:calc
+^CALC: calculatrice
+
+%commande: calc
+ entrez manuellement l'expression a calculer
+ validez avec entrée, quittez avec echap
+ vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
+:cd:cop:sup:ren:dir:ls
+^Commandes pour la manipulation de fichier
+
+%commande: cd     
+ change de dossier, cd.. permet de revenir au dossier parent
+%commande: dir
+ Liste le contenue du dossier en cours d'utilisation
+%commande: sup XXX
+ supprime le fichier XXX
+%commande: cop XXX YYY ZZZ
+ copie le fichier XXX dans le dossier YYY avec les options ZZZ
+  -e ecrase les fichiers déjà existant
+  -f ne copie que les fichiers
+  -d ne copie que les dossier
+  -n crée le dossier de destination
+  -r:NNNN renomme le fichier copié
+%commande: ld
+ liste les partitions et cdrom qui ont été détecté par le système (pas d'argument)
+:lm:lt:ps:mtt:stop
+^Commandes de gestions des applications
+
+%commande: lm
+ Liste les espaces mémoires utilisé par le système (pas d'argument)
+%commande: lt
+ Liste les Taches en cours d'execution sur le système
+%commande: stop XXX
+ Arrête la tâche numéros XXX
+%commande: mtt XXX YYY
+ fixe le temp d'execution de la tache XXX a la valeur YYY (unité de temps 2.5ms)
+:lv:modv
+^Commandes de paramétrage video
+
+%commande: lv       
+ Liste les modes d'affichage reconnue par la carte video
+%commande: modv XXX
+ change le mode video de l'écran pour le mode
+ XXX = numéros du mode, XXX*YYY pour la résolution 
+:efj:af:fds:journal
+^Commandes de manipulation du journal du ~Tecop~
+
+%commande: efj
+ Efface le contenue du journal système
+%commande: fix
+ Fait enregistrer au système que le dossier en cours d'uttilisation est le dossier système
+%commande: ver
+ Affiche la version du système dans le journal système
+%commande: af XXX
+ ajoute le texte XXX ou le contenu du fichier XXX au journal
+:tecop
+^TECOP
+ Terminal de COmmande Principal
+
+ Le tecop est le nom de l'interface qui permet de piloter le systeme d'exploitation SEaC en mode texte
+ On accède au tecop en appuyant sur la touche "liste" (situé a gauche de la touche ctrl de droite) ou par Ctrl+Alt+Tab
+
+ le tecop est constitué de 4 zones (de haut en bas):
+ -Interface disponible (en blanc sur fond bleu)
+ -~Journal~ systeme
+ -adresse de travail (en vert sur fond noir)
+ -commande en cours de rédaction 
+
+ les touches fleches haut et bas ainsi que debut, fin, page up, et page down permettent de naviguer dans le fichier journal
+ les touches inser et maj+inser permettent de naviguer dans l'hisorique des commandes
+ les touches fonctions permettent d'acceder aux interfaces listé en haut de l'écran
+:def:clavier:police:langue
+^DEF
+ chargement d'un fichier de définition langue, clavier, ou une police supplémentaire
+
+%commande: def XXX
+          XXX = nom du fichier a charger
+
+%-langues
+ fr-txt.def  -> message systeme en français
+ en-txt.def  -> message systeme en anglais
+
+%-claviers 
+ fr-aza.def  -> azerty spécial Seac
+ be-azs.def  -> azerty belge
+ en-qwi.def  -> qwerty US international 
+ bepo.def    -> Bépo 
+ dvorak.def  -> Dvorak 
+ colemak.def -> Colemak 
+
+%-polices
+ 0u0.def     -> caractères de 0 a FF 
+ 1u0.def     -> caractères de 100 à 1FF (incomplet)
+ 25u0.def    -> caractères de 2500 à 25FF
+ F00u0.def   -> caractères de F0000 à F00FF
+ les polices sont éditable grâce à ~edg~  
+:edg
+^EDG
+ editeur de police matriciel (dans un fichier ~def~)
+
+%commande: edg XXX
+          XXX = nom du fichier a ouvrir(paramètre optionnel)
+:ex
+^EX
+ execute un script
+
+%commande: ex XXX -v
+          XXX = nom du fichier a executer
+          -v  = on execute la liste de commande sans verifier si la précédente a fini (paramètre optionnel)
+:edt
+^EDT
+ editeur de texte
+
+%commande: edh XXX
+          XXX = nom du fichier a ouvrir(paramètre optionnel)
+:edh
+^EDH
+ editeur Hexadécimal
+
+%commande: edh XXX
+          XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramètre optionnel)
+:partd
+^PARTD
+ outils de partitionnement
+
+%commande: partd
+
+:ipconfig
+^IPCONFIG
+ configuration des cartes Ethernet
+
+%commande: ipconfig 
+ affiche les information sur les driver ip actif
+
+%commande: ipconfig X YYY ZZZZZ
+ configure le paramètre YYY avec la valeur ZZZZZ dans la carte X
+ valeurs possible pour YYY:
+         amac = adresse mac
+         ipv4 = adresse ip v4
+         mas4 = masque de sous réseau ip v4
+         pas4 = passerelle ip v4 
+         ip6p = adresse ip v6 privée
+         ip6g = adresse ip v6 global
+
+%commande: ipconfig X comp ZZZZZZ
+ configure les paramètres de la carte X
+ avec ZZZZZZ liste des paramètres séparé par un espace:
+         adresse ip v4
+         masque de sous réseau ip v4
+         passerelle ip v4 
+         adresse ip v6 privée
+         adresse ip v6 global
+:man
+^MAN
+ affiche une rubrique d'aide dans le journal
+
+%commande: man XXX YYY
+ avec XXX = mot clef de la rubrique
+      YYY = nom du fichier ou sont contenue les informations (paramètre optionnel)
+
+ par défaut, a base de donnée est le fichier MANUEL.TXT qui se trouve dans le ~dossier systeme~
+ le format du fichier est un simple fichier texte, le premier caractère de chaque ligne indique de quel type est la ligne
+ " " la ligne est une simple ligne de texte
+ ":" la ligne est une liste de mot clef et marque de début d'une rubrique
+ "^" affiche la ligne en vert clair (titre de la rubrique)
+ "%" affiche la ligne en blanc clair (sous titre/information importante)
+ une expression entouré de ~~ indique qu'il s'agit d'un mot clef ou d'un lien 
+:shttp
+^SHTTP
+ serveur http
+
+%commande: shttp XXX YYYY
+ avec: XXX = nom du dossier des fichiers du site que l'on peut consulter
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+:stftp
+^STFTP
+ serveur tftp
+
+ %commande: stftp X YYY
+ avec: XXX = nom du dossier des fichiers du site que l'on peut télecharger
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -w     autorise l'écriture de fichier
+
+:stlnt
+^STLNT: serveur telnet
+
+ %commande: stlnt XXXX
+ avec: XXXX = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -p:XXX numéros de port a utiliser (23 par défaut)      
+:dossier systeme:systeme
+^Dossier systeme
+ le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
+ on définis le dossier systeme avec la commande ~fds~
+:seac
+^SEaC: systeme d'exploitation approximativement complet
+
+ c'est un système d'exploitation multitâche préemptif, monolithique en 32bit. Une tache principale est chargé de la gestion du ~TECOP~, de l'interprétation des ~commandes~ envoyé au système, de la mise a jour de l'écran, et de quelques travaux periodique (gestion moteur disquette, etc...). les autres taches sont créer lorsque que l'on exécute une commande associé a un fichier exécutable. pour se déplacer d'une application a une autre (lorsque celle ci as besoin d'ine interface), on uttilise les touche alt+tab.
+ le système utilise un ~journal~ ou chaque tache peut écrire le résultat de ces opérations 
+:snif
+^SNIF
+ intercepteur de trame ethernet au stade expérimental, se contente d'afficher dans le journal systeme les métadonnée des trames reçu
+ 
+%commande: snif X 
+ avec: X = numéros de l'interface réseau a utiliser
+:ping
+^PING
+ test de liaison par demande d'echo avec le protocole ICMP
+
+%commande: ping XXX YYYY
+ avec: XXX = adresse de la machine que l'on cherche a tester
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -t:XXX nombre de tentative de ping (4 par défaut)
+:trace
+^TRACE
+ permet de determiner le chemin emprunté par les paquet transmis a une machine sur réseau IP
+
+%commande: trace XXX YYYY
+ avec: 
+       YYY = adresse la machine cible
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser  (0 par défaut)
+ -s:XXX nombre de saut maximum (40 par défaut)
+ -t:XXX nombre de tentative en cas d'absence de réponse (4 par défaut)
+:cdns
+^CDNS
+ résolveur DNS, permet d'obtenir les info de la machine en fonction du nom
+ ne pas rechercher de nom démarre le service persistant
+
+%commande: cdns XXX YYYY
+ avec: XXX  = nom de la machine
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -s:XXX sélectionne un serveur DNS particuler (liste interne par défaut)
+ -t:XXX selectionne un type de RR particulier (ANY/255 par défaut)
+ -c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
+ -r     effectue une recherche de nom a partir de l'IP
+
+ types de RR reconnue:
+ A     1  adresse IPv4
+ AAAA  28 adresse IPv6
+ NS    2  serveur DNS de zone
+ CNAME 5  nom canonique
+ SOA   6  serveur faisant autorité sur le nom de domaine et e-mail du responsable de domaine
+ MX    15 serveur de mail de cette adresse
+ TXT   16 texte brut
+ PTR   12 nom de domaine associé a une recherche inverse (voir plus bas) 
+
+ tout les RR non reconnu sont affiché sous la forme hexadécimale
+ pour effectuer une recherche inverse, il faut rechercher le RR de type PTR(12) avec un nom de domaine constitué de l'adresse IPv4 dont les 4 valeurs ont été inversé avec ".in-addr.arpa" a la fin
+:circ
+^CIRC
+ client pour systeme de messagerie utilisant le protocole IRC
+ pour communiquer avec le salon #devse sur le serveur irc.libera.chat:6667 par exemple
+
+%commande: circ XXX YY ZZZZ
+ avec: XXX = adresse du serveur
+       YY  = port du serveur
+       ZZZZ = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+:rtl8139:3c90x:i8254x:ethernet:ip
+^Pilotes pour carte ethernet/ip
+
+%commande: rtl8139 XXX
+ démarre le pilote pour une carte Realtek RTL8139 ou compatible
+%commande: 3c90x XXX
+ démarre le pilote pour une carte 3Com 3C905 ou compatible
+%commande: I8254x XXX
+ démarre le pilote pour une carte Intel 82540 ou compatible
+
+ avec: XXX = ~adresse pci~ de la carte
+
+ la configuration du pilote s'effectue avec ~IPCONFIG~ 
+:fasm
+^FASM
+ compilateur assembleur créer par Tomasz Grysztar
+ pour plus d'information, consultez ~http://flatassembler.net~
+
+%commande: fasm XXX YYY
+ avec: XXX = nom du fichier source
+       YYY = nom du fichier executable a créer
+  ^
+ /!\ sous SEAC, les nom des fichier executable doivent être en majuscule
+:kio:mio:gio:tio
+ Kio = kibioctet = 1024 octets
+ Mio = mébioctet = 1024 Kio
+ Gio = gibioctet = 1024 Mio
+ Tio = tébioctet = 1024 Gio
+:term
+^TERM
+ client pour les connexions par liaison série ou TCP
+:utf8
+^UTF8
+ permet de visualiser les codages d'un caractère/glyphe Unicode en utf8
+
+%commande: utf8 XX YY
+ avec: XX = numéros du caractère/glyphe
+       YY = nombre de caractère a visualiser (paramètre optionnel, 1 par défaut)
+:lspci
+^LSPCI
+ permet de visualiser les périphériques branché sur le bus PCI et AGP
+ fonctionne avec le fichier PCICLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier pci.ids comme base de donnée pour le nom des fabricant et de leurs produits
+
+ le fichier pci.ibs est maintenu par le PCI ID Project(~https://pci-ids.ucw.cz~) et peut être téléchargé a l'adresse ~https://pci-ids.ucw.cz/v2.2/pci.ids~
+:lsusb
+^LSUSB
+ permet de visualiser les périphériques branché sur le bus USB
+ fonctionne avec le fichier USBCLASS.TXT comme base de donnée pour les nom des classe de périphérique et avec le fichier usb.ids comme base de donnée pour le nom des fabricant et de leurs produits
+
+ le fichier usb.ibs est maintenu par Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) et peut être téléchargé a l'adresse ~http://www.linux-usb.org/usb.ids~
+:dcp
+^DCP
+ décompresse les archives qui sont au format PKzip Gzip et Tar
+
+%commande: dcp XXX YYYY
+ avec: XXX  = nom de l'archive a décompresser
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -e     ecrase le fichier de destination
+ -o:XXX adresse du dossier ou seront copié les fichiers
+:scanip
+^SCANIP
+ envoie des ping ICMP a une plage d'adresse ip pour tester leur présence
+
+%commande: scanip XXX YYY ZZZZ
+ avec: XXX  = adresse de la première machine de la plage a tester
+       YYY  = adresse de la dernière machine de la plage a tester
+       ZZZZ = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -n:XXX nombre de ping a tester par adresse
+:chttp
+^CHTTP
+ téléchargeur de ressource avec le protocole HTTP
+
+%commande: chttp XXX YYYY
+ avec: XXX  = adresse de laressource
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -o:XXX nom du fichier ou copier la ressource
+ -e     autorise d'écraser le fichier de destination
+ -a:XXX adresse ip du serveur de la ressource
+:cftp
+^CFTP
+ téléchargeur de ressource avec le protocole FTP
+
+%commande: cftp XXX YYYY
+ avec: XXX  = adresse de la ressource
+       YYYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -o:XXX nom du fichier ou copier la ressource
+ -e     autorise d'écraser le fichier de destination
+ -a:XXX adresse ip du serveur de la ressource
+ -u:XXX nom pour le login
+ -p:XXX mot de passe pour le login
+:expl
+^EXPL
+ explorateur de fichier
+
+%commande: expl XXX
+ avec: XXX = dossier a ouvrir
+
+:ics:bureau
+^ICS
+ Interface de commande simplifié
+
+%commande: ics XXX
+ avec: XXX  = paramètres optionnels
+
+ paramètres optionnels:
+ -f:XXX fichier image qui sert de fond
+ -i:XXX fichier image qui sert de definition d'icones
+ -c:XXX couleur du fond s'il n'y as pas d'image
+ -t:X   couleur du texte
+:argument:arguments
+^format des argument dans les commandes
+
+ les argument sont séparé par des espaces, si dans votre argument il doit y avoir un espace, il vous faut l'entourer par des guillemets ( " )
+%exemple: man "dossier systeme"
+ 
+ si les arguments ne sont pas dans un ordre particulier, il faut les identifier par une lettre précédé d'un espace au début de l'argument suivie de deux points avec la valeur de l'argument. 
+%exemple: dcp archive.zip -e -o:"dossier temporaire"
+:voir
+^VOIR
+ visionneur de fichier image
+
+%commande: voir XXX YYY
+ avec: XXX = nom de l'image
+       YYY = paramètres optionnels
+
+ paramètres optionnels:
+ -c:XXX couleur du fond de l'écran
+ -t    cache les informations texte
+ -s    cache le curseur souris
+:date
+^DATE
+ affiche l'heure et la date de l'horloge de la machine
+:whois
+^WHOIS
+ affiche info sur un domaine
+
+%commande: whois XXX YYY
+ avec: XXX = nom de domaine
+       YYY = paramètres optionnels
+
+ paramètres optionnels:
+ -s:XXX serveur a interroger
+
+ le programme interroge un serveur dédié a certains domaines de premier niveaux
+ (.com .net. org .fr .eu .uk .be .wiki .io .de)
+ pour tout les autres c'est le serveur whois.iana.org qui est interrogé
+:ctftp
+^CTFTP
+ client TFTP
+
+%Commande: ctftp XXXX YYYY 
+ avec XXXX = adresse du serveur
+      YYYY = opération a effectuer
+      ZZZZ = paramètres optionnels
+
+ operation a effectuer:
+ -r:ZZZ lire le fichier ZZZ sur le serveur
+ -w:ZZZ ecrire le fichier ZZZ sur le serveur
+
+ paramètres optionnels:
+ -c:XXX numéros de l'interface réseau a utiliser
+ -e     autorise d'écraser le fichier de destination
+:pilote
+^PILOTE
+ démarre le pilote d'un périphérique 
+
+%Commande: pilote XXX YYY
+ avec XXX = type de pilote a charger uniquement "pci" pour l'instant
+      YYY = adresse du peripherique a charger, si ce parametre est absent on démarre tout les périphérique detecté
+:adresse pci:pci
+^Adresse PCI
+ une adresse pci a le format suivant:
+%XX:YY.Z
+ avec XX = numéros du bus
+      YY = numéros de la carte
+      Z  = numéros de la fonction
+:installation:install
+^Etapes pour faire une installation manuelle de Seac
+
+  1) d'abord il faut déterminer le nom du disque sur lequel l'ordinateur démarre, on pourra trouver cette information dans le bios
+  2) on démarre Seac via une clef usb, un cdrom, une disquette, ou pxe
+  3) on ouvre l'application "partd"
+  4) on sélectionne le disque trouvé a l'étape 1
+  5) on crée une partition de type 30h et de taille 1Mo
+  6) on crée et on formate (si elle n'existe déjà pas) une partition fat (code type 0Bh)
+  7) on redémarre Seac pour avoir les numéros de partiton numéroté lors de la phase de boot
+  8) on créer un dossier système (on peut le nommer n'importe comment) dans la partition fat
+  9) on copie la totalité du répertoire #dm dans le répertoire système nouvellement crée
+ 10) on copie le script de démarrage "cfg.sh" dans "boot.sh"
+ 11) on ouvre le script de démarrage cfg.sh
+ 12) on efface la totalité du fichier et on remplace par les ligne: 
+   "cd [adresse du dossier system]"
+   "fix"
+   "ex boot.sh -v"
+ 13) on compile le script de démarrage par la commande "FASM ETAGE4.ASM ETAGE4.BIN"
+ 14) on compile l'image amorçable par la commande "FASM ETAGE2_MBR.ASM SEAC.BIN"
+ 15) on ouvre l'application "partd" et on sélectionne le disque trouvé a l'étape 1
+ 16) on charge l'image de démarrage "SEAC.BIN" dans la partition de type 30h
+ 17) on change le programme d'amorçage par "BIOS.MBR"
+
+%le système est prêt!
+%vous pouvez maintenant personnaliser la phase de démarrage en éditant le fichier "boot.sh"
