@@ -1929,49 +1929,56 @@ jmp autocompl_recherche
 
 
 autocompl_commande:
-jmp majafcsl   ;partie desactivé parce que pas finis
-
 ;réserve un petite partie mémoire
+push ecx
 mov ecx,40000h
 call resmem
+pop ecx
 jc majafcsl
 mov ebp,ebx
-
-
-;charge la liwste des commandes internes???????
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
 ;charge la liste des fichier du dossier systeme
 mov ax,selramh
 mov ds,ax
 
-mov al,16
-mov ebx,0
-mov ecx,40000h
-mov edx,0
-mov edi,ebp
-add edi,10h  ;??????a modifier si on ajoute la liste des commandes en interne
+;ouvre la liste des commandes
+mov edx,ebp
+add edx,10h 
+mov dword[edx],"AUTO"
+mov dword[edx+4],"COMP"
+mov dword[edx+8],".CFG"
+mov byte[edx+12],0
+
+mov al,0
+mov ebx,1
 int 64h
 cmp eax,0
 jne erreur_autocompl
 
-
-;purge la liste de tout les fichier pas en .FE
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-;supprime les .FE
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-;passe en minuscule
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-jmp majafcsl
-
-
+;lit la liste des commandes
+push ecx
+push es
+mov ax,selramh
+mov es,ax
+mov al,4
+mov ecx,40000h
+mov edx,0
+mov edi,ebp
+add edi,10h
+int 64h
+pop es
+pop ecx
+push eax
+mov al,1
+int 64h
+pop eax
+cmp eax,0
+jne erreur_autocompl
 
 
 ;recherche parmis la liste ce qui est proche
-;edi=nom a rechercher
+;esi=nom a rechercher
 ;ecx=taille du nom
 autocompl_recherche:
 mov edi,ebp
@@ -2062,33 +2069,9 @@ inc edi
 jmp autocomple_recherche_boucle
 
 
-
 autocomple_recherche_fin:
 cmp ebx,0 ;si on as rien trouvé on quitte
 je erreur_autocompl 
-
-
-
-
-;mov edi,edx
-;add edi,ebx
-;mov byte[edi],0
-;mov al,6
-;int 61h
-;jmp erreur_autocompl
-
-
-
-
-
-;si il y as un espace dans le nom, rajoute deux guillement
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
-;si il y as un guillement au début, rajout un a la fin
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
-
 
 
 ;décale les données
@@ -2101,6 +2084,10 @@ add si,[to_cce]
 dec esi
 mov  edi,esi
 add edi,ebx
+sub edi,ecx
+xor ecx,ecx
+mov cx,[to_cce]
+sub cx,[cu_cce]
 std
 rep movsb
 popad
