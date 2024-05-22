@@ -69,13 +69,21 @@ fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
 #fasm ASM/DEF/0u0.asm  BIN/0u0.def
 
-#création du zip de base
+#création du zip de base et mise a jour du manuel zipp�
 cd BIN
 zip -9 SEAC.ZIP *.ids
 zip -9 SEAC.ZIP *.FE
 zip -9 SEAC.ZIP *.png
 zip -9 SEAC.ZIP *.def
+
+zip -9 CFG.ZIP LSPCI.CFG
+zip -9 CFG.ZIP LSPCI.CFG
+zip -9 CFG.ZIP MANUEL.TXT
+zip -9 CFG.ZIP MANUAL.TXT
+zip -9 CFG.ZIP AUTOCOMP.CFG
+zip -9 CFG.ZIP EXPL.CFG
 cd ..
+
 
 #ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
 ./ajarch ASM/PROG/fe.inc BIN/ETAGE4.BIN
@@ -96,9 +104,7 @@ cd ..
 ./ajarch BIN/ICS.FE BIN/ETAGE4.BIN
 ./ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ./ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
-./ajarch BIN/LSPCI.CFG BIN/ETAGE4.BIN
 ./ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
-./ajarch BIN/LSUSB.CFG BIN/ETAGE4.BIN
 ./ajarch BIN/TERM.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CIRC.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CDNS.FE BIN/ETAGE4.BIN
@@ -110,7 +116,6 @@ cd ..
 ./ajarch BIN/TRACE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/SCANIP.FE BIN/ETAGE4.BIN
 ./ajarch BIN/EXPL.FE BIN/ETAGE4.BIN
-./ajarch BIN/EXPL.CFG BIN/ETAGE4.BIN
 ./ajarch BIN/VOIR.FE BIN/ETAGE4.BIN
 ./ajarch BIN/UTF8.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CALC.FE BIN/ETAGE4.BIN
@@ -128,8 +133,6 @@ cd ..
 ./ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/JN1.FE BIN/ETAGE4.BIN
-./ajarch BIN/MANUEL.TXT BIN/ETAGE4.BIN
-./ajarch BIN/MANUAL.TXT BIN/ETAGE4.BIN
 
 
 
@@ -150,7 +153,7 @@ cd ..
 ./ajarch BIN/F00u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/ETAGE24.ASM BIN/ETAGE4.BIN
 ./ajarch BIN/icones.png BIN/ETAGE4.BIN
-
+./ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 
 #compilation des différents format du noyau

@@ -71,6 +71,20 @@ fasm ASM/DEF/dvorak.asm BIN/dvorak.def
 :fasm ASM/DEF/0u0.asm  BIN/0u0.def
 
 
+:création du zip de base et mise a jour du manuel zippé
+cd BIN
+"C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.ids -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.FE -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.png -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.def -mx9
+
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP LSPCI.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP LSPCI.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUEL.TXT -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUAL.TXT -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP AUTOCOMP.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP EXPL.CFG -mx9
+cd ..
 
 
 :ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
@@ -92,9 +106,7 @@ ajarch BIN/EDG.FE BIN/ETAGE4.BIN
 ajarch BIN/ICS.FE BIN/ETAGE4.BIN
 ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
-ajarch BIN/LSPCI.CFG BIN/ETAGE4.BIN
 ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
-ajarch BIN/LSUSB.CFG BIN/ETAGE4.BIN
 ajarch BIN/TERM.FE BIN/ETAGE4.BIN
 ajarch BIN/CIRC.FE BIN/ETAGE4.BIN
 ajarch BIN/CDNS.FE BIN/ETAGE4.BIN
@@ -106,7 +118,6 @@ ajarch BIN/PING.FE BIN/ETAGE4.BIN
 ajarch BIN/TRACE.FE BIN/ETAGE4.BIN
 ajarch BIN/SCANIP.FE BIN/ETAGE4.BIN
 ajarch BIN/EXPL.FE BIN/ETAGE4.BIN
-ajarch BIN/EXPL.CFG BIN/ETAGE4.BIN
 ajarch BIN/VOIR.FE BIN/ETAGE4.BIN
 ajarch BIN/UTF8.FE BIN/ETAGE4.BIN
 ajarch BIN/CALC.FE BIN/ETAGE4.BIN
@@ -124,7 +135,7 @@ ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
 ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ajarch BIN/JN1.FE BIN/ETAGE4.BIN
-ajarch BIN/MAN.ZIP BIN/ETAGE4.BIN
+
 
 
 :ajout des fichiers de définition à l'archive du noyau
@@ -143,7 +154,7 @@ ajarch BIN/25u0.def BIN/ETAGE4.BIN
 ajarch BIN/FFu0.def BIN/ETAGE4.BIN
 ajarch BIN/F00u0.def BIN/ETAGE4.BIN
 ajarch BIN/icones.png BIN/ETAGE4.BIN
-
+ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 
 :compilation des différents format du noyau
