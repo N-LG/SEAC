@@ -800,15 +800,15 @@ finpalgraf:
 
 
 ;définition française au démarrage
-include "DN_MSG_FR.ASM"    ;messages systeme en français
-include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
-langue_demarrage equ "fra "
+;include "DN_MSG_FR.ASM"    ;messages systeme en français
+;include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
+;langue_demarrage equ "fra "
 
 
 ;définition anglaise au démarrage
-;include "DN_MSG_EN.ASM"    ;messages systeme en anglais
-;include "DN_CLAV_USI.ASM"    ;clavier US International
-;langue_demarrage equ "eng "
+include "DN_MSG_EN.ASM"    ;messages systeme en anglais
+include "DN_CLAV_USI.ASM"    ;clavier US International
+langue_demarrage equ "eng "
 
 tabacc:
 include "DN_ACC.ASM"

@@ -86,7 +86,7 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,22          ;attent 55ms avant d'arretet le reset
+add eax,22          ;attent 50ms avant d'arretet le reset
 mov [usb_tempo],eax
 mov byte[usb_action],2
 jmp fin_test_cnx_usb
@@ -114,16 +114,66 @@ test ax,04h
 jz bc2_uhci_finreset1_adresse 
 
 mov eax,[cptsf]
-add eax,40           ;attent 100ms avant de chercher a lire le descripteur
+add eax,40           ;attend 100ms avant de chercher a lire le descripteur
 mov [usb_tempo],eax
 mov byte[usb_action],3
 jmp fin_test_cnx_usb
 
 
+;????????????????????????????????????????????????????????????
+mov ecx,[cptsf]
+add ecx,1200 ;3 secondes
+xor eax,eax
+out dx,ax
+
+@@:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,02h ;csc (connect status change)
+jz @b 
+mov ax,06h ;enable + clear csc
+out dx,ax
+@@:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,04h;attend enable change
+jz @b 
+
+;mov ax,0 
+;out dx,ax
+;mov ecx,[cptsf]
+;inc ecx
+;@@:
+;nop
+;cmp [cptsf],ecx
+;jbe @b
+;mov ax,06h ;enable+csc
+;out dx,ax
+;mov ecx,[cptsf]
+;inc ecx
+;@@:
+;nop
+;cmp [cptsf],ecx
+;jbe @b
+;mov ax,0Ch ;enable+EC
+;out dx,ax
+
+
+
+;????????????????????????????????????????????????????????????
 
 
 ;****************************************************************
 uhci_lit_descripteur:
+pushad
+in ax,dx
+call affh1j
+mov al,13
+call affcj
+popad
+
 
 ;remplit les parametre de base du périphérique 0
 mov al,[usb_ctrl_test]
@@ -196,6 +246,58 @@ ja global_erreur_connexionUSB
 in ax,dx
 test ax,04h
 jz bc2_uhci_finreset2_adresse 
+
+mov eax,[cptsf]
+add eax,40           ;attent 100ms avant de chercher a affecter l'adresse
+mov [usb_tempo],eax
+mov byte[usb_action],5
+jmp fin_test_cnx_usb
+
+
+
+
+
+
+;????????????????????????????????????????????????????????????
+
+mov ecx,[cptsf]
+add ecx,1200 ;3 secondes
+xor eax,eax
+out dx,ax
+
+@@:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,02h
+jz @b 
+mov ax,06h
+out dx,ax
+@@:
+cmp [cptsf],ecx
+ja global_erreur_connexionUSB
+in ax,dx
+test ax,04h
+jz @b 
+
+
+;mov ecx,[cptsf]
+;inc ecx
+;@@:
+;nop
+;cmp [cptsf],ecx
+;jbe @b
+;mov ax,06h ;enable+csc
+;out dx,ax
+;mov ecx,[cptsf]
+;inc ecx
+;@@:
+;nop
+;cmp [cptsf],ecx
+;jbe @b
+;mov ax,0Ch ;enable+EC
+;out dx,ax
+
 
 mov eax,[cptsf]
 add eax,40           ;attent 100ms avant de chercher a affecter l'adresse
@@ -997,6 +1099,10 @@ jmp suite_active_config_usb
 global_erreur_connexionUSB:
 mov cl,102
 call affmsgsyst
+mov al,[usb_action]
+call affh0j
+mov al,13
+call affcj
 mov dword[usb_tempo],0
 mov byte[usb_action],0
 jmp suite_test_cnx_usb
@@ -1160,9 +1266,9 @@ cmp al,ah
 je pas_modif_led_clavier 
 
 ;ps2
+or byte[attcl],40h
 mov al,0EDh       ;commande led
 out 60h,al
-or byte[attcl],40h
 
 
 
