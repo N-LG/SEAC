@@ -556,7 +556,7 @@ db "IPCONFIG: erreur de communication avec la carte",13,0
 
 
 msg2:
-db 13,"carte ",0
+db 13,"card ",0
 db 13,"carte ",0
 msg3:
 db 13,"    MAC address:  ",0

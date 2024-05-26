@@ -1365,7 +1365,7 @@ formattage_fat32:
 ;charge les données de base des tables FAT32
 mov dword[ZT512C],0FFFFFFF8h   ;marque le premier cluster comme une fin de fichier car il n'existe pas
 mov dword[ZT512C+4],0FFFFFFF8h ;marque le deuxième cluster comme une fin de fichier car il n'existent pas
-mov dword[ZT512C+8],3 ;marque du troisième au 11em cluster comme un fichier car c'est les clusters du repertoire racine
+mov dword[ZT512C+8],3 ;marque du troisième au 10em cluster comme un fichier car c'est les clusters du repertoire racine
 mov dword[ZT512C+12],4
 mov dword[ZT512C+16],5
 mov dword[ZT512C+20],6
@@ -1559,7 +1559,6 @@ mov al,11
 mov ah,0Fh ;couleur
 int 63h
 mov edx,msg_blanc
-call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h
@@ -1632,7 +1631,6 @@ mov al,11
 mov ah,0Fh ;couleur
 int 63h
 mov edx,msg_blanc
-call ajuste_langue
 mov al,11
 mov ah,0Fh ;couleur
 int 63h

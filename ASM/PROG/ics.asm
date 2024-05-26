@@ -1800,7 +1800,7 @@ db 7        ;numéros de l'icone
 dw 0        ;vide
 dd 32,240    ;coordonné coin supérieur gauche
 db "Installation",0  ;texte de l'icone
-db "install",0  ;commande de l'icone
+db "man install",0  ;commande de l'icone
 @@:
 
 dd @f-$     ;taille de l'objet
