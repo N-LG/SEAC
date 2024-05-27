@@ -384,20 +384,6 @@ mov eax,cer_pasm
 ret
 
 
-;(les 16 premier octet sont le descripteur mémoire de base)
-uhci_bulkmem_cmd   equ 10h   ;8 octet
-uhci_bulkmem_cmdto equ uhci_bulkmem_cmd+6
-uhci_bulkmem_param_adterm equ 18h
-uhci_bulkmem_param_tframe equ 1Ch
-uhci_bulkmem_param_datainout equ 20h
-uhci_bulkmem_param_pcs equ 24h
-uhci_bulkmem_param_desc_perif equ 28h
-uhci_bulkmem_param_desc_ctrl equ 2Ch
-uhci_bulkmem_param_tod equ 30h
-uhci_bulkmem_param_adata equ 34h
-uhci_bulkmem_qh    equ 40h   ;16 octets
-uhci_bulkmem_td    equ 50h   ;3*32 octets
-
 
 
 
@@ -455,9 +441,9 @@ add edx,[ebx+uhci_bulkmem_param_desc_perif]
 fs
 mov ax,[edx]
 cmp eax,0
-jne sfusb_commande_uhci_oktod
+jne @f
 mov eax,8
-sfusb_commande_uhci_oktod:
+@@:
 mov [ebx+uhci_bulkmem_param_tod],eax
 
 
@@ -1458,7 +1444,7 @@ pop es
 pop ds
 popad
 mov eax,cer_parami
-iret
+ret
 
 
 
@@ -1467,28 +1453,135 @@ iret
 sfusb_iso_uhci:
 mov dl,1        ;dl=periodicité de la trame
 sfusb_int_uhci:
+mov ebp,ebx     ;al=adresse ah=endpoint+sens esi=adresse du descripteur de périphérique ebp=adresse du descripteur de controleur
+
+;réserve mémoire
 mov ebp,ebx
+push eax
+push ecx
+mov ecx,uhci_bulkmem_td
+call resmem
+jc sfusb_iso_uhci_err_mem2
+pop ecx
+pop eax
+mov dword[ebx+8],czm_iso_usb     
+
+
+
+
+
+;descripteur de périphérique USB
+;dpu_att  equ 0 ;attributs: b0=présent b1=acces réservé
+;dpu_ctrl equ 1 ;controleur auquel est raccordé le périphérique
+;dpu_port equ 2 ;numéro du port sur lequel est branché le périphérique
+;dpu_idr  equ 4 ;id de la tache qui as réservé l'acces au périphérique
+;dpu_togl equ 6 ;état du dernier data toggle utilisé lors d'un transfer bulk pour chaque endpoint
+;?????
+;dpu_ted equ 32 ;taille de transfert max par endpoints 16*2
+
+
+
+
+
+
+;enregistre parametre
+push eax
+and eax,07Fh
+mov [ebx+uhci_isointmem_param_adterm],eax
+pop eax
+and eax,0F00h
+shr eax,1
+or  [ebx+uhci_isointmem_param_adterm],eax
+
+
+mov [ebx+uhci_isointmem_param_tframe],ecx
+and edx,0FFh
+mov [ebx+uhci_isointmem_param_peri],edx
+mov [ebx+uhci_isointmem_param_desc_perif],esi      
+mov [ebx+uhci_isointmem_param_desc_ctrl],ebp
+
+
+;calcul le nombre de descripteur de transfert (1024/periode)
+xor edx,edx
+mov eax,1024
+mov ecx,[ebx+uhci_isointmem_param_peri]
+div ecx
+mov [ebx+uhci_isointmem_nbtd],eax
+
 
 ;calcul la taille de la ZT nécessaire
-;=(1024/periodicité)*(TD+ZT)
-push ecx
-push edx
-push ecx
-xor ecx,ecx
-mov eax,1024
-mov cl,dl
 xor edx,edx
-div ecx
-pop ecx
+mov ecx,[ebx+uhci_isointmem_param_tframe]
 add ecx,32
 mul ecx
 
-;réserve une zone mémoire tampon
-call resmem
-pop edx
-pop ecx
-jc sfusb_iso_err_mem
-mov dword[ebx+8],czm_iso_usb
+;aggrandit la zone mémoire
+add ecx,uhci_isointmem_td
+add ecx,15
+and ecx,0FFFFFFF0h
+call modtm
+jc sfusb_iso_uhci_err_mem
+
+
+
+
+
+
+
+
+
+
+
+
+
+;verifie les parametres
+test ax,07080h
+jnz sfusb_iso_uhci_err_param 
+;???????????????????????????????????verifier que donnée transfer inf a donnée terminaison max
+
+
+
+
+
+
+;definie quantité max transferé par TD pour cet endpoint?????????????????????????????????????????
+xor eax,eax
+mov edx,[ebx+uhci_bulkmem_param_adterm]
+and edx,078000h
+shr edx,14
+add edx,dpu_ted
+add edx,[ebx+uhci_bulkmem_param_desc_perif]
+fs
+mov ax,[edx]
+cmp eax,0
+jne @f
+mov eax,8
+@@:
+mov [ebx+uhci_bulkmem_param_tod],eax
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1498,25 +1591,76 @@ mov dword[ebx+8],czm_iso_usb
 
 ;crée les TDs
 ;???????????????????????????????????????????????????
+;cx=nb descripteur
+;esi=descripteur
+;edi=mémoire
+;eax=status
+;edx=header
+
+@@:
+mov [esi+4],eax  ;status
+mov [esi+8],edx  ;header
+mov [esi+12],edi ;buffer
+add esi,32
+add edi,[ebx+uhci_bulkmem_param_tframe]
+dec cx
+jnz @b
 
 
 
 ;insère les TD dans la frame liste uhci
 ;???????????????????????????????????????????????????
+;esi=index
+;edi=descripteur
+;cx=nb de transfert
+;ebp=4*periodicité
+
+
+cli
+@@:
+mov eax,[esi] ;lire adresse dans index
+mov [edi+4],eax ;copier adresse dans adresse de sortie descripteur
+mov eax,edi
+add eax,1000000h ;????????????préparer adresse sortie descripteur
+mov [esi],eax ;copier adresse descripteur dans index
+add esi,ebp
+add edi,32
+dec cx
+jnz @b
+sti
 
 
 
-sfusb_iso_err_mem:
+pop fs
+pop es
+pop ds
+popad
+xor eax,eax
+ret
+
+
+
+sfusb_iso_uhci_err_mem:
+call libmem
+sfusb_iso_uhci_err_mem2:
 pop fs
 pop es
 pop ds
 popad
 mov eax,cer_parami
-iret
+ret
 
 
 
 
+sfusb_iso_uhci_err_param:
+call libmem 
+pop fs
+pop es
+pop ds
+popad
+mov eax,cer_parami
+ret
 
 
 
@@ -1723,7 +1867,63 @@ ret
 
 ;**********************************
 init_ehci:
+pushad
+push es
+mov ax,selramh
+mov es,ax 
+
+
+;arrete le controleur
+mov ecx,[cptsf]
+add ecx,40
+mov edx,[esi+dcu_es]
+es
+mov eax,[edx]
+and eax,0FFFFFFFEh
+es
+mov [edx],eax
+@@:
+nop
+es
+test dword[edx],1
+jz @f
+cmp [cptsf],ecx
+jb @b
+
+pop es
+popad
+ret
+
+@@:  ;reset le controleur
+es
+mov eax,[edx]
+or eax,2
+es
+mov [edx],eax
+
+@@:
+nop
+es
+test dword[edx],2
+jz @f
+cmp [cptsf],ecx
+jb @b
+
+pop es
+popad
+ret
+
+
+@@:
+
+
+;et rien de plus car le but est pour l'instant de simplement de laisser le champ libre a l'UHCI
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+
+pop es
+popad
 ret
 
 ;**********************************

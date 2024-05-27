@@ -775,6 +775,8 @@ zsata_liste  equ 410h   ;liste de pointeur vers les commandes
 ;**********************************************************************
 ;organisation mémoire canal usb pour controleur uhci
 ;(les 16 premier octet sont le descripteur mémoire de base)
+
+;bulk et commande
 uhci_bulkmem_cmd   equ 10h            ;les 8 octet d'une commande Usb
 ;uhci_bulkmem_cmdto equ uhci_bulkmem_cmd+6
 uhci_bulkmem_param_adterm equ 18h     ;adresse et terminiaison
@@ -789,8 +791,16 @@ uhci_bulkmem_qh    equ 40h            ;queue head
 uhci_bulkmem_td    equ 50h            ;transfert descriptor (32 octets chaques)
 
 
+;isocrone et interruption
 
+uhci_isointmem_nbtd equ 10h             ;nombre de transfert descriptor
+uhci_isointmem_param_peri equ 14h       ;periodicité des transferts
+uhci_isointmem_param_adterm equ 18h     ;adresse et terminiaison
+uhci_isointmem_param_desc_perif equ 28h ;adresse du descripteur de périphérique
+uhci_isointmem_param_desc_ctrl equ 2Ch  ;adresse du descripteur de controleur
+uhci_isointmem_param_tframe equ 30h     ;taille des donnée par transfert
 
+uhci_isointmem_td equ 50h                ;transfert descriptor (32 octets chaques)
 
 
 
