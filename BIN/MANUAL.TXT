@@ -545,7 +545,7 @@
  11) open the cfg.sh startup script
  12) we delete the entire file and replace with the lines:
     "cd [system folder address]"
-    "fix"
+    "fds"
     "ex boot.sh -v"
  13) compile the startup script using the command "FASM ETAGE4.ASM ETAGE4.BIN"
  14) compile the bootable image using the command "FASM ETAGE2_MBR.ASM SEAC.BIN"

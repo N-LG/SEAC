@@ -49,13 +49,13 @@
  ~CIRC~ client IRC
  ~SNIF~ affiche les métadonnée des trame reçu
  ~SCANIP~ scanner d'adresse ip
- ~CHTTP~ clien http
+ ~CHTTP~ client http
  ~CFTP~ client ftp
  ~CTFTP~ client tftp
 %-Serveurs: 
  ~SHTTP~ serveur http
  ~STFTP~ serveur tftp
- ~STLNT~ server de commande a distance telnet
+ ~STLNT~ serveur de commande a distance telnet
 
 :ajarch
 ^AJARCH
@@ -113,7 +113,7 @@
 
 %commande: efj
  Efface le contenue du journal système
-%commande: fix
+%commande: fds
  Fait enregistrer au système que le dossier en cours d'uttilisation est le dossier système
 %commande: ver
  Affiche la version du système dans le journal système
@@ -543,7 +543,7 @@
  11) on ouvre le script de démarrage cfg.sh
  12) on efface la totalité du fichier et on remplace par les ligne: 
    "cd [adresse du dossier system]"
-   "fix"
+   "fds"
    "ex boot.sh -v"
  13) on compile le script de démarrage par la commande "FASM ETAGE4.ASM ETAGE4.BIN"
  14) on compile l'image amorçable par la commande "FASM ETAGE2_MBR.ASM SEAC.BIN"
