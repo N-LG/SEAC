@@ -1533,7 +1533,6 @@ jc sfusb_iso_uhci_err_mem
 
 
 
-
 ;verifie les parametres
 test ax,07080h
 jnz sfusb_iso_uhci_err_param 
@@ -1571,6 +1570,74 @@ mov [ebx+uhci_bulkmem_param_tod],eax
 
 
 
+;créer les TD
+mov edi,[ebx+uhci_isointmem_nbtd]
+shl edi,5  ;mul per 32
+add edi,100000h
+
+mov esi,ebx
+add esi,uhci_isointmem_td
+
+mov ecx,[ebx+uhci_isointmem_nbtd]
+
+
+;?????????????????????????????????? eax edx
+
+
+
+
+
+
+
+
+;prépare la base du td token
+mov dword[ebx+uhci_isointmem_param_adterm],069h ;pid in
+test eax,8000h
+jz sfusb_bulk_pid_uhci
+mov dword[ebx+uhci_isointmem_param_adterm],0E1h ;pid out
+sfusb_bulk_pid_uhci:
+
+push eax
+and eax,07Fh
+shl eax,8
+or [ebx+uhci_bulkmem_param_adterm],eax ;adresse
+pop eax
+and eax,0F00h
+shl eax,7
+or  [ebx+uhci_bulkmem_param_adterm],eax   ;endpoint
+mov ecx,[ebx+uhci_bulkmem_param_adterm]
+and ecx,78000h
+shr ecx,15
+and ecx,0Fh
+mov esi,[ebx+uhci_bulkmem_param_desc_perif]
+fs
+mov eax,[esi+dpu_togl]
+shr eax,cl
+and eax,1
+shl eax,19
+or [ebx+uhci_bulkmem_param_adterm],eax ;toggle bit
+
+
+
+;précalcule du dword Controle and status
+mov ecx,038800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  29=short packet detect
+mov esi,[ebx+uhci_isointmem_param_desc_perif]
+mov edi,[ebx+uhci_isointmem_param_desc_ctrl]
+xor edx,edx
+xor eax,eax
+fs
+mov dl,[esi+dpu_port]
+shl edx,1
+add edx,ctrl_uhci_portsc1
+fs
+mov ax,[edi+dcu_es]
+add edx,eax
+in ax,dx    ;dx=port
+test ax,100h
+jz @f
+or ecx,4000000h  ;26=low speed    
+@@:
+mov edx,ecx
 
 
 
@@ -1589,13 +1656,22 @@ mov [ebx+uhci_bulkmem_param_tod],eax
 
 
 
-;crée les TDs
-;???????????????????????????????????????????????????
-;cx=nb descripteur
-;esi=descripteur
-;edi=mémoire
-;eax=status
-;edx=header
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @@:
 mov [esi+4],eax  ;status
@@ -1603,29 +1679,54 @@ mov [esi+8],edx  ;header
 mov [esi+12],edi ;buffer
 add esi,32
 add edi,[ebx+uhci_bulkmem_param_tframe]
-dec cx
+dec ecx
 jnz @b
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;insère les TD dans la frame liste uhci
-;???????????????????????????????????????????????????
-;esi=index
-;edi=descripteur
-;cx=nb de transfert
-;ebp=4*periodicité
+mov edx,[ebx+uhci_isointmem_param_peri]
+shl edx,2  ;mul par 4
+
+mov edi,ebx
+add edi,uhci_isointmem_td
+
+mov ecx,[ebx+uhci_isointmem_nbtd]
+
+
+
+;?????????????????????????????????? esi= adresse de la frame list
+
 
 
 cli
 @@:
 mov eax,[esi] ;lire adresse dans index
-mov [edi+4],eax ;copier adresse dans adresse de sortie descripteur
+mov [edi+4],eax ;copier adresse actuellement dans la table d'index dans adresse de sortie descripteur
 mov eax,edi
-add eax,1000000h ;????????????préparer adresse sortie descripteur
+add eax,1000000h 
 mov [esi],eax ;copier adresse descripteur dans index
-add esi,ebp
+add esi,edx
 add edi,32
-dec cx
+dec ecx
 jnz @b
 sti
 
