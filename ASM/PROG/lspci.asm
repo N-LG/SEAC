@@ -459,8 +459,8 @@ add eax,03h
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,00800000h
-jz simplefonction
+;test eax,00800000h   (visiblement le bit MF est pas un bonne indicateur des multiples fonctions) 
+;jz simplefonction
 
 add ebx,100h          ;on passe a la fonction suivante
 test ebx,7F000000h
@@ -468,12 +468,12 @@ jz bouclecmdlc
 int 60h
 
 
-simplefonction:
-add ebx,800h          ;on passe au device suivant
-and ebx,0FFFFF800h
-test ebx,7F000000h
-jz bouclecmdlc
-int 60h
+;simplefonction:
+;add ebx,800h          ;on passe au device suivant
+;and ebx,0FFFFF800h
+;test ebx,7F000000h
+;jz bouclecmdlc
+;int 60h
 
 
 
