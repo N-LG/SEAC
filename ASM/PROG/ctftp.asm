@@ -1,12 +1,9 @@
-﻿bidon:
+﻿ctftp:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "Client TFTP"
 scode:
 org 0
-
-
-
 
 
 ;données du segment CS
@@ -17,7 +14,7 @@ mov es,ax
 
 ;agrandit la zone mémoire
 mov al,8
-mov ecx,zt_decode+20000h
+mov ecx,sdata2
 mov dx,sel_dat1
 int 61h
 
@@ -37,19 +34,19 @@ mov [port_local],ax
 
 ;**************************************************************
 ;determine l'id du service ethernet
-mov byte[zt_decode],0
+mov byte[zt_echange],0
 
 mov al,5   
 mov ah,"c"   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
-mov edx,zt_decode
+mov edx,zt_echange
 int 61h
 xor ebx,ebx
 cmp eax,0
 jne @f
 
 mov al,100  
-mov edx,zt_decode
+mov edx,zt_echange
 int 61h
 mov ebx,ecx    ;ebx=numéros de l'interface
 
@@ -57,514 +54,73 @@ mov ebx,ecx    ;ebx=numéros de l'interface
 mov al,11
 mov ah,6     ;code service 
 mov cl,16
-mov edx,zt_decode
+mov edx,zt_echange
 int 61h
 
 shl ebx,1
-mov ax,[zt_decode+ebx]
+mov ax,[zt_echange+ebx]
 mov [id_tache],ax
 
 
 
-;**************************************************************
-;lit l'adresse de la ressource souhaité
-mov byte[zt_decode],0
 
+;*********************************
+;lit si il faudrat ecraser le fichier
+mov al,5   
+mov ah,"e"   ;lettre de l'option de commande a lire
+mov cl,10 
+mov edx,zt_echange
+int 61h
+cmp eax,0
+jne @f
+mov byte[ecrase],1
+@@:
+
+
+
+
+
+;**************************************************************
+;lit l'adresse du serveur
 mov al,4   
 mov ah,0   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
-mov edx,zt_url
+mov edx,adresse_serveur_texte
 int 61h
 
-cmp byte[zt_url],0
+cmp byte[adresse_serveur_texte],0
 je aff_err_param
 
-
-
-;charge les parametre de base
-mov dword[zt_port],3936h   ;69
-mov dword[zt_ressource],2Fh ;/
-
-
-;**************************************************************
-;extrait l'adresse     note: penser a distinguer les éventuelles adresse ipv6
-mov esi,zt_url
-mov edi,zt_host
-
-@@:
-mov al,[esi]
-cmp al,":"
-je extrait_port
-cmp al,"/"
-je extrait_ressource
-cmp al,0
-je extrait_fin
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-
-
-;extrait le port (éventuellement)
-extrait_port:
-mov byte[edi],0
-inc esi
-mov edi,zt_port
-@@:
-mov al,[esi]
-cmp al,"/"
-je extrait_ressource
-cmp al,0
-je extrait_fin
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-
-
-;extrait le nom de la ressource (éventuellement)
-extrait_ressource:
-mov byte[edi],0
-inc esi
-mov edi,zt_ressource
-
-@@:
-mov al,[esi]
-cmp al,0
-je extrait_fin
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-
-extrait_fin:
-mov byte[edi],0
-
-;convertir les parametre en valeur
-mov al,100
-mov edx,zt_port
+mov al,109  
+mov edx,adresse_serveur_texte
+mov ecx,adresse_serveur_ip
 int 61h
-mov [port_serveur],ecx
-
-
-;convertit l'adresse/port pour la commande de connexion
-mov al,5   
-mov ah,"a"   ;lettre de l'option de commande a lire
-mov cl,32 
-mov edx,zt_adresse
-int 61h
-
 cmp eax,0
-je @f 
-mov edx,zt_host
-@@:
-
-mov al,109
-mov ecx,ip_serveur
-int 61h
-
-
-
-
-;**************************************************************
-;extrait le nom d'utilisateur
-
-mov al,5   
-mov ah,"u"   ;numéros de l'option de commande a lire
-mov cl,0 ;0=256 octet max
-mov edx,zt_user
-int 61h
-
-;et le mot de passe
-mov al,5   
-mov ah,"p"   ;numéros de l'option de commande a lire
-mov cl,0 ;0=256 octet max
-mov edx,zt_pass
-int 61h
-
-
-
-
-
-
-
-
-
-
-
-
-
+jne aff_err_param
 
 
 
 
 ;***********************************************************
-;etablire une connexion
-mov al,0
-mov bx,[id_tache]
-mov ecx,64
-mov edx,1
-mov esi,2000
-mov edi,2000
-int 65h
-cmp eax,0
-jne aff_err_com
-
-mov [adresse_canal],ebx
+;extrait l'action a effectuer
 
 
-mov al,5
-mov ebx,[adresse_canal]
-mov ecx,34h
-mov esi,commande_ethernet
-mov edi,0
-int 65h
-cmp eax,0
-jne aff_err_com
-
-
-;attend que le programme réponde
-mov al,8
-mov ebx,[adresse_canal]
-mov ecx,200  ;500ms
-int 65h
-cmp eax,cer_ddi
-jne aff_err_com
-
-;lit la réponse du programme
-mov al,4
-mov ebx,[adresse_canal]
-mov ecx,34h
-mov esi,0
-mov edi,zt_decode
-int 65h
-cmp eax,0
-jne aff_err_com
-
-cmp byte[zt_decode],88h
-jne aff_err_com
-
-
-
-call attend1ligne
-
-
-
-;************************************
-;commande user et pass
-mov edx,ftp_req1
-call envoie_utf8z
-mov edx,zt_user
-call envoie_utf8z
-mov edx,ftp_reqf
-call envoie_utf8z
-call attend1ligne
-
-
-mov edx,ftp_req2
-call envoie_utf8z
-mov edx,zt_pass
-call envoie_utf8z
-mov edx,ftp_reqf
-call envoie_utf8z
-call attend1ligne
-cmp byte[zt_decode],"2"  
-jne aff_err_srv
-
-
-
-;******************************
-;passe en binaire et mode passif avancé
-;comande type i
-mov edx,ftp_req3
-call envoie_utf8z
-call attend1ligne
-cmp byte[zt_decode],"2"  
-jne aff_err_srv
-
-
-;commande epsv
-mov edx,ftp_req4
-call envoie_utf8z
-call attend1ligne
-cmp byte[zt_decode],"2"  
-jne aff_err_srv
-
-;extrait numéros de port §§§§§§§§§§§§§a devoir ameliorer je pense
-mov edx,zt_decode
-
-boucle_num_port:
-cmp dword[edx],"(|||"
-je ok_num_port
-cmp byte[edx],0Dh
-je aff_err_exe
-inc edx
-jmp boucle_num_port
-
-ok_num_port:
-add edx,4
-mov al,100
-int 61h
-mov [port_serveur],cx
-inc word[port_local]
-
-
-;*****************************************
-;ouvre la connexion 2
-mov al,0
-mov bx,[id_tache]
-mov ecx,64
-mov edx,1
-mov esi,400
-mov edi,20000h
-int 65h
-mov [adresse_canal2],ebx
-
-
-mov al,5
-mov ebx,[adresse_canal2]
-mov ecx,34h
-mov esi,commande_ethernet
-mov edi,0
-int 65h
-cmp eax,0
-jne aff_err_com
-
-
-;attend que le programme réponde
-mov al,8
-mov ebx,[adresse_canal2]
-mov ecx,200  ;500ms
-int 65h
-cmp eax,cer_ddi
-jne aff_err_com
-
-;lit la réponse du programme
-mov al,4
-mov ebx,[adresse_canal2]
-mov ecx,34h
-mov esi,0
-mov edi,zt_decode
-int 65h
-cmp eax,0
-jne aff_err_com
-
-cmp byte[zt_decode],88h
-jne aff_err_com
-
-
-;*************************************
-;envoie la commande size
-mov edx,ftp_req5
-call envoie_utf8z
-mov edx,zt_ressource
-call envoie_utf8z
-mov edx,ftp_reqf
-call envoie_utf8z
-call attend1ligne
-
-
-;extrait taille du fichier
-cmp byte[zt_decode],"2"
-jne @f
-mov al, 100
-mov edx,zt_decode+4
-int 61h
-mov [taille_totale],ecx
-@@:
-
-;***************************************
-;evoie la commande retr
-mov edx,ftp_req6
-call envoie_utf8z
-mov edx,zt_ressource
-call envoie_utf8z
-mov edx,ftp_reqf
-call envoie_utf8z
-call attend1ligne
-cmp byte[zt_decode],"1"  ;attend le signal que le téléchargement as bien commencé
-jne aff_err_srv
-
-
-
-
-;*****************************
-;créer le fichier au besoin
 mov al,5   
-mov ah,"o"   ;numéros de l'option de commande a lire
+mov ah,"r"   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
-mov edx,nom_fichier
+mov edx,zt_ressource
 int 61h
 cmp eax,0
-jne affiche_resultat
+je lire_fichier
 
-
-;cree le fichier
-mov al,2 
-mov bx,0
-mov edx,nom_fichier
-int 64h
-cmp eax,0
-je ok_fichier
-cmp eax,cer_nfr
-jne aff_err_cre
 
 mov al,5   
-mov ah,"e"   ;lettre de l'option de commande a lire
-mov cl,10 
-mov edx,zt_port
+mov ah,"w"   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,zt_ressource
 int 61h
 cmp eax,0
-jne aff_err_cre
-
-
-;ouvre le fichier
-mov al,0 
-mov bx,0
-mov edx,nom_fichier
-int 64h
-cmp eax,0
-jne aff_err_ouv
-
-ok_fichier:
-mov [handle_fichier],ebx
-
-mov ecx,[taille_totale]  ;réserve l'espace pour le fichier fichier
-cmp ecx,0
-je @f
-mov al,15
-int 64h
-@@:
-
-
-;******************************
-;envoie dans fichier le reste des données
-mov al,6
-mov edx,msg_ok_af1
-int 61h
-
-
-boucle_enregistre_resultat:
-mov al,6
-mov ecx,20000h
-mov edi,zt_decode
-mov ebx,[adresse_canal2]
-int 65h
-cmp eax,0
-jne fin_telechargement 
-cmp ecx,0
-je boucle_enregistre_resultat
-
-mov ebx,[handle_fichier]
-mov edx,[taille_telec]
-mov esi,zt_decode
-mov al,5
-int 64h
-cmp eax,0
-jne aff_err_ecr
-add [taille_telec],ecx
-
-mov ecx,[taille_telec]
-cmp ecx,[taille_totale]
-jb boucle_enregistre_resultat 
-jmp fin_telechargement
-
-
-;************************************
-;affiche les données dans le journal
-affiche_resultat:
-
-mov al,6
-mov edx,msg_ok_af1
-int 61h
-
-boucle_affiche_resultat:
-mov al,6
-mov ecx,1FFFFh
-mov edi,zt_decode
-mov ebx,[adresse_canal2]
-int 65h
-cmp eax,0
-jne fin_telechargement 
-cmp ecx,0
-je boucle_affiche_resultat
-
-
-mov byte[ecx+zt_decode],0
-mov edx,zt_decode
-mov al,6
-int 61h
-add [taille_telec],ecx
-
-mov ecx,[taille_telec]
-cmp ecx,[taille_totale]
-jb boucle_affiche_resultat
-
-
-
-
-
-;***************************************
-fin_telechargement:
-cmp dword[taille_totale],0
-je fin_inconnue
-mov ecx,[taille_telec]
-cmp [taille_totale],ecx
-jne fin_incomplet
-mov al,6
-mov edx,msg_fin1
-int 61h
-int 60h
-
-
-fin_inconnue:
-mov al,6
-mov edx,msg_fin2
-int 61h
-
-mov al,102
-mov ecx,[taille_telec]
-mov edx,zt_decode
-int 61h
-mov al,6
-mov edx,zt_decode
-int 61h
-
-mov al,6
-mov edx,msg_fin5
-int 61h
-int 60h
-
-
-fin_incomplet:
-mov al,6
-mov edx,msg_fin3
-int 61h
-
-mov al,102
-mov ecx,[taille_telec]
-mov edx,zt_decode
-int 61h
-mov al,6
-mov edx,zt_decode
-int 61h
-
-mov al,6
-mov edx,msg_fin4
-int 61h
-
-mov al,102
-mov ecx,[taille_totale]
-mov edx,zt_decode
-int 61h
-mov al,6
-mov edx,zt_decode
-int 61h
-
-mov al,6
-mov edx,msg_fin5
-int 61h
-int 60h
+je envoie_fichier
 
 
 
@@ -576,7 +132,7 @@ int 61h
 int 60h
 
 
-aff_err_com:
+erreur_ouv_port:
 mov al,6
 mov edx,msg_err_com
 int 61h
@@ -607,13 +163,19 @@ int 61h
 int 60h
 
 
-
 aff_err_srv:
 mov al,6
 mov edx,msg_err_srv
 int 61h
-mov edx,zt_decode
+mov edx,zt_echange+24
 mov al,6
+int 61h
+int 60h
+
+
+aff_err_pdr:
+mov al,6
+mov edx,msg_err_pdr
 int 61h
 int 60h
 
@@ -624,86 +186,371 @@ int 60h
 
 
 
-;*****************************
-envoie_utf8z:
-mov esi,edx
-xor ecx,ecx
+;**********************************************************************
+lire_fichier:
+call connexion_serveur
 
+
+;prépare requete initiale
+mov word[requete],100h
+
+mov ecx,zt_ressource
 @@:
-cmp byte[edx],0
-je @f
+mov al,[ecx]
 inc ecx
-inc edx
-jmp @b
+cmp al,0
+jne @b
+mov dword[ecx],"octe"
+mov dword[ecx+4],"t"
+sub ecx,requete_ini-6
 
-@@:
+;envoie requete initiale
+mov ebx,[adresse_canal]
 mov al,7
-mov ebx,[adresse_canal]
-int 65h
-ret
-
-
-
-
-;********************************
-attend1ligne:
-mov dword[offset],0
-boucle_attend1ligne:
-mov al,6
-mov ecx,1024
-sub ecx,[offset]
-mov edi,zt_decode
-add edi,[offset]
-mov ebx,[adresse_canal]
+mov esi,requete_ini
 int 65h
 cmp eax,0
-jne aff_err_com
-
+jne erreur_ouv_port
 cmp ecx,0
-je boucle_attend1ligne
-add [offset],ecx
-test_attend1ligne:
-cmp dword[offset],2
-jb boucle_attend1ligne
+je erreur_ouv_port
 
-;recherche si fin d'en_tête 
-mov edi,zt_decode-1
-mov esi,zt_decode
-add edi,[offset]
+mov word[numeros_bloc],1
+
+
+mov al,6
+mov edx,msg_okr1
+int 61h
+mov al,6
+mov edx,zt_ressource
+int 61h
+mov al,6
+mov edx,zt_echange
+mov dword[edx],0D22h ;" puis cr puis zéro
+int 61h
+
+
+;*************
+boucle_rrq:
+mov al,9
+mov ebx,[adresse_canal]
+mov ecx,800 ;2s
+int 65h
+cmp eax,cer_ddi
+jne aff_err_pdr
+
+
+;lit les données reçu
+mov al,6
+mov edi,zt_echange
+mov ecx,560
+int 65h
+cmp eax,0
+jne boucle_rrq
+sub ecx,26
+
+
+;verifie si c'est la bonne adresse et le bon port
+mov ax,[port_serveur]
+mov ebx,[adresse_serveur_ip]
+cmp [zt_echange],ax
+jne boucle_rrq
+cmp [zt_echange+2],ebx
+jne boucle_rrq
+
+
+;test si c'est un message d'erreur
+cmp word[zt_echange+22],0500h
+je aff_err_srv
+
+;test si c'est bien les données attendu
+mov ax,[numeros_bloc]
+xchg al,ah
+cmp word[zt_echange+22],0300h
+jne boucle_rrq
+cmp word[zt_echange+24],ax
+jb ack_rrq
+jne boucle_rrq
+
+
+
+;si c'est le premier bloc on créer le fichier
+cmp word[numeros_bloc],1
+jne @f
+
+
+mov al,2 
+mov bx,0
+mov edx,zt_ressource
+int 64h
+cmp eax,0
+je ok_fichier
+cmp eax,cer_nfr
+jne aff_err_cre
+cmp byte[ecrase],1
+jne aff_err_cre
+
+;si il existe et si on as autorisé l'ecrasement, on ouvre le fichier
+mov al,0 
+mov bx,0
+mov edx,zt_ressource
+int 64h
+cmp eax,0
+jne aff_err_ouv
+
+
+ok_fichier:
+mov [handle_fichier],ebx
 @@:
-cmp word[esi],0A0Dh
-je fin_attend1ligne
-inc esi
-cmp esi,edi
+
+;ecrire les données dans le fichier
+mov eax,5
+mov ebx,[handle_fichier]
+mov edx,[offset_fichier]
+mov esi,zt_echange+26
+int 64h
+add [offset_fichier],ecx
+inc word[numeros_bloc]
+
+;envoyer accusé de reception
+ack_rrq:
+push ecx
+mov word[zt_echange+22],0400h
+mov al,7
+mov ebx,[adresse_canal]
+mov ecx,26
+mov esi,zt_echange
+int 65h
+pop ecx
+
+cmp ecx,512
+je boucle_rrq
+
+
+;definis la taille fichier (au cas ou on écrase un fichier plus grand)
+mov al,7
+mov ah,1 ;taille fichier
+mov ebx,[handle_fichier]
+mov edx,offset_fichier
+int 64h
+
+
+mov al,6
+mov edx,msg_okr2
+int 61h
+mov al,6
+mov edx,zt_ressource
+int 61h
+mov al,6
+mov edx,msg_okr3
+int 61h
+
+mov al,102
+mov ecx,[offset_fichier]
+mov edx,zt_echange
+int 61h
+mov al,6
+mov edx,zt_echange
+int 61h
+
+mov al,6
+mov edx,msg_okr4
+int 61h
+
+
+int 60h
+
+
+
+
+
+;****************************************************************************************
+envoie_fichier:
+call connexion_serveur
+
+;prépare requete initiale
+mov word[requete],200h
+
+mov ecx,zt_ressource
+@@:
+mov al,[ecx]
+inc ecx
+cmp al,0
 jne @b
-jmp boucle_attend1ligne
+mov dword[ecx],"octe"
+mov dword[ecx+4],"t"
+sub ecx,requete_ini-6
+
+;envoie requete initiale
+mov ebx,[adresse_canal]
+mov al,7
+mov esi,requete_ini
+int 65h
+cmp eax,0
+jne erreur_ouv_port
+cmp ecx,0
+je erreur_ouv_port
+
+mov word[numeros_bloc],1
 
 
-fin_attend1ligne:
-mov byte[esi+1],0
-;mov edx,zt_decode  ;pour debug
-;mov al,6           ;pour debug
-;int 61h            ;pour debug
+boucle_wrq:
+mov al,3
+int 65h
+cmp eax,cer_ddi
+je @f
 
-cmp byte[zt_decode+3],"-"
-je @f 
+int 62h   ;si aucune données a traiter on bascule a une autre tache
+jmp boucle_wrq
+
+
+@@:
+;lit les données reçu
+mov al,6
+mov edi,zt_echange
+mov ecx,560
+int 65h
+cmp eax,0
+jne boucle_wrq
+sub ecx,4
+
+
+;verifie si c'est la bonne adresse et le bon port
+mov ax,[port_serveur]
+mov ebx,[adresse_serveur_ip]
+cmp [zt_echange],ax
+jne boucle_rrq
+cmp [zt_echange+4],ebx
+jne boucle_rrq
+
+;test si c'est un message d'erreur
+cmp word[zt_echange+22],0500h
+je aff_err_srv
+
+;test si c'est bien l'ack attendu
+mov ax,[numeros_bloc]
+cmp word[zt_echange+22],0400h
+jne boucle_rrq
+cmp word[zt_echange+24],ax
+jb ack_rrq
+jne boucle_rrq
+
+
+
+;lit les données dans le fichier
+
+mov eax,4 ;?????????
+mov ebx,[handle_fichier]
+mov edx,[offset_fichier]
+mov edi,zt_echange+24
+int 64h
+add [offset_fichier],ecx
+
+
+
+;envoyer les données 
+mov word[zt_echange+22],0300h
+mov al,7
+mov ebx,[adresse_canal]
+add ecx,24
+mov esi,zt_echange
+int 65h
+
+jmp boucle_wrq
+
+;un petit message pour la fin!!!!!!!!!!!!!!
+
+
+
+
+int 60h
+
+
+
+
+
+
+;*****************************************************************************
+connexion_serveur:
+
+
+;etablire une connexion
+mov al,0
+mov bx,[id_tache]
+mov ecx,64
+mov edx,1
+mov esi,2000
+mov edi,2000
+int 65h
+mov [adresse_canal],ebx
+cmp eax,0
+jne erreur_ouv_port
+
+
+;configure en écoute pour un port UDP 
+mov ax,[port_local]
+mov word[zt_echange],7
+mov [zt_echange+2],ax
+
+mov al,5
+mov ebx,[adresse_canal]
+mov ecx,4h
+mov esi,zt_echange
+mov edi,0
+int 65h
+cmp eax,0
+jne erreur_ouv_port
+
+;attend que le programme réponde
+mov al,8
+mov ebx,[adresse_canal]
+mov ecx,200  ;500ms
+int 65h
+cmp eax,cer_ddi
+jne erreur_ouv_port
+
+;lit la réponse du programme
+mov al,4
+mov ebx,[adresse_canal]
+mov ecx,34h
+mov esi,0
+mov edi,zt_echange
+int 65h
+cmp eax,0
+jne erreur_ouv_port
+
+cmp byte[zt_echange],87h
+jne erreur_ouv_port
+
 ret
 
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
 @@:
-add esi,2
-mov ecx,[offset]
-add ecx,zt_decode
-sub ecx,esi
-mov [offset],ecx
+
+boucle_ajuste_langue:
 cmp ecx,0
-je boucle_attend1ligne
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
 
-mov edi,zt_decode
-cld
-rep movsb
-jmp test_attend1ligne
-
-
+ok_ajuste_langue:
+pop eax
+ret
 
 
 
@@ -711,19 +558,28 @@ jmp test_attend1ligne
 sdata1:
 org 0
 
-msg_ok_af1:
-db "CFTP: début du téléchargement du document",13,0
-
-msg_fin1:
-db "CFTP: téléchargement complet",13,0
-msg_fin2:
-db "CFTP: fin du téléchargement par coupure de connexion par le serveur, ",0
-msg_fin3:
-db "CFTP: téléchargement incomplet, ",0
-msg_fin4:
-db " sur ",0
-msg_fin5:
+msg_okr1:
+db "CTFTP: début du téléchargement du fichier ",22h,0
+msg_okr2:
+db "CTFTP: fin du téléchargement du fichier ",22h,0
+msg_okr3:
+db 22h,", ",0
+msg_okr4:
 db " octets ont été téléchargé",13,0
+
+
+msg_okw1:
+db "CTFTP: début de l'envoie du fichier ",22h,0
+msg_okw2:
+db "CTFTP: fin de l'envoie du fichier ",22h,0
+msg_okw3:
+db 22h,", ",0
+msg_okw4:
+db " octets ont été envoyé",13,0
+
+
+
+
 
 
 msg_err_srv:
@@ -732,96 +588,69 @@ db "CFTP: le serveur a renvoyé une erreur:",13,0
 
 
 msg_err_param:
-db "CFTP: erreur de parametre",13,0
+db "CTFTP: erreur de parametre",13,0
 msg_err_com:
-db "CFTP: erreur de communication",13,0
+db "CTFTP: erreur de communication",13,0
 msg_err_cre:
-db "CFTP: impossible de créer le fichier",13,0
+db "CTFTP: impossible de créer le fichier",13,0
 msg_err_ouv:
-db "CFTP: impossible d'ouvrir le fichier",13,0
+db "CTFTP: impossible d'ouvrir le fichier",13,0
 msg_err_ecr:
-db "CFTP: impossible d'écrire dans le fichier",13,0
+db "CTFTP: impossible d'écrire dans le fichier",13,0
 msg_err_exe:
-db "CFTP: erreur durant l'échange avec le serveur",13,0
+db "CTFTP: erreur durant l'échange avec le serveur",13,0
+msg_err_pdr:
+db "CTFTP: pas de réponse du serveur",13,0
 
 
 
-
-
-
-
-id_tache:
-dw 0
-adresse_canal:
-dd 0
-adresse_canal2:
-dd 0
-offset:
-dd 0
-taille_telec:
-dd 0
-taille_totale:
-dd 0
-handle_fichier:
-dd 0
-
-
-commande_ethernet:
-db 8,1
 port_local:
-dw 0
-cmd_max:
-dw 0
-cmd_fifo:
-dw 2000,2000 
+rb 2
+id_tache:
+rb 2
+adresse_canal:
+rb 4
+numeros_bloc:
+rb 4
+handle_fichier:
+rb 4
+offset_fichier:
+rb 8
+ecrase:
+rb 1
+
+
+
+
+adresse_serveur_texte:
+rb 256
+
+
+
+requete_ini:
 port_serveur:
-dw 0
-ip_serveur:
-dd 0
-cmd_ip6:
-dd 0,0,0,0
-index_recep:
-dd 0
-
-
-
-ftp_req1:
-db "USER ",0
-ftp_req2:
-db "PASS ",0
-ftp_req3:
-db "TYPE I",13,10,0
-ftp_req4:
-db "EPSV",13,10,0
-ftp_req5:
-db "SIZE ",0
-ftp_req6:
-db "RETR ",0
-
-
-ftp_reqf:
-db 13,10,0
-
-
-
-zt_user:
-db "anonymous"
-rb 256
-zt_pass:
-rb 256
-zt_adresse:
-rb 32
-nom_fichier:
-rb 256
-zt_port:
-rb 10
-zt_url:
-rb 256
-zt_host:
-rb 256
+dw 69
+adresse_serveur_ip:
+rb 4
+ipv6:
+rb 16
+requete:
+rb 2
 zt_ressource:
 rb 256
-zt_decode:
+
+
+
+
+
+
+
+zt_echange:
+rb 1024
+
+
+
+
 
 
 sdata2:
