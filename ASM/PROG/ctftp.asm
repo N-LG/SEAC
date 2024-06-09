@@ -128,6 +128,7 @@ je envoie_fichier
 aff_err_param:
 mov al,6
 mov edx,msg_err_param
+call ajuste_langue
 int 61h
 int 60h
 
@@ -135,30 +136,42 @@ int 60h
 erreur_ouv_port:
 mov al,6
 mov edx,msg_err_com
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_cre:
 mov al,6
 mov edx,msg_err_cre
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ouv:
 mov al,6
 mov edx,msg_err_ouv
+call ajuste_langue
+int 61h
+int 60h
+
+aff_err_lec:
+mov al,6
+mov edx,msg_err_lec
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_ecr:
 mov al,6
 mov edx,msg_err_ecr
+call ajuste_langue
 int 61h
 int 60h
 
 aff_err_exe:
 mov al,6
 mov edx,msg_err_exe
+call ajuste_langue
 int 61h
 int 60h
 
@@ -167,15 +180,29 @@ aff_err_srv:
 mov al,6
 mov edx,msg_err_srv
 int 61h
-mov edx,zt_echange+24
+call ajuste_langue
+
+
+mov al,[zt_echange+25]
+add al,"0"
+mov [zt_echange+23],al
+mov word[zt_echange+24],": "
+mov edx,zt_echange+23
 mov al,6
 int 61h
+
+mov edx,zt_echange
+mov dword[edx],0D2020h
+mov al,6
+int 61h
+
 int 60h
 
 
 aff_err_pdr:
 mov al,6
 mov edx,msg_err_pdr
+call ajuste_langue
 int 61h
 int 60h
 
@@ -219,6 +246,7 @@ mov word[numeros_bloc],1
 
 mov al,6
 mov edx,msg_okr1
+call ajuste_langue
 int 61h
 mov al,6
 mov edx,zt_ressource
@@ -270,7 +298,6 @@ jne boucle_rrq
 cmp word[zt_echange+24],ax
 jb ack_rrq
 jne boucle_rrq
-
 
 
 ;si c'est le premier bloc on créer le fichier
@@ -336,6 +363,7 @@ int 64h
 
 mov al,6
 mov edx,msg_okr2
+call ajuste_langue
 int 61h
 mov al,6
 mov edx,zt_ressource
@@ -354,8 +382,8 @@ int 61h
 
 mov al,6
 mov edx,msg_okr4
+call ajuste_langue
 int 61h
-
 
 int 60h
 
@@ -365,6 +393,25 @@ int 60h
 
 ;****************************************************************************************
 envoie_fichier:
+
+;ouvre le fichier
+mov al,0 
+mov bx,0
+mov edx,zt_ressource
+int 64h
+cmp eax,0
+jne aff_err_ouv
+mov [handle_fichier],ebx
+
+;lit la taille du fichier
+mov al,6
+mov ah,1 ;taille fichier
+mov ebx,[handle_fichier]
+mov edx,offset_fichier
+int 64h
+cmp eax,0
+jne aff_err_ouv
+
 call connexion_serveur
 
 ;prépare requete initiale
@@ -390,20 +437,30 @@ jne erreur_ouv_port
 cmp ecx,0
 je erreur_ouv_port
 
-mov word[numeros_bloc],1
+
+mov al,6
+mov edx,msg_okw1
+call ajuste_langue
+int 61h
+mov al,6
+mov edx,zt_ressource
+int 61h
+mov al,6
+mov edx,zt_echange
+mov dword[edx],0D22h ;" puis cr puis zéro
+int 61h
 
 
+;***************
 boucle_wrq:
-mov al,3
+mov al,9
+mov ebx,[adresse_canal]
+mov ecx,800 ;2s
 int 65h
 cmp eax,cer_ddi
-je @f
-
-int 62h   ;si aucune données a traiter on bascule a une autre tache
-jmp boucle_wrq
+jne aff_err_pdr
 
 
-@@:
 ;lit les données reçu
 mov al,6
 mov edi,zt_echange
@@ -411,56 +468,88 @@ mov ecx,560
 int 65h
 cmp eax,0
 jne boucle_wrq
-sub ecx,4
-
 
 ;verifie si c'est la bonne adresse et le bon port
 mov ax,[port_serveur]
 mov ebx,[adresse_serveur_ip]
 cmp [zt_echange],ax
-jne boucle_rrq
-cmp [zt_echange+4],ebx
-jne boucle_rrq
+jne boucle_wrq
+cmp [zt_echange+2],ebx
+jne boucle_wrq
 
 ;test si c'est un message d'erreur
 cmp word[zt_echange+22],0500h
 je aff_err_srv
 
-;test si c'est bien l'ack attendu
-mov ax,[numeros_bloc]
+;test si c'est bien un ack
 cmp word[zt_echange+22],0400h
-jne boucle_rrq
-cmp word[zt_echange+24],ax
-jb ack_rrq
-jne boucle_rrq
+jne boucle_wrq
 
-
+xor edx,edx
+mov dx,[zt_echange+24]
+xchg dl,dh
+shl edx,9
+cmp edx,[offset_fichier]
+ja fin_wrq
 
 ;lit les données dans le fichier
-
-mov eax,4 ;?????????
+mov ecx,[offset_fichier]
+sub ecx,edx
+cmp ecx,512
+jbe @f
+mov ecx,512
+@@:
+cmp ecx,0
+je @f
+mov eax,4 
 mov ebx,[handle_fichier]
-mov edx,[offset_fichier]
-mov edi,zt_echange+24
+mov edi,zt_echange+26
 int 64h
-add [offset_fichier],ecx
-
-
+cmp eax,0
+jne aff_err_ouv
+@@:
 
 ;envoyer les données 
 mov word[zt_echange+22],0300h
+mov ax,[zt_echange+24]
+xchg al,ah
+inc ax
+xchg al,ah
+mov [zt_echange+24],ax
 mov al,7
 mov ebx,[adresse_canal]
-add ecx,24
+add ecx,26
 mov esi,zt_echange
 int 65h
 
 jmp boucle_wrq
 
-;un petit message pour la fin!!!!!!!!!!!!!!
 
 
+fin_wrq:
+mov al,6
+mov edx,msg_okw2
+call ajuste_langue
+int 61h
+mov al,6
+mov edx,zt_ressource
+int 61h
+mov al,6
+mov edx,msg_okw3
+int 61h
 
+mov al,102
+mov ecx,[offset_fichier]
+mov edx,zt_echange
+int 61h
+mov al,6
+mov edx,zt_echange
+int 61h
+
+mov al,6
+mov edx,msg_okw4
+call ajuste_langue
+int 61h
 
 int 60h
 
@@ -559,47 +648,60 @@ sdata1:
 org 0
 
 msg_okr1:
+db "CTFTP: start of downloading the file named ",22h,0
 db "CTFTP: début du téléchargement du fichier ",22h,0
 msg_okr2:
+db "CTFTP: end of downloading the file named ",22h,0
 db "CTFTP: fin du téléchargement du fichier ",22h,0
 msg_okr3:
 db 22h,", ",0
 msg_okr4:
+db " bytes have been downloaded",13,0
 db " octets ont été téléchargé",13,0
 
 
 msg_okw1:
+db "CTFTP: start of sending the file named ",22h,0
 db "CTFTP: début de l'envoie du fichier ",22h,0
 msg_okw2:
+db "CTFTP: end of sending the file named ",22h,0
 db "CTFTP: fin de l'envoie du fichier ",22h,0
 msg_okw3:
 db 22h,", ",0
 msg_okw4:
+db " bytes were sent",13,0
 db " octets ont été envoyé",13,0
 
 
 
 
 
-
 msg_err_srv:
-db "CFTP: le serveur a renvoyé une erreur:",13,0
-
-
-
+db "CTFTP: the server returned an error code ",0
+db "CTFTP: le serveur a renvoyé une erreur code ",0
 msg_err_param:
-db "CTFTP: erreur de parametre",13,0
+db "CTFTP: parameter error",13,0
+db "CTFTP: erreur de paramètre",13,0
 msg_err_com:
+db "CTFTP: communication error",13,0
 db "CTFTP: erreur de communication",13,0
 msg_err_cre:
+db "CTFTP: unable to create file",13,0
 db "CTFTP: impossible de créer le fichier",13,0
 msg_err_ouv:
+db "CTFTP: unable to open the file",13,0
 db "CTFTP: impossible d'ouvrir le fichier",13,0
+msg_err_lec:
+db "CTFTP: error while reading from file",13,0
+db "CTFTP: erreur lors de la lecture dans le fichier",13,0
 msg_err_ecr:
-db "CTFTP: impossible d'écrire dans le fichier",13,0
+db "CTFTP: error while writing to file",13,0
+db "CTFTP: erreur lors de l'écriture dans le fichier",13,0
 msg_err_exe:
+db "CTFTP: error during exchange with the server",13,0
 db "CTFTP: erreur durant l'échange avec le serveur",13,0
 msg_err_pdr:
+db "CTFTP: no response from server",13,0
 db "CTFTP: pas de réponse du serveur",13,0
 
 
