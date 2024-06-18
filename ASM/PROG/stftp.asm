@@ -96,6 +96,17 @@ mov [dossier_ecriture],eax
 ignore_ecriture:
 
 
+;***********************************************************
+;selectionne un numéros de port aléatoirement
+mov eax,9
+int 61h
+xor ax,bx
+xor ax,cx
+xor ax,dx
+xor ax,0B9F1h
+or ax,1024h
+mov [port_aleatoire],ax
+
 
 ;***********************************************************
 ;etablire une connexion
@@ -106,24 +117,23 @@ mov edx,1
 mov esi,2000
 mov edi,2000
 int 65h
+cmp eax,0
+jne aff_err_port
 mov [adresse_canal],ebx
+mov [adresse_port69],ebx
 
 ;configure en écoute pour le port UDP69
-mov byte[zt_recep],7
+mov word[zt_recep],7
 mov word[zt_recep+2],69
 
 mov al,5
 mov ebx,[adresse_canal]
-mov ecx,34h
+mov ecx,4
 mov esi,zt_recep
 mov edi,0
 int 65h
 cmp eax,0
 jne aff_err_port
-
-
- 
-
 
 ;attend que le programme réponde
 mov al,8
@@ -136,7 +146,7 @@ jne aff_err_port
 ;lit la réponse du programme
 mov al,4
 mov ebx,[adresse_canal]
-mov ecx,34h
+mov ecx,4
 mov esi,0
 mov edi,zt_recep
 int 65h
@@ -156,6 +166,17 @@ int 61h
 
 ;**************************************************************************
 boucle:
+
+;si il y as un canal de com ouvert pour les données, on le ferm et on repasse sur le port 69
+mov ebx,[adresse_canal]
+cmp [adresse_port69],ebx
+je @f
+mov al,1
+int 65h
+mov ebx,[adresse_port69]
+mov [adresse_canal],ebx
+@@:
+
 
 mov ebx,[num_fichier]    ;si un fichier a été ouvert, ferme le
 cmp ebx,0
@@ -280,7 +301,7 @@ cld
 rep movsb
 
 ;initialises compteurs pour démarrer transferts
-mov byte[nb_emission],15
+mov byte[nb_emission],5
 mov word[acq_attendu],1
 
 mov edx,msgrrq
@@ -298,7 +319,7 @@ boucle_rrq:
 ;attend qu'il y ait des données a reçevoir
 mov al,9
 mov ebx,[adresse_canal]
-mov ecx,400
+mov ecx,200
 int 65h
 cmp eax,cer_ddi
 jne emis_trame_data
@@ -323,6 +344,8 @@ jmp boucle_rrq
 
 
 test_rrq:           ;on attent un aquitement
+cmp word[code_oper],0500h
+je trame_erreur
 cmp word[code_oper],0400h
 jne boucle_rrq
 mov ax,[code_oper+2]
@@ -330,7 +353,7 @@ xchg al,ah
 cmp ax,[acq_attendu]
 jne boucle_rrq
 
-mov byte[nb_emission],15
+mov byte[nb_emission],5
 inc word[acq_attendu]
 
 
@@ -412,6 +435,7 @@ jmp boucle
 
 ;*****************************************************************************************************
 wrq:       ;requete d'ecriture
+
 cmp dword[dossier_ecriture],0
 je erreur_demande_interdite
 
@@ -467,7 +491,7 @@ cld
 rep movsb
 
 ;initialises compteurs pour démarrer transferts
-mov byte[nb_emission],15
+mov byte[nb_emission],5
 mov word[acq_attendu],1
 
 
@@ -488,7 +512,7 @@ boucle_wrq:
 ;attend qu'il y ait des données a reçevoir
 mov al,9
 mov ebx,[adresse_canal]
-mov ecx,400
+mov ecx,200
 int 65h
 cmp eax,cer_ddi
 jne emis_trame_ack
@@ -515,6 +539,8 @@ jmp boucle_wrq
 
 
 test_wrq:           ;on attent un pacquet de données
+cmp word[code_oper],0500h
+je trame_erreur
 cmp word[code_oper],0300h
 jne boucle_wrq
 mov ax,[code_oper+2]
@@ -554,7 +580,7 @@ zt_transfert_pasplein:
 cmp ecx,512
 jne fin_wrq
 
-mov byte[nb_emission],15
+mov byte[nb_emission],5
 inc word[acq_attendu]
 
 emis_trame_ack:
@@ -656,6 +682,23 @@ mov edx,msg_errfin
 int 61h
 jmp boucle
 
+
+
+trame_erreur:
+mov edx,msg_errclient
+call ajuste_langue
+mov al,6
+int 61h
+
+mov al,6
+mov edx,code_oper+4 
+int 61h
+
+mov al,6
+mov edx,msgligne
+int 61h
+
+jmp boucle
 
 ;******************************************************************************
 
@@ -777,31 +820,13 @@ ret
 
 
 
-;*********************************************
-envoie_ack:
-mov word[code_oper],0400h   ;accusé de reception
-xchg al,ah
-mov [code_oper+2],ax
-mov ebx,[adresse_canal]
-mov al,7
-mov esi,zt_recep
-mov ecx,22+4
-int 65h
-ret
 
 
 
 
 
 
-
-
-
-
-
-
-
-
+;********************
 verif_req:
 ;verifie que le mode de transmission demandé soit bien "octet"
 mov ebx,code_oper+2
@@ -850,6 +875,57 @@ inc ebx
 cmp byte[ebx],0
 jne verif_nok2
 verif_ok:
+pushad
+
+;ouvre un nouveau canal dédié a l'envoie de donnée
+mov al,0
+mov bx,[id_tache]
+mov ecx,64
+mov edx,1
+mov esi,2000
+mov edi,2000
+int 65h
+cmp eax,0
+jne verif_nok3
+mov [adresse_canal],ebx
+
+;configure en écoute pour le port UDP aléatoire
+inc word[port_aleatoire]
+mov ax,[port_aleatoire]
+mov word[tempo],7
+mov word[tempo+2],ax
+
+mov al,5
+mov ebx,[adresse_canal]
+mov ecx,4
+mov esi,tempo
+mov edi,0
+int 65h
+cmp eax,0
+jne verif_nok3
+
+;attend que le programme réponde
+mov al,8
+mov ebx,[adresse_canal]
+mov ecx,200  ;500ms
+int 65h
+cmp eax,cer_ddi
+jne verif_nok3
+
+;lit la réponse du programme
+mov al,4
+mov ebx,[adresse_canal]
+mov ecx,4
+mov esi,0
+mov edi,tempo
+int 65h
+cmp eax,0
+jne verif_nok3
+
+cmp byte[tempo],87h
+jne verif_nok3
+
+popad
 clc
 ret
 
@@ -863,6 +939,12 @@ verif_nok2:
 call envoie_erreur4B
 stc
 ret
+
+verif_nok3:
+popad
+stc
+ret
+
 
 
 ;***************************
@@ -892,28 +974,17 @@ ok_ajuste_langue:
 ret
 
 
-;***********
-compte0:
-mov ecx,edx
-
-@@:
-cmp byte[ecx],0
-je @f
-inc ecx
-jmp @b
-@@:
-
-sub ecx,edx
-ret
-
 
 
 
 sdata1:
 org 0
+port_aleatoire:
+dw 0
 adresse_canal:
 dd 0
-
+adresse_port69:
+dd 0
 acq_attendu:
 dw 0
 nb_emission:
@@ -958,6 +1029,13 @@ db "STFTP: error writing file: ",16h,0
 db "STFTP: erreur lors de l'écriture du fichier: ",16h,0
 msg_errfin:
 db 17h,0
+
+
+msg_errclient:
+db "STFTP: the client returned an error message: ",0
+db "STFTP: le client a renvoyé un message d'erreur: ",0
+
+
 
 msger_carte:
 db 13,"STFTP: network card selected absent",13,0
