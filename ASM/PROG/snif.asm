@@ -386,6 +386,7 @@ xchg cl,ch
 shl ebx,2       ;ebx=taille de l'entête IP    
 mov al,[esi+ipv4_protocole] 
 add esi,ebx
+sub ecx,ebx
 cmp al,17   ;le datagramme est il UDP?
 je affichage_udp
 cmp al,6   ;le datagramme est il TCP?
@@ -464,7 +465,7 @@ mov edx,msg11
 int 61h      
 
 mov al,102
-mov cx,[esi+tcp_seq]
+mov ecx,[esi+tcp_seq]
 bswap ecx
 mov edx,zt_tempo
 int 61h
@@ -504,8 +505,8 @@ pop ecx
 
 
 mov al,[esi+tcp_flag]
-and eax,0Fh
-shl eax,2
+and eax,0F0h
+shr eax,2
 sub ecx,eax
 
 mov al,102
@@ -555,7 +556,45 @@ mov edx,zt_tempo
 int 61h  
 
 
+cmp byte[esi+udp_port_dest+1],69
+je @f
+cmp byte[esi+udp_port_dest+1],138
+je @f
+cmp byte[esi+udp_port_dest+1],137
+je @f
+cmp byte[esi+udp_port_sour+1],68
+je @f
+cmp byte[esi+udp_port_dest+1],68
+je @f
+cmp byte[esi+udp_port_sour+1],67
+je @f
+cmp byte[esi+udp_port_dest+1],67
+jne affichage_bloc 
+@@:
+mov al,6
+mov edx,msg2
+int 61h 
 
+xor ebx,ebx
+mov bx,[esi+udp_longueur]
+xchg bl,bh
+add esi,8
+
+@@:
+mov eax,105
+mov cl,[esi]
+mov edx,zt_tempo
+int 61h
+mov word[zt_tempo+2],20h
+
+mov al,6
+mov edx,zt_tempo
+int 61h  
+
+
+inc esi
+dec ebx
+jnz @b
 
 
 ;*****************************************

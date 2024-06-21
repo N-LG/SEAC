@@ -23,10 +23,16 @@ mov ah,"n"  ;lettre de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,tempo
 int 61h
+mov ecx,16
+cmp eax,0
+jne @f
+cmp byte[tempo],0
+je @f
 
 mov al,100
 mov edx,tempo
 int 61h
+@@:
 mov [to_bdd],ecx
 
 ;agrandissement de la zone mémoire
@@ -50,10 +56,9 @@ mov ah,"c"   ;numéros de l'option de commande a lire
 mov cl,0 ;0=256 octet max
 mov edx,tempo
 int 61h
-
-mov ebx,[tempo]
-cmp ebx,0
-je @f
+xor ebx,ebx
+cmp eax,0
+jne @f
 
 mov al,100  
 mov edx,tempo
@@ -371,26 +376,60 @@ mov ecx,22
 rep movsb
 
 
+;cherche de quel type de demande il s'agit pour renvoyer la bonne réponse
+
+
+mov dl,2  ;par défaut on envoit un dhcp_offert
+cmp dword[vend],063538263h  ;test si c'est un mot magique dhcp
+jne fin_select_type_dhcp 
+mov ebx,vend+4
+boucle_select_type_dhcp:
+cmp byte[ebx],0FFh
+je fin_select_type_dhcp
+cmp byte[ebx],35h
+jne @f
+
+;1=dhcp=discover
+;2=dhcp_offert
+;3=dhcp_request
+;5=dhcp_ack
+
+cmp al,1
+je fin_select_type_dhcp
+cmp byte[ebx+2],3
+je type_dhcp_request
+
+
+@@:
+xor eax,eax
+mov al,[ebx+1]
+add ebx,eax
+add ebx,2
+jmp boucle_select_type_dhcp
+
+type_dhcp_request:
+mov dl,5 ;on répond par un ack
+
+fin_select_type_dhcp:
+
+
+
 mov ebx,vend           ;vide le champ option
-bouclevidevend:
+@@:
 mov dword[ebx],0
 add ebx,4
 cmp ebx,vend+64
-jne bouclevidevend
+jne @b
 
 mov dword[vend],063538263h   ;ajoute le double mot magique (voir RFC1497)
 
 
 mov edi,vend+4
 
-mov word[edi],0153h       ;ajoute l'option de réponse dhcp
-mov byte[edi+2],2         ;2=DHCPoffer
+mov word[edi],0135h       ;ajoute l'option de réponse dhcp
+mov byte[edi+2],dl         
 add edi,3 
 
-;mov word[edi],0451h       ;ajoute l'option dhcp-lease-time (durée de vie
-;?????????????????
-;mov byte[edi+2],eax
-;add edi,6
 
 mov word[edi],0401h       ;ajoute l'option de masque reseau
 mov eax,[masque]
@@ -407,6 +446,38 @@ mov eax,[ip_serveur]
 mov [edi+2],eax
 add edi,6
 
+
+
+;on rajoute les options spécifique au dhcp ack
+cmp dl,5
+jne @f
+
+mov word[edi],0433h       ;ajoute l'option dhcp-lease-time (durée de vie
+mov eax,[temp_reservation]
+bswap eax
+mov [edi+2],eax
+add edi,6
+
+
+mov word[edi],043Ah       ;ajoute l'option temp première relance (moitié de la durée de reservation)
+mov eax,[temp_reservation]
+shr eax,1
+bswap eax
+mov [edi+2],eax
+add edi,6
+
+
+mov word[edi],043Bh       ;ajoute l'option temp seconde relance (3/4 de la durée de reservation)
+mov eax,[temp_reservation]
+shr eax,1
+mov ecx,[temp_reservation]
+shr ecx,2
+add eax,ecx
+bswap eax
+mov [edi+2],eax
+add edi,6
+
+@@:
 
 mov byte[edi],255        ;marque la fin des options   
 
@@ -460,7 +531,8 @@ adresse_canal:
 dd 0
 
 
-
+temp_reservation:
+dd 28800 ;8 heures en secondes
 
 
 zt_info:

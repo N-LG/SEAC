@@ -2851,10 +2851,12 @@ pop esi
 pop ecx
 cmp eax,0
 jne arret_connexion_tcp
+cmp ebp,0
+jne @f
 cmp bx,[esi+cnx_id]
 jne arret_connexion_tcp
-cmp ebp,0
-je ignore_verification_connexion_active_tcp
+jmp ignore_verification_connexion_active_tcp
+@@:
 mov eax,[esi+cnx_seq_serveur_max]
 sub eax,[esi+cnx_seq_serveur_suivante]     ;eax=nombre max d'octet que l'on peut encore envoyer
 jbe ignore_verification_connexion_active_tcp ;s'il est négatif ou nul on n'envoie rien
@@ -2938,7 +2940,7 @@ jmp ignore_verification_connexion_active_tcp
 
 
 
-
+;*************************************
 arret_connexion_tcp:
 cmp byte[esi+cnx_etat],0
 je purge_verification_connexion_active_tcp
@@ -3094,6 +3096,10 @@ jnz verification_connexion_active_icmp
 
 
 
+
+;******************************************************************
+;fin des étapes actives 
+int 62h
 jmp boucle_principale
 
 

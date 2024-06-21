@@ -278,10 +278,10 @@ sub ecx,26
 
 
 ;verifie si c'est la bonne adresse et le bon port
-mov ax,[port_serveur]
+;mov ax,[port_serveur]
 mov ebx,[adresse_serveur_ip]
-cmp [zt_echange],ax
-jne boucle_rrq
+;cmp [zt_echange],ax
+;jne boucle_rrq
 cmp [zt_echange+2],ebx
 jne boucle_rrq
 
@@ -470,10 +470,10 @@ cmp eax,0
 jne boucle_wrq
 
 ;verifie si c'est la bonne adresse et le bon port
-mov ax,[port_serveur]
+;mov ax,[port_serveur]
 mov ebx,[adresse_serveur_ip]
-cmp [zt_echange],ax
-jne boucle_wrq
+;cmp [zt_echange],ax
+;jne boucle_wrq
 cmp [zt_echange+2],ebx
 jne boucle_wrq
 

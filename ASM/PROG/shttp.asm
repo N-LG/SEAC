@@ -650,13 +650,6 @@ jmp ajoute_dossier
 
 ;*****************************************************
 ferme_connexion:
-
-;§§§§§§§§§§§§§§§§§§§§ laisse le temps aux données d'être envoyé avant la fermeture de la connexion
-mov ecx,100
-mov al,1
-int 61h
-;§§§§§§§§§§§§§§§§§§§§  correction temporaire le temps de corriger le bug du pilote ip 
-
 pushad
 ;recherche le descripteur de la connexion
 mov esi,zts_reception
