@@ -2860,6 +2860,8 @@ cmp eax,"ren"
 je cmdren
 cmp eax,"def"
 je cmddef
+cmp eax,"pwr"
+je cmdpwr
 
 jmp commande_fichier
 
@@ -3320,7 +3322,9 @@ mov [ad_afcmd],eax  ;numéro du premier caractère qui sert a ecrire la commande e
 sub eax,ecx
 mov [ad_afrep],eax ;numéro du premier caractère qui sert a ecrire le dossier en cours (-3 lignes)
 
-
+;replace la visu du journal
+mov word[no_ligne_jcsl],0
+or byte[at_csl],022h    ;met a un le bit "on doit afficher la fin du journal et signale que l'affichage du journal doit être mis a jour
 
 ;met a 1 le bit "caracteristique ecran réel changé" de chaque ecran de tache
 push es
@@ -3768,7 +3772,24 @@ jne erreur_cmddef_autres
 jmp fin_defg_ok
 
 
+;****************************************************************
+cmdpwr:
+mov edx,ad_zdc
+@@:
+cmp word[edx],"-r"
+je cmdpwr_reboot
+inc edx
+cmp word[edx],"-s"
+je cmdpwr_stop
+cmp edx,ad_zdc+200h
+jne @b
+jmp pascommande
 
+cmdpwr_reboot:
+jmp selcod16:reboot
+
+cmdpwr_stop:
+jmp pascommande
 
 
 ;****************************************************************
