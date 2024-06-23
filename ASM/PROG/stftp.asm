@@ -395,7 +395,7 @@ int 65h
 
 dec byte [nb_emission]
 jnz boucle_rrq
-jmp boucle
+jmp erreur_perte
 
 
 fin_rrq:
@@ -427,6 +427,17 @@ int 61h
 
 mov al,6
 mov edx,msg_errfin 
+int 61h
+jmp boucle
+
+
+
+
+
+erreur_perte:
+mov edx,msgfine
+call ajuste_langue
+mov al,6
 int 61h
 jmp boucle
 
@@ -470,18 +481,9 @@ int 64h
 cmp eax,0
 jne erreur_wrq
 
-;fixe sa taille a zéro
-mov dword[tempo],0
-mov dword[tempo+4],0
-mov edx,tempo
-mov al,7
-mov ah,1 ;taille fichier
-int 64h
-cmp eax,0
-jne erreur_wrq
-
 creation_ok:
 mov [num_fichier],ebx
+
 
 ;enregistre les données du client (port+IPs)
 mov esi,zt_recep
@@ -548,7 +550,6 @@ xchg al,ah
 cmp ax,[acq_attendu]
 jne boucle_wrq
 
-
 ;enregistre les données du fichier
 sub ecx,22+4
 
@@ -604,7 +605,7 @@ int 65h
 
 dec byte [nb_emission]
 jnz boucle_wrq
-jmp boucle
+jmp erreur_perte
 
 
 fin_wrq:
@@ -619,8 +620,7 @@ int 64h
 pop ecx
 cmp eax,0
 jne erreur_ecriture
-mov dword[adresse_transfert],0
-mov dword[adresse_fichier],0
+
 
 mov byte[nb_emission],5
 
@@ -648,6 +648,22 @@ int 61h
 
 dec byte [nb_emission]
 jnz boucle_fin_wrq
+
+
+;enregistre la taille au cas ou on as écrasé un fichier plus gros
+mov edx,[adresse_fichier]
+mov dword[tempo],edx
+mov dword[tempo+4],0
+mov al,7
+mov ah,1 ;taille fichier
+mov ebx,[num_fichier]
+mov edx,tempo
+int 64h
+cmp eax,0
+jne erreur_wrq
+
+mov dword[adresse_transfert],0
+mov dword[adresse_fichier],0
 
 mov edx,msgfin
 call ajuste_langue
@@ -1020,6 +1036,10 @@ msgfin:
 db "STFTP: end of file transfer",13,0
 db "STFTP: fin de transfert de fichier",13,0
 
+msgfine:
+db "STFTP: loss of connection with client, incomplete transfer",13,0
+db "STFTP: perte de connexion avec le client, transfert incomplet",13,0
+
 
 msg_errlec:
 db "STFTP: error while reading file: ",16h,0
@@ -1073,7 +1093,7 @@ db "acc",232,"s interdit",0
 msgcoder3:
 db "Espace insuffisant pour stocker le fichier",0
 msgcoder4A:
-db "op",233,"ration ill",233,"gale, ",233,"criture interdite",233,0
+db "op",233,"ration ill",233,"gale, ",233,"criture interdite",0
 msgcoder4B:
 db "op",233,"ration ill",233,"gale, Seul le mode octet est support",233,0
 msgcoder4C:
@@ -1096,6 +1116,7 @@ client:
 dw 0
 dd 0
 dd 0,0,0,0
+
 
 
 zt_recep:
