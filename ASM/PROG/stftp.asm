@@ -1085,25 +1085,25 @@ db "STFTP: erreur dans la sytaxe de la ligne de commande. entrez ",22h,"man stft
 msgcoder0A:
 db "erreur lors de la lecture du fichier",0
 msgcoder0B:
-db "erreur lors de la l'",233,"criture du fichier",0
+db "erreur lors de la l'ecriture du fichier",0
 msgcoder1:
-db "fichier non trouv",233,0
+db "fichier non trouve",0
 msgcoder2:
-db "acc",232,"s interdit",0
+db "acces interdit",0
 msgcoder3:
 db "Espace insuffisant pour stocker le fichier",0
 msgcoder4A:
-db "op",233,"ration ill",233,"gale, ",233,"criture interdite",0
+db "operation illegale, ecriture interdite",0
 msgcoder4B:
-db "op",233,"ration ill",233,"gale, Seul le mode octet est support",233,0
+db "operation illegale, Seul le mode octet est supporte",0
 msgcoder4C:
-db "op",233,"ration ill",233,"gale, accès sous dossier interdit",0
+db "operation illegale, accès sous dossier interdit",0
 msgcoder4D:
-db "op",233,"ration ill",233,"gale, non reconnue",233,0
+db "operation illegale, non reconnue",233,0
 msgcoder5:
 db "ID de transfer inconnue",0
 msgcoder6:
-db "Le fichier est d",233,"j",224," pr",233,"sent",0
+db "Le fichier est deja present",0
 
 
 

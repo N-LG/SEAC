@@ -278,10 +278,13 @@ sub ecx,26
 
 
 ;verifie si c'est la bonne adresse et le bon port
-;mov ax,[port_serveur]
+mov ax,[port_serveur]
 mov ebx,[adresse_serveur_ip]
-;cmp [zt_echange],ax
-;jne boucle_rrq
+cmp word[numeros_bloc],1
+je @f
+cmp [zt_echange],ax
+jne boucle_rrq
+@@:
 cmp [zt_echange+2],ebx
 jne boucle_rrq
 
@@ -304,6 +307,9 @@ jne boucle_rrq
 cmp word[numeros_bloc],1
 jne @f
 
+;on enregistre le port d'echange serveur
+mov ax,[zt_echange]
+mov [port_serveur],ax
 
 mov al,2 
 mov bx,0
@@ -450,6 +456,7 @@ mov edx,zt_echange
 mov dword[edx],0D22h ;" puis cr puis zéro
 int 61h
 
+mov word[numeros_bloc],0
 
 ;***************
 boucle_wrq:
@@ -470,12 +477,25 @@ cmp eax,0
 jne boucle_wrq
 
 ;verifie si c'est la bonne adresse et le bon port
-;mov ax,[port_serveur]
+mov ax,[port_serveur]
 mov ebx,[adresse_serveur_ip]
-;cmp [zt_echange],ax
-;jne boucle_wrq
+cmp word[numeros_bloc],0
+je @f
+cmp [zt_echange],ax
+jne boucle_wrq
+@@:
 cmp [zt_echange+2],ebx
 jne boucle_wrq
+
+
+
+
+
+
+
+
+
+
 
 ;test si c'est un message d'erreur
 cmp word[zt_echange+22],0500h
@@ -484,6 +504,16 @@ je aff_err_srv
 ;test si c'est bien un ack
 cmp word[zt_echange+22],0400h
 jne boucle_wrq
+
+
+
+;si c'est le premier bloc on enregistre le port d'echange serveur
+cmp word[numeros_bloc],0
+jne @f
+mov ax,[zt_echange]
+mov [port_serveur],ax
+@@:
+
 
 xor edx,edx
 mov dx,[zt_echange+24]
