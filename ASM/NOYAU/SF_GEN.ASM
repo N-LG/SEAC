@@ -1006,7 +1006,7 @@ iret
 
 ;**********************
 sfs_rech_service:
-pushad              ;ah=code de service a rechercher cl=nombre de service a rechercher ds:edx=adresse ou ecrire la liste des services
+pushad              ;ah=code de service a rechercher (0=liste toutes les applications) cl=nombre de service a rechercher ds:edx=adresse ou ecrire la liste des services
 push es
 
 mov al,cl
@@ -1014,6 +1014,7 @@ mov bx,selramh
 mov es,bx
 xor ebx,ebx
 
+push edx
 boucle_sfs_rech_service:
 es
 cmp byte [ebx+type_dm],'F'
@@ -1021,9 +1022,12 @@ je fin_sfs_rech_service
 es
 cmp byte [ebx+type_dm],'T'
 jne ignore_sfs_rech_service
+cmp ah,0
+je @f
 es
 cmp byte [ebx+code_service],ah
 jne ignore_sfs_rech_service
+@@:
 
 es
 mov cx,[ebx+id_tache]
@@ -1038,7 +1042,36 @@ mov ecx,[ebx+to_tache]
 add ebx,ecx
 jmp boucle_sfs_rech_service
 
+
 fin_sfs_rech_service:
+;remet les taches dans l'ordre
+pop esi
+mov edi,esi
+add edi,2
+cmp esi,edx
+je fin2_sfs_rech_service 
+cmp edi,edx
+je fin2_sfs_rech_service 
+
+boucle2_sfs_rech_service:
+mov ax,[esi]
+cmp ax,[edi]
+jb @f
+xchg [edi],ax
+mov [esi],ax
+@@:
+add edi,2
+cmp edi,edx
+jne boucle2_sfs_rech_service
+add esi,2
+mov edi,esi
+add edi,2
+cmp edi,edx
+jne boucle2_sfs_rech_service
+
+
+
+fin2_sfs_rech_service:
 pop es
 popad
 iret
