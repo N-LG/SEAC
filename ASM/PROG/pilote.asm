@@ -180,27 +180,37 @@ je @f
 call cherche_base
 @@:
 
-;add ebx,3           (visiblement le bit MF est pas un bonne indicateur des multiples fonctions) 
-;mov dx,0CF8h
-;mov eax,ebx
-;out dx,eax
-;mov dx,0CFCh
-;in eax,dx
-;test eax,00800000h
-;jz @f
 
-;and ebx,0FFFFFF00h
-add ebx,100h
+test ebx,0700h
+jnz simplefonction 
+
+mov eax,ebx
+mov dx,0CF8h
+add eax,0Ch
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+test eax,00800000h
+jz simplefonction
+
+add ebx,100h          ;on passe a la fonction suivante
 test ebx,7F000000h
 jz boucle_rech_pci
 int 60h
 
-;@@:
-;and ebx,0FFFFF800h
-;add ebx,800h
-;test ebx,7F000000h
-;jz boucle_rech_pci
-;int 60h
+
+simplefonction:
+add ebx,800h          ;on passe au device suivant
+and ebx,0FFFFF800h
+test ebx,7F000000h
+jz boucle_rech_pci
+int 60h
+
+
+
+
+
+
 
 
 erreur_bdd:

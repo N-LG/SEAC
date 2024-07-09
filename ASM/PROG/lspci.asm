@@ -453,14 +453,17 @@ popad
 
 
 passecarte:
-mov dx,0CF8h
+test ebx,0700h
+jnz simplefonction 
+
 mov eax,ebx
-add eax,03h
+mov dx,0CF8h
+add eax,0Ch
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-;test eax,00800000h   (visiblement le bit MF est pas un bonne indicateur des multiples fonctions) 
-;jz simplefonction
+test eax,00800000h
+jz simplefonction
 
 add ebx,100h          ;on passe a la fonction suivante
 test ebx,7F000000h
@@ -468,12 +471,12 @@ jz bouclecmdlc
 int 60h
 
 
-;simplefonction:
-;add ebx,800h          ;on passe au device suivant
-;and ebx,0FFFFF800h
-;test ebx,7F000000h
-;jz bouclecmdlc
-;int 60h
+simplefonction:
+add ebx,800h          ;on passe au device suivant
+and ebx,0FFFFF800h
+test ebx,7F000000h
+jz bouclecmdlc
+int 60h
 
 
 
