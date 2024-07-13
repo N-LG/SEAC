@@ -182,7 +182,7 @@ call cherche_base
 
 
 test ebx,0700h
-jnz simplefonction 
+jnz @f
 
 mov eax,ebx
 mov dx,0CF8h
@@ -193,6 +193,7 @@ in eax,dx
 test eax,00800000h
 jz simplefonction
 
+@@:
 add ebx,100h          ;on passe a la fonction suivante
 test ebx,7F000000h
 jz boucle_rech_pci
