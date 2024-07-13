@@ -37,12 +37,16 @@ fasm ASM/PROG/ipconfig.asm BIN/IPCONFIG.FE
 fasm ASM/PROG/shttp.asm BIN/SHTTP.FE
 fasm ASM/PROG/stftp.asm BIN/STFTP.FE
 fasm ASM/PROG/stlnt.asm BIN/STLNT.FE
+fasm ASM/PROG/spxe.asm BIN/SPXE.FE
+fasm ASM/PROG/cdg.asm BIN/CDG.FE
 fasm ASM/PROG/snif.asm BIN/SNIF.FE
 fasm ASM/PROG/man.asm BIN/MAN.FE
 fasm ASM/PROG/ajarch.asm BIN/AJARCH.FE
 fasm ASM/PROG/dcp.asm BIN/DCP.FE
 fasm ASM/PROG/pilote.asm BIN/PILOTE.FE
 fasm ASM/PROG/RTL8139.asm BIN/RTL8139.FE
+fasm ASM/PROG/RTL8169.asm BIN/RTL8169.FE
+fasm ASM/PROG/BCM5755.asm BIN/BCM5755.FE
 fasm ASM/PROG/3C90X.asm BIN/3C90X.FE
 fasm ASM/PROG/I8254X.asm BIN/I8254X.FE
 fasm ASM/PROG/jn1.asm BIN/JN1.FE
@@ -87,18 +91,10 @@ cd BIN
 cd ..
 
 
-:ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
-ajarch ASM/PROG/fe.inc BIN/ETAGE4.BIN
-ajarch ASM/PROG/hello.asm BIN/ETAGE4.BIN
 
-:ajout des sources de base pour recompiler le noyau a l'archive du noyau
-ajarch ASM/NOYAU/ETAGE2_MBR.ASM BIN/ETAGE4.BIN
-ajarch ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
-ajarch BIN/BIOS.MBR BIN/ETAGE4.BIN
-ajarch BIN/RELAIS.MBR BIN/ETAGE4.BIN
 
 :ajout des applications et de leurs données de base à l'archive du noyau
-ajarch BIN/FASM.FE BIN/ETAGE4.BIN
+
 ajarch BIN/DATE.FE BIN/ETAGE4.BIN
 ajarch BIN/EDT.FE BIN/ETAGE4.BIN
 ajarch BIN/EDH.FE BIN/ETAGE4.BIN
@@ -125,6 +121,8 @@ ajarch BIN/IPCONFIG.FE BIN/ETAGE4.BIN
 ajarch BIN/SHTTP.FE BIN/ETAGE4.BIN
 ajarch BIN/STFTP.FE BIN/ETAGE4.BIN
 ajarch BIN/STLNT.FE BIN/ETAGE4.BIN
+ajarch BIN/SPXE.FE BIN/ETAGE4.BIN
+ajarch BIN/CDG.FE BIN/ETAGE4.BIN
 ajarch BIN/MAN.FE BIN/ETAGE4.BIN
 ajarch BIN/SNIF.FE BIN/ETAGE4.BIN
 ajarch BIN/AJARCH.FE BIN/ETAGE4.BIN
@@ -132,10 +130,28 @@ ajarch BIN/DCP.FE BIN/ETAGE4.BIN
 ajarch BIN/PILOTE.FE BIN/ETAGE4.BIN
 ajarch BIN/PILOTEPCI.CFG BIN/ETAGE4.BIN
 ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
+ajarch BIN/RTL8169.FE BIN/ETAGE4.BIN
+ajarch BIN/BCM5755.FE BIN/ETAGE4.BIN
 ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ajarch BIN/JN1.FE BIN/ETAGE4.BIN
+ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
+
+
+:ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
+ajarch ASM/PROG/fe.inc BIN/ETAGE4.BIN
+ajarch ASM/PROG/hello.asm BIN/ETAGE4.BIN
+
+:ajout des sources de base pour recompiler le noyau a l'archive du noyau
+ajarch ASM/NOYAU/ETAGE2_MBR.ASM BIN/ETAGE4.BIN
+ajarch ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
+ajarch BIN/BIOS.MBR BIN/ETAGE4.BIN
+ajarch BIN/RELAIS.MBR BIN/ETAGE4.BIN
+
+
+:ajout de fasm
+ajarch BIN/FASM.FE BIN/ETAGE4.BIN
 
 
 :ajout des fichiers de définition à l'archive du noyau
@@ -154,7 +170,9 @@ ajarch BIN/25u0.def BIN/ETAGE4.BIN
 ajarch BIN/FFu0.def BIN/ETAGE4.BIN
 ajarch BIN/F00u0.def BIN/ETAGE4.BIN
 ajarch BIN/icones.png BIN/ETAGE4.BIN
-ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
+
+
+
 
 
 :compilation des différents format du noyau
@@ -163,7 +181,7 @@ copy BIN\ETAGE4.BIN  ASM\NOYAU\ETAGE4.BIN
 fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
 :fasm ASM/NOYAU/ETAGE2_EFI.ASM BIN/SEAC.EFI
 fasm ASM/NOYAU/ETAGE1_DSQ.ASM BIN/SEAC.IMG
-fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
+:fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
 fasm ASM/NOYAU/ETAGE1_ISO.ASM BIN/SEAC.ISO
 
 :ajarch usb.ids ETAGE4.BIN
@@ -174,8 +192,6 @@ fasm ASM/NOYAU/ETAGE2_IMB.ASM BIN/SEAC.IMB
 
 
 del ajarch.exe
-copy BIN\SEAC.PXE  OUTILS\syst.bin
-
 
 color F0
 
