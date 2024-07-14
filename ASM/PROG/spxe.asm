@@ -192,6 +192,7 @@ int 61h
 
 
 mov edx,msg_ok
+call ajuste_langue
 mov al,6        
 int 61h
 
@@ -240,6 +241,7 @@ jne boucle_principale
 
 mov al,6
 mov edx,msg_rec1
+call ajuste_langue
 int 61h
 
 xor ecx,ecx
@@ -304,7 +306,13 @@ boucle_recherche_correspondance:
 cmp eax,[ebx+4]
 jne @f
 cmp dx,[ebx+8]
+jne @f
+mov eax,[ciaddr]
+cmp eax,0
+je correspondance_ok
+cmp eax,[ebx]
 je correspondance_ok 
+jmp ciaddr_incorrect
 
 @@:
 add ebx,16
@@ -332,10 +340,17 @@ jnz boucle_recherche_vide
 
 mov al,6
 mov edx,msg_rec3
+call ajuste_langue
 int 61h
 jmp boucle_principale
 
 
+
+ciaddr_incorrect:
+mov edx,msg_rec4
+call ajuste_langue
+int 61h
+jmp boucle_principale
 
 
 
@@ -344,6 +359,7 @@ jmp boucle_principale
 correspondance_ok:
 mov al,6
 mov edx,msg_rec2
+call ajuste_langue
 int 61h
 
 mov al,112
@@ -408,6 +424,11 @@ add ebx,2
 jmp boucle_select_type_dhcp
 
 type_dhcp_request:
+;test si c'est bien l'adresse qu'on lui as attribué
+
+
+
+
 mov dl,5 ;on répond par un ack
 
 fin_select_type_dhcp:
@@ -496,22 +517,17 @@ je boucle_principale
 
 
 mov edx,msg_err3
+call ajuste_langue
 mov al,6        
 int 61h
 jmp boucle_principale
 
 
 
-
-
-
-
-
-
-
 ;***********************
 erreur_ouv_port:
 mov edx,msg_err1
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
@@ -519,9 +535,41 @@ int 60h
 ;*****************
 erreur_param:
 mov edx,msg_err2
+call ajuste_langue
 mov al,6        
 int 61h
 int 60h
+
+
+
+;***************************
+ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+push eax
+mov eax,20
+int 61h
+xor ecx,ecx
+cmp eax,"eng "
+je @f
+inc ecx
+cmp eax,"fra "
+je @f
+xor ecx,ecx
+@@:
+
+boucle_ajuste_langue:
+cmp ecx,0
+je ok_ajuste_langue
+cmp byte[edx],0
+jne @f
+dec ecx
+@@:
+inc edx
+jmp boucle_ajuste_langue
+
+ok_ajuste_langue:
+pop eax
+ret
+
 
 
 
@@ -558,24 +606,41 @@ rb 32
 
 
 msg_err1:
+db "SPXE: error when opening UDP port",13,0
 db "SPXE: erreur lors de l'ouverture du port UDP",13,0
 msg_err2:
-db "SPXE: erreur de parametre",13,0
+db "SPXE: parameter error",13,0
+db "SPXE: erreur de paramètre",13,0
+
 
 msg_err3:
+db "SPXE: error when sending a frame",13,0
 db "SPXE: erreur lors de l'envoie d'une trame",13,0
 
+
 msg_ok:
+db "SPXE: server started",13,0
 db "SPXE: serveur démarré",13,0
 
+
 msg_rec1:
+db "SPXE: receiving an address request frame from the address ",0
 db "SPXE: reception d'une trame de demande d'adresse en provenance de l'adresse ",0
 
+
 msg_rec2:
+db " assigned to the address ",0
 db " affecté a l'adresse ",0
 
+
 msg_rec3:
-db " mais plus d'adresse disponible a lui affecter",13,0
+db " but no more address available to assign to it",13,0
+db " mais plus d'adresse disponible à lui affecter",13,0
+
+
+msg_rec4:
+db " but the requested address is different from the one assigned",13,0
+db " mais l'adresse réclamé est différente de celle attribué",13,0
 
 
 tempo:
