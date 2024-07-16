@@ -649,6 +649,47 @@ int 60h
 
 ;***************************************************
 envoyer_requete:
+;test si c'est localhost qui est demandé
+cmp dword[recherche],"loca"
+jne @f
+cmp dword[recherche+4],"lhos"
+jne @f
+cmp word[recherche+8],"t"
+jne @f
+
+;renvoie une réponse dns bidon
+mov ebx,requete_dns+12
+mov word[qdcount],1
+mov word[ancount],1
+mov word[nscount],0
+mov word[arcount],0
+
+
+;qdcount bidon
+mov byte[ebx],0
+add ebx,5
+
+;nom
+mov byte[ebx],9  ;
+mov dword[ebx+1],"loca"
+mov dword[ebx+5],"lhos"
+mov byte[ebx+9],"t"
+mov byte[ebx+10],0
+add ebx,11
+
+mov word[ebx],100h ;type ordre inversé
+mov word[ebx+2],100h ;classe
+mov dword[ebx+4],-1 ;ttl
+mov word[ebx+8],400h ;taille
+mov dword[ebx+10],0100007Fh ;adresse ip 127.0.0.1
+add ebx,14
+
+
+xor eax,eax
+ret
+@@:
+
+
 ;créer une requete DNS
 mov dword[index_serveur],serveurs_dns
 boucle_test_different_serveur:
@@ -661,7 +702,6 @@ je fin_envoyer_requete
 mov [ipv4_out],eax
 
 
-;mov word[requete_dns],????
 mov byte[qropcode],1  
 mov byte[razrcode],0
 mov word[qdcount],100h   ;1 ordre inversé
@@ -672,6 +712,7 @@ mov word[arcount],0
 mov esi,recherche
 mov edi,data_dns+1
 mov ecx,64
+cld
 rep movsd
 
 ;transforme le nom en chaine valide pour le serveur
@@ -1032,7 +1073,6 @@ jne ferme_connexion
 
 
 
-
 ;recherche....
 push ebx
 call envoyer_requete
@@ -1061,8 +1101,8 @@ add ebx,2
 xchg al,ah
 add ebx,eax
 dec word[ancount]
-jz reponse_err 
-jmp @b
+jnz @b
+jmp reponse_err 
 
 
 ;recopie le RR dans la réponse
