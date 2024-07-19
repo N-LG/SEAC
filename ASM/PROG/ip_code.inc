@@ -1097,10 +1097,18 @@ mov eax,[esi+ipv4_ip_dest]
 mov edx,[adresse_ipv4]
 cmp eax,0FFFFFFFFh
 je @f
+
 cmp edx,0
 je @f
 cmp eax,edx
+je @f
+
+cmp eax,0100007fh
 jne boucle_principale
+cmp dword[esi+ipv4_ip_sour],0100007fh
+jne boucle_principale
+
+
 @@:
 
 ;test si la trame est un fragment d'une trame plus grande
@@ -1255,17 +1263,14 @@ mov word[esi+icmp_type],0    ;réponse a un demande d'écho
 
 mov esi,[offset_ethernet]
 mov eax,[esi+ipv4_ip_sour]
-mov [esi+ipv4_ip_dest],eax     ;source devient destination
-mov eax,[adresse_ipv4]
+xchg [esi+ipv4_ip_dest],eax     ;source devient destination
 mov [esi+ipv4_ip_sour],eax      ;met son adresse ip dans source
 mov word[esi+ipv4_checksum],0
 
 mov eax,[zt_decod+eth_mac_sour]      ;idem avec les adresses MAC
 mov dx,[zt_decod+eth_mac_sour+4]
-mov [zt_decod+eth_mac_dest],eax
-mov [zt_decod+eth_mac_dest+4],dx
-mov eax,[adresse_mac]
-mov dx,[adresse_mac+4]
+xchg [zt_decod+eth_mac_dest],eax
+xchg [zt_decod+eth_mac_dest+4],dx
 mov [zt_decod+eth_mac_sour],eax
 mov [zt_decod+eth_mac_sour+4],dx
 
@@ -3145,14 +3150,19 @@ add ecx,[taille_niv_sup]
 
 
 ;recherche dans la table ARP/NDS si il y as une correspondance entre l'adresse ip et l'adresse ethernet
-mov eax,[adresse_ipv4_destination]
-cmp eax,0
+cmp dword[adresse_ipv4_destination],0
 je recherche_nds
 
 
 recherche_table_arp:
+mov eax,[adresse_ipv4]
 cmp dword[adresse_ipv4_destination],0FFFFFFFFh
 je adresse_broadcast 
+cmp dword[adresse_ipv4_destination],0100007Fh
+je adresse_localhost
+cmp dword[adresse_ipv4_destination],eax
+je adresse_localhost
+
 
 push ecx
 push esi
@@ -3285,7 +3295,15 @@ call envoie_trame_ethernet
 popad
 ret
 
-
+;**************************************
+adresse_localhost:
+mov eax,[adresse_mac]
+mov dx,[adresse_mac+4]
+mov dword[esi+eth_mac_dest],eax
+mov word[esi+eth_mac_dest+4],dx
+call envoie_trame_ethernet
+popad
+ret
 
 ;**************************************
 adresse_ethernet_trouve:
@@ -3320,17 +3338,30 @@ ignore_bourrage_ethernet:
 cmp ecx,[taille_trame_max]               
 ja trame_ethernet_tropgrande
 
+
+;test si la trame fait partie des adresses locales
+
+
+pushad
 call env_trame
-ret
+popad
+;ret
+
+
+
+
+trame_locale: ;copie la trame dans la zone de décodage
+push ecx
+mov edi,zt_decod
+cld 
+rep movsb
+pop ecx
+jmp ok_reception
+
 
 trame_ethernet_tropgrande:
 mov eax,cer_parami 
 ret
-
-
-
-
-
 
 
 
@@ -3513,6 +3544,10 @@ mov [esi+ipv4_ttl],dh
 mov [esi+ipv4_protocole],dl
 mov word[esi+ipv4_checksum],0
 mov edx,[adresse_ipv4]
+cmp eax,0100007Fh
+jne @f
+mov edx,0100007Fh
+@@:
 mov [esi+ipv4_ip_sour],edx
 mov [esi+ipv4_ip_dest],eax
 

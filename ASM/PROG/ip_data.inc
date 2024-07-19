@@ -42,7 +42,8 @@ dhcp_t3:
 dd 0,0
 
 
-
+to_decod:
+dd 0
 taille_trame_max:
 dd 1500
 taille_trame:

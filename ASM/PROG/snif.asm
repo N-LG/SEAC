@@ -168,7 +168,8 @@ mov ebx,[adresse_canal]
 mov ecx,2048
 mov edi,zt_decod
 int 65h
-
+cmp eax,0
+jne boucle
 cmp ecx,0
 je boucle
 mov [taille_trame],ecx
