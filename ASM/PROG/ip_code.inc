@@ -161,8 +161,8 @@ cnx_seq_serveur_max equ 38h              ;le numéros de séquence maximum que l'o
 ;3=connexion établit
 ;4=connexion en phase d'arret (initiative serveur) attent ack par client
 ;5=connexion en phase d'arret (initiative serveur) attent fin par client
-;6=connexion en phase d'arret (initiative client) attente ack par client
-
+;6=connexion en phase d'arret (initiative client) envoie fin vers client
+;7=connexion en phase d'arret (initiative client) attente ack par client
 
 
 
@@ -274,8 +274,8 @@ ret
 
 
 
-
-;********************************************************
+;********************************************************************************************************************
+;********************************************************************************************************************
 boucle_principale:
 mov eax,12          ;lit le compteur temp
 int 61h
@@ -310,19 +310,20 @@ mov dword[passerelle_ipv4],0
 ignore_tempo_dhcp:
 
 
-;recherche si il y as une nouvelle connexion
+
+;********************************************************************************************************************
+;********************************************************************************************************************
+;recherche si il y as une nouvelle connexion interne
 mov al,2
 int 65h
 cmp eax,cer_ddi
 jne lire_nouvelle_trame
-
 
 mov al,4
 mov ecx,34h
 mov esi,0
 mov edi,zt_decod
 int 65h
-
 
 cmp byte[zt_decod],0
 je lire_nouvelle_trame
@@ -564,6 +565,8 @@ cmp byte[esi+cnx_etat],5
 je ignore_ouverture_porttcp_verification
 cmp byte[esi+cnx_etat],6
 je ignore_ouverture_porttcp_verification
+cmp byte[esi+cnx_etat],7
+je ignore_ouverture_porttcp_verification
 cmp [esi+cnx_port_serveur],ax
 je ouverture_porttcp_dejaouvert
 ignore_ouverture_porttcp_verification:
@@ -709,7 +712,7 @@ mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
 call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
-jmp lire_nouvelle_trame 
+jmp reception_interne
 
 
 
@@ -849,7 +852,7 @@ mov esi,[offset_ip]
 mov word[esi+udp_cheksum],ax
 
 call envoie_trame_ip
-;jmp lire_nouvelle_trame
+jmp reception_interne
 
 
 
@@ -866,6 +869,10 @@ mov edx,msgerec
 mov al,6        
 int 61h
 int 60h
+
+reception_interne:
+xor ecx,ecx
+xchg ecx,[to_decod]
 
 ok_reception:
 cmp ecx,0
@@ -1290,7 +1297,7 @@ sub ecx,zt_decod
 add ecx,[taille_niv_sup]
 
 call envoie_trame_ethernet
-jmp boucle_principale  
+jmp reception_interne 
 
 
 autres_trame_icmp_v4:
@@ -1650,7 +1657,7 @@ mov esi,[offset_ip]
 mov word[esi+udp_cheksum],ax
 
 call envoie_trame_ip
-jmp boucle_principale
+jmp reception_interne
 
 ;******************************
 client_dhcp_reponse_request:
@@ -2038,7 +2045,7 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-jmp verifie_trame_attente
+jmp reception_interne
 
 
 
@@ -2074,10 +2081,11 @@ mov edx,eax
 sub edx,[ebx+zone_attente_tcp_ack_attendu]
 jz ok_ack_trame_tcp
 test edx,80000000h
-jz ok_ack_trame_tcp
+jz ignore_ack_trame_tcp
 
 ok_ack_trame_tcp:
 mov byte[ebx+zone_attente_type],0
+trappe "A"
 
 ignore_ack_trame_tcp:
 add ebx,2048
@@ -2103,6 +2111,8 @@ je trame_tcp_arret_serveur_attente_ack
 cmp byte[edi+cnx_etat],5
 je trame_tcp_arret_serveur_attente_fin
 cmp byte[edi+cnx_etat],6
+je trame_tcp_arret_client_attente_ack
+cmp byte[edi+cnx_etat],7
 je trame_tcp_arret_client_attente_ack
 jmp verifie_trame_attente
 
@@ -2193,7 +2203,7 @@ call envoie_trame_ip
 
 call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
 
-jmp verifie_trame_attente
+jmp reception_interne
 
 ;***********************************************
 trame_tcp_arret_client_attente_ack:     ;connexion en phase d'arret (initiative client) attente ack par client
@@ -2285,7 +2295,7 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-jmp verifie_trame_attente
+jmp reception_interne
 
 
 
@@ -2315,6 +2325,8 @@ je trame_tcp_demande_suite
 cmp byte[edi+cnx_etat],5
 je trame_tcp_demande_suite
 cmp byte[edi+cnx_etat],6
+je trame_tcp_demande_suite
+cmp byte[edi+cnx_etat],7
 je trame_tcp_demande_suite
 
 mov ax,[edi+cnx_port_serveur]  ;incrémente le nombre de connexion TCP autorisé
@@ -2393,7 +2405,8 @@ shr eax,2 ;div par  16 mul par 4
 mov ecx,[taille_niv_sup]
 sub ecx,eax
 add [edi+cnx_seq_client_attendue],ecx
-
+cmp ecx,0
+je @f
 
 ;envoie les données a l'application
 push esi
@@ -2403,6 +2416,14 @@ mov ebx,[edi+cnx_adresse_com]
 int 65h
 pop esi
 
+;aquitte les données reçu
+trame_tcp_aquitte:
+call envoie_ack_tcp
+jmp reception_interne
+
+
+
+@@:
 mov ax,[esi+tcp_flag]
 test ax,0100h  ;test si c'est une demande de fin de connexion
 jnz trame_tcp_demande_fin
@@ -2411,11 +2432,7 @@ mov ax,[esi+tcp_flag]
 test ax,0200h ;test si c'est une demande de syncro et met a jour
 jnz trame_tcp_maj_num_seq
 
-;aquitte les données reçu
-trame_tcp_aquitte:
-call envoie_ack_tcp
 jmp verifie_trame_attente
-
 
 
 ;*****************************
@@ -2480,30 +2497,15 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
-
-mov esi,zt_decod+64
-mov word[esi+tcp_flag],1150h   ;FIN et ACK a 1 + en-tête de 5dword
-mov word[esi+tcp_cheksum],0
-
-;créer la partie en tête ip
-mov byte[ttl_niv_sup],128
-mov byte[type_niv_sup],06
-call cree_entete_ip
-
-;calcul le checksum
-call chk_gen
-mov esi,[offset_ip] 
-mov word[esi+tcp_cheksum],ax
-
-call envoie_trame_ip
-
 call sauvegarde_trame_tcp
 
-;jmp verifie_trame_attente
+jmp reception_interne 
 
 
 
-;***************************************************************************************
+
+;*********************************************************************************************************************************************
+;*********************************************************************************************************************************************
 verifie_trame_attente:              ;verifie les trame en attentes
 
 ;rexpédie les trame TCP ayant dépassé le délais
@@ -2581,6 +2583,7 @@ mov cx,[ebx+zone_attente_taille]
 mov edi,zt_decod+64
 mov [taille_niv_sup],ecx
 mov [offset_ethernet],edi
+trappe "R"
 cld
 rep movsb
 call envoie_trame_ip
@@ -2591,14 +2594,67 @@ jmp ignore_rexp_trame_nack
 
 
 detruite_rexp_trame_nack:         ;dépassement du nombre d'envoie de trame
+trappe "D"
 mov byte[ebx+zone_attente_type],0 ;effacement de la trame
+mov edi,[ebx+zone_attente_tcp_descr]
 
 ;envoie d'une trame RST
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§ ;utile ou pas????
+mov esi,zt_decod+64
+mov [offset_ip],esi 
+mov dword[taille_niv_sup],20
+
+mov ax,[edi+cnx_port_serveur]  ;port
+mov bx,[edi+cnx_port_client]
+xchg al,ah
+xchg bl,bh
+mov [esi+tcp_port_sour],ax
+mov [esi+tcp_port_dest],bx
+
+mov eax,[edi+cnx_seq_serveur_suivante]
+mov ebx,[edi+cnx_seq_client_attendue]
+bswap eax
+bswap ebx
+mov [esi+tcp_seq],eax
+mov [esi+tcp_ack],ebx
+
+mov word[esi+tcp_flag],0450h   ;RST à 1 + en-tête de 5dword
+mov word[esi+tcp_cheksum],0
+
+mov word[esi+tcp_fenetre],4000h ;fenetre d'envoie 16Ko
+mov word[esi+tcp_cheksum],0
+mov word[esi+tcp_pointeur],0
+
+mov eax,[edi+cnx_adresse_ipv4_client]
+mov [adresse_ipv4_destination],eax
+mov eax,[edi+cnx_adresse_ipv6_client]
+mov [adresse_ipv6_destination],eax
+mov eax,[edi+cnx_adresse_ipv4_client+4]
+mov [adresse_ipv6_destination+4],eax
+mov eax,[edi+cnx_adresse_ipv4_client+8]
+mov [adresse_ipv6_destination+8],eax
+mov eax,[edi+cnx_adresse_ipv4_client+12]
+mov [adresse_ipv6_destination+12],eax
+
+;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
+mov byte[type_niv_sup],06
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+tcp_cheksum],ax
+
+call envoie_trame_ip
+
+
+;fermeture du canal de connexion
+mov ebx,[edi+cnx_adresse_com]
+mov al,1
+int 65h
 
 
 ;effacement du descripteur de connexion
-mov edi,[ebx+zone_attente_tcp_descr]
 mov ax,[edi+cnx_port_serveur]
 call inc_nb_cnx_tcp 
 mov dword[edi],0
@@ -2617,13 +2673,16 @@ mov dword[edi+48],0
 mov dword[edi+52],0
 mov dword[edi+56],0
 mov dword[edi+60],0
+
 popad
-jmp ignore_rexp_trame_nack
+jmp reception_interne
 
 
 
 
-;***************************************************************************************************
+
+;**************************************************************************************************************************
+;**************************************************************************************************************************
 verification_connexion_active:   ;verifie que tout ce qui est enregistré dans les connexion est bien encore actif 
 
 
@@ -2648,7 +2707,7 @@ int 65h
 
 mov esi,zt_decod
 call envoie_trame_ethernet
-jmp ignore_envoie_directe
+jmp reception_interne
 
 supprime_envoie_directe:
 mov dword[tout_ethernet],0FFFFFFFFh
@@ -2692,7 +2751,7 @@ mov esi,zt_decod
 call envoie_trame_ethernet
 pop esi
 pop ecx
-jmp ignore_verification_connexion_active_cartevirtuelles
+jmp reception_interne
 
 supprime_verification_connexion_active_cartevirtuelles:
 mov dword[esi+6],0FFFFFFFFh
@@ -2739,7 +2798,7 @@ mov esi,zt_decod
 call envoie_trame_ethernet
 pop esi
 pop ecx
-jmp ignore_verification_connexion_active_autresprotocole
+jmp reception_interne
 
 supprime_verification_connexion_active_autresprotocole:
 mov dword[esi+2],0FFFFFFFFh
@@ -2828,7 +2887,7 @@ mov word[esi+udp_cheksum],ax
 
 call envoie_trame_ip
 popad
-jmp ignore_verification_connexion_active_udp
+jmp reception_interne
 
 efface_verification_connexion_active_udp:
 mov dword[esi],0
@@ -2845,6 +2904,8 @@ jnz verification_connexion_active_udp
 mov esi,[ad_table_tcp]
 mov ecx,[nb_table_tcp]
 verification_connexion_active_tcp:
+cmp byte[esi+cnx_etat],6
+je trame_tcp_demande_fin2
 cmp word[esi+cnx_port_serveur],0
 je ignore_verification_connexion_active_tcp
 mov ebx,[esi+cnx_adresse_com]
@@ -2870,7 +2931,6 @@ jbe ignore_verification_connexion_active_tcp ;s'il est négatif ou nul on n'envoi
 
 ;**********************************************************************
 ;envoie la trame tcp
-pushad
 push esi
 mov ebx,[esi+cnx_adresse_com]
 mov edi,zt_decod+84
@@ -2884,6 +2944,13 @@ mov al,6
 int 65h        ;lit les données avec une place réservé pour les en-tête
 pop edi
 
+;pushad
+;mov edx,zt_decod+84
+;add ecx,edx
+;mov byte[ecx],0
+;mov al,6
+;int 61h
+;popad
 
 mov esi,zt_decod+64
 mov [offset_ip],esi 
@@ -2924,6 +2991,66 @@ mov eax,[edi+cnx_adresse_ipv4_client+12]
 mov [adresse_ipv6_destination+12],eax
 
 
+;créer la partie en tête ip
+mov byte[ttl_niv_sup],128
+mov byte[type_niv_sup],06
+call cree_entete_ip
+
+;calcul le checksum
+call chk_gen
+mov esi,[offset_ip] 
+mov word[esi+tcp_cheksum],ax
+
+trappe "N"
+
+call envoie_trame_ip
+
+call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
+jmp reception_interne
+
+
+
+;*************************************
+trame_tcp_demande_fin2:     ;envoie la trame de fin au client
+mov byte[esi+cnx_etat],7
+mov edi,esi
+
+mov esi,zt_decod+64
+mov [offset_ip],esi 
+mov dword[taille_niv_sup],20
+
+mov ax,[edi+cnx_port_serveur]  ;port
+mov bx,[edi+cnx_port_client]
+xchg al,ah
+xchg bl,bh
+mov [esi+tcp_port_sour],ax
+mov [esi+tcp_port_dest],bx
+
+mov eax,[edi+cnx_seq_serveur_suivante]
+add [edi+cnx_seq_serveur_suivante],ecx
+mov ebx,[edi+cnx_seq_client_attendue]
+bswap eax
+bswap ebx
+mov [esi+tcp_seq],eax
+mov [esi+tcp_ack],ebx
+
+mov word[esi+tcp_flag],0150h   ;FIN à 1 + en-tête de 5dword
+mov word[esi+tcp_cheksum],0
+
+mov word[esi+tcp_fenetre],4000h ;fenetre d'envoie 16Ko
+mov word[esi+tcp_cheksum],0
+mov word[esi+tcp_pointeur],0
+
+mov eax,[edi+cnx_adresse_ipv4_client]
+mov [adresse_ipv4_destination],eax
+mov eax,[edi+cnx_adresse_ipv6_client]
+mov [adresse_ipv6_destination],eax
+mov eax,[edi+cnx_adresse_ipv4_client+4]
+mov [adresse_ipv6_destination+4],eax
+mov eax,[edi+cnx_adresse_ipv4_client+8]
+mov [adresse_ipv6_destination+8],eax
+mov eax,[edi+cnx_adresse_ipv4_client+12]
+mov [adresse_ipv6_destination+12],eax
 
 ;créer la partie en tête ip
 mov byte[ttl_niv_sup],128
@@ -2936,11 +3063,12 @@ mov esi,[offset_ip]
 mov word[esi+tcp_cheksum],ax
 
 call envoie_trame_ip
+call sauvegarde_trame_tcp
 
-call sauvegarde_trame_tcp    ;sauvegarde trame pour réexpédition
+jmp reception_interne
 
-popad
-jmp ignore_verification_connexion_active_tcp
+
+
 
 
 
@@ -3017,13 +3145,16 @@ mov dword[esi+52],0
 mov dword[esi+56],0
 mov dword[esi+60],0
 
+
+
+;******************************************
 ignore_verification_connexion_active_tcp:
 add esi,64
 dec ecx
 jnz verification_connexion_active_tcp
 
 
-;****************************************************
+;****************************************************************************
 ;verification des messages icmp
 mov esi,table_acces_icmp
 mov ecx,8
@@ -3089,7 +3220,7 @@ mov [esi+icmp_cheksum],ax
 
 call envoie_trame_ip
 popad
-jmp ignore_verification_connexion_active_icmp
+jmp reception_interne
 
 efface_verification_connexion_active_icmp:
 mov dword[esi],0FFFFFFFFh
@@ -3102,9 +3233,9 @@ jnz verification_connexion_active_icmp
 
 
 
-;******************************************************************
+;**********************************************************************
 ;fin des étapes actives 
-int 62h
+;int 62h
 jmp boucle_principale
 
 
@@ -3320,7 +3451,7 @@ ret
 
 ;********************************************************************************************************************************************
 envoie_trame_ethernet:
-
+pushad
 cmp ecx,64                     ;vérifie que la trame n'est pas trop petite et éventuellement rajoute un bourrage
 jae ignore_bourrage_ethernet
 mov edi,esi
@@ -3340,26 +3471,29 @@ ja trame_ethernet_tropgrande
 
 
 ;test si la trame fait partie des adresses locales
-
+;.........pour l'instant on envoie toutes les trames sur externe et local
 
 pushad
 call env_trame
 popad
-;ret
+
 
 
 
 
 trame_locale: ;copie la trame dans la zone de décodage
-push ecx
+mov [to_decod],ecx
 mov edi,zt_decod
 cld 
 rep movsb
-pop ecx
-jmp ok_reception
+popad
+mov esi,zt_decod
+ret
+
 
 
 trame_ethernet_tropgrande:
+popad
 mov eax,cer_parami 
 ret
 
@@ -3432,7 +3566,8 @@ ret
 
 
 
-;******************************************* incrémente le nombre de connexion ouvrable sur le descripteur de port tcp dans ax
+;*******************************************************************
+;incrémente le nombre de connexion ouvrable sur le descripteur de port tcp dans ax
 inc_nb_cnx_tcp:
 pushad
 mov esi,[ad_table_tcp]
@@ -3902,8 +4037,6 @@ ret
 ;*************************************************
 sauvegarde_trame_tcp:
 mov al,4
-mov ecx,[taille_niv_sup]
-mov esi,[offset_ethernet] 
 call trame_attente
 cmp esi,0
 jne sauvegarde_trame_tcp_ok
