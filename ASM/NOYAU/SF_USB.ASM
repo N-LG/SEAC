@@ -1485,20 +1485,19 @@ mov dword[ebx+8],czm_iso_usb
 
 
 ;enregistre parametre
-push eax
-and eax,07Fh
 mov [ebx+uhci_isointmem_param_adterm],eax
-pop eax
-and eax,0F00h
-shr eax,1
-or  [ebx+uhci_isointmem_param_adterm],eax
-
-
 mov [ebx+uhci_isointmem_param_tframe],ecx
 and edx,0FFh
 mov [ebx+uhci_isointmem_param_peri],edx
 mov [ebx+uhci_isointmem_param_desc_perif],esi      
 mov [ebx+uhci_isointmem_param_desc_ctrl],ebp
+
+;verifie les parametres
+test ax,07080h
+jnz sfusb_iso_uhci_err_param 
+;???????????????????????????????????verifier que donnée transfer inf a donnée terminaison max
+
+
 
 
 ;calcul le nombre de descripteur de transfert (1024/periode)
@@ -1525,102 +1524,8 @@ jc sfusb_iso_uhci_err_mem
 
 
 
-
-
-
-
-
-
-
-
-;verifie les parametres
-test ax,07080h
-jnz sfusb_iso_uhci_err_param 
-;???????????????????????????????????verifier que donnée transfer inf a donnée terminaison max
-
-
-
-
-
-
-;definie quantité max transferé par TD pour cet endpoint?????????????????????????????????????????
-xor eax,eax
-mov edx,[ebx+uhci_bulkmem_param_adterm]
-and edx,078000h
-shr edx,14
-add edx,dpu_ted
-add edx,[ebx+uhci_bulkmem_param_desc_perif]
-fs
-mov ax,[edx]
-cmp eax,0
-jne @f
-mov eax,8
-@@:
-mov [ebx+uhci_bulkmem_param_tod],eax
-
-
-
-
-
-
-
-
-
-
-
-
-
-;créer les TD
-mov edi,[ebx+uhci_isointmem_nbtd]
-shl edi,5  ;mul per 32
-add edi,100000h
-
-mov esi,ebx
-add esi,uhci_isointmem_td
-
-mov ecx,[ebx+uhci_isointmem_nbtd]
-
-
-;?????????????????????????????????? eax edx
-
-
-
-
-
-
-
-
-;prépare la base du td token
-mov dword[ebx+uhci_isointmem_param_adterm],069h ;pid in
-test eax,8000h
-jz sfusb_bulk_pid_uhci
-mov dword[ebx+uhci_isointmem_param_adterm],0E1h ;pid out
-sfusb_bulk_pid_uhci:
-
-push eax
-and eax,07Fh
-shl eax,8
-or [ebx+uhci_bulkmem_param_adterm],eax ;adresse
-pop eax
-and eax,0F00h
-shl eax,7
-or  [ebx+uhci_bulkmem_param_adterm],eax   ;endpoint
-mov ecx,[ebx+uhci_bulkmem_param_adterm]
-and ecx,78000h
-shr ecx,15
-and ecx,0Fh
-mov esi,[ebx+uhci_bulkmem_param_desc_perif]
-fs
-mov eax,[esi+dpu_togl]
-shr eax,cl
-and eax,1
-shl eax,19
-or [ebx+uhci_bulkmem_param_adterm],eax ;toggle bit
-
-
-
 ;précalcule du dword Controle and status
-mov ecx,038800000h ;CONTROL AND STATUS bit 23=TD actif  et bit 27-28=3 erreur avant arret  29=short packet detect
+mov ecx,03A800000h ;CONTROL AND STATUS bit 23=TD actif 25=isocrone et bit 27-28=3 erreur avant arret  29=short packet detect
 mov esi,[ebx+uhci_isointmem_param_desc_perif]
 mov edi,[ebx+uhci_isointmem_param_desc_ctrl]
 xor edx,edx
@@ -1640,65 +1545,41 @@ or ecx,4000000h  ;26=low speed
 mov edx,ecx
 
 
+;précalcule le td token
+mov eax,[ebx+uhci_isointmem_param_tframe]
+mov ecx,[ebx+uhci_isointmem_param_adterm]
+dec eax
+and cx,0F7Fh
+shl eax,6
+or al,ch
+shl eax,7
+or al,cl
+shl eax,8
+mov al,069h ;pid in
+test dword[ebx+uhci_isointmem_param_adterm],8000h
+jz @f
+mov al,0E1h ;pid out
+@@:
 
 
+;créer les TD
+mov edi,[ebx+uhci_isointmem_nbtd]
+shl edi,5  ;mul per 32
+add edi,100000h
 
+mov esi,ebx
+add esi,uhci_isointmem_td
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+mov ecx,[ebx+uhci_isointmem_nbtd]
 
 @@:
 mov [esi+4],eax  ;status
-mov [esi+8],edx  ;header
+mov [esi+8],edx  ;td token
 mov [esi+12],edi ;buffer
 add esi,32
 add edi,[ebx+uhci_bulkmem_param_tframe]
 dec ecx
 jnz @b
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1714,6 +1595,8 @@ mov ecx,[ebx+uhci_isointmem_nbtd]
 
 
 ;?????????????????????????????????? esi= adresse de la frame list
+mov esi,[ebx+uhci_isointmem_param_desc_ctrl]
+
 
 
 
