@@ -1838,9 +1838,9 @@ mov al,[ebx]
 cmp al,0
 je fin_recherche_coord
 cmp al,13
-je ligne_recherche_coord
+je ligne1_recherche_coord
 cmp al,10
-je passe_recherche_coord
+je ligne2_recherche_coord
 and al,0C0h
 cmp al,080h
 je passe_recherche_coord
@@ -1848,11 +1848,28 @@ inc ebx
 inc edx
 jmp boucle_recherche_coord
 
-ligne_recherche_coord:
+ligne1_recherche_coord:
 inc ebx
+es
+cmp byte[ebx],10
+jne  @f
+inc ebx
+@@:
 inc ecx
 xor edx,edx
 jmp boucle_recherche_coord
+
+ligne2_recherche_coord:
+inc ebx
+es
+cmp byte[ebx],13
+jne  @f
+inc ebx
+@@:
+inc ecx
+xor edx,edx
+jmp boucle_recherche_coord
+
 
 passe_recherche_coord:
 inc ebx
@@ -2758,8 +2775,7 @@ db "revenir à l'écran d'édition",13,0
 
 
 descriptif2:
-db "Text editing: "
-db "Edition texte: "
+db "EDT: "
 
 
 nom_fichier:
