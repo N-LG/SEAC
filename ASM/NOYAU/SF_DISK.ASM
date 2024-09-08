@@ -2717,6 +2717,12 @@ jmp finfonctionfichiererr
 init_ahci:   ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données ebp=nombre de secteur
 push ebx
 
+pushad
+mov al,"a"
+call affcj
+popad
+
+
 ;determiner adresse du port
 xor ebx,ebx
 sub ch,20h
@@ -2727,6 +2733,12 @@ mov esi,[ebx+po_zech_sata]
 cmp esi,0
 je init_ahci_er1
 
+pushad
+mov al,"b"
+call affcj
+popad
+
+
 gs
 mov ebx,[esi+zsata_ad_port]
 gs
@@ -2735,6 +2747,11 @@ and al,0Fh
 cmp al,3    ;test si quelque chose est connecté au port
 jne init_ahci_er1
 
+pushad
+mov al,"c"
+call affcj
+popad
+
 gs
 cmp dword[ebx+24h],101h         ;test la signature (disque dur)
 je @f
@@ -2742,6 +2759,11 @@ gs
 cmp dword[ebx+24h],0EB140101h   ;test la signature (atapi)
 jne init_ahci_er1
 @@:
+
+pushad
+mov al,"d"
+call affcj
+popad
 
 ;calculer taille en octet
 xor eax,eax
@@ -2764,6 +2786,10 @@ gs
 mov dword[ebx+8],czm_ztlef
 mov edx,ebx
 
+pushad
+mov al,"e"
+call affcj
+popad
 
 ;préparer PRDT
 mov eax,edx
@@ -2800,6 +2826,12 @@ fin_ahci:
 push ebx
 push edx
 push ebp
+
+pushad
+mov al,"0"
+call affcj
+popad
+
 ;activer execution première commande
 gs
 mov ebx,[esi+zsata_ad_port]
@@ -2819,6 +2851,37 @@ fs
 cmp ebp,[cptsf]
 ja @b
 
+pushad
+mov al,"1"
+call affcj
+popad
+
+
+pushad
+mov al,13
+call affcj
+gs
+mov eax,[ebx+10h]  ;is
+call affh2j
+mov al,13
+call affcj
+gs
+mov eax,[ebx+20h]   ;tfd
+call affh2j
+mov al,13
+call affcj
+gs
+mov eax,[ebx+28h] ;ssts
+call affh2j
+mov al,13
+call affcj
+gs
+mov eax,[ebx+30h] ;serr
+call affh2j
+mov al,13
+call affcj
+popad
+
 
 call reset_port_ahci
 call start_port_ahci
@@ -2837,6 +2900,11 @@ fs
 cmp ebp,[cptsf]
 ja @b
 
+pushad
+mov al,"2"
+call affcj
+popad
+
 call reset_port_ahci
 call start_port_ahci
 pop ebp
@@ -2846,6 +2914,10 @@ mov eax,cer_prd
 ret
 
 @@:
+pushad
+mov al,"3"
+call affcj
+popad
 pop ebp
 pop edx
 pop ebx
@@ -2957,7 +3029,7 @@ or dword[ebx+18h],010h ;enable rec fis
 ;attend que que la rec fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,200h
+add ecx,800h
 @@:
 gs
 test dword[ebx+18h],04000h
@@ -2989,7 +3061,7 @@ or dword[ebx+18h],01h ;enable commande fis
 ;attend que que la cmd fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,200h
+add ecx,800h
 @@:
 gs
 test dword[ebx+18h],08000h
@@ -3009,11 +3081,21 @@ ret
 
 ;**************************************************************
 infodisquesata:
+pushad
+mov al,"A"
+call affcj
+popad
+
 mov cl,1
 xor ebx,ebx
 call init_ahci
 cmp eax,0
 jne fin_infodisquesata
+
+pushad
+mov al,"B"
+call affcj
+popad
 
 
 ;préparer FIS
@@ -3090,10 +3172,21 @@ mov dword[esi+zsata_liste+24],0
 gs
 mov dword[esi+zsata_liste+28],0
 
-mov ebp,200
+
+pushad
+mov al,"C"
+call affcj
+popad
+
+mov ebp,800
 call fin_ahci
 cmp eax,0
 jne fin2_infodisquesata
+
+pushad
+mov al,"D"
+call affcj
+popad
 
 
 ;recopie les données

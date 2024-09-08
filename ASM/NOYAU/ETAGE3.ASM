@@ -9,10 +9,10 @@ include "DN_VARS.ASM"   ;declaration des constantes numériques
 
 ;**************************************************************
 ;vide la ram de 0003 0000h à 0004 FFFFh
-xor ax,ax
-mov ds,ax
-mov ebx,30000h
 xor eax,eax
+mov ebx,30000h
+mov ds,ax
+
 
 boucleefreg:
 mov [ebx],eax
