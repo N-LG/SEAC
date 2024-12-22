@@ -92,10 +92,60 @@ jne boucle_lfcr
 
 
 ;enregistre la position des actions pour les fichier inconnue
-;??????????????
+mov ebx,actions_bdd
+mov ecx,[taille_bdd]
+add ecx,ebx
+@@:
+cmp word[ebx],0D3Fh ; ? et cr 
+je trouve_inconnue
+inc ebx
+cmp ebx,ecx
+jne @b
+jmp fin_inconnue
 
-;et les actions communes
-;????????????????
+trouve_inconnue:
+inc ebx
+cmp ebx,ecx
+je fin_inconnue
+cmp byte[ebx],0Dh
+jne trouve_inconnue
+cmp byte[ebx+1],20h
+jne trouve_inconnue
+inc ebx
+mov [bdd_inconnue],ebx
+fin_inconnue:
+
+
+;et les actions communes a tout les fichier
+mov ebx,actions_bdd
+mov ecx,[taille_bdd]
+add ecx,ebx
+@@:
+cmp word[ebx],0D2Ah ; * et cr 
+je trouve_commun
+inc ebx
+cmp ebx,ecx
+jne @b
+jmp fin_commun
+
+trouve_commun:
+inc ebx
+cmp ebx,ecx
+je fin_commun
+cmp byte[ebx],0Dh
+jne trouve_commun
+cmp byte[ebx+1],20h
+jne trouve_commun
+inc ebx
+mov [bdd_commun],ebx
+fin_commun:
+
+
+
+
+
+
+
 
 ignore_bdd:
 
@@ -902,9 +952,329 @@ jmp fin_double_clique_dossier
 
 ;************************************
 clique_d:
-;?????????????????
+shr ebx,3
+mov [menuX],ebx
+shr ecx,4
+mov [menuY],ecx
+cmp ecx,4
+jb attent_clav
+sub ecx,4
+mov edx,[ad_onglet]
+cmp ecx,[ligne_aff]
+jae attent_clav
+cmp ecx,[edx+do_nb_nom]
+jae attent_clav
+
+
+;cherche les info du fichier sur leque on vient de cliquer
+add ecx,[ligne_zero]
+shl ecx,5
+mov ebx,[ad_onglet]
+add ecx,do_ad_zn
+add ecx,[ebx+do_to_zn]
+add ebx,ecx
+mov [menuF],ebx
+
+mov al,[ebx+if_att]
+and al,3
+cmp al,1
+je clique_d_fichier
+cmp al,3
+je attent_clav      ;????????????????????????????pas de clique droit sur un dossier pour l'instant
 jmp attent_clav
 
+
+;**************
+clique_d_fichier:
+mov edx,[ebx+if_ext]
+add edx,[ad_onglet]
+call recherche_ext
+cmp eax,0
+je @f
+mov edx,[bdd_inconnue]
+@@:
+
+
+;determine le contenu du menu et la taille de celui ci
+
+mov ebx,zt_menu
+xor ecx,ecx
+mov [menuH],ecx
+mov [menuL],ecx
+mov edi,zt_travail
+
+
+boucle_menuspec:
+cmp byte[edx]," "
+jne suite_menuspec
+inc dword[menuH]
+mov [edi],ebx
+mov [edi+4],edx
+add edi,8
+@@:
+inc edx
+mov al,[edx]
+cmp al,"|"
+je @f
+mov [ebx],al
+inc ebx
+and al,0C0h
+cmp al,80h
+je @b
+inc ecx
+jmp @b
+
+
+@@:
+cmp ecx,[menuL]
+jbe @f
+mov [menuL],ecx
+@@:
+
+mov byte[ebx],0
+inc ebx
+call ligne_suivante
+xor ecx,ecx
+jmp boucle_menuspec
+
+
+suite_menuspec:
+
+
+
+
+
+mov edx,[bdd_commun]
+xor ecx,ecx
+
+
+boucle_menucom:
+cmp byte[edx]," "
+jne suite_menucom
+inc dword[menuH]
+mov [edi],ebx
+mov [edi+4],edx
+add edi,8
+@@:
+inc edx
+mov al,[edx]
+cmp al,"|"
+je @f
+mov [ebx],al
+inc ebx
+and al,0C0h
+cmp al,80h
+je @b
+inc ecx
+jmp @b
+
+@@:
+cmp ecx,[menuL]
+jbe @f
+mov [menuL],ecx
+@@:
+mov byte[ebx],0
+inc ebx
+call ligne_suivante
+xor ecx,ecx
+jmp boucle_menucom
+
+suite_menucom:
+mov byte[ebx],0
+
+
+
+
+;ajuste la position du menu pour qu'on le voie bien a l'écran
+xor eax,eax
+fs
+mov ax,[resx_texte]
+sub eax,[menuL]
+cmp [menuX],eax
+jb @f
+mov [menuX],eax
+@@:
+fs
+mov ax,[resy_texte]
+sub eax,[menuH]
+cmp [menuY],eax
+jb @f
+mov [menuY],eax
+@@:
+
+
+
+;affiche le carré blanc
+xor ecx,ecx
+fs
+mov cx,[resx_texte]
+mov eax,[menuY]
+mul ecx
+add eax,[menuX]
+shl eax,2
+shl ecx,2
+
+fs
+mov ebx,[ad_texte]
+add ebx,eax
+mov eax,[menuH]
+
+bouclecarre:
+push eax
+push ebx
+mov eax,[menuL]
+@@:
+fs
+mov dword[ebx],70000000h
+add ebx,4
+dec eax
+jnz @b
+
+pop ebx
+pop eax
+add ebx,ecx
+dec eax
+jnz bouclecarre
+
+
+
+
+
+;ajoute le texte
+mov esi,zt_travail
+mov ebx,[menuX]
+mov ecx,[menuY]
+mov edi,[menuH]
+@@:
+mov al,10
+mov ah,70h
+mov edx,[esi]
+int 63h
+add esi,8
+inc ecx
+dec edi
+jne @b
+
+
+
+
+
+
+
+
+
+
+
+;affiche le carré et la ligne
+carreligne:
+xor ecx,ecx
+fs
+mov cx,[resx_texte]
+mov eax,[menuY]
+mul ecx
+add eax,[menuX]
+shl eax,2
+shl ecx,2
+
+fs
+mov ebx,[ad_texte]
+add ebx,eax
+add ebx,3
+mov eax,[menuH]
+
+bouclecarre2:
+push eax
+push ebx
+mov eax,[menuL]
+@@:
+fs
+mov byte[ebx],70h
+add ebx,4
+dec eax
+jnz @b
+
+pop ebx
+pop eax
+add ebx,ecx
+dec eax
+jnz bouclecarre2
+
+
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov bx,[posx_souris]
+fs
+mov cx,[posy_souris]
+shr ebx,3
+shr ecx,4
+mov eax,ecx
+sub ebx,[menuX]
+jb pasdelignemenu
+sub ecx,[menuY]
+jb pasdelignemenu
+cmp ebx,[menuL]
+jae pasdelignemenu
+cmp ecx,[menuH]
+jae pasdelignemenu
+
+xor ecx,ecx
+fs
+mov cx,[resx_texte]
+mul ecx
+add eax,[menuX]
+shl eax,2
+
+fs
+mov ebx,[ad_texte]
+add ebx,eax
+add ebx,3
+mov eax,[menuL]
+@@:
+fs
+mov byte[ebx],0A0h
+add ebx,4
+dec eax
+jnz @b
+
+pasdelignemenu:
+
+
+
+;attend le clique
+mov eax,7
+int 63h
+
+mov al,5
+int 63h
+cmp al,0
+je carreligne
+cmp al,0F3h ;declic bouton droit
+je carreligne
+
+
+cmp al,0F0h
+jne affichage_ecran ;si c'est pas un clique on quitte
+;si c'est pas dans les limites on quitte
+shr ebx,3
+shr ecx,4
+sub ebx,[menuX]
+jb affichage_ecran
+sub ecx,[menuY]
+jb affichage_ecran
+cmp ebx,[menuL]
+ja affichage_ecran
+cmp ecx,[menuH]
+ja affichage_ecran
+
+
+;execute l'action
+shl ecx,3
+add ecx,zt_travail+4
+mov edx,[ecx]
+mov ebx,[menuF]
+call action_fichier_ok
+jmp affichage_ecran
 
 
 
@@ -1677,8 +2047,16 @@ dd actions_bdd
 touche_importante:
 db 0
 
-
-
+menuX:
+dd 0
+menuY:
+dd 0
+menuL:
+dd 0
+menuH:
+dd 0
+menuF:
+dd 0
 
 nb_onglet:
 dd 0
@@ -1691,6 +2069,12 @@ nom_bdd:
 db "EXPL.CFG",0
 taille_bdd:
 dd 0,0
+bdd_inconnue:
+dd 0
+bdd_commun:
+dd 0
+
+
 
 descriptif:
 db "Explorateur dossier "
@@ -1705,7 +2089,8 @@ rb 256
 
 zt_travail:
 rb 1024
-
+zt_menu:
+rb 131072
 actions_bdd:
 
 
