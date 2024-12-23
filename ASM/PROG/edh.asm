@@ -6,13 +6,14 @@ scode:
 org 0
 
 
-;revoir l'affichage
-;saut automatique
-;sauvegarde
-
-;limite fin de fichier
+;revoir l'affichage????
+;saut automatique?????
 
 
+;limite fin de disque
+;effacement de la zt lorsqu'on charge une zone plus petite
+;gestion du dépassement de la limite dans un fichier
+;affichage de la limite d'un fichier
 
 
 
@@ -50,9 +51,9 @@ mov cl,0   ;256 octet du coup
 mov ax,4   ;0eme argument
 int 61h
 
-cmp byte[nom_fichier],0
+cmp byte[nom_fichier],0 ;s'il n'y as aucun argument on ouvre le menu
 je affichage_menu
-cmp byte[nom_fichier],"#"
+cmp word[nom_fichier],"#"  ;si c'est un simple dièse on ouvre la selection du disque
 jne ouvre_fichier
 
 
@@ -113,8 +114,15 @@ int 64h
 cmp eax,0
 jne ldp_erreur_taille
 
-mov ecx,ebx
+xchg ecx,ebx
+cmp ebx,512
+jne @f
 shr ecx,1
+@@:
+cmp ebx,2048
+jne @f
+shl ecx,1
+@@:
 mov edx,saisienum
 mov al,102
 int 61h
@@ -157,6 +165,8 @@ mov al,13
 mov bh,7 ;couleur
 mov cl,1
 int 63h
+cmp bh,1
+je affichage_menu
 
 and ebx,0FFh
 mov dl,[petite_zt+ebx]
@@ -277,9 +287,17 @@ jmp affichage
 
 
 chargement_partie_fichier:
+mov eax,[taille_fichier]
+sub eax,[adresse_base]
+cmp eax,20000h
+jb @f
+mov eax,20000h
+@@:
+mov [taille_bloc],eax
+
 mov eax,4
 mov ebx,[num_fichier]
-mov ecx,20000h
+mov ecx,[taille_bloc]
 mov edx,[adresse_base]
 mov edi,zone_tampon
 int 64h
@@ -1179,12 +1197,47 @@ jmp boucle_fin_modif
 
 
 ok_sauvegarde:
+cmp byte[num_disque],0
+je ok_sauvegarde_fichier
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+;sauvegarde un disque
+mov ebx,[num_secteur]
+mov eax,[taille_bloc]
+mov cl,[decalage]
+shr eax,cl
+mov cl,al
+mov eax,9
+mov ch,[num_disque]
+mov esi,zone_tampon
+int 64h
+call erreur_ecriture
+cmp eax,1
+je ok_sauvegarde
+cmp eax,2
+je fin_sauvegarde
+mov byte[secteur_modif],0
+jmp fin_sauvegarde
+
+
+;sauvegarde un fichier
+ok_sauvegarde_fichier:
+mov eax,5
+mov ebx,[num_fichier]
+mov ecx,[taille_bloc]
+mov edx,[adresse_base]
+mov esi,zone_tampon
+int 64h
+call erreur_ecriture
+cmp eax,1
+je ok_sauvegarde 
+cmp eax,2
+je fin_sauvegarde
+mov byte[secteur_modif],0
 
 
 fin_sauvegarde:
-mov byte[secteur_modif],0
 ret
 
 
@@ -1233,6 +1286,48 @@ ret
 
 fin_erreur_lecture:
 ret
+
+
+
+;***********************
+erreur_ecriture:
+cmp eax,0
+je fin_erreur_ecriture
+
+pushad
+call raz_ecr
+mov edx,msg_erreur_ecriture
+call ajuste_langue
+mov al,11
+mov ah,07h ;couleur
+int 63h              ;demande si il faut réessayer ou non
+
+mov bl,0
+boucle_erreur_ecriture:
+mov al,13
+mov bh,7 ;couleur
+mov cl,1
+mov ch,3
+int 63h
+
+cmp bl,0
+je erreur_ecriture_retry
+cmp bl,1
+je erreur_ecriture_fin
+jmp boucle_erreur_ecriture
+
+erreur_ecriture_retry:
+popad
+mov eax,1
+ret
+
+erreur_ecriture_fin:
+popad
+mov eax,2
+
+fin_erreur_ecriture:
+ret
+
 
 
 ;**********************
@@ -1491,6 +1586,8 @@ dd 0,0
 adresse_base:
 dd 0,0
 
+taille_bloc:
+dd 20000h
 
 valeur:
 dd 0
@@ -1606,20 +1703,22 @@ db "entrez l'adresse que vous souhaitez éditer:",0
 
 
 msg_aide:
+db "esc=exit the program",13
+db "F1=menu",13
+db "F2=save change",13
+db "F3=find value",13
+db "F4=select address/sector",13
+db "directional arrows=cursor movement",13
+db "enter=edit value",13,13
+db "press any key to clear this help",0
 db "echap=quitter le programme",13
 db "F1=menu",13
 db "F2=sauvegarder changement",13
 db "F3=rechercher valeur",13
 db "F4=selectionner adresse/secteur",13
 db "fleche directionnelles=mouvement du curseur",13
-db "appuyez sur une touche pour effacer cet aide",0
-db "echap=quitter le programme",13
-db "F1=menu",13
-db "F2=sauvegarder changement",13
-db "F3=rechercher valeur",13
-db "F4=selectionner adresse/secteur",13
-db "fleche directionnelles=mouvement du curseur",13
-db "appuyez sur une touche pour effacer cet aide",0
+db "entrée=editer valeur",13,13
+db "appuyez sur n'importe quelle touche pour effacer cet aide",0
 
 msg_modif:
 db "     decimal value  8bits:",13
@@ -1668,10 +1767,10 @@ db "annuler et revenir au menu",13,0
 msg_erreur_ecriture:
 db "write error, do you want:",13
 db "try again",13
-db "cancel and return to menu",13,0
+db "cancel and continue",13,0
 db "erreur d'écriture, voulez vous:",13
 db "réessayer",13
-db "annuler et revenir au menu",13,0
+db "annuler et continuer",13,0
 
 
 
