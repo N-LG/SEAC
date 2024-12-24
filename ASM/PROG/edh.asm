@@ -8,13 +8,11 @@ org 0
 
 ;revoir l'affichage????
 ;saut automatique?????
-
+;recherche
 
 ;limite fin de disque
-;effacement de la zt lorsqu'on charge une zone plus petite
-;gestion du dépassement de la limite dans un fichier
-;affichage de la limite d'un fichier
-
+;modification de la taille d'un fichier
+;limite dans le saut (F4)
 
 
 mov dx,sel_dat2
@@ -374,10 +372,20 @@ int 61h
 mov byte[edi+2],20h
 add edi,3
 inc esi
+cmp esi,[taille_bloc]
+jae @f
 dec ch
 jnz boucle_affichage_hexa
+@@:
 pop esi
-mov word[edi],020h
+
+
+@@:
+mov byte[edi],20h
+inc edi
+cmp edi,ligne+64
+jne @b
+mov byte[edi],00h
 
 
 ;affiche l'adresse et les données
@@ -397,17 +405,27 @@ mov al,[esi+zone_tampon]
 fs
 mov [edi],eax
 inc esi
+cmp esi,[taille_bloc]
+jae @f
 add edi,4
 dec ch
 jnz boucle_affichage_carac
+@@:
 pop esi
 
 add esi,10h
+cmp esi,[taille_bloc]
+jae @f
+
 dec ebp
 jnz boucle_affichage
 
+@@:
 
-mov eax,[offset_curseur]     ;affichage des couleurs en vue de visualiser la position
+;********************************
+;affichage des couleurs en vue de visualiser la position
+
+mov eax,[offset_curseur]
 mov ecx,eax
 and ecx,0Fh    ;cl=numéros de colonne
 shr eax,4
@@ -437,7 +455,6 @@ add ebx,[ad_texte]
 mov eax,12    ;3 caractère occupe 12 octet
 mul ecx
 add eax,59   ;14 caractère +3      
-
 shl ecx,2
 add ecx,255  ;63 caractère +3
 
@@ -463,8 +480,17 @@ add ebx,ebp
 dec edx
 jnz boucle_affichage_colonne
 
-
+;*************************************************
 ;affiche ligne bas
+mov al,12
+xor ecx,ecx
+xor ebx,ebx
+mov ecx,[max_affichable]
+shr ecx,4
+inc ecx
+int 63h
+
+
 mov esi,zone_tampon
 add esi,[offset_affichage]
 add esi,[offset_curseur]
@@ -687,14 +713,23 @@ jmp affichage
 
 ;***********************************************
 plus1:
+mov eax,[taille_bloc]
+sub eax,[offset_affichage]
+sub eax,2
+cmp [offset_curseur],eax
+ja touche_boucle
+
+
 mov eax,[max_affichable]
-dec eax
+sub eax,2
 cmp dword[offset_curseur],eax
 je plus1_decal
 inc dword[offset_curseur]
 jmp affichage
+
+
 plus1_decal:
-mov eax,20000h
+mov eax,[taille_bloc]
 sub eax,[max_affichable]
 cmp [offset_affichage],eax
 je touche_boucle  
@@ -704,14 +739,23 @@ jmp affichage
 
 ;*************************************************
 plus16:
+mov eax,[taille_bloc]
+sub eax,[offset_affichage]
+sub eax,11h
+cmp [offset_curseur],eax
+ja touche_boucle
+
+
 mov eax,[max_affichable]
 sub eax,11h
 cmp dword[offset_curseur],eax
 ja plus16_decal
 add dword[offset_curseur],10h
 jmp affichage
+
+
 plus16_decal:
-mov eax,20000h
+mov eax,[taille_bloc]
 sub eax,[max_affichable]
 cmp [offset_affichage],eax
 je touche_boucle  
@@ -725,7 +769,7 @@ mov eax,[max_affichable]
 add eax,[offset_affichage]
 mov edx,eax
 add edx,[max_affichable]
-cmp edx,20000h
+cmp edx,[taille_bloc]
 ja touche_boucle
 mov [offset_affichage],eax
 jmp affichage
