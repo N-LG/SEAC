@@ -10,7 +10,6 @@ org 0
 ;saut automatique?????
 ;recherche
 
-;limite fin de disque
 ;modification de la taille d'un fichier
 ;limite dans le saut (F4)
 
@@ -170,6 +169,46 @@ and ebx,0FFh
 mov dl,[petite_zt+ebx]
 mov [num_disque],dl
 
+
+
+
+;récupère les info disques
+mov eax,18
+mov ch,[num_disque]
+int 64h
+call erreur_lecture
+cmp eax,1
+je chargement_partie 
+cmp eax,2
+je affichage_menu
+
+xor al,al
+mov ebx,ecx
+
+@@:
+cmp ebx,0
+je affichage_menu
+cmp ebx,1
+je @f
+shr ebx,1
+inc al
+jmp @b
+@@:
+
+mov byte[decalage],al
+dec ecx
+mov [masque_affichage],ecx
+mov dword[masque_affichage+4],0
+mov byte[secteur_modif],0
+mov dword[taille_bloc],20000h
+
+
+
+
+
+
+
+
 mov dword[adresse_base],0
 mov dword[adresse_base+4],0
 mov dword[num_secteur],0
@@ -235,37 +274,6 @@ mov dword[offset_curseur],0
 chargement_partie:     ;charge la zt par 128ko de données
 cmp byte[num_disque],0
 je chargement_partie_fichier
-
-mov eax,18
-mov ch,[num_disque]
-int 64h
-call erreur_lecture
-cmp eax,1
-je chargement_partie 
-cmp eax,2
-je affichage_menu
-
-xor al,al
-mov ebx,ecx
-
-@@:
-cmp ebx,0
-je affichage_menu
-cmp ebx,1
-je @f
-shr ebx,1
-inc al
-jmp @b
-@@:
-
-mov byte[decalage],al
-dec ecx
-mov [masque_affichage],ecx
-mov dword[masque_affichage+4],0
-mov byte[secteur_modif],0
-
-
-
 
 mov ebx,[num_secteur]
 mov eax,20000h
