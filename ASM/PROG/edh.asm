@@ -871,6 +871,8 @@ mov edx,saisienum
 mov ecx,16
 mov al,6
 int 63h
+cmp al,1
+je affichage
 cmp al,82
 je saisie1
 cmp al,84
@@ -915,6 +917,8 @@ mov edx,saisienum
 mov ecx,16
 mov al,6
 int 63h
+cmp al,1
+je affichage
 cmp al,82
 je saisie2
 cmp al,84
@@ -1689,9 +1693,9 @@ msg_cr:
 db 13,0
 
 msg_choix_disque1:
-db "choose the disk you want to access:",13
+db "choose the disk you want to access (esc to cancel)",13
 db "floppy disk",13,0
-db "choisissez le disque auquel vous souhaitez accèder:",13
+db "choisissez le disque auquel vous souhaitez accèder (echap pour annuler)",13
 db "disquette",13,0
 
 msg_choix_disque3:
@@ -1701,8 +1705,8 @@ db " kilo-octets",13,0
 
 
 msg_choix_fichier:
-db "enter the name of the file you want to open:",0
-db "entrez le nom du fichier que vous voulez ouvrir:",0
+db "enter the name of the file you want to open (esc to cancel):",0
+db "entrez le nom du fichier que vous voulez ouvrir (echap pour annuler):",0
 
 msg_ligne_haut1:
 db "EDH Hexadecimal editor                                                         ",13
@@ -1745,13 +1749,13 @@ db "ouvrir un fichier",13
 db "quitter",13,0
 
 msg_choix_secteur:
-db "enter the number of the sector you want to edit:",0
-db "entrez le numéros du secteur que vous souhaitez éditer:",0
+db "enter the number of the sector you want to edit (esc to cancel):",0
+db "entrez le numéros du secteur que vous souhaitez éditer (echap pour annuler):",0
 
 
 msg_choix_adresse:
-db "enter the address you want to edit:",0
-db "entrez l'adresse que vous souhaitez éditer:",0
+db "enter the address you want to edit (esc to cancel):",0
+db "entrez l'adresse que vous souhaitez éditer (echap pour annuler):",0
 
 
 msg_aide:
