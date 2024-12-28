@@ -6,8 +6,8 @@ scode:
 org 0
 
 
-;revoir l'affichage????
-;saut automatique?????
+
+;saut automatique lorsque l'on dépasse les limite de la zone en mémoire lors de l'appuis des touches de mouvement
 ;recherche
 
 ;modification de la taille d'un fichier
@@ -649,10 +649,14 @@ jmp affichage
 
 
 
-
-
 ;***************************************************
 moin1:
+mov eax,-1
+mov ebx,-1
+jmp mvmt_curseur
+
+
+
 cmp dword[offset_curseur],0
 je moin1_decal
 dec dword[offset_curseur]
@@ -670,6 +674,11 @@ jmp affichage
 
 ;****************************************************
 moin16:
+mov eax,-16
+mov ebx,-1
+jmp mvmt_curseur
+
+
 cmp dword[offset_curseur],10h
 jb moin16_decal
 sub dword[offset_curseur],10h
@@ -685,6 +694,11 @@ jmp affichage
 
 ;*************************************************
 moinmoin:
+mov eax,[max_affichable]
+neg eax
+mov ebx,-1
+jmp mvmt_curseur
+
 mov eax,[max_affichable]
 cmp dword[offset_affichage],eax
 jb moinmoin_decal
@@ -721,6 +735,11 @@ jmp affichage
 
 ;***********************************************
 plus1:
+mov eax,1
+xor ebx,ebx
+jmp mvmt_curseur
+
+
 mov eax,[taille_bloc]
 sub eax,[offset_affichage]
 sub eax,2
@@ -747,6 +766,12 @@ jmp affichage
 
 ;*************************************************
 plus16:
+mov eax,16
+xor ebx,ebx
+jmp mvmt_curseur
+
+
+
 mov eax,[taille_bloc]
 sub eax,[offset_affichage]
 sub eax,11h
@@ -773,6 +798,139 @@ jmp affichage
 
 ;*************************************************
 plusplus:
+mov eax,[max_affichable]
+xor ebx,ebx
+;jmp mvmt_curseur
+
+
+
+
+
+;******************************************
+mvmt_curseur:
+add eax,[adresse_base]
+adc ebx,[adresse_base+4]
+add eax,[offset_affichage]
+adc ebx,0
+add eax,[offset_curseur]
+adc ebx,0
+
+
+
+
+
+
+test ebx,80000000h
+jz @f
+xor eax,eax
+xor ebx,ebx
+@@: 
+
+
+;eax=lsb ;ebx=msb
+
+;jmp test1
+
+;test si ça dépasse les limites du fichier
+mov ecx,[taille_fichier]
+mov edx,[taille_fichier+4]
+
+
+
+cmp ebx,[taille_fichier+4]
+ja max
+jne @f
+cmp eax,[taille_fichier]
+jae max
+@@:
+
+
+jmp test1
+
+
+
+max:
+mov eax,[taille_fichier]
+mov ebx,[taille_fichier+4]
+dec eax
+sbb ebx,0
+jmp test1
+
+
+
+
+
+;test si ça dépasse les limites du bloc en mémoire
+mov ecx,[adresse_base]
+mov edx,[adresse_base+4]
+dec ecx
+sbb edx,0
+
+
+cmp ebx,edx
+jb nvbloc_mvmt_curseur
+cmp eax,ecx
+jb nvbloc_mvmt_curseur
+add ecx,20000h
+adc edx,0
+cmp ebx,edx
+ja nvbloc_mvmt_curseur
+cmp eax,ecx
+jae nvbloc_mvmt_curseur
+jmp pasnvbloc_mvmt_curseur
+
+nvbloc_mvmt_curseur:
+
+
+
+jmp affichage
+
+pasnvbloc_mvmt_curseur:
+
+test1:
+
+;test si ça dépasse les limites de l'affichage
+mov ecx,[adresse_base]
+mov edx,[adresse_base+4]
+add ecx,[offset_affichage]
+adc edx,0
+
+
+cmp ebx,edx
+jb hl
+jne @f
+cmp eax,ecx
+jb hl
+@@:
+add ecx,[max_affichable]
+adc edx,0
+
+
+cmp ebx,edx
+ja hl
+jne @f
+cmp eax,ecx
+jae hl
+
+
+@@:
+sub eax,[adresse_base]
+sub eax,[offset_affichage]
+mov [offset_curseur],eax
+jmp affichage
+
+
+hl:
+sub eax,[adresse_base]
+sub eax,[offset_curseur]
+mov [offset_affichage],eax
+jmp affichage
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
 mov eax,[max_affichable]
 add eax,[offset_affichage]
 mov edx,eax
