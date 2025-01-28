@@ -89,12 +89,16 @@ mov word[esi+dd_atribut+32],10h
 mov word[esi+dd_atribut+64],00h
 mov word[esi+dd_atribut+96],10h
 
+test ch,80h
+jz crtl_dma_abs
 mov dx,0CF8h
 mov eax,ebx
 add eax,24     ;BAR4
 out dx,eax
 mov dx,0CFCh
 in eax,dx
+test al,0FFFF0000h
+jnz crtl_dma_abs
 test al,1
 jz crtl_dma_abs
 and eax,0FFFCh
@@ -104,7 +108,10 @@ or word[esi+dd_atribut],08h
 or word[esi+dd_atribut+32],08h
 or word[esi+dd_atribut+64],08h
 or word[esi+dd_atribut+96],08h
+jmp @f
 crtl_dma_abs:
+xor eax,eax
+@@:
 mov [esi+dd_adress_dma],ax
 mov [esi+dd_adress_dma+32],ax
 add eax,8
@@ -119,8 +126,8 @@ add eax,8     ;BAR0
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,0FFFF0000h
-jz ctrlata0_nok
+test al,0FFFF0000h
+jnz ctrlata0_nok
 test al,1
 jz ctrlata0_nok
 and eax,0FFFCh
@@ -140,8 +147,8 @@ add eax,12     ;BAR1
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,0FFFF0000h
-jz ctrlata0_nok
+test al,0FFFF0000h
+jnz ctrlata0_nok
 test al,1
 jz ctrlata0_nok
 and eax,0FFFCh
@@ -185,8 +192,8 @@ add eax,16     ;BAR2
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,0FFFF0000h
-jz ctrlata1_nok
+test al,0FFFF0000h
+jnz ctrlata1_nok
 test al,1
 jz ctrlata1_nok
 and eax,0FFFCh
@@ -206,8 +213,8 @@ add eax,20     ;BAR3
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,0FFFF0000h
-jz ctrlata1_nok
+test al,0FFFF0000h
+jnz ctrlata1_nok
 test al,1
 jz ctrlata1_nok
 and eax,0FFFCh
@@ -336,6 +343,11 @@ jmp @b
 handoffbiosok:
 
 
+pushad
+mov al,"X"
+call affcj
+popad
+
 ;effectue reset controleur
 es
 mov dword[esi+4],1
@@ -350,6 +362,12 @@ jb erreur_ctrl_ahci
 jmp @b
 
 @@:
+
+pushad
+mov al,"Y"
+call affcj
+popad
+
 
 ;active ahci enable
 es
@@ -378,6 +396,7 @@ jc erreur_port_ahci
 es
 mov dword[edi+8],czm_sata
 
+call reset_port_ahci  ;reset et desactive le port (voir SF_DISK.ASM)
 
 ;config port
 es
@@ -411,6 +430,11 @@ shr edx,1
 add ebx,80h
 cmp edx,0
 jnz boucle_test_port_ahci
+
+pushad
+mov al,"Z"
+call affcj
+popad
 
 
 erreur_ctrl_ahci:
@@ -731,8 +755,8 @@ cmp dh,00h          ;UHCI
 je ctrl_uhci
 ;cmp dh,10h          ;OHCI
 ;je ctrl_ohci
-;cmp dh,20h          ;EHCI
-;je ctrl_ehci
+cmp dh,20h          ;EHCI
+je ctrl_ehci
 ;cmp dh,30h          ;XHCI
 ;je ctrl_xhci
 jmp pasctrl
@@ -741,7 +765,7 @@ jmp pasctrl
 ctrl_uhci:
 mov byte[esi+dcu_type],1 ;controleur de type uhci
 mov eax,ebx
-and eax,0FFFF00h
+and eax,0FFFFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 
 ;active controle par e/s
@@ -798,47 +822,45 @@ jmp fin_init_ctrl
 ctrl_ehci:
 mov byte[esi+dcu_type],3 ;controleur de type ehci
 mov eax,ebx
-and eax,0FFFF00h
+and eax,0FFFFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 
-;active controle par e/s
+
+;active controle par mémoire
 mov dx,0CF8h
 mov eax,[esi+dcu_pci]
 add eax,4
 out dx,eax
 mov dx,0CFCh
-mov eax,5   ;command + status register
+mov eax,6   ;command + status register (6=bus master+memory space)
 out dx,eax
 
+
+;récupère adresse de base
 mov dx,0CF8h
-mov eax,ebx
-add eax,8 ;pour avoir l'adresse de base des ports (Bar0)
+mov eax,[esi+dcu_pci]
+add eax,10h 
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test eax,1  ;on vérifie que c'est bien un descripteur de port d'e/s
-jnz pasctrl
-and eax,0FF00h
-mov edx,eax
-xor eax,eax
-in al,dx
-add eax,edx
-mov [esi+dcu_es],ax  ;adresse de base du controleur
+and eax,0FFFFFF00h
+sub eax,100000h
+mov [esi+dcu_es],eax
 
-add dx,4
-in eax,dx
-and al,0Fh
-mov byte[esi+dcu_nb_port],al ;nobre de port (variable)
-
-push ebx
-mov eax,0FFFh
-mov ecx,1000h   ;4096 octets ;???????????????
-call resmemg    
+;récupère le nombre de port
+mov edi,[esi+dcu_es]
 es
-mov word[ebx+8],czm_ehci  
-add ebx,100010h   ;adresse physique
-mov [esi+dcu_mem],ebx
-pop ebx 
+mov eax,[edi+4]
+and al,0Fh
+mov [esi+dcu_nb_port],al 
+
+
+;trouve les operationals registers
+xor eax,eax
+es
+mov al,[edi]
+add [esi+dcu_es],eax
+
 
 call init_ehci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
@@ -858,10 +880,10 @@ call init_xhci    ;voir SF_USM.ASM
 ;*****************************
 fin_init_ctrl:
 add esi,32
-pasctrl:
 cmp esi,ad_desc_ctrl_usb+800h
 je fin_detection_ctrl_usb
 
+pasctrl:
 add ebx,100h
 test ebx,7F000000h
 jz boucletcusb
