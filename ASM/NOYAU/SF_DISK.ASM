@@ -3088,7 +3088,7 @@ mov dword[esi+zsata_cfis+16],0   ;auxilliaire
 gs
 mov byte[esi+zsata_liste],05h ;5dword de commande
 gs
-mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],0    ;aucune option!
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -3195,7 +3195,7 @@ mov dword[esi+zsata_cfis+16],0   ;auxilliaire
 gs
 mov byte[esi+zsata_liste],05h ;5dword de commande
 gs
-mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],0    ;aucune option!
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -3305,7 +3305,7 @@ mov word[esi+zsata_acmd+14],0     ;vide
 gs
 mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
 gs
-mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],0     ;aucune option!
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -3417,7 +3417,7 @@ mov dword[esi+zsata_cfis+16],0   ;auxilliaire
 gs
 mov byte[esi+zsata_liste],0C5h ;prefetchable écriture et 5dword de commande
 gs
-mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],0      ;aucune option!
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
@@ -3657,7 +3657,7 @@ mov word[esi+zsata_acmd+14],0     ;vide
 gs
 mov byte[esi+zsata_liste],025h ;5dword de commande+ATAPI
 gs
-mov byte[esi+zsata_liste+1],04h ;Clear Busy upon R_OK
+mov byte[esi+zsata_liste+1],0  ;aucune options!
 gs
 mov word[esi+zsata_liste+2],1 ;nombre d'entrée dans la PRDT
 gs
