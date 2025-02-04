@@ -97,7 +97,7 @@ add eax,24     ;BAR4
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test al,0FFFF0000h
+test eax,0FFFF0000h
 jnz crtl_dma_abs
 test al,1
 jz crtl_dma_abs
@@ -126,7 +126,7 @@ add eax,8     ;BAR0
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test al,0FFFF0000h
+test eax,0FFFF0000h
 jnz ctrlata0_nok
 test al,1
 jz ctrlata0_nok
@@ -147,7 +147,7 @@ add eax,12     ;BAR1
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test al,0FFFF0000h
+test eax,0FFFF0000h
 jnz ctrlata0_nok
 test al,1
 jz ctrlata0_nok
@@ -192,7 +192,7 @@ add eax,16     ;BAR2
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test al,0FFFF0000h
+test eax,0FFFF0000h
 jnz ctrlata1_nok
 test al,1
 jz ctrlata1_nok
@@ -213,7 +213,7 @@ add eax,20     ;BAR3
 out dx,eax
 mov dx,0CFCh
 in eax,dx
-test al,0FFFF0000h
+test eax,0FFFF0000h
 jnz ctrlata1_nok
 test al,1
 jz ctrlata1_nok
@@ -303,18 +303,18 @@ out dx,eax
 mov dx,0CFCh
 in eax,dx
 and eax,0FFFF0000h
-or  eax,000008016h
+or  eax,000000416h
 out dx,eax
 
 ;configure le cache line size et le master latency timer
-mov dx,0CF8h
-mov eax,ebx
-add eax,4
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-mov ax,8040h     ; master latency timer=128  cache line size=64 
-out dx,eax
+;mov dx,0CF8h
+;mov eax,ebx
+;add eax,4
+;out dx,eax
+;mov dx,0CFCh
+;in eax,dx
+;mov ax,8040h     ; master latency timer=128  cache line size=64 
+;out dx,eax
 
 es
 test dword[esi+24h],1
@@ -343,14 +343,15 @@ jmp @b
 handoffbiosok:
 
 
-pushad
-mov al,"X"
-call affcj
-popad
+;active le mode ahci
+es
+or dword[esi+4],80000000h
+
+
 
 ;effectue reset controleur
 es
-mov dword[esi+4],1
+or dword[esi+4],1
 mov ecx,[cptsf]
 add ecx,1200
 @@:
@@ -362,11 +363,6 @@ jb erreur_ctrl_ahci
 jmp @b
 
 @@:
-
-pushad
-mov al,"Y"
-call affcj
-popad
 
 
 ;active ahci enable
@@ -430,11 +426,6 @@ shr edx,1
 add ebx,80h
 cmp edx,0
 jnz boucle_test_port_ahci
-
-pushad
-mov al,"Z"
-call affcj
-popad
 
 
 erreur_ctrl_ahci:
