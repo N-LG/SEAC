@@ -40,6 +40,7 @@ fasm ASM/PROG/spxe.asm BIN/SPXE.FE
 fasm ASM/PROG/cdg.asm BIN/CDG.FE
 fasm ASM/PROG/snif.asm BIN/SNIF.FE
 fasm ASM/PROG/man.asm BIN/MAN.FE
+fasm ASM/PROG/help.asm BIN/HELP.FE
 fasm ASM/PROG/ajarch.asm BIN/AJARCH.FE
 fasm ASM/PROG/dcp.asm BIN/DCP.FE
 fasm ASM/PROG/pilote.asm BIN/PILOTE.FE
@@ -130,6 +131,7 @@ cd ..
 ./ajarch BIN/SPXE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CDG.FE BIN/ETAGE4.BIN
 ./ajarch BIN/MAN.FE BIN/ETAGE4.BIN
+./ajarch BIN/HELP.FE BIN/ETAGE4.BIN
 ./ajarch BIN/SNIF.FE BIN/ETAGE4.BIN
 ./ajarch BIN/AJARCH.FE BIN/ETAGE4.BIN
 ./ajarch BIN/DCP.FE BIN/ETAGE4.BIN
