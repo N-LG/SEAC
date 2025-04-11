@@ -33,9 +33,6 @@ jne erreur_mem
 
 
 
-
-
-
 ;initialise les objets
 
 ;ouvre le fichier
@@ -163,15 +160,8 @@ int 61h
 
 
 
-
-
-
-
-
-
-
-
 call charge_icones
+
 
 redim_ecran:
 call charge_ecran
@@ -184,7 +174,7 @@ affichage:
 call affiche_ecran
 
 
-;****************************************************************************************
+;************************************************************
 attend_touche:
 fs
 test byte[at_console],20h
@@ -335,23 +325,226 @@ push esi
 call menu
 pop esi
 cmp eax,0
-je menu_fichier0
+je menu_fichier_nom
 cmp eax,1
-je menu_fichier1
+je menu_fichier_icone
+cmp eax,2
+je menu_fichier_commande
 cmp eax,3
-je menu_fichier3
+je menu_fichier_suppr
 jmp affichage
 
-menu_fichier0:
-inc byte[esi+5]
-jmp affichage
 
-menu_fichier1:
-dec byte[esi+5]
-jmp affichage
+;**********
+menu_fichier_nom:
+push esi
+push esi
+push esi
+add esi,16
+mov edi,zt_saisie_texte
+@@:
+mov al,[esi]
+mov [edi],al
+cmp al,0
+je @f
+inc esi
+inc edi
+cmp edi,zt_saisie_texte+256
+jne @b
+@@:
+pop esi
+call affiche_ecran
+pop esi
+mov edx, texte_nom
+mov ebx,[esi+8]
+mov ecx,[esi+12]
 
-menu_fichier3:
+call saisie_texte
+pop ebx
+cmp  al,44
+jne menu_fichier_fin
+
+;calcul la position chaine et la taille actuelle
+mov edi,ebx
+add edi,16
+push edi
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+mov eax,edi
+pop edi
+sub eax,edi
+jmp modification_nom_cmd
+
+
+
+
+;**********
+menu_fichier_icone:
+mov edx, texte_icone
+mov ebx,[esi+8]
+mov ecx,[esi+12]
+
+call saisie_icone
+cmp  al,44
+jne menu_fichier_fin
+mov [esi+5],ah
+jmp menu_fichier_fin
+
+
+
+
+;**********
+menu_fichier_commande:
+push esi
+push esi
+push esi
+add esi,16
+@@:
+cmp byte[esi],0
+je @f
+inc esi
+jmp @b
+@@:
+inc esi
+mov edi,zt_saisie_texte
+@@:
+mov al,[esi]
+mov [edi],al
+cmp al,0
+je @f
+inc esi
+inc edi
+cmp edi,zt_saisie_texte+256
+jne @b
+@@:
+pop esi
+call affiche_ecran
+pop esi
+mov edx, texte_nom
+mov ebx,[esi+8]
+mov ecx,[esi+12]
+
+call saisie_texte
+pop ebx
+cmp  al,44
+jne menu_fichier_fin
+
+
+;calcul la position chaine et la taille actuelle
+mov edi,ebx
+add edi,16
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+inc edi
+push edi
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+mov eax,edi
+pop edi
+sub eax,edi
+
+
+
+modification_nom_cmd:
+;décale les données au besoin
+cmp eax,[max_chaine_saisie]
+jb t_plusgrand
+je t_identique
+
+;plus petit
+push edi
+mov esi,edi
+add esi,eax
+sub esi,[max_chaine_saisie]
+
+mov ecx,[ad_objet]
+add ecx,[to_objet]
+sub ecx,esi
+
+cld
+rep movsb
+pop edi
+
+mov ecx,[to_objet]
+add ecx,[max_chaine_saisie]
+sub ecx,eax
+mov edx,ad_objet
+call redim_mem
+
+mov ecx,[max_chaine_saisie]
+sub ecx,eax
+add [ebx],ecx
+
+jmp t_identique
+
+
+
+
+t_plusgrand:
+mov ecx,[to_objet]
+add ecx,[max_chaine_saisie]
+sub ecx,eax
+mov edx,ad_objet
+call redim_mem
+
+push edi
+mov edx,edi
+
+mov edi,[ad_objet]
+add edi,[to_objet]
+dec edi
+
+mov esi,edi
+sub esi,[max_chaine_saisie]
+add esi,eax
+
+mov ecx,esi
+sub ecx,edx
+inc ecx
+
+std
+rep movsb
+pop edi
+
+
+mov ecx,[max_chaine_saisie]
+sub ecx,eax
+add [ebx],ecx
+
+
+
+
+
+t_identique:
+;et recopie la nouvelle chaine
+mov esi,zt_saisie_texte
+mov ecx,[max_chaine_saisie]
+cld
+rep movsb
+jmp menu_fichier_fin
+
+
+
+;**********
+menu_fichier_suppr:
 call supprime_icone
+
+
+
+menu_fichier_fin:
+call sauvegarde_objets
 jmp affichage
 
 
@@ -392,6 +585,7 @@ mov dword[esi+16],"Nouv"
 mov dword[esi+20],"eau"
 mov byte[esi+24],0
 mov dword[esi+25],0
+
 
 call sauvegarde_objets
 jmp affichage
@@ -448,10 +642,10 @@ int 60h
 
 
 ;***************************************************************************************************
-;**********************************************
+;*********************************************************************
 affiche_ecran:
 
-;attend que les précédentes modif d'ecrant ait été effectué
+;attend que les précédentes modif d'ecran ait été effectué
 @@:
 fs
 test byte[at_console],90h
@@ -489,7 +683,7 @@ ret
 
 
 
-;*************************************************************************************************************************************
+;***********************************************************
 charge_ecran:     ;configure l'ecran et charge l'image de fond
 mov dx,sel_dat2
 mov ah,6   ;option=mode video + souris
@@ -722,14 +916,6 @@ ret
 
 
 
-
-
-
-
-
-
-
-
 ;***************************************************
 charge_icones:
 
@@ -759,7 +945,14 @@ jne erreur_icone
 
 
 ;aggrandit la zone pour pouvoir y charger l'image et la zone de traitement icone
+push edx
 mov [taille_icone],ebx
+xor edx,edx
+mov eax,ecx
+div ebx
+dec eax
+mov [nb_icones],eax
+pop edx
 push edx
 push ecx
 shr edx,8 
@@ -993,6 +1186,16 @@ mov [Ymenu],eax
 
 
 menu_affichage:
+;attend que les précédentes modif d'ecran ait été effectué
+@@:
+fs
+test byte[at_console],90h
+jz @f
+int 62h
+jmp @b 
+@@:
+
+
 mov ebx,[Xmenu]
 mov ecx,[Ymenu]
 mov esi,[Cmenu]
@@ -1107,25 +1310,17 @@ ret
 
 
 ;********************************
-texte:
+saisie_texte:
 mov [Xmenu],ebx
 mov [Ymenu],ecx
-;call ajuste_langue
+call ajuste_langue
 mov [Tmenu],edx
 
-xor ebx,ebx
-xor ecx,ecx
-mov bl,al
-mov cl,ah
-shl ebx,3
-shl ecx,4
-add ebx,20
-add ecx,20
-mov [Cmenu],ebx
-mov [Lmenu],ecx
+mov dword[Cmenu],256+10
+mov dword[Lmenu],128+10+32+7
 
 
-;verifie que le menu ne déborde pas de l'ecran et corrige si besoin
+;verifie que la fenetre ne déborde pas de l'ecran et corrige si besoin
 xor eax,eax
 mov edx,[Xmenu]
 fs
@@ -1148,6 +1343,615 @@ mov [Ymenu],eax
 @@:
 
 
+;affiche le fond
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+mov esi,[Cmenu]
+mov edi,[Lmenu]
+add esi,[Xmenu]
+add edi,[Ymenu]
+call bouton
+
+
+;affiche le texte
+mov al,26
+mov ah,0
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,5
+add ecx,5
+mov edx,[Tmenu]
+mov esi,32
+int 63h
+
+
+;affiche le bouton ok
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,5
+add ecx,128+16+10
+mov esi,ebx
+mov edi,ecx
+add esi,100
+add edi,18
+call bouton
+
+mov edx,texte_ok
+call ajuste_langue
+inc ebx
+inc ecx
+mov al,25
+mov ah,0
+int 63h
+
+
+
+
+
+;affiche le bouton annuler
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,256+5-100  
+add ecx,128+16+10
+mov esi,ebx
+mov edi,ecx
+add esi,100
+add edi,18
+call bouton
+
+
+mov edx,texte_annuler
+call ajuste_langue
+inc ebx
+inc ecx
+mov al,25
+mov ah,0
+int 63h
+
+
+
+
+
+;calcule les position max et le curseur 
+mov esi,zt_saisie_texte
+saisie_texte_mesure:
+cmp byte[esi],13
+jne  @f
+mov byte[esi]," "
+@@:
+
+cmp byte[esi],0
+je  @f
+inc esi
+jmp saisie_texte_mesure
+@@:
+sub esi,zt_saisie_texte
+mov [adr_chaine_saisie],esi
+mov [max_chaine_saisie],esi
+
+
+
+
+
+
+saisie_texte_affichage: ;la partie a mettre a jour lors de la modif texte
+
+mov al,22   
+mov ah,24
+mov edx,0FFFFFFh ;afficher un carré blanc
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,5
+add ecx,21
+mov esi,ebx
+mov edi,ecx
+add esi,256
+add edi,128
+int 63h
+
+
+;affiche le texte saisie
+mov al,26
+mov ah,0
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,5
+add ecx,21
+mov edx,zt_saisie_texte
+mov esi,32
+int 63h
+
+
+;affiche le curseur
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+xor ecx,ecx
+@@:
+cmp edi,zt_saisie_texte
+je @f
+mov dh,[edi]
+dec edi
+and dh,11000000b
+cmp dh,80h
+je @b
+inc eax
+jmp @b
+@@:
+
+xor edx,edx
+mov ecx,32
+div ecx
+
+mov ebx,edx
+mov ecx,eax
+shl ebx,3
+shl ecx,4
+
+mov al,22   
+mov ah,24
+mov edx,0808080h
+add ebx,[Xmenu]
+add ecx,[Ymenu]
+add ebx,5
+add ecx,21+12
+mov esi,ebx
+mov edi,ecx
+add esi,8
+int 63h
+
+
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+
+
+
+
+
+
+saisie_texte_touche:
+mov al,5
+int 63h
+cmp al,0  
+je saisie_texte_touche
+cmp al,1  
+je saisie_texte_sortie
+cmp al,44  
+je saisie_texte_sortie
+cmp al,100 
+je saisie_texte_sortie
+cmp al,30 
+je saisie_texte_back
+cmp al,79 
+je saisie_texte_suppr
+cmp al,85
+je saisie_texte_av
+cmp al,83
+je saisie_texte_rc
+cmp al,77
+je saisie_texte_retdebut
+cmp al,80
+je saisie_texte_retfin
+
+
+cmp al,0F0h
+je texte_clique
+ja saisie_texte_touche
+test ecx,0FFFFFFE0h
+jz saisie_texte_touche
+
+cmp ecx,80h   ;-de 7 bit
+jb insert1_saisie_texte
+cmp ecx,800h  ;-de 11 bits
+jb insert2_saisie_texte
+cmp ecx,10000h  ;-de 16 bits
+jb insert3_saisie_texte
+cmp ecx,200000h   ;-de 21 bits
+jb insert4_saisie_texte
+jmp saisie_texte_touche
+
+
+insert1_saisie_texte:
+mov eax,[max_chaine_saisie]
+inc eax
+cmp eax,256
+jae saisie_texte_touche     ;verifie que la chaine n'est pas pleine
+
+push ecx
+mov ecx,[max_chaine_saisie] 
+sub ecx,[adr_chaine_saisie]
+inc ecx
+mov edi,[max_chaine_saisie]
+add edi,zt_saisie_texte
+mov esi,edi
+inc edi
+std
+rep movsb          ;décale les données
+pop ecx
+
+
+mov esi,[adr_chaine_saisie]
+and ecx,7Fh      ;transformation du caractre
+mov [esi+zt_saisie_texte],cl     ;écrit le caractre
+
+inc dword[max_chaine_saisie]  ;maj du dernier octet utilisé
+inc dword[adr_chaine_saisie]  ;maj de la position curseur
+jmp saisie_texte_affichage
+
+
+insert2_saisie_texte:
+mov eax,[max_chaine_saisie]
+add eax,2
+cmp eax,256
+jae saisie_texte_touche     ;verifie que la chaine n'est pas pleine
+
+push ecx
+mov ecx,[max_chaine_saisie] 
+sub ecx,[adr_chaine_saisie]
+inc ecx
+mov edi,[max_chaine_saisie]
+add edi,zt_saisie_texte
+mov esi,edi
+add edi,2
+std
+rep movsb          ;décale les données
+pop ecx
+
+mov esi,[adr_chaine_saisie]
+mov eax,ecx
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+1],al
+shr ecx,6
+mov al,cl
+and al,01Fh
+or al,0C0h
+mov [esi+zt_saisie_texte],al
+
+
+add dword[max_chaine_saisie],2  ;maj du dernier octet utilisé
+add dword[adr_chaine_saisie],2  ;maj de la position curseur
+jmp saisie_texte_affichage
+
+
+insert3_saisie_texte:
+mov eax,[max_chaine_saisie]
+add eax,3
+cmp eax,256
+jae saisie_texte_touche     ;verifie que la chaine n'est pas pleine
+
+push ecx
+mov ecx,[max_chaine_saisie] 
+sub ecx,[adr_chaine_saisie]
+inc ecx
+mov edi,[max_chaine_saisie]
+add edi,zt_saisie_texte
+mov esi,edi
+add edi,3
+std
+rep movsb          ;décale les données
+pop ecx
+
+mov esi,[adr_chaine_saisie]
+mov eax,ecx
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+2],al
+shr ecx,6
+mov al,cl
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+1],al
+shr ecx,6
+mov al,cl
+and al,0Fh
+or al,0E0h
+mov [esi+zt_saisie_texte],al
+
+add dword[max_chaine_saisie],3  ;maj du dernier octet utilisé
+add dword[adr_chaine_saisie],3  ;maj de la position curseur
+jmp saisie_texte_affichage
+
+
+insert4_saisie_texte:
+mov eax,[max_chaine_saisie]
+add eax,4
+cmp eax,256
+jae saisie_texte_touche     ;verifie que la chaine n'est pas pleine
+
+
+push ecx
+mov ecx,[max_chaine_saisie] 
+sub ecx,[adr_chaine_saisie]
+inc ecx
+mov edi,[max_chaine_saisie]
+add edi,zt_saisie_texte
+mov esi,edi
+add edi,4
+std
+rep movsb          ;décale les données
+pop ecx
+
+mov esi,[adr_chaine_saisie]
+mov eax,ecx
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+3],al
+shr ecx,6
+mov al,cl
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+2],al
+shr ecx,6
+mov al,cl
+and al,3Fh
+or al,80h
+mov [esi+zt_saisie_texte+1],al
+shr ecx,6
+mov al,cl
+and al,07h
+or al,0F0h
+mov [esi+zt_saisie_texte],al
+
+add dword[max_chaine_saisie],4  ;maj du dernier octet utilisé
+add dword[adr_chaine_saisie],4  ;maj de la position curseur
+jmp saisie_texte_affichage
+
+
+saisie_texte_av:
+mov eax,[max_chaine_saisie]
+cmp [adr_chaine_saisie],eax
+je saisie_texte_touche
+
+inc dword[adr_chaine_saisie]
+
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov ah,[edi]
+and ah,11000000b
+cmp ah,80h
+je saisie_texte_av
+jmp saisie_texte_affichage
+
+
+saisie_texte_rc:
+cmp dword[adr_chaine_saisie],0
+je saisie_texte_touche
+
+dec dword[adr_chaine_saisie]
+
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov ah,[edi]
+and ah,11000000b
+cmp ah,80h
+je saisie_texte_rc
+jmp saisie_texte_affichage
+
+
+saisie_texte_retdebut:
+mov dword[adr_chaine_saisie],0
+jmp saisie_texte_affichage
+
+
+saisie_texte_retfin:
+mov eax,[max_chaine_saisie]
+mov [adr_chaine_saisie],eax
+
+jmp saisie_texte_affichage
+
+
+saisie_texte_back:
+cmp dword[adr_chaine_saisie],0
+je saisie_texte_touche
+
+dec dword[adr_chaine_saisie]
+
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov ah,[edi]
+and ah,11000000b
+cmp ah,80h
+je saisie_texte_back
+
+
+saisie_texte_suppr:
+cmp dword[max_chaine_saisie],0
+je saisie_texte_touche
+
+mov ecx,[max_chaine_saisie]
+sub ecx,[adr_chaine_saisie]
+inc ecx
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov esi,edi
+inc esi
+cld
+rep movsb          ;décale les données
+
+dec dword[max_chaine_saisie]
+
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov ah,[edi]
+and ah,11000000b
+cmp ah,80h
+je saisie_texte_suppr
+jmp saisie_texte_affichage
+
+
+
+
+texte_clique:
+
+;test si le clique est dans la fenetre
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+inc esi
+inc edi
+cmp bx,si
+jb saisie_texte_sortie_nok
+cmp cx,di
+jb saisie_texte_sortie_nok
+add esi,[Cmenu]
+add edi,[Lmenu]
+sub esi,2
+sub edi,2
+cmp bx,si
+jae saisie_texte_sortie_nok
+cmp cx,di
+jae saisie_texte_sortie_nok
+
+;test si le clique est dans la zone de texte
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+add esi,5
+add edi,21
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,256
+add edi,128
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp saisie_texte_depl_curseur
+@@:
+
+;test si le clique est dans la zone ok
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+add esi,5
+add edi,128+16+10
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,100
+add edi,18
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp saisie_texte_sortie_ok
+@@:
+
+
+
+;test si le clique est dans la zone annuler
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+add esi,256+5-100  
+add edi,128+16+10
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,100
+add edi,18
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp saisie_texte_sortie_nok
+@@:
+
+jmp saisie_texte_affichage
+
+
+saisie_texte_depl_curseur:
+;on déplace le curseur
+sub ebx,[Xmenu]
+sub ecx,[Ymenu]
+sub ebx,5
+sub ecx,21
+shr ebx,3
+shr ecx,4
+shl ecx,5
+add ebx,ecx
+mov dword[adr_chaine_saisie],0
+cmp ebx,0
+je saisie_texte_affichage
+
+
+@@:
+mov eax,[max_chaine_saisie]
+cmp [adr_chaine_saisie],eax
+je saisie_texte_affichage
+
+inc dword[adr_chaine_saisie]
+
+mov edi,[adr_chaine_saisie]
+add edi,zt_saisie_texte
+mov ah,[edi]
+and ah,11000000b
+cmp ah,80h
+je @b
+dec ebx
+jnz @b
+jmp saisie_texte_affichage
+
+
+saisie_texte_sortie_ok:
+mov eax,44
+ret
+
+saisie_texte_sortie_nok:
+mov eax,1
+ret
+
+saisie_texte_sortie:
+ret
+
+
+
+
+
+;*********************************************
+saisie_icone:
+push esi
+mov al,[esi+5]
+mov [zt_saisie_texte],al
+
+mov [Xmenu],ebx
+mov [Ymenu],ecx
+
+mov eax,[taille_icone]
+mov [Cmenu],eax
+mov [Lmenu],eax
+add dword[Cmenu],40+32
+add dword[Lmenu],20+36
+
+
+
+;verifie que la fenetre ne déborde pas de l'ecran et corrige si besoin
+xor eax,eax
+mov edx,[Xmenu]
+fs
+mov ax,[resx_ecran]
+add edx,[Cmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Cmenu]
+mov [Xmenu],eax
+@@:
+xor eax,eax
+mov edx,[Ymenu]
+fs
+mov ax,[resy_ecran]
+add edx,[Lmenu]
+cmp edx,eax
+jbe @f
+sub eax,[Lmenu]
+mov [Ymenu],eax
+@@:
+call affiche_ecran
+
+
+affichage_saisie_icone:
+;affiche le fond
 mov ebx,[Xmenu]
 mov ecx,[Ymenu]
 mov esi,[Cmenu]
@@ -1159,94 +1963,279 @@ call bouton
 
 
 
-
-texte_affichage:
+;affiche l'icone
+xor eax,eax
+mov al,[zt_saisie_texte]
+mov ecx,[taille_icone]
+mul ecx
+mov ecx,eax
+xor ebx,ebx
+push esi
+mov esi,[ad_icones]
+mov edi,[ad_icone]
+mov al,54
+int 63h
+pop esi
 
 mov ebx,[Xmenu]
 mov ecx,[Ymenu]
-add ebx,1
-add ecx,1
-mov esi,[Cmenu]
-mov edi,[Lmenu]
-
-
-mov edx,0FFFFFFh ;afficher un carré blanc
-mov al,22   
-mov ah,24
+add ebx,36
+add ecx,5
+mov edx,[ad_icone]
+mov al,27
 int 63h
 
 
 
+;affiche les touche de défilement
+mov ebp,[taille_icone]
+sub ebp,32
+shr ebp,1
+
 mov ebx,[Xmenu]
 mov ecx,[Ymenu]
-mov al,26
+add ebx,15
+add ecx,5
+mov edx,fleche_gauche
+add ecx,ebp
+mov al,27
+int 63h
+
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+add ebx,41
+add ecx,5
+add ebx,[taille_icone]
+mov edx,fleche_droite
+add ecx,ebp
+mov al,27
+int 63h
+
+
+
+;affiche le bouton ok
+mov ebx,[Cmenu]
+sub ebx,100
+shr ebx,1
+mov ecx,10
+add ebx,[Xmenu]
+add ecx,[Ymenu]
+add ecx,[taille_icone]
+mov esi,ebx
+mov edi,ecx
+add esi,100
+add edi,18
+call bouton
+
+mov edx,texte_ok
+call ajuste_langue
+inc ebx
+inc ecx
+mov al,25
 mov ah,0
-add ebx,1
-add ecx,1
-mov edx,[Tmenu]
-mov edi,40
 int 63h
 
 
-mov eax,7  ;demande la mise a jour ecran
+
+;affiche le bouton annuler
+mov ebx,[Cmenu]
+sub ebx,100
+shr ebx,1
+mov ecx,15+18
+add ebx,[Xmenu]
+add ecx,[Ymenu]
+add ecx,[taille_icone]
+mov esi,ebx
+mov edi,ecx
+add esi,100
+add edi,18
+call bouton
+
+mov edx,texte_annuler
+call ajuste_langue
+inc ebx
+inc ecx
+mov al,25
+mov ah,0
 int 63h
 
 
-texte_touche:
+mov al,7
+int 63h
+
+
+
+touche_saisie_icone:
 mov al,5
 int 63h
-cmp al,1  ;echap on quitte
-je texte_sortie_nok
+cmp al,1  
+je fin_nok_saisie_icone
+cmp al,44  ;entree
+je fin_ok_saisie_icone
+cmp al,100  ;entree pavnum
+je fin_ok_saisie_icone
+
+cmp al,83
+je saisie_icone_precedente
+cmp al,85
+je saisie_icone_suivante
 cmp al,0F0h
-je texte_clique
-jmp texte_affichage
+je clique_saisie_icone
+jmp touche_saisie_icone
 
 
+saisie_icone_precedente:
+mov cl,[nb_icones]
+cmp byte[zt_saisie_texte],0
+je @f
+dec byte[zt_saisie_texte]
+jmp affichage_saisie_icone
+@@:
+mov [zt_saisie_texte],cl
+jmp affichage_saisie_icone
+ 
+
+saisie_icone_suivante:
+mov cl,[nb_icones]
+cmp byte[zt_saisie_texte],cl
+je @f
+inc byte[zt_saisie_texte]
+jmp affichage_saisie_icone
+@@:
+mov byte[zt_saisie_texte],0
+jmp affichage_saisie_icone
 
 
-
-
-
-
-texte_clique:
-
-;test si la fenetre est dans la
+clique_saisie_icone:
+;test si le clique est dans la fenetre
 mov esi,[Xmenu]
 mov edi,[Ymenu]
 inc esi
 inc edi
 cmp bx,si
-jb texte_sortie_nok
+jb fin_nok_saisie_icone
 cmp cx,di
-jb texte_sortie_nok
+jb fin_nok_saisie_icone
 add esi,[Cmenu]
 add edi,[Lmenu]
 sub esi,2
 sub edi,2
 cmp bx,si
-jae texte_sortie_nok
+jae fin_nok_saisie_icone
 cmp cx,di
-jae texte_sortie_nok
+jae fin_nok_saisie_icone
 
 
-;?????????????
 
-jmp texte_affichage
+mov ebp,[taille_icone]
+sub ebp,32
+shr ebp,1
 
 
-texte_sortie_ok:
-xor eax,eax
+;test si le clique est dans la zone def+
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+add esi,41
+add edi,5
+add esi,[taille_icone]
+add edi,ebp
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,16
+add edi,32
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp saisie_icone_suivante
+@@:
+
+
+
+;test si le clique est dans la zone def-
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+add esi,15
+add edi,5
+add edi,ebp
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,16
+add edi,32
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp saisie_icone_precedente
+@@:
+
+
+
+
+;test si le clique est dans la zone ok
+mov esi,[Cmenu]
+sub esi,100
+shr esi,1
+mov edi,10
+add esi,[Xmenu]
+add edi,[Ymenu]
+add edi,[taille_icone]
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,100
+add edi,18
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp fin_ok_saisie_icone
+@@:
+
+
+
+;test si le clique est dans la zone annuler
+mov esi,[Cmenu]
+sub esi,100
+shr esi,1
+mov edi,15+18
+add esi,[Xmenu]
+add edi,[Ymenu]
+add edi,[taille_icone]
+cmp bx,si
+jb @f
+cmp cx,di
+jb @f
+add esi,100
+add edi,18
+cmp bx,si
+jae @f
+cmp cx,di
+jae @f
+jmp fin_nok_saisie_icone
+@@:
+
+jmp touche_saisie_icone
+
+
+
+
+fin_nok_saisie_icone:
+pop esi
+mov al,1
+mov ah,0
 ret
 
-
-texte_sortie_nok:
-mov eax,-1
+fin_ok_saisie_icone:
+pop esi
+mov al,44
+mov ah,[zt_saisie_texte]
 ret
-
-
-
-
-
 
 
 
@@ -1312,7 +2301,10 @@ je @f
 
 ;ou le créer
 mov al,2
+mov ebx,1
 int 64h
+cmp eax,0
+jne sauvegarde_objets_erreur
 
 
 @@:
@@ -1328,6 +2320,8 @@ mov edx,tempo
 mov al,7
 mov ah,1 ;taille fichier
 int 64h
+cmp eax,0
+jne sauvegarde_objets_erreur
 
 ;ecrit les objets
 mov al,5
@@ -1336,6 +2330,8 @@ mov ecx,[to_objet]
 xor edx,edx
 mov esi,[ad_objet]
 int 64h
+cmp eax,0
+jne sauvegarde_objets_erreur
 
 ;ferme le fichier
 mov eax,1
@@ -1376,9 +2372,6 @@ mov ecx,[to_objet]
 mov edx,ad_objet
 sub ecx,eax
 call redim_mem
-
-
-call sauvegarde_objets
 popad
 ret
 
@@ -1571,6 +2564,7 @@ ret
 ;***************************
 ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
 push eax
+push ecx
 mov eax,20
 int 61h
 xor ecx,ecx
@@ -1593,6 +2587,7 @@ inc edx
 jmp boucle_ajuste_langue
 
 ok_ajuste_langue:
+pop ecx
 pop eax
 ret
 
@@ -1625,12 +2620,12 @@ db "ICS: erreur lors de la sauvegarde de la définition des icônes",13,0
 
 
 texte_menu_param:
-db "add new icon",13
+db "add new shortcut",13
 db "change wallpaper",13
 db "change icon set",13
 db "quit",0
 
-db "ajouter une icônes",13
+db "ajouter un raccourcis",13
 db "changer fond d'écran",13
 db "changer jeu d'icones",13
 db "quitter",0
@@ -1638,22 +2633,44 @@ db "quitter",0
 
 
 texte_menu_fichier:
-db "change icon",13
 db "change name",13
+db "change icon",13
 db "change command",13
 db "delete",0
 
-db "changer icône",13
 db "changer nom",13
+db "changer icône",13
 db "changer commande",13
 db "supprimer",0
 
 
+texte_fond:
+db "name of wallpaper:",0
+db "nom du fond d'ecran:",0
 
 
+texte_icone:
+db "name of icone file:",0
+db "nom du fichier d'icones:",0
 
 
+texte_nom:
+db "name of shortcut:",0
+db "nom du raccourcis:",0
 
+
+texte_cmd:
+db "command of shortcut:",0
+db "commande du raccourcis:",0
+
+
+texte_ok:
+db "     ok",0
+db "     ok",0
+
+texte_annuler:
+db "    abord",0
+db "   annuler",0
 
 
 
@@ -1707,7 +2724,8 @@ dd 0
 taille_icone:   ;largeur icone
 dd 0
 
-
+nb_icones:
+dd 0
 
 
 
@@ -1726,8 +2744,11 @@ dd 0
 Tmenu:
 dd 0
 
-
-
+;variables saisie texte
+max_chaine_saisie:
+dd 0
+adr_chaine_saisie:
+dd 0
 
 
 
@@ -1743,11 +2764,82 @@ db "ICS.DAT",0
 couleur_fond:
 dd 0FF007070h ;bleu/vert moche de win95
 couleur_texte:
-dd 0Fh      ;code 16 couleurs blanc
+dd 0Fh      ;code 16 couleurs blanc                                     
 
 
+fleche_gauche:
+db 8,0
+dw 16,32
+dd 16,0
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,255,  1,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,  1,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,  1,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,  1,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,  1,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,  1,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,1
+db 255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255
+db 255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255
+db 255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255
+db 255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255
+db 255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255
+db 255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255
+db 255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255
+db 255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255
+db 255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255
+db 255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255
+db 255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255
+db 255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255
+db 255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,  1,255,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,  1,255,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,  1,255,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,  1,255,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,  1,255,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,255,  1,1
+db 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,1
 
-
+fleche_droite:
+db 8,0
+dw 16,32
+dd 16,0
+db   1,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,  1,255,255,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,  1,255,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,  1,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,  1,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,  1,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,  1,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255
+db 255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255
+db 255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255
+db 255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255
+db 255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255
+db 255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255
+db 255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255
+db 255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1
+db 255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1
+db 255,255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255
+db 255,255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255
+db 255,255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255
+db 255,255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255
+db 255,255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255
+db 255,  1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,255,  1,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,  1,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,  1,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,  1,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,  1,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,  1,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,  1,255,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,  1,255,255,255,255,255,255,255,255,255,255,255,255,255,255
+db   1,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255
 
 
 
@@ -1809,7 +2901,7 @@ db 4        ;numéros de l'icone
 dw 0        ;vide
 dd 160,240    ;coordonné coin supérieur gauche
 db "Aide",0  ;texte de l'icone
-db "aide",0  ;commande de l'icone
+db "help",0  ;commande de l'icone
 @@:
 
 dd 0
@@ -1819,7 +2911,8 @@ fin_objet_base:
 rb $-tempo+2048
 
 
-
+zt_saisie_texte:
+rb 256
 
 
 

@@ -181,13 +181,16 @@ cmp eax,1
 je chargement_partie 
 cmp eax,2
 je affichage_menu
+cmp ecx,0
+je affichage_menu
 
+
+;calcule le décalage et le masque pour l'affichage
+push ebx
 xor al,al
 mov ebx,ecx
 
 @@:
-cmp ebx,0
-je affichage_menu
 cmp ebx,1
 je @f
 shr ebx,1
@@ -201,11 +204,16 @@ mov [masque_affichage],ecx
 mov dword[masque_affichage+4],0
 mov byte[secteur_modif],0
 mov dword[taille_bloc],20000h
+pop ebx
 
-
-
-
-
+;calcule la taille du disque en octet
+@@:
+shl ebx,1
+rcl edx,1
+dec al
+jnz @b
+mov [taille_fichier],ebx
+mov [taille_fichier+4],edx
 
 
 
@@ -656,80 +664,19 @@ mov ebx,-1
 jmp mvmt_curseur
 
 
-
-cmp dword[offset_curseur],0
-je moin1_decal
-dec dword[offset_curseur]
-jmp affichage
-
-moin1_decal:
-mov eax,1
-cmp dword[offset_affichage],0h
-je moinmoin_decal
-sub dword[offset_affichage],10h
-add dword[offset_curseur],0Fh
-jmp affichage
-
-
-
-;****************************************************
 moin16:
 mov eax,-16
 mov ebx,-1
 jmp mvmt_curseur
 
 
-cmp dword[offset_curseur],10h
-jb moin16_decal
-sub dword[offset_curseur],10h
-jmp affichage
-
-moin16_decal:
-mov eax,10h
-cmp dword[offset_affichage],0h
-je moinmoin_decal
-sub dword[offset_affichage],10h
-jmp affichage
-
-
-;*************************************************
 moinmoin:
 mov eax,[max_affichable]
 neg eax
 mov ebx,-1
 jmp mvmt_curseur
 
-mov eax,[max_affichable]
-cmp dword[offset_affichage],eax
-jb moinmoin_decal
-sub dword[offset_affichage],eax
-jmp affichage
 
-
-moinmoin_decal:
-cmp dword[adresse_base],10000h
-jb moinmoin_zero
-
-push eax
-call sauvegarde
-pop eax
-mov edx,[offset_affichage]
-add edx,10000h
-sub edx,eax
-mov eax,edx
-and edx,0FFFFFFF0h
-and eax,0Fh
-mov [offset_affichage],edx
-add [offset_curseur],eax
-sub dword[adresse_base],10000h
-sbb dword[adresse_base+4],0       
-jmp chargement_partie
-
-
-moinmoin_zero:
-mov dword[offset_curseur],0
-mov dword[offset_affichage],0
-jmp affichage
 
 
 
@@ -740,63 +687,12 @@ xor ebx,ebx
 jmp mvmt_curseur
 
 
-mov eax,[taille_bloc]
-sub eax,[offset_affichage]
-sub eax,2
-cmp [offset_curseur],eax
-ja touche_boucle
-
-
-mov eax,[max_affichable]
-sub eax,2
-cmp dword[offset_curseur],eax
-je plus1_decal
-inc dword[offset_curseur]
-jmp affichage
-
-
-plus1_decal:
-mov eax,[taille_bloc]
-sub eax,[max_affichable]
-cmp [offset_affichage],eax
-je touche_boucle  
-add dword[offset_affichage],10h
-sub dword[offset_curseur],0Fh
-jmp affichage
-
-;*************************************************
 plus16:
 mov eax,16
 xor ebx,ebx
 jmp mvmt_curseur
 
 
-
-mov eax,[taille_bloc]
-sub eax,[offset_affichage]
-sub eax,11h
-cmp [offset_curseur],eax
-ja touche_boucle
-
-
-mov eax,[max_affichable]
-sub eax,11h
-cmp dword[offset_curseur],eax
-ja plus16_decal
-add dword[offset_curseur],10h
-jmp affichage
-
-
-plus16_decal:
-mov eax,[taille_bloc]
-sub eax,[max_affichable]
-cmp [offset_affichage],eax
-je touche_boucle  
-add dword[offset_affichage],10h
-jmp affichage
-
-
-;*************************************************
 plusplus:
 mov eax,[max_affichable]
 xor ebx,ebx
@@ -818,42 +714,30 @@ adc ebx,0
 
 
 
-
-
+;test si ça dépasse les limites du fichier
 test ebx,80000000h
 jz @f
 xor eax,eax
 xor ebx,ebx
 @@: 
 
-
-;eax=lsb ;ebx=msb
-
-;jmp test1
-
-;test si ça dépasse les limites du fichier
-mov ecx,[taille_fichier]
-mov edx,[taille_fichier+4]
-
-
-
 cmp ebx,[taille_fichier+4]
-ja max
-jne @f
+ja mvmt_curseur_taille_nok
+jne mvmt_curseur_taille_ok
 cmp eax,[taille_fichier]
-jae max
-@@:
+jb mvmt_curseur_taille_ok
+
+mvmt_curseur_taille_nok:
+mov eax,-1
+mov ebx,-1
+add eax,[taille_fichier]
+adc ebx,[taille_fichier+4]
 
 
-jmp test1
+mvmt_curseur_taille_ok:
 
 
 
-max:
-mov eax,[taille_fichier]
-mov ebx,[taille_fichier+4]
-dec eax
-sbb ebx,0
 jmp test1
 
 
@@ -863,27 +747,40 @@ jmp test1
 ;test si ça dépasse les limites du bloc en mémoire
 mov ecx,[adresse_base]
 mov edx,[adresse_base+4]
-dec ecx
-sbb edx,0
+
 
 
 cmp ebx,edx
-jb nvbloc_mvmt_curseur
+jb hl
+jne @f
 cmp eax,ecx
-jb nvbloc_mvmt_curseur
+jb hl
+@@:
+
 add ecx,20000h
 adc edx,0
+
 cmp ebx,edx
-ja nvbloc_mvmt_curseur
+ja hl
+jne @f
 cmp eax,ecx
-jae nvbloc_mvmt_curseur
+jae hl
+
+
+
+@@:
 jmp pasnvbloc_mvmt_curseur
 
 nvbloc_mvmt_curseur:
 
+mov edx,0
+and eax,0FFFFF000h
+
 
 
 jmp affichage
+
+
 
 pasnvbloc_mvmt_curseur:
 
@@ -928,17 +825,7 @@ jmp affichage
 
 
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
-
-mov eax,[max_affichable]
-add eax,[offset_affichage]
-mov edx,eax
-add edx,[max_affichable]
-cmp edx,[taille_bloc]
-ja touche_boucle
-mov [offset_affichage],eax
-jmp affichage
 
 
 
