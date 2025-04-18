@@ -1,4 +1,4 @@
-cube:
+palette:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "affichage palette 256 couleurs"
