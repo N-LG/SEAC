@@ -51,6 +51,8 @@ fasm ASM/PROG/BCM5755.asm BIN/BCM5755.FE
 fasm ASM/PROG/3C90X.asm BIN/3C90X.FE
 fasm ASM/PROG/I8254X.asm BIN/I8254X.FE
 fasm ASM/PROG/jn1.asm BIN/JN1.FE
+fasm ASM/PROG/snake.asm BIN/SNAKE.FE
+fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 
 
 
@@ -87,6 +89,7 @@ cd BIN
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP LSPCI.CFG -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUEL.TXT -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUAL.TXT -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP SYSCALL.TXT -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP AUTOCOMP.CFG -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP EXPL.CFG -mx9
 cd ..
@@ -137,6 +140,8 @@ ajarch BIN/BCM5755.FE BIN/ETAGE4.BIN
 ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ajarch BIN/JN1.FE BIN/ETAGE4.BIN
+ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
+ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
 ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 

@@ -50,7 +50,8 @@ fasm ASM/PROG/BCM5755.asm BIN/BCM5755.FE
 fasm ASM/PROG/3C90X.asm BIN/3C90X.FE
 fasm ASM/PROG/I8254X.asm BIN/I8254X.FE
 fasm ASM/PROG/jn1.asm BIN/JN1.FE
-
+fasm ASM/PROG/snake.asm BIN/SNAKE.FE
+fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 
 
 #compilation du noyau
@@ -141,7 +142,8 @@ cd ..
 ./ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/JN1.FE BIN/ETAGE4.BIN
-
+./ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
+./ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
 
 
 #ajout des fichiers de définition à l'archive du noyau
