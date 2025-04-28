@@ -27,6 +27,12 @@ mov ax,segdat
 xor dx,dx       
 mov ds,ax
 mov es,dx
+mov fs,ax
+mov ax,0B800h
+mov gs,ax
+
+gs
+mov word[158],"B" or 7000h
 
 
 es                       ;récupère la taille de la ram trouvé par l'étage 2
@@ -658,7 +664,8 @@ mov dx,0A1h
 mov al,0FFh            ;masque les irq 8 à 15
 out dx,al
 
-
+gs
+mov word[158],"D" or 7000h
 
 ;************************************
 ;passage en mode protégé
@@ -830,8 +837,11 @@ mov dx,seldat      ;init pile et data
 mov ds,dx
 mov es,dx
 mov fs,dx
+mov dx,selvidB8
 mov gs,dx
 mov byte[trappe_tache0],1
+gs
+mov word[158],"E" or 7000h
 
 mov dx,selpil
 mov ss,dx
@@ -947,8 +957,8 @@ avx_absent:
 
 cpuid_absent:
 mov byte[trappe_tache0],2
-
-
+gs
+mov word[158],"F" or 7000h
 
 
 
@@ -1146,9 +1156,8 @@ pas_reserve_isa:
 
 
 
-
-
-;jmp test1
+gs
+mov word[158],"F" or 7000h
 
 ;**********************************************************************
 ;programme souris ps/2
@@ -1290,6 +1299,9 @@ mov byte[nbzt1],0
 
 call vide_8042
 test1:
+
+gs
+mov word[158],"G" or 7000h
 mov byte[trappe_tache0],5
 
 
@@ -1387,6 +1399,9 @@ mov byte[trappe_tache0],7
 ;*********************************************************************
 include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA, USB et AHCI et des partitions installé
 
+
+gs
+mov word[158],"T" or 7000h
 jmp btacheprincipale
 
 

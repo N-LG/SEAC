@@ -257,11 +257,12 @@ test ebx,7F000000h
 jz boucle_detec_ata
 
 mov byte[trappe_tache0],32
+gs
+mov word[158],"H" or 7000h
 
 
 ;*****************************************************************************************************************************
 ;détecte les controleur ahci et leurs port ouverts
-;jmp ignore_detect_ahci
 mov ax,seldat 
 mov ds,ax
 mov fs,ax
@@ -468,8 +469,11 @@ jmp boucle_liste_disque_ahci
 
 fin_liste_disque_ahci:
 
-
+mov ax,selvidB8
+mov gs,ax
 mov byte[trappe_tache0],33
+gs
+mov word[158],"I" or 7000h
 
 
 
@@ -507,6 +511,8 @@ jne boucle_remplissage_ctrl_ata
 
 fin_detec_ata:
 mov byte[trappe_tache0],34
+gs
+mov word[158],"J" or 7000h
 
 
 
@@ -719,6 +725,8 @@ jne boucle_init_infopart2
 
 
 mov byte[trappe_tache0],35
+gs
+mov word[158],"K" or 7000h
 
 
 ;*********************************************************************************************************************************************
