@@ -698,6 +698,7 @@ pop ecx
 add [decod_hid_offset_in],eax
 jmp suite_parseHIDusb
 
+;DEBUT de la partie a modifier pour enregistrer la structure des rapport HID!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ;*********
 parseHIDusb_input_clav:  ;touche
@@ -778,6 +779,24 @@ add ebp,[decod_hid_report_size]
 jmp suite_parseHIDusb_input
 
 
+;*********
+parseHIDusb_output_led:  ;type sortie led
+pushad
+mov al,"L"
+call affcj
+mov al,""
+call affcj
+mov eax,[decod_hid_offset_out]
+call affh2j
+mov al,13
+call affcj
+popad
+jmp fin_parseHIDusb_output
+
+
+
+;FIN de la partie a modifier pour enregistrer la structure des rapport HID!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 ;************************
 hid84:   ;ID
@@ -799,7 +818,7 @@ cmp dword[decod_hid_nb_usage],0
 jne @f
 ;ici on test les usages pages
 cmp dword[decod_hid_page_usage],8             ;usage page:LED
-je parseHIDusb_output_led
+je parseHIDusb_output_led  ;voir plus haut
 jmp fin_parseHIDusb_output
 @@:
 
@@ -851,19 +870,6 @@ jmp suite_parseHIDusb
 
 
 
-;*********
-parseHIDusb_output_led:  ;type sortie led
-pushad
-mov al,"L"
-call affcj
-mov al,""
-call affcj
-mov eax,[decod_hid_offset_out]
-call affh2j
-mov al,13
-call affcj
-popad
-jmp fin_parseHIDusb_output
 
 
 ;************************
@@ -929,13 +935,6 @@ popad
 
 
 
-
-;active idle
-mov al,[usb_adresse] ;adresse
-xor ah,ah
-mov byte[edi],21h    ;bmRequestType
-mov byte[edi+1],0Ah  ;bRequest (set idle)
-mov word[edi+2],0000h ;wValue (LSB=tout report MSB=indefiniment)
 mov word[edi+4],bx  ;wIndex
 mov word[edi+6],0  ;wLength
 mov edx,edi
@@ -957,6 +956,19 @@ mov edx,edi
 call sfusb_commande
 ;cmp eax,0
 ;jne erreur_activation_hid ;pas de controle d'erreur parce que l'option n'est pas obligatoirement reconnu
+
+
+;ouvre un canal int vers le périphérique 
+mov al,13
+mov bl,[esi+dhu_adresse]
+mov bh,[esi+dhu_terminaisonIn]
+xor ecx,ecx
+mov cx,[esi+dhu_tailleIn]
+mov dl,[esi+dhu_frequenceIn]
+int 68h
+cmp eax,0
+jne erreur_activation_hid
+
 
 
 popad

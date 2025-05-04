@@ -258,7 +258,7 @@ jz boucle_detec_ata
 
 mov byte[trappe_tache0],32
 gs
-mov word[158],"H" or 7000h
+mov word[158],"L" or 7000h
 
 
 ;*****************************************************************************************************************************
@@ -473,7 +473,7 @@ mov ax,selvidB8
 mov gs,ax
 mov byte[trappe_tache0],33
 gs
-mov word[158],"I" or 7000h
+mov word[158],"M" or 7000h
 
 
 
@@ -512,7 +512,7 @@ jne boucle_remplissage_ctrl_ata
 fin_detec_ata:
 mov byte[trappe_tache0],34
 gs
-mov word[158],"J" or 7000h
+mov word[158],"N" or 7000h
 
 
 
@@ -726,7 +726,7 @@ jne boucle_init_infopart2
 
 mov byte[trappe_tache0],35
 gs
-mov word[158],"K" or 7000h
+mov word[158],"O" or 7000h
 
 
 ;*********************************************************************************************************************************************

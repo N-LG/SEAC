@@ -1453,13 +1453,13 @@ ret
 sfusb_iso_uhci:
 mov dl,1        ;dl=periodicité de la trame
 sfusb_int_uhci:
-mov ebp,ebx     ;al=adresse ah=endpoint+sens esi=adresse du descripteur de périphérique ebp=adresse du descripteur de controleur
+mov ebp,ebx     ;bl=adresse bh=endpoint+sens esi=adresse du descripteur de périphérique ebp=adresse du descripteur de controleur
 
 ;réserve mémoire
 mov ebp,ebx
 push eax
 push ecx
-mov ecx,uhci_bulkmem_td
+mov ecx,uhci_isointmem_td
 call resmem
 jc sfusb_iso_uhci_err_mem2
 pop ecx
@@ -1586,17 +1586,16 @@ jnz @b
 
 ;insère les TD dans la frame liste uhci
 mov edx,[ebx+uhci_isointmem_param_peri]
-shl edx,2  ;mul par 4
+shl edx,2  ;mul par 4 ;edx=saut a effectuer
+
+mov edi,[ebx+uhci_isointmem_param_desc_ctrl]
+mov esi,[edi+ctrl_uhci_frbaseadd]  ;esi= adresse de la frame list
 
 mov edi,ebx
-add edi,uhci_isointmem_td
+add edi,uhci_isointmem_td    ;edi= adresse des TD a inserer
 
 mov ecx,[ebx+uhci_isointmem_nbtd]
 
-
-
-;?????????????????????????????????? esi= adresse de la frame list
-mov esi,[ebx+uhci_isointmem_param_desc_ctrl]
 
 
 
@@ -1619,6 +1618,8 @@ sti
 pop fs
 pop es
 pop ds
+ss
+mov [esp+16],ebx ;préserve ebx
 popad
 xor eax,eax
 ret
@@ -1652,7 +1653,7 @@ ret
 ;**************************************************************************************************************************************************************************************************************
 ;**************************************************************************************************************************************************************************************************************
 ;crée canal interruption usb
-sfusb_open_int:        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame dl=périodicité de la trame
+sfusb_open_int:        ;bl=périphérique bh=endpoint+bit7=sens(0=in 1=out) ecx=taille d'une trame dl=périodicité de la trame
 pushad
 push ds
 push es

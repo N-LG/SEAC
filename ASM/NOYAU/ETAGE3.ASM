@@ -1157,7 +1157,7 @@ pas_reserve_isa:
 
 
 gs
-mov word[158],"F" or 7000h
+mov word[158],"G" or 7000h
 
 ;**********************************************************************
 ;programme souris ps/2
@@ -1301,7 +1301,7 @@ call vide_8042
 test1:
 
 gs
-mov word[158],"G" or 7000h
+mov word[158],"H" or 7000h
 mov byte[trappe_tache0],5
 
 
