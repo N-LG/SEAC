@@ -935,6 +935,27 @@ popad
 
 
 
+;active idle
+
+
+
+mov al,[usb_adresse] ;adresse
+
+
+
+xor ah,ah
+
+
+
+mov byte[edi],21h    ;bmRequestType
+
+
+
+mov byte[edi+1],0Ah  ;bRequest (set idle)
+
+
+
+mov word[edi+2],0000h ;wValue (LSB=tout report MSB=indefiniment)
 mov word[edi+4],bx  ;wIndex
 mov word[edi+6],0  ;wLength
 mov edx,edi
@@ -958,7 +979,7 @@ call sfusb_commande
 ;jne erreur_activation_hid ;pas de controle d'erreur parce que l'option n'est pas obligatoirement reconnu
 
 
-;ouvre un canal int vers le périphérique 
+;ouvre un canal int in vers le périphérique 
 mov al,13
 mov bl,[esi+dhu_adresse]
 mov bh,[esi+dhu_terminaisonIn]
@@ -968,7 +989,7 @@ mov dl,[esi+dhu_frequenceIn]
 int 68h
 cmp eax,0
 jne erreur_activation_hid
-
+mov [esi+dhu_canalIn],ebx
 
 
 popad

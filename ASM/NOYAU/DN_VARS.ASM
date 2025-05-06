@@ -674,7 +674,8 @@ dhu_interface     equ 1
 dhu_terminaisonIn equ 2
 dhu_frequenceIn   equ 3
 dhu_tailleIn      equ 4
-dhu_objet         equ 6
+dhu_canalIn       equ 6
+dhu_objet         equ 10
 
 
 ;****************************************************************************
