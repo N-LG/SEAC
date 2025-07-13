@@ -820,6 +820,7 @@ jmp affichage
 hl:
 sub eax,[adresse_base]
 sub eax,[offset_curseur]
+and eax,0FFFFFFF0h
 mov [offset_affichage],eax
 jmp affichage
 
