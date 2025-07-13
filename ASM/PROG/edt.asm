@@ -652,18 +652,7 @@ cmp al,0F2h
 jae boucle_touche
 
 test ah,0Ch
-jz pas_touche_ctrl
-cmp al,47
-je touche_sauvegarder
-cmp al,49
-je rechercher_doc
-cmp al,61
-je couper
-cmp al,62
-je copier
-cmp al,63
-je coller
-pas_touche_ctrl:
+jnz touche_ctrl
 
 cmp al,1
 je fin
@@ -723,7 +712,64 @@ mov [curseur_ligne],ecx
 jmp affichage
 
 
+touche_ctrl:
+test ecx,0FFFFFF00h
+jnz boucle_touche
+cmp cl,"A"
+jb @f
+cmp cl,"Z"
+ja @f
+add cl,20h
+@@:
 
+cmp cl,"s"
+je touche_sauvegarder
+cmp cl,"o"
+;je touche_ouvrir
+cmp cl,"p"
+;je imprimer
+cmp cl,"q"
+je fin
+cmp cl,"z"
+;je annuler
+
+cmp cl,"f"
+je rechercher_doc
+cmp cl,"b"
+;je rechercher_moin
+cmp cl,"n"
+;je rechercher_plus
+cmp cl,"r"
+;je remplacer
+
+cmp cl,"g"
+;je aller_mot_prec
+cmp cl,"h"
+;je aller_mot_suiv
+cmp cl,"d"
+;je aller_mot_deb
+cmp cl,"e"
+;je aller_mot_fin
+
+cmp cl,"a"
+;je select_tout
+cmp cl,"l"
+;je select_ligne
+cmp cl,"w"
+;je select_mot
+cmp cl,"j"
+;je select_debligne
+cmp cl,"k"
+;je select_finligne
+
+cmp cl,"x"
+je couper
+cmp cl,"c"
+je copier
+cmp cl,"v"
+je coller
+
+jmp boucle_touche
 
 
 ;************************************
