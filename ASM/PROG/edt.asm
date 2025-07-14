@@ -76,6 +76,12 @@ mov al,11
 mov ah,07h ;couleur
 int 63h
 
+mov edx,msg_menua
+call ajuste_langue
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
 mov bl,0
 mov al,13
 mov bh,7 ;couleur
@@ -93,6 +99,12 @@ jmp fin
 ;***************
 affiche_menu_complet:
 mov edx,msg_menuc
+call ajuste_langue
+mov al,11
+mov ah,07h ;couleur
+int 63h
+
+mov edx,msg_menua
 call ajuste_langue
 mov al,11
 mov ah,07h ;couleur
@@ -725,7 +737,7 @@ add cl,20h
 cmp cl,"s"
 je touche_sauvegarder
 cmp cl,"o"
-;je touche_ouvrir
+je ouvrir_fichier
 cmp cl,"p"
 ;je imprimer
 cmp cl,"q"
@@ -740,27 +752,27 @@ cmp cl,"b"
 cmp cl,"n"
 ;je rechercher_plus
 cmp cl,"r"
-;je remplacer
+je remplacer_chaine
 
 cmp cl,"g"
 ;je aller_mot_prec
 cmp cl,"h"
 ;je aller_mot_suiv
 cmp cl,"d"
-;je aller_mot_deb
+je aller_mot_deb
 cmp cl,"e"
-;je aller_mot_fin
+je aller_mot_fin
 
 cmp cl,"a"
-;je select_tout
+je select_tout
 cmp cl,"l"
-;je select_ligne
+je select_ligne
 cmp cl,"w"
-;je select_mot
+je select_mot
 cmp cl,"j"
-;je select_debligne
+je select_debligne
 cmp cl,"k"
-;je select_finligne
+je select_finligne
 
 cmp cl,"x"
 je couper
@@ -1578,9 +1590,101 @@ jnz affiche_config
 btr word[options],0
 jmp affiche_config
 
+;*****************************************************************************touches selection
+select_tout:
+mov ecx,[taille_fichier]
+mov dword[curseur_colonne],0 
+mov dword[offset_colonne],0
+mov dword[curseur_ligne],0 
+mov dword[offset_ligne],0
+mov [selecorigine],ecx 
+or byte[options],08h
+jmp affichage
 
 
-;****************************************************
+;********************
+select_ligne:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+mov [selecorigine],esi
+call mvmt_fin
+or byte[options],08h
+jmp affichage
+
+
+;****************
+select_mot:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+mov edi,[seleccurseur]
+
+;recherche le debut du mot
+@@:
+es
+cmp byte[edi]," "
+je @f
+es
+cmp byte[edi],","
+je @f
+es
+cmp byte[edi],";"
+je @f
+es
+cmp byte[edi],"."
+je @f
+es
+cmp byte[edi],":"
+je @f
+cmp esi,edi
+je selec_mot_debligne
+dec edi
+jmp @b
+
+@@:
+inc edi
+selec_mot_debligne:
+mov [selecorigine],edi
+call mvmt_finm
+or byte[options],08h
+jmp affichage
+
+
+
+;************************
+select_debligne:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+mov [selecorigine],esi
+or byte[options],08h
+jmp affichage
+
+;***********************
+select_finligne:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+@@:
+call charge_carac
+cmp eax,0
+je @f
+cmp eax,13
+je @f
+jmp @b
+@@:
+dec esi
+mov [selecorigine],esi
+or byte[options],08h
+jmp affichage
+
+
+
+
+
+
+;*****************************************************************************touches mouvements
 touche_debut:
 mov dword[curseur_colonne],0 
 mov dword[offset_colonne],0
@@ -1622,6 +1726,122 @@ mov [curseur_colonne],eax
 sub ecx,eax
 mov [offset_colonne],ecx
 ret
+
+
+;*****************************************************
+aller_mot_deb:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+mov edi,[seleccurseur]
+
+;recherche le debut du mot
+@@:
+cmp esi,edi
+je touche_debut
+dec edi
+es
+cmp byte[edi]," "
+je @f
+es
+cmp byte[edi],","
+je @f
+es
+cmp byte[edi],";"
+je @f
+es
+cmp byte[edi],"."
+je @f
+es
+cmp byte[edi],":"
+je @f
+jmp @b
+
+@@:
+inc edi
+xor ecx,ecx
+
+@@:
+cmp esi,edi
+jae @f
+call charge_carac
+inc ecx
+jmp @b
+
+@@:
+mov eax,[resxt_correc]
+dec eax
+
+cmp ecx,eax
+ja @f
+mov [curseur_colonne],ecx
+mov dword[offset_colonne],0
+jmp affichage
+
+@@:
+mov [curseur_colonne],eax
+sub ecx,eax
+mov [offset_colonne],ecx
+jmp affichage
+
+
+;*****************************************************
+aller_mot_fin:
+call mvmt_finm
+jmp affichage
+
+
+;*****************************************************
+mvmt_finm:
+mov ecx,[offset_ligne]
+add ecx,[curseur_ligne]
+call rech_ligne
+
+;compte le nombre de caractère de la ligne
+xor ecx,ecx
+boucle_touche_finm:
+call charge_carac
+cmp eax,0
+je fin_touche_finm
+cmp eax,13
+je fin_touche_finm
+cmp eax," "
+je fin_touche_finm2
+cmp eax,","
+je fin_touche_finm2
+cmp eax,";"
+je fin_touche_finm2
+cmp eax,"."
+je fin_touche_finm2
+cmp eax,":"
+je fin_touche_finm2
+inc ecx
+jmp boucle_touche_finm
+
+
+fin_touche_finm2:
+cmp esi,[seleccurseur]
+ja fin_touche_finm
+inc ecx
+jmp boucle_touche_finm
+ 
+
+fin_touche_finm:
+mov eax,[resxt_correc]
+dec eax
+
+cmp ecx,eax
+ja decalage_touche_finm
+mov [curseur_colonne],ecx
+mov dword[offset_colonne],0
+ret
+
+decalage_touche_finm:
+mov [curseur_colonne],eax
+sub ecx,eax
+mov [offset_colonne],ecx
+ret
+
 
 
 ;****************************************************
@@ -2475,8 +2695,9 @@ dd 0
 data_modif:
 db 0
 options:
-dw 0        ;b0=affichage numéros de ligne b1=retour a la ligne automatique 
-            ;b2=clique gauche souris envoncé
+dw 0        ;b0=affichage numéros de ligne
+            ;b1=retour a la ligne automatique 
+            ;b2=clique gauche souris enfoncé
             ;b3=pas besoin de remettre a jour la position curseur d'origine la prochaine fois
  	    ;b4=met a jour la position curseur la position curseur d'origine la prochaine fois		
 
@@ -2613,22 +2834,7 @@ db "replace",13
 
 db "configure",13
 
-db "quit",13,13,13
-db "shortcuts available while editing:",13
-
-db "Ctrl+S save file",13
-
-db "Ctrl+F search in file",13
-
-db "F3 go to next search term",13
-
-db "ctrl+F3 jump to previous search term",13
-
-db "Ctrl+X cut",13
-
-db "Ctrl+C copy",13
-
-db "Ctrl+V paste",13,0
+db "quit",13,13,13,0
 db "continuer l'edition du fichier",13
 db "fermer le fichier",13
 db "nouveau fichier",13
@@ -2639,46 +2845,99 @@ db "aller a la ligne",13
 db "rechercher",13
 db "remplacer",13
 db "configurer",13
-db "quitter",13,13,13
-db "raccourcis disponible durant l'édition:",13
-db "Ctrl+S enregistrer le fichier",13
-db "Ctrl+F rechercher dans le fichier",13
-db "F3 passer au terme recherché suivant",13
-db "ctrl+F3 passer au terme recherché précédent",13
-db "Ctrl+X couper",13
-db "Ctrl+C copier",13
-db "Ctrl+V coller",13,0
-
+db "quitter",13,13,13,0
 
 
 msg_menur:
 db "new file",13
 
 db "open file",13
-db "quit",13,13,13,13,13,13,13,13,13,13,13
+db "quit",13,13,13,13,13,13,13,13,13,13,13,0
+db "nouveau fichier",13
+db "ouvrir fichier",13
+db "quitter",13,13,13,13,13,13,13,13,13,13,13,0
+
+
+
+
+
+
+msg_menua:
 db "shortcuts available while editing:",13
+
+;db "Ctrl+M or F1 menu",13
+
+db "Ctrl+O open file",13
 
 db "Ctrl+S save file",13
 
+;db "Ctrl+Z abord",13
+
+;db "Ctrl+P print",13
+
+db "Ctrl+Q or Esc quit",13
+
+
 db "Ctrl+F search in file",13
 
-db "F3 go to next search term",13
+;db "Ctrl+N go to next search term",13
 
-db "ctrl+F3 jump to previous search term",13
+;db "ctrl+B jump to previous search term",13
+
+;db "Ctrl+R replace",13
+
+db "Ctrl+D goes to the beginning of the word",13
+db "Ctrl+E goes to the end of the word",13
+db "Ctrl+G goes to the previous word",13
+db "Ctrl+H goes to the next word",13
+
+db "Ctrl+A selects all",13
+db "Ctrl+W selects the word",13
+db "Ctrl+L selects the line",13
+db "Ctrl+J selects from the beginning of the line to the cursor",13
+db "Ctrl+K selects from the end of the line to the cursor",13
 
 db "Ctrl+X cut",13
 
 db "Ctrl+C copy",13
 
 db "Ctrl+V paste",13,0
-db "nouveau fichier",13
-db "ouvrir fichier",13
-db "quitter",13,13,13,13,13,13,13,13,13,13,13
+;*************************************************************
 db "raccourcis disponible durant l'édition:",13
+;db "Ctrl+M ou F1 menu",13
+
+db "Ctrl+O ouvrir un fichier",13
 db "Ctrl+S enregistrer le fichier",13
+;db "Ctrl+Z annuler",13
+;db "Ctrl+P imprimer",13
+db "Ctrl+Q ou Esc quitter",13
+
+
 db "Ctrl+F rechercher dans le fichier",13
-db "F3 passer au terme recherché suivant",13
-db "ctrl+F3 passer au terme recherché précédent",13
+;db "Ctrl+N passer au terme recherché suivant",13
+;db "ctrl+B passer au terme recherché précédent",13
+;db "Ctrl+R remplacer",13
+
+db "Ctrl+D va au debut du mot",13
+
+db "Ctrl+E va a la fin du mot",13
+
+db "Ctrl+G va au mot précédent",13
+db "Ctrl+H va au mot suivant",13
+
+
+db "Ctrl+A selectionne tout",13
+
+db "Ctrl+W selectionne le mot",13
+
+db "Ctrl+L selectionne la ligne",13
+
+db "Ctrl+J selectionne du début de la ligne jusqu'au curseur",13
+
+db "Ctrl+K selectionne de la fin de la ligne jusqu'au curseur",13
+
+
+
 db "Ctrl+X couper",13
 db "Ctrl+C copier",13
 db "Ctrl+V coller",13,0
