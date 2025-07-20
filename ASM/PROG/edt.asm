@@ -755,9 +755,9 @@ cmp cl,"r"
 je remplacer_chaine
 
 cmp cl,"g"
-;je aller_mot_prec
+je aller_mot_prec
 cmp cl,"h"
-;je aller_mot_suiv
+je aller_mot_suiv
 cmp cl,"d"
 je aller_mot_deb
 cmp cl,"e"
@@ -1791,7 +1791,7 @@ call mvmt_finm
 jmp affichage
 
 
-;*****************************************************
+;*****************
 mvmt_finm:
 mov ecx,[offset_ligne]
 add ecx,[curseur_ligne]
@@ -1842,6 +1842,147 @@ sub ecx,eax
 mov [offset_colonne],ecx
 ret
 
+
+
+
+;***************************************************
+aller_mot_prec:
+mov edi,[seleccurseur]
+cmp edi,0
+jz fin_aller_mot_prec
+
+;recherche le debut du mot
+@@:
+dec edi
+jz fin_aller_mot_prec
+es
+mov al,[edi]
+cmp al," "
+je @f
+cmp al,","
+je @f
+cmp al,";"
+je @f
+cmp al,"."
+je @f
+cmp al,":"
+je @f
+cmp al,10
+je @f
+cmp al,13
+je @f
+jmp @b
+
+
+;recherche la fin du mot précédent
+@@:
+dec edi
+jz fin_aller_mot_prec
+es
+mov al,[edi]
+cmp al," "
+je @b
+cmp al,","
+je @b
+cmp al,";"
+je @b
+cmp al,"."
+je @b
+cmp al,":"
+je @b
+cmp al,10
+je @b
+cmp al,13
+je @b
+
+
+;recherche le debut du mot précédent
+@@:
+dec edi
+es
+mov al,[edi]
+cmp al," "
+je @f
+cmp al,","
+je @f
+cmp al,";"
+je @f
+cmp al,"."
+je @f
+cmp al,":"
+je @f
+cmp al,10
+je @f
+cmp al,13
+je @f
+jmp @b
+
+@@:
+inc edi
+fin_aller_mot_prec:
+mov [seleccurseur],edi
+call replace_cur
+jmp affichage
+
+
+
+
+
+
+
+;****************************************
+aller_mot_suiv:
+mov edi,[seleccurseur]
+
+;recherche la fin du mot
+@@:
+inc edi
+es
+mov al,[edi]
+cmp al," "
+je @f
+cmp al,","
+je @f
+cmp al,";"
+je @f
+cmp al,"."
+je @f
+cmp al,":"
+je @f
+cmp al,10
+je @f
+cmp al,13
+je @f
+jmp @b
+
+;recherche le début du suivant
+@@:
+inc edi
+es
+mov al,[edi]
+cmp al," "
+je @b
+cmp al,","
+je @b
+cmp al,";"
+je @b
+cmp al,"."
+je @b
+cmp al,":"
+je @b
+cmp al,10
+je @b
+cmp al,13
+je @b
+
+
+
+@@:
+fin_aller_mot_suiv:
+mov [seleccurseur],edi
+call replace_cur
+jmp affichage
+ 
 
 
 ;****************************************************
