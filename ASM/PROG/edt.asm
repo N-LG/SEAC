@@ -748,9 +748,9 @@ cmp cl,"z"
 cmp cl,"f"
 je rechercher_doc
 cmp cl,"b"
-;je rechercher_moin
+je aller_rech_prec
 cmp cl,"n"
-;je rechercher_plus
+je aller_rech_suiv
 cmp cl,"r"
 je remplacer_chaine
 
@@ -1873,7 +1873,6 @@ cmp al,13
 je @f
 jmp @b
 
-
 ;recherche la fin du mot précédent
 @@:
 dec edi
@@ -1895,10 +1894,10 @@ je @b
 cmp al,13
 je @b
 
-
 ;recherche le debut du mot précédent
 @@:
 dec edi
+jz fin_aller_mot_prec
 es
 mov al,[edi]
 cmp al," "
@@ -1926,17 +1925,17 @@ jmp affichage
 
 
 
-
-
-
-
 ;****************************************
 aller_mot_suiv:
 mov edi,[seleccurseur]
+cmp edi,[taille_fichier]
+je fin_aller_mot_suiv
 
 ;recherche la fin du mot
 @@:
 inc edi
+cmp edi,[taille_fichier]
+je fin_aller_mot_suiv
 es
 mov al,[edi]
 cmp al," "
@@ -1958,6 +1957,8 @@ jmp @b
 ;recherche le début du suivant
 @@:
 inc edi
+cmp edi,[taille_fichier]
+je fin_aller_mot_suiv
 es
 mov al,[edi]
 cmp al," "
@@ -1975,14 +1976,86 @@ je @b
 cmp al,13
 je @b
 
-
-
-@@:
 fin_aller_mot_suiv:
 mov [seleccurseur],edi
 call replace_cur
 jmp affichage
  
+
+;*********************************
+aller_rech_prec:
+mov edi,[seleccurseur]
+cmp edi,0
+je fin_aller_rech_prec
+mov esi,motrecherche
+mov al,[esi]
+cmp al,0
+je fin_aller_rech_prec
+
+boucle_aller_rech_prec:
+dec edi
+jz fin_aller_rech_prec
+es
+cmp al,[edi]
+jne boucle_aller_rech_prec
+mov ebx,edi
+
+@@:
+inc esi
+inc ebx
+mov al,[esi]
+cmp al,0
+je fin_aller_rech_prec
+es
+cmp al,[ebx]
+je @b
+mov esi,motrecherche
+mov al,[esi]
+jmp boucle_aller_rech_prec
+
+fin_aller_rech_prec:
+mov [seleccurseur],edi
+call replace_cur
+jmp affichage
+
+;*********************************
+aller_rech_suiv:
+mov edi,[seleccurseur]
+cmp edi,[taille_fichier]
+je fin_aller_rech_suiv
+mov esi,motrecherche
+mov al,[esi]
+cmp al,0
+je fin_aller_rech_suiv
+
+boucle_aller_rech_suiv:
+inc edi
+cmp edi,[taille_fichier]
+je fin_aller_rech_suiv
+es
+cmp al,[edi]
+jne boucle_aller_rech_suiv
+mov ebx,edi
+
+@@:
+inc esi
+inc ebx
+mov al,[esi]
+cmp al,0
+je fin_aller_rech_suiv
+es
+cmp al,[ebx]
+je @b
+mov esi,motrecherche
+mov al,[esi]
+jmp boucle_aller_rech_suiv
+
+fin_aller_rech_suiv:
+mov [seleccurseur],edi
+call replace_cur
+jmp affichage
+
+
 
 
 ;****************************************************
