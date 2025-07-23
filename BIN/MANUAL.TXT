@@ -7,10 +7,11 @@
  ~EFJ~ clear system log
  ~DIR~/~LS~ list the contents of a folder
  ~DEF~ loads a definition file
- ~SUP~ delete a file
+ ~SUP~/~RM~ delete a file
  ~COP~ copies a file
  ~VER~ displays the system version
  ~CD~ changes working folder
+ ~ND~ create new folder
  ~LD~ lists installed disks and partitions
  ~LM~ displays the memory organization
  ~LV~ displays supported video modes
@@ -70,14 +71,14 @@
  manually enter the expression to calculate
  validate with enter, exit with esc
  you can reuse the result of the last calculation by using the variable x in your expression
-:cd:cop:sup:ren:dir:ls
+:cd:cop:sup:rm:ren:dir:ls:nd
 ^Commands for file manipulation
 
 %command: cd     
  change folder, cd.. return to parent folder
-%command: dir
+%command: dir (or ls)
  Lists the contents of the folder in use
-%command: sup XXX
+%command: sup XXX (or rm XXX)
  delete the XXX file
 %command: cop XXX YYY
  copy the XXX file to the YYY folder with ZZZ options
@@ -88,12 +89,14 @@
   -r:NNNN renames the copied file
 %command: ld
  list the partitions and cdrom which have been detected by the system (no argument)
+%command: nd XXX
+ create new directory XXX
 :lm:lt:ps:mtt:stop
 ^Application management commands
 
 %command: lm
  List the memory spaces used by the system (no argument)
-%command: lt
+%command: lt (or ps)
  List Tasks running on the system
 %command: stop XXX
  Stop task numbers XXX

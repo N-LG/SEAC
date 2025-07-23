@@ -1,4 +1,27 @@
-﻿
+:sommaire
+^aide pour SEAC
+
+ ~commandes~ disponibles
+ ~tecop~ terminal de commande principal
+ ~navigation~ entre les interfaces
+ ~~
+ ~~
+
+
+
+
+
+:navigation
+^navigation entre les interfaces
+ chaque application sur Seac occupe l'integralité de l'ecran, pour pouvoir passer d'une application a une autre vous devez appuyer maintenir la touche Alt appuyé et appuyer sur la touche Tab pour faire défiler les interfaces
+
+ lorsque le ~tecop~ est affiché vous avez la possibilité d'acceder directement a l'interface en cliquant sur la ligne correspondante en haut de l'ecran ou en appuyant sur la touche fonction associé
+
+
+
+
+
+
 :commandes:commande:cmd
 ^commandes disponibles avec le systeme d'exploitation SEaC:
 
@@ -7,10 +30,11 @@
  ~EFJ~ efface le journal systeme
  ~DIR~/~LS~ liste le contenu d'un dossier
  ~DEF~ charge un fichier de définition
- ~SUP~ supprime un fichier
+ ~SUP~/~RM~ supprime un fichier
  ~COP~ copie un fichier
  ~VER~ affiche la version systeme
  ~CD~ change de dossier de travail
+ ~ND~ créer un nouveau dossier
  ~LD~ liste les disques et partitions installé
  ~LM~ affiche l'organistion mémoire 
  ~LV~ affiche les modes vidéo supporté
@@ -71,14 +95,14 @@
  entrez manuellement l'expression a calculer
  validez avec entrée, quittez avec echap
  vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
-:cd:cop:sup:ren:dir:ls
+:cd:cop:sup:rm:ren:dir:ls:nd
 ^Commandes pour la manipulation de fichier
 
 %commande: cd     
  change de dossier, cd.. permet de revenir au dossier parent
-%commande: dir
+%commande: dir (ou ls)
  Liste le contenue du dossier en cours d'utilisation
-%commande: sup XXX
+%commande: sup XXX (ou rm XXX)
  supprime le fichier XXX
 %commande: cop XXX YYY ZZZ
  copie le fichier XXX dans le dossier YYY avec les options ZZZ
@@ -89,12 +113,14 @@
   -r:NNNN renomme le fichier copié
 %commande: ld
  liste les partitions et cdrom qui ont été détecté par le système (pas d'argument)
+%commande: nd XXX
+ crée et ouvre le dossier XXX
 :lm:lt:ps:mtt:stop
 ^Commandes de gestions des applications
 
 %commande: lm
  Liste les espaces mémoires utilisé par le système (pas d'argument)
-%commande: lt
+%commande: lt (ou ps)
  Liste les Taches en cours d'execution sur le système
 %commande: stop XXX
  Arrête la tâche numéros XXX
@@ -108,7 +134,7 @@
 %commande: modv XXX
  change le mode video de l'écran pour le mode
  XXX = numéros du mode, XXX*YYY pour la résolution 
-:efj:af:fds:journal
+:efj:af:fds:ver:journal
 ^Commandes de manipulation du journal du ~Tecop~
 
 %commande: efj
