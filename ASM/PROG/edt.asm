@@ -1476,7 +1476,10 @@ mov edx,motrecherche
 mov ecx,256
 mov al,6
 int 63h
+cmp al,1
+jne aller_rech_suiv
 
+mov byte[motrecherche],0
 jmp affichage
 
 ;***************************************************
@@ -1509,8 +1512,219 @@ jmp affichage
 
 
 ;***************************************************
-remplacer_chaine:
-jmp affichage
+remplacer_chaine: ;ecran de demande des termes a changer
+call raz_ecr
+mov edx,msg19a
+call ajuste_langue
+mov al,10
+mov ah,07h ;couleur
+mov ebx,0
+mov ecx,0
+int 63h
+
+mov edx,msg19b
+call ajuste_langue
+mov al,10
+mov ah,07h ;couleur
+mov ebx,0
+mov ecx,6
+int 63h
+
+mov edx,motremplace
+mov al,10
+mov ah,07h ;couleur
+mov ebx,0
+mov ecx,7
+int 63h
+
+@@:
+mov al,12
+mov ebx,0
+mov ecx,1
+int 63h
+mov ah,07h
+mov edx,motrecherche
+mov ecx,256
+mov al,6
+int 63h
+cmp al,1
+je affichage
+cmp al,82
+je @b
+
+mov al,12
+mov ebx,0
+mov ecx,7
+int 63h
+mov ah,07h
+mov edx,motremplace
+mov ecx,256
+mov al,6
+int 63h
+cmp al,1
+je affichage
+cmp al,82
+je @b
+
+
+
+mov edx,msg19c
+call ajuste_langue
+mov al,10
+mov ah,07h ;couleur
+mov ebx,0
+mov ecx,12
+int 63h
+
+mov al,13
+mov bl,0
+mov bh,7
+mov cl,12
+mov ch,2
+int 63h
+cmp bh,44
+jne affichage
+cmp bl,1
+jne affichage
+
+
+
+
+
+mov dword[seleccurseur],0
+call replace_cur
+
+
+mov ecx,motrecherche
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+sub ecx,motrecherche
+mov [to_motrecherche],ecx
+
+mov ecx,motremplace
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+sub ecx,motremplace
+mov [to_motremplace],ecx
+
+
+
+mov edi,0
+cmp edi,[taille_fichier]
+je affichage
+mov esi,motrecherche
+mov al,[esi]
+cmp al,0
+je affichage
+
+boucle_remplacer_chaine:
+inc edi
+cmp edi,[taille_fichier]
+je affichage
+es
+cmp al,[edi]
+jne boucle_remplacer_chaine
+mov ebx,edi
+
+@@:
+inc esi
+inc ebx
+mov al,[esi]
+cmp al,0
+je suite_remplacer_chaine
+es
+cmp al,[ebx]
+je @b
+mov esi,motrecherche
+mov al,[esi]
+jmp boucle_remplacer_chaine
+
+suite_remplacer_chaine:
+
+
+
+mov eax,[to_motrecherche]
+cmp eax,[to_motremplace]
+je copie_remplacer_chaine 
+jb decale_remplacer_chaine
+
+
+sub eax,[to_motremplace]
+
+
+mov ecx,[taille_fichier]
+sub ecx,edi
+push edi
+mov esi,edi
+add esi,eax
+sub [taille_fichier],eax
+
+push ds
+push es
+pop ds
+cld
+rep movsb
+pop ds
+pop edi
+jmp copie_remplacer_chaine
+
+
+
+
+;si le nouveau mot est plus grand que l'ancien
+decale_remplacer_chaine:
+neg eax
+add eax,[to_motremplace]
+
+mov ecx,[taille_fichier]
+sub ecx,edi
+push edi
+mov edi,[taille_fichier]
+mov esi,[taille_fichier]
+add edi,eax
+add [taille_fichier],eax
+call verif_zt
+push ds
+push es
+pop ds
+std
+rep movsb
+pop ds
+pop edi
+
+
+
+
+
+copie_remplacer_chaine:
+mov ecx,[to_motremplace]
+cmp ecx,0
+je @f
+push edi
+mov esi,motremplace
+cld
+rep movsb
+pop edi
+@@:
+mov byte[data_modif],1  
+
+
+mov esi,motrecherche
+mov al,[esi]
+jmp boucle_remplacer_chaine
+
+
+
+
+
 
 
 ;***************************************************
@@ -2973,6 +3187,11 @@ dd 0,0,0,0,0
 hexa32b:
 dd 0,0,0,0,0
 
+to_motrecherche:
+dd 0
+to_motremplace:
+dd 0
+
 
 
 
@@ -3293,6 +3512,21 @@ db "return to edit screen",13,0
 db "revenir à l'écran d'édition",13,0
 
 
+
+
+msg19a:
+db "What terms do you want to replace?",13,0
+db "quel termes souhaitez vous remplacer?",13,0
+msg19b:
+db "by",13,0
+db "par",13,0
+msg19c:
+db "cancel changes",13
+
+db "confirm changes",0
+db "annuler les modifications",13
+db "confirmer les modications",0
+
 descriptif2:
 db "EDT: "
 
@@ -3325,6 +3559,11 @@ dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
 dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
 
+motremplace:
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
+dd 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;64
 
 
 
