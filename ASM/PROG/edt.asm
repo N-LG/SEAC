@@ -849,14 +849,14 @@ ignore_insert1carac:
 pop ds
 pop edi
 pop esi
+add dword[taille_fichier],1
+call verif_zt
 es
 mov [esi],dl
-add dword[taille_fichier],1
+
 mov byte[data_modif],1  
 inc esi
 mov [seleccurseur],esi
-
-call verif_zt
 call replace_cur
 jmp affichage
 
@@ -881,6 +881,8 @@ ignore_insert2carac:
 pop ds
 pop edi
 pop esi
+add dword[taille_fichier],2
+call verif_zt
 
 mov ecx,edx
 and dl,3Fh
@@ -893,12 +895,10 @@ and dl,01Fh
 or dl,0C0h
 es
 mov [esi],dl
-add dword[taille_fichier],2
+
 mov byte[data_modif],1     
 add esi,2
 mov [seleccurseur],esi
-
-call verif_zt
 call replace_cur
 jmp affichage
 
@@ -923,6 +923,9 @@ ignore_insert3carac:
 pop ds
 pop edi
 pop esi
+add dword[taille_fichier],3
+call verif_zt
+
 
 mov ecx,edx
 and dl,3Fh
@@ -941,12 +944,10 @@ and dl,0Fh
 or dl,0E0h
 es
 mov [esi],dl
-add dword[taille_fichier],3
+
 mov byte[data_modif],1   
 add esi,3
 mov [seleccurseur],esi
-
-call verif_zt
 call replace_cur
 jmp affichage
 
@@ -972,6 +973,8 @@ ignore_insert4carac:
 pop ds
 pop edi
 pop esi
+add dword[taille_fichier],4    
+call verif_zt
 
 mov ecx,edx
 and dl,3Fh
@@ -996,12 +999,10 @@ and dl,07h
 or dl,0F0h
 es
 mov [esi],dl
-add dword[taille_fichier],4    
+
 mov byte[data_modif],1 
 add esi,4
 mov [seleccurseur],esi
-
-call verif_zt
 call replace_cur
 jmp affichage
 
@@ -1229,13 +1230,13 @@ pop ds
 pop edi
 pop esi
 pop ecx
-es
-mov word[esi],0A0Dh         
 add dword[taille_fichier],2
 call verif_zt
+
+es
+mov word[esi],0A0Dh   
+
 mov byte[data_modif],1   
-
-
 mov dword[curseur_colonne],0 
 mov dword[offset_colonne],0
 jmp plus1l
@@ -1699,9 +1700,6 @@ std
 rep movsb
 pop ds
 pop edi
-
-
-
 
 
 copie_remplacer_chaine:
@@ -2584,7 +2582,9 @@ jmp determine_colonne
 reajustement_ligne1:
 mov dword[curseur_ligne],0
 mov [offset_ligne],ecx
+push edx
 call recalcule_ligne0
+pop edx
 jmp determine_colonne
 
 reajustement_ligne2:
@@ -2750,15 +2750,17 @@ jne echec_lecture
 call verif_zt
 
 ;lire fichier
-mov ebx,[num_fichier]
 mov ecx,[taille_zone]
+cmp ecx,0
+je @f
+mov ebx,[num_fichier]
 mov edx,0   ;offset dans le fichier
 mov edi,0   ;offset dans le segment
 mov al,4
 int 64h
 cmp eax,0
 jne echec_lecture
-
+@@:
 
 mov byte[data_modif],0  
 
