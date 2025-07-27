@@ -1900,12 +1900,12 @@ jmp affichage
 touche_debut:
 mov dword[curseur_colonne],0 
 mov dword[offset_colonne],0
-jmp affichage
+jmp suite_mvmt_curseur
 
 ;****************************************************
 touche_fin:
 call mvmt_fin
-jmp affichage
+jmp suite_mvmt_curseur
 
 mvmt_fin:
 mov ecx,[offset_ligne]
@@ -1988,19 +1988,22 @@ cmp ecx,eax
 ja @f
 mov [curseur_colonne],ecx
 mov dword[offset_colonne],0
-jmp affichage
+jmp suite_mvmt_curseur
+
 
 @@:
 mov [curseur_colonne],eax
 sub ecx,eax
 mov [offset_colonne],ecx
-jmp affichage
+jmp suite_mvmt_curseur
+
 
 
 ;*****************************************************
 aller_mot_fin:
 call mvmt_finm
-jmp affichage
+jmp suite_mvmt_curseur
+
 
 
 ;*****************
@@ -2133,7 +2136,8 @@ inc edi
 fin_aller_mot_prec:
 mov [seleccurseur],edi
 call replace_cur
-jmp affichage
+jmp suite_mvmt_curseur
+
 
 
 
@@ -2191,7 +2195,8 @@ je @b
 fin_aller_mot_suiv:
 mov [seleccurseur],edi
 call replace_cur
-jmp affichage
+jmp suite_mvmt_curseur
+
  
 
 ;*********************************
