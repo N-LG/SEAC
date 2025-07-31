@@ -749,7 +749,7 @@ cmp cl,"p"
 cmp cl,"q"
 je fin
 cmp cl,"z"
-;je annuler
+je annuler
 
 cmp cl,"f"
 je rechercher_doc
@@ -821,6 +821,7 @@ jmp affichage
 insertion_carac:
 push ecx
 call supprime_zone
+call sauvegarde_etat2
 call ajoute_manques
 pop edx
 
@@ -1192,6 +1193,7 @@ ret
 ;***************************************************
 touche_entree:
 call supprime_zone
+call sauvegarde_etat2
 
 mov ecx,[offset_ligne]
 add ecx,[curseur_ligne]
@@ -1288,6 +1290,7 @@ mov ecx,[selecmax]
 cmp ecx,[selecmin]
 jne efface_zone
 
+call sauvegarde_etat2
 mov ecx,[offset_ligne]
 add ecx,[curseur_ligne]
 call rech_ligne
@@ -1594,7 +1597,7 @@ jne affichage
 
 
 
-
+call sauvegarde_etat
 
 mov dword[seleccurseur],0
 call replace_cur
@@ -2399,7 +2402,7 @@ jmp affichage
 
 
 
-;*************************************************************************************************copier/coller
+;*************************************************************************************************copier/coller/annuler
 couper:
 mov edx,[selecmin]
 mov ecx,[selecmax] 
@@ -2434,6 +2437,8 @@ xor ecx,ecx
 int 61h
 cmp ecx,0
 je affichage
+call sauvegarde_etat
+
 
 ;si il y as des données a coller, efface les données éventuellement selectionné
 push ecx
@@ -2455,6 +2460,13 @@ int 61h
 add [seleccurseur],ecx  ;déplace le curseur
 mov byte[data_modif],1 
 call replace_cur
+jmp affichage
+
+
+
+;***************************
+annuler:
+call restauration_etat
 jmp affichage
 
 
@@ -2487,6 +2499,7 @@ ret
 
 
 ok_suprime_zone:
+call sauvegarde_etat
 mov ecx,[taille_fichier]
 sub ecx,esi
 cmp ecx,0
@@ -2777,6 +2790,13 @@ mov eax,1
 mov ebx,[num_fichier]
 int 64h
 
+
+mov bl,8
+@@:
+call sauvegarde_etat
+dec bl
+jnz @b
+
 ret
 
 
@@ -2935,16 +2955,148 @@ mov eax,[taille_fichier]
 shr eax,2 ;div par 4
 add eax,4096
 add eax,[taille_fichier]
-mov [taille_zone],eax 
+mov ebx,eax 
 
 mov dx,sel_dat2
-mov ecx,[taille_zone]
+mov ecx,ebx
+shl ecx,3
 mov al,8
 int 61h
+
+cmp dword[taille_zone],0
+je fin_verif_zt2
+
+mov ecx,8
+@@:
+mov eax,ebx
+mul ecx
+mov edi,eax
+mov eax,[taille_zone]
+mul ecx
+mov esi,eax
+dec edi
+dec esi
+push ecx
+mov ecx,[taille_zone]
+push ds
+push es
+pop ds
+std
+rep movsb
+pop ds
+pop ecx
+dec ecx
+jnz @b
+
+
+fin_verif_zt2:
+mov [taille_zone],ebx
 
 fin_verif_zt:
 popad
 ret
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§
+;********************************retrecissement simultané 8 zones
+xor ecx,ecx
+@@:
+inc ecx
+mov eax,ebx
+mul ecx
+mov edi,eax
+mov eax,[taille_zone]
+mul ecx
+mov esi,eax
+push ecx
+mov ecx,ebx
+push ds
+push es
+pop ds
+cld
+rep movsb
+pop ds
+pop ecx
+cmp ecx,7
+jne @b
+mov [taille_zone],ebx
+;ici reservation taille zone
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+;***********************************
+sauvegarde_etat2:
+inc byte[appel_sauvegarde_etat]
+cmp byte[appel_sauvegarde_etat],8
+je @f
+ret
+@@:
+mov byte[appel_sauvegarde_etat],0
+
+;****************************************
+sauvegarde_etat:
+pushad
+push ds
+push es
+push ds
+push ds
+push es
+mov edi,[taille_zone]
+shl edi,3
+mov esi,edi
+sub esi,[taille_zone]
+
+mov ecx,esi
+dec edi
+dec esi
+pop ds
+std
+rep movsb
+pop ds
+pop es
+mov esi,((sauvegarde_modif-offset_ligne)*6)+sauvegarde_modif-1
+mov edi,((sauvegarde_modif-offset_ligne)*7)+sauvegarde_modif-1
+mov ecx,(sauvegarde_modif-offset_ligne)*7
+std
+rep movsb
+pop es
+pop ds
+popad
+ret
+
+
+
+;*************************************
+restauration_etat:
+pushad
+push ds
+push es
+push ds
+push ds
+push es
+mov esi,[taille_zone]
+xor edi,edi
+mov ecx,[taille_zone]
+shl ecx,3
+sub ecx,[taille_zone]
+pop ds
+cld
+rep movsb
+pop ds
+pop es
+
+mov esi,sauvegarde_modif
+mov edi,offset_ligne
+mov ecx,(sauvegarde_modif-offset_ligne)*7
+cld
+rep movsb
+pop es
+pop ds
+popad
+ret
+
+
+
 
 
 
@@ -3141,28 +3293,24 @@ curseur_colonne:
 dd 0
 adresse_ligne0:
 dd 0
-
-
-sauvegarde_offset_ligne:
-dd 0
-sauvegarde_offset_colonne:
-dd 0
-sauvegarde_curseur_ligne:
-dd 0
-sauvegarde_curseur_colonne:
-dd 0
-sauvegarde_adresse_ligne0:
-dd 0
-
-
-
-touche_importante:
-db 0
-
 selecorigine:
 dd 0
 seleccurseur:
 dd 0
+
+sauvegarde_modif:
+rb (sauvegarde_modif-offset_ligne)*7
+
+
+
+
+appel_sauvegarde_etat:
+db 0
+
+touche_importante:
+db 0
+
+
 selecmin:
 dd 5  ;0FFFFFFFFh
 selecmax:
@@ -3174,18 +3322,6 @@ rechmax:
 dd 0FFFFFFFFh
 
 
-deci8b:
-dd 0,0,0,0,0
-deci16b:
-dd 0,0,0,0,0
-deci32b:
-dd 0,0,0,0,0
-hexa8b:
-dd 0,0,0,0,0
-hexa16b:
-dd 0,0,0,0,0
-hexa32b:
-dd 0,0,0,0,0
 
 to_motrecherche:
 dd 0
@@ -3304,7 +3440,7 @@ db "Ctrl+O open file",13
 
 db "Ctrl+S save file",13
 
-;db "Ctrl+Z abord",13
+db "Ctrl+Z abord",13
 
 ;db "Ctrl+P print",13
 
@@ -3345,7 +3481,7 @@ db "raccourcis disponible durant l'édition:",13
 
 db "Ctrl+O ouvrir un fichier",13
 db "Ctrl+S enregistrer le fichier",13
-;db "Ctrl+Z annuler",13
+db "Ctrl+Z annuler",13
 ;db "Ctrl+P imprimer",13
 db "Ctrl+Q ou Esc quitter",13
 
