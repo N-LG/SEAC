@@ -731,6 +731,8 @@ pas_touche_ctrl:
 
 
 cmp al,1
+je fin
+cmp al,2
 je menu
 cmp al,79
 je touche_suppr
@@ -759,48 +761,95 @@ jmp touche_boucle
 
 ;************************
 thaut:
+test ah,0Ch
+jnz @f
 cmp dword[cury],0
 je touche_boucle
 dec dword[cury]
 jmp aff_table
 
+@@:
+call adr_carac
+shr dword[esi+0],8
+shr dword[esi+3],8
+shr dword[esi+6],8
+shr dword[esi+9],8
+shr dword[esi+12],8
+mov byte[modif],1
+jmp aff_table
+
+
+;*************
 tbas:
+test ah,0Ch
+jnz @f
 cmp dword[cury],15
 je touche_boucle
 inc dword[cury]
 jmp aff_table
 
+@@:
+call adr_carac
+shl dword[esi+12],8
+shl dword[esi+9],8
+shl dword[esi+6],8
+shl dword[esi+3],8
+shl dword[esi+0],8
+mov byte[modif],1
+jmp aff_table
+
+
+;*************
 tgauche:
+test ah,0Ch
+jnz @f
 cmp dword[curx],0
 je touche_boucle
 dec dword[curx]
 jmp aff_table
 
+@@:
+call adr_carac
+shl dword[esi],1
+shl dword[esi+4],1
+shl dword[esi+8],1
+shl dword[esi+12],1
+and dword[esi],0FEFEFEFEh
+and dword[esi+4],0FEFEFEFEh
+and dword[esi+8],0FEFEFEFEh
+and dword[esi+12],0FEFEFEFEh
+mov byte[modif],1
+jmp aff_table
+
+
+;*************
 tdroit:
+test ah,0Ch
+jnz @f
 cmp dword[curx],15
 je touche_boucle
 inc dword[curx]
 jmp aff_table
 
+@@:
+call adr_carac
+shr dword[esi],1
+shr dword[esi+4],1
+shr dword[esi+8],1
+shr dword[esi+12],1
+and dword[esi],7F7F7F7Fh
+and dword[esi+4],7F7F7F7Fh
+and dword[esi+8],7F7F7F7Fh
+and dword[esi+12],7F7F7F7Fh
+mov byte[modif],1
+jmp aff_table
 
 
+
+
+;*************
 couper:
-mov esi,data_carac
-mov eax,[cury]
-shl eax,4
-add eax,[curx]
-push eax
-mov eax,[resx_carac]
-shr eax,3
-xor edx,edx
-mov ecx,[resy_carac]
-mul ecx
-mov ecx,eax ;ecx=taille carac
-pop eax
-xor edx,edx
-mul ecx
-add esi,eax ;esi=pos carac
-
+call adr_carac
 push ecx
 push esi
 mov eax,15
@@ -814,36 +863,49 @@ mov dword[esi],0
 add esi,4
 sub ecx,4
 jnz boucle_touche_couper
-
+mov byte[modif],1
 jmp aff_table
 
 
-
+;*************
 copier:
-mov esi,data_carac
-mov eax,[cury]
-shl eax,4
-add eax,[curx]
-push eax
-mov eax,[resx_carac]
-shr eax,3
-xor edx,edx
-mov ecx,[resy_carac]
-mul ecx
-mov ecx,eax ;ecx=taille carac
-pop eax
-xor edx,edx
-mul ecx
-add esi,eax ;esi=pos carac
-
+call adr_carac
 mov eax,15
 mov edx,esi
 int 61h 
 jmp aff_table
 
 
-
+;*************
 coller:
+call adr_carac
+mov eax,16
+mov edx,esi
+int 61h 
+mov byte[modif],1
+jmp aff_table
+
+;*************
+touche_sauvegarder:
+call sauvegarder
+mov byte[modif],0
+jmp touche_boucle
+
+;*************
+touche_suppr:
+call adr_carac
+boucle_touche_suppr:
+mov dword[esi],0
+add esi,4
+sub ecx,4
+jnz boucle_touche_suppr 
+mov byte[modif],1
+jmp aff_table
+
+
+
+;*************
+adr_carac:
 mov esi,data_carac
 mov eax,[cury]
 shl eax,4
@@ -859,44 +921,7 @@ pop eax
 xor edx,edx
 mul ecx
 add esi,eax ;esi=pos carac
-
-mov eax,16
-mov edx,esi
-int 61h 
-jmp aff_table
-
-
-touche_sauvegarder:
-call sauvegarder
-jmp touche_boucle
-
-
-touche_suppr:
-mov esi,data_carac
-mov eax,[cury]
-shl eax,4
-add eax,[curx]
-push eax
-mov eax,[resx_carac]
-shr eax,3
-xor edx,edx
-mov ecx,[resy_carac]
-mul ecx
-mov ecx,eax ;ecx=taille carac
-pop eax
-xor edx,edx
-mul ecx
-add esi,eax ;esi=pos cara 
-
-boucle_touche_suppr:
-mov dword[esi],0
-add esi,4
-sub ecx,4
-jnz boucle_touche_suppr 
-
-jmp aff_table
-
-
+ret
 
 clique_souris1:
 mov byte[mode],0
@@ -1049,6 +1074,7 @@ dec cl
 shl edx,cl
 not edx
 and [esi],edx
+mov byte[modif],1
 jmp aff_table
 
 
@@ -1218,6 +1244,8 @@ sub cl,[curx2]
 dec cl
 shl edx,cl
 xor [esi],edx
+
+mov byte[modif],1
 jmp aff_table
 
 
