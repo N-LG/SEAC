@@ -111,8 +111,6 @@ cmp bl,3
 je enregistrer
 cmp bl,4
 je enregistrer_sous
-cmp bl,5
-je convertir
 jmp fin
 
 
@@ -142,17 +140,42 @@ cmp eax,0
 
 
 call eff_fichier
+mov dword[zone_tampon],"DEFC"
+
+;largeur du caractère
+mov byte[larg_carac],8
+mov dword[resx_carac],8
+
+
+;hauteur du caractère
+mov byte[haut_carac],16
+mov dword[resy_carac],16
+
 
 ;demande le numéros du premier caractère de la table
-;%%%%%%%%%%%%%%%%%%%%%%%
+mov edx,msg_nouv2
+call ajuste_langue
+mov al,11
+mov ah,07h ;couleur
+int 63h 
 
-;demande la largeur du caractère
-;%%%%%%%%%%%%%%%%%%%%%%%
+mov ah,07h
+mov edx,zt_nombre
+mov ecx,256
+mov al,6
+int 63h
 
-;demande la hauteur du caractère
-;%%%%%%%%%%%%%%%%%%%%%%%
+mov al,101
+mov edx,zt_nombre
+int 61h
+and ecx,0FFFFFF00h
+mov [num_1er_carac],ecx
 
-jmp menu
+mov dword[octet_par_ligne],1
+jmp aff_table
+
+
+
 
 
 ouvrir:
@@ -196,13 +219,6 @@ jmp menu
 
 
 
-;****************************
-convertir:
-;%%%%%%%%%%%%%%%%%%%%%%%
-jmp menu
-
-
-
 
 ;****************************
 fin:
@@ -210,7 +226,7 @@ cmp byte[modif],0    ;check si le secteur a été modifié
 je fin_abs
 
 
-call raz_ecr
+call raz_txt
 mov edx,msg_modif
 call ajuste_langue
 mov al,11
@@ -483,8 +499,6 @@ mov al,[larg_carac]
 mov cl,[haut_carac]
 mov [resx_carac],eax
 mov [resy_carac],ecx
-shr eax,3
-mul ecx
 mov eax,1
 mov [octet_par_ligne],eax
 
@@ -1468,15 +1482,12 @@ db "backup",13
 
 db "save as",13
 
-db "convert",13
-
 db "exit",13,13,0
 db "continuer l'édition",13
 db "nouveau",13
 db "ouvrir",13
 db "sauvegarder",13
 db "sauvegarder sous",13
-db "convertir",13
 db "quitter",13,13,0
 
 
@@ -1496,9 +1507,11 @@ msg_nouv1:
 db "what is the name of the file you want to create?",13,0
 db "quel est le nom du fichier que vous souhaitez créer?",13,0
 
+
 msg_nouv2:
-db "file creation failed",13
-db "la création de fichier a échoué",13
+db 13,13,13,"What is the Unicode number of the first character in the table?",13,"(in Hexadecimal, multiple of 256)",13,0
+db 13,13,13,"quel est le numéro Unicode du premier caractère de la table?",13,"(en Héxadécimal, multiple de 256)",13,0
+
 
 msg_ouv1:
 db "which file do you want to open?",13,0
