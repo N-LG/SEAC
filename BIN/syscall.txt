@@ -1,0 +1,2004 @@
+:sommaire
+ les fonctions système sont appelé avec les interruptions 60h à 6Fh en assembleur ou avec leurs ~fonctionsC~ équivalent en C
+ si il y as plusieurs fonction disponible, le numéros de la fonction sera dans le registre al
+
+ ~int60h~ termine la tache en cours
+ ~int61h~ fonctions générales
+ ~int62h~ force la commutation de tâche
+ ~int63h~ fonctions d'interface
+ ~int64h~ fonctions fichier
+ ~int65h~ fonction de communication inter-tâche
+ ~int66h~ fonctions port série et parallèles
+ ~int68h~ fonctions périphériques usb
+
+ codes d'~erreurs~
+ codes de ~services~
+
+
+
+
+:int60h
+^int 60h
+ termine la tache en cours (pas d'argument)
+
+ équivalent C: ~stop()~
+
+                                      
+:int61h
+^int 61h fonctions générales
+ ~int61h,0~  envoyer une commande au système
+ ~int61h,1~  mettre en veille la tache
+ ~int61h,2~  obtenir ID
+ ~int61h,3~  obtenir commande
+ ~int61h,4~  obtenir option dans commande (par n°)
+ ~int61h,5~  obtenir option dans commande (par lettre)
+ ~int61h,6~  écrire une ligne dans le journal
+ ~int61h,7~  modifier descriptif de la tache
+ ~int61h,8~  modifier taille d'un segment de la tache
+ ~int61h,9~  lire la date et l'heure actuelle
+ ~int61h,10~ déclarer son type de service
+ ~int61h,11~ rechercher un service
+ ~int61h,12~ lire compteur temps
+ ~int61h,13~ obtenir message système
+ ~int61h,14~ lire le journal
+ ~int61h,15~ copier des données dans la zone de copier/coller
+ ~int61h,16~ lire les données dans la zone de copier/coller
+ ~int61h,17~ effacer la zone de copier/coller
+ ~int61h,18~ lire le dossier de travail en cours
+ ~int61h,19~ rechercher les taches que l'on as crée
+ 
+ ~int61h,100~ convertir chaine décimale asciiz en entier 32bits
+ ~int61h,101~ convertir chaine hexadécimale en entier 32bits
+ ~int61h,102~ convertir entier 32bits en chaine décimale asciiz
+ ~int61h,103~ convertir entier 32bits en chaine hexadécimale asciiz
+ ~int61h,104~ convertir entier 16bits en chaine hexadécimale asciiz
+ ~int61h,105~ convertir entier 8bits en chaine hexadécimale asciiz
+ ~int61h,108~ convertir chaine asciiz en adresse Ethernet 
+ ~int61h,109~ convertir chaine asciiz en adresse ipv4
+ ~int61h,110~ convertir chaine asciiz en adresse ipv6
+ ~int61h,111~ convertir adresse Ethernet en chaine asciiz
+ ~int61h,112~ convertir adresse ipv4 en chaine asciiz
+ ~int61h,113~ convertir adresse ipv6 en chaine asciiz
+ ~int61h,114~ convertir chaine utf8Z en GUID/UUID(en cours de dévellopement)
+ ~int61h,115~ convertir GUID/UUID en chaine utf8Z(en cours de dévellopement)
+ ~int61h,116~ convertir données base64 en données binaires
+ ~int61h,117~ convertir données binaires en base64 
+ ~int61h,118~ convertir données binaires en base64url
+ ~int61h,119~ convertire un compteur temp unix (unix timestamp) en date et heure 
+ ~int61h,120~ convertire une date et une heure en un compteur temp unix (unix timestamp)
+ ~int61h,150~ calcul un crc16
+ ~int61h,151~ calcul un crc32
+ ~int61h,152~ décompresse une zone compressé par deflate
+ ~int61h,153~ décompresse un fichier compressé par deflate
+
+
+:int61h,0
+^envoyer une commande au système
+%entrées:
+ al = 0
+ ds:edx = pointeur vers la commande a envoyer sous la forme d'une chaine utf8Z
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ 
+ équivalent C: ~cmd()~ 
+
+
+:int61h,1
+^mettre la tache en pause
+%entrées:
+ al = 1
+ ecx = durée de la pause divisé par 2.5ms
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~delay()~ 
+
+
+
+:int61h,2
+^obtenir l'ID de la tâche
+%entrées:
+ al = 2
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ bx = ID de la tache
+ équivalent C: ~id_tache()~ 
+
+
+
+:int61h,3
+^lire la commande qui as appelé la tache
+%entrées:
+ al = 3
+ ds:edx = zone de 512 octet ou sera écrit la commande
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~arg_tot()~ 
+
+
+
+:int61h,4
+^lire un argument de la tache (par numéro)
+%entrées:
+ al = 4ah = numéros de l'argumentds:edx = pointeur vers la zone mémoire ou copier l'argument
+ cl = taille maximum (0=256)
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~arg_num()~ 
+
+
+
+:int61h,5
+^lire un argument de la tache (par lettre)
+%entrées:
+ al = 5
+ ah = lettre de l'argument
+ ds:edx = pointeur vers la zone mémoire ou copier l'argument sous la forme d'une chaine utf8Z
+ cl = taille maximum (0=256)
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~arg_lettre()~ 
+
+
+
+:int61h,6
+^ajouter du texte dans le journal systeme
+%entrées:
+ al = 6
+ ds:edx = pointeur vers le texte a écrire dans le journal sous la forme d'une chaine utf8Z
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~printJ()~ 
+
+
+
+:int61h,7
+^modifier le descripteur de la tâche
+%entrées:
+ al = 7
+ ds:edx = pointeur vers le texte a écrire dans le descripteur de tache sous la forme d'une chaine utf8Z
+%sorties:
+ eax = ~erreurs~ code d'erreur
+ équivalent C: ~printD()~ 
+
+
+
+:int61h,8
+^modifier la taille d'un des segment de la tâche
+%entrées:
+ al = 8
+ dx = sélecteur du segment a modifier
+ ecx = taille du segment souhaité
+%sorties:
+ eax =  codes d'~erreurs~
+
+ équivalent C: ~changeT()~ 
+
+
+
+:int61h,9
+^lire la date et l'heure
+%entrées:
+ al = 9
+%sorties:
+ bh = heure
+ bl = minute
+ si = seconde (en millième)
+ dl = jour
+ dh = mois
+ cx = année
+
+ équivalent C: ~lireDH()~ 
+
+
+
+:int61h,10
+^change le code de service de la tâche
+%entrées:
+ al = 10
+ ah = code ~services~
+%sorties:
+ eax =  codes d'~erreurs~
+
+ équivalent C: ~changeS()~ 
+
+
+
+:int61h,11
+^recherche des services
+%entrées:
+ al = 11
+ ah = ~services~ code service recherché
+ ds:edx = pointeur vers la zone ou copier la table des services
+ cl = nombre de service maximum dans la table
+%sorties:
+ eax =  codes d'~erreurs~
+
+ équivalent C: ~rechercheS()~ 
+
+
+
+:int61h,12
+^lire le compteur temps
+%entrées:
+al = 12
+%sorties:
+ eax = 32bit de poids faible du compteur temps
+ edx = 32bit de poids fort du compteur temps
+
+
+
+:int61h,13
+^lire  message système et message d'erreur
+%entrées:
+ al = 13
+ ah = type de message (0 = système, 1 = erreur)
+ ds:edx = pointeur vers la zone ou copier le message sous la forme d'une chaine utf8Z
+ cl = numéros du message
+ ch = taille maximum du message
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int61h,14
+^lire le journal système
+%entrées:
+ al = 14
+ es:edx = pointeur vers la zone ou copier le journal sous la forme d'une chaine utf8Z
+ ecx = taille maximum du message
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,15
+^copier des données dans le presse papier
+%entrées:
+ al = 15
+ es:edx = pointeur vers les données a copierecx = taille des données a copier
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,16
+^lire des données dans le presse papier
+%entrées:
+ al = 16
+ es:edx = pointeur vers l'endroit ou il faut écrire le presse papierecx = taille des données a maximum que l'on peut écrire
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,17
+^effacer le contenue du presse papier
+%entrées:
+ al = 17
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,18
+^lire l'adresse du dossier de travail
+%entrées:
+ al = 18
+ es:edx = pointeur vers la zone de 512 octet ou copier l'adresse du dossier de travail sous la forme d'une chaine ~utf8Z~
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,19
+^recherche les taches que l'on as créer
+%entrées:
+ al = 11
+ ds:edx = pointeur vers la zone ou copier la table des id de tache
+ cl = nombre de tache maximum dans la table
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+
+:int61h,100
+^convertir une chaine de caractère représentant un nombre décimal
+%entrées:
+ al = 100
+ ds:edx = pointeur vers la chaine a convertir
+%sorties:
+ eax =  codes d'~erreurs~
+ ecx = valeur de ce nombre
+
+
+
+:int61h,101
+^convertir une chaine de caractère représentant un nombre hexadécimal
+%entrées:
+ al = 101
+ ds:edx = pointeur vers la chaine a convertir
+%sorties:
+ eax =  codes d'~erreurs~
+ ecx = valeur de ce nombre
+
+
+
+:int61h,102
+^convertir un nombre 32bits en une chaine de caractère de sa représentation décimal
+%entrées:
+ al = 102
+ ecx = nombre
+ ds:edx = pointeur vers une zone mémoire de 16 octet ou sera copié le résultat
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int61h,103
+^convertir un nombre 32bits en une chaine de caractère de sa représentation hexadécimal
+%entrées:
+ al = 103
+ ecx = nombre
+ ds:edx = pointeur vers une zone mémoire de 16 octet ou sera copié le résultat
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int61h,104
+^convertir un nombre 16bits en une chaine de caractère de sa représentation hexadécimal
+%entrées:
+ al = 104
+ ecx = nombre
+ ds:edx = pointeur vers une zone mémoire de 16 octet ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,105
+^convertir un nombre 8bits en une chaine de caractère de sa représentation hexadécimal
+%entrées:
+ al = 105
+ ecx = nombre
+ ds:edx = pointeur vers une zone mémoire de 16 octet ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,108
+^convertir une chaine de caractère représentant une adresse ethernet en adresse ethernet codé comme dans une trame
+%entrées:
+ al = 108
+ ds:ecx = pointeur vers l'adresse a convertir
+ ds:edx = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,109
+^convertir une chaine de caractère représentant une adresse ipv4 en adresse ipv4 codé comme dans une trame
+%entrées:
+ al = 109
+ ds:ecx = pointeur vers l'adresse a convertir
+ ds:edx = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,110
+^convertir une chaine de caractère représentant une adresse ipv6 en adresse ipv6 codé comme dans une trame
+%entrées:
+ al = 110
+ ds:ecx = pointeur vers l'adresse a convertir
+ ds:edx = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,111
+^convertir adresse ethernet codé comme dans une trame en une chaine de caractère représentant une adresse ethernet
+%entrées:
+ al = 111
+ ds:ecx = pointeur vers la a zone ou sera copié le résultat
+ ds:edx = pointeur vers la chaine de caractère a convertir
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,112
+^convertir adresse ipv4 codé comme dans une trame en une chaine de caractère représentant une adresse ipv4
+%entrées:
+ al = 112
+ ds:ecx = pointeur vers la a zone ou ser copié le résultat
+ ds:edx = pointeur vers la chaine de caractère a convertir
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,113
+^convertir adresse ipv6 codé comme dans une trame en une chaine de caractère représentant une adresse ipv6
+%entrées:
+ al = 113
+ ds:ecx = pointeur vers la a zone ou ser copié le résultat
+ ds:edx = pointeur vers la chaine de caractère a convertir
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,116
+^convertir une chaine Base64(tout type) en binaire
+%entrées:
+al = 116ds:esi = chaine en base64 a convertirecx = taille de la chaineds:edi = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int61h,117
+^convertir donnée binaire en une chaine Base64 générale
+%entrées:
+ al = 117
+ ds:esi = données binaire a convertir
+ ecx = taille des donnée
+ ds:edi = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+eax = codes d'~erreurs~
+
+
+
+:int61h,118
+^convertir donnée binaire en une chaine Base64 pour Url 
+%entrées:
+ al = 118
+ ds:esi = données binaire a convertire
+ cx = taille des donnée
+ ds:edi = pointeur vers une zone mémoire ou sera copié le résultat
+%sorties:
+ eax =  codes d'~erreurs~
+
+:int61h,119
+^convertire un compteur temp unix (unix timestamp) en date et heure 
+%entrées:
+ al = 119
+ ecx = lsb du comteur temp
+ edx = msb du compteur temp
+%sorties:
+ eax =  codes d'~erreurs~
+ bh = heurebl = minute
+ si = seconde (en millième)
+ dl = jourdh = mois
+ cx = année
+
+
+
+:int61h,120
+^convertire une date et une heure en un compteur temp unix (unix timestamp)
+%entrées:
+ al = 119
+ bh = heure
+ bl = minute
+ si = seconde (en millième)
+ dl = jour
+ dh = mois
+ cx = année
+%sorties:
+ eax = codes d'~erreurs~
+ ecx = lsb du comteur temp
+ edx = msb du compteur temp
+
+
+
+:int61h,150
+^calcul un CRC16
+%entrées:
+ al = 150
+ ds:esi = début de la chaine
+ ecx = Nb d'octet de la chain
+ ebx = valeur initiale du CRC
+ dx = "polynome"
+%sorties:
+ ax = valeur du CRC
+
+
+
+:int61h,151
+^calcul un CRC32
+%entrées:
+ al = 151
+ ds:esi = début de la chaine
+ ecx = Nb d'octet de la chaine
+ ebx = valeur initiale du CRC
+ edx = "polynome"
+%sorties:
+ eax = valeur du CRC
+
+
+
+:int61h,152
+^décompression deflate
+%entrées:
+ al = 152
+ ds:esi = pointeur vers les données a décompresser
+ es:edi = pointeur ver la zone ou seront décompressé les données
+%sorties:
+ eax = codes d'~erreurs~
+ esi = nombre d'octet de la partie compressé
+ edi = nombre d'octet de la partie decompressé
+
+
+
+:int61h,153
+^décompression de fichier deflate
+%entrées: 
+ al = 153
+ edx = adresse dans le fichier ou se trouve les données compressé
+ esi = n° du descripteur du fichier compressé
+ edi = n° du descripteur du fichier ou seront décopressé les données
+%sorties:
+ eax = codes d'~erreurs~
+ esi = nombre d'octet de la partie compressé
+ edi = nombre d'octet de la partie decompressé
+
+
+
+
+:int62h
+^int 62h
+ force la commutation de tâche (pas d'argument)
+ équivalent C: ~raf()~ 
+
+:int63h
+^int 63h
+fonctions d'interface
+ ~int63h,0~  création console
+ ~int63h,1~  suppression console
+ ~int63h,2~  obtenir information écran
+ ~int63h,3~  change la console affiché
+ ~int63h,5~  obtient le caractère+touche de la fifo de réception clavier
+ ~int63h,6~  acquisition d'une chaine de caractère validé par entrée
+ ~int63h,7~  demande la mise a jour complète de l'écran
+ ~int63h,8~  demande la mise a jour partielle de l'écran
+ ~int63h,10~ écrire une chaine utf8Z a une position défini
+ ~int63h,11~ écrire une chaine a la position du curseur
+ ~int63h,12~ définir la position du curseur
+ ~int63h,13~ système de choix par menu
+ ~int63h,14~ barre de progression mode texte
+ ~int63h,21~ dessine un pixel a la position x y avec une couleur prédéterminé
+ ~int63h,22~ dessiner un carré de couleur avec une couleur prédéterminé
+ ~int63h,23~ dessiner un segment avec une couleur prédéterminé
+ ~int63h,24~ dessiner un disque avec une couleur prédéterminé
+ ~int63h,25~ écrire une chaine a la position x y
+ ~int63h,26~ écrire une chaine a la position x y suivant une largeur maximale
+ ~int63h,27~ écrire une image a la position x y
+ ~int63h,50~ crée une image vide
+ ~int63h,51~ lit les caractéristiques d'un fichier image
+ ~int63h,52~ lit l'image d'un fichier image
+ ~int63h,53~ déplace une image avec réadaptation de la taille
+ ~int63h,54~ déplace un fragment d'image
+ ~int63h,55~ insère une image dans une autre
+
+
+
+:int63h,0
+^création console
+%entrées:
+ al = 0ah = options
+ dx = selecteur du segment a uttiliser pour la console
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int63h,1
+^fermeture console
+%entrées:
+ al = 1
+%sorties:
+ aucunes sorties
+
+
+
+:int63h,2
+^lit les caractéristiques de l'écran
+%entrées:
+ al = 2
+ ds:edx = pointeur ou copier la table des informations (voir ci dessous)
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int63h,3
+^changement console affiché
+%entrées:
+ al = 3
+ dx = id de la tâche que l'on souhaite afficher
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int63h,5
+^lecture saisie clavier
+%entrées:
+ al = 5
+%sorties:
+ al = code de touche ou du bouton souris (valeurs F0h à FFh)
+ ah = état des touche spéciales
+	│7│6│5│4│3│2│1│0│  
+	 │ │ │ │ │ │ │ └───── Maj gauche
+  │ │ │ │ │ │ └────── Maj droit
+	 │ │ │ │ │ └─────── Ctrl gauche 
+	 │ │ │ │ └──────── Ctrl droit
+	 │ │ │ └───────── Alt
+	 │ │ └────────── Alt Gr
+	 └─┴─────────── innutilisé
+ ebx = 0 ou position X si souris
+ ecx = caractère associé a la touche ou position Y si souris
+
+
+
+:int63h,6
+^acquisition d'une chaine
+%entrées:
+ al = 6
+ ah = couleur
+ ds:edx=adresse ou sera ecrit la chaine (avec chaine de pré remplissage obligatoire)
+ ecx = nombre d'octet max
+%sorties:
+ al = code touche qui a validé la saisie
+
+
+
+:int63h,7
+^demande la mise a jour complète de l'écran
+%entrées:
+ al = 7
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,8
+^demande la mise a jour partielle de l'écran
+%entrées:
+ al = 8
+ ebx = coordonnée X coin supérieur gauche
+ ecx = coordonnée Y coin supérieur gauche
+ esi = coordonné X coin inférieur droit
+ edi = coordonné X coin inférieur droit
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,10
+^écrire une chaine utf8Z a une position défini
+%entrées:
+ al = 10
+ ah = couleur
+ ds:edx = pointeur vers chaine de caractère ~utf8Z~
+ ebx = position en X
+ ecx = position en Y
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,11
+^écrire une chaine a la position du curseur
+%entrées:
+ al = 11
+ ah = couleur
+ ds:edx = pointeur vers chaine de caractère utf8z
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+:int63h,12
+^définir la position du curseur
+%entrées:
+ al = 12
+ ebx = position en X
+ ecx = position en Y
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+:int63h,13
+^système de choix par menu
+%entrées:
+ al = 13
+ bl = ligne preselectionné
+ bh = couleur de base (3bits)
+ cl = première ligne du menuch = nombre de ligne  
+%sorties:
+ eax = codes d'~erreurs~
+ bl = ligne selectionné
+ bh = touche qui as validé
+
+
+
+:int63h,14
+^barre de progression mode texte
+%entrées:
+ al = 14
+ esi = progression
+ edi = total
+ ebx = position X de la barre
+ ecx = position Y de la barree
+ dx = taille de la barre en nombre de caractère
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int63h,21
+^dessine un pixel a la position x y avec une couleur prédéterminé
+%entrées:
+ al = 21
+ ah = bit par pixel de la couleur
+ bx = position X
+ cx = position Y
+ edx = couleur 
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,22
+^dessiner un carré de couleur avec une couleur prédéterminé
+%entrées:
+ al = 22
+ ah = bit par pixel de la couleur
+ bx = coordonnée X coin supérieur gauche
+ cx = coordonnée Y coin supérieur gauche
+ si = coordonné X coin inférieur droit
+ di = coordonné Y coin inférieur droit
+ edx = couleur 
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,23
+^dessiner un segment avec une couleur prédéterminé
+%entrées:
+ al = 23
+ ah = bit par pixel de la couleur
+ bx = coordonnée X début
+ cx = coordonnée Y début
+ si = coordonné X fin
+ di = coordonné Y fin
+ edx = couleur
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,24
+^dessiner un disque avec une couleur prédéterminé
+%entrées:
+ al = 24
+ ah = bit par pixel de la couleur
+ bx = position X
+ cx = position Y
+ edx = couleur
+ esi=rayon du disque
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,25
+^écrire une chaine a la position x y
+%entrées:
+ al = 25
+ ah = couleur
+ bx = position X
+ cx = position Y
+ ds:edx = pointeur vers la chaine ~utf8Z~
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,26
+^écrire une chaine a la position x y suivant une largeur maximale
+%entrées:
+ al = 26
+ ah = couleur
+ bx = position X
+ cx = position Y
+ ds:edx = pointeur vers la chaine ~utf8Z~
+ esi = nombre de caractère max en largeur
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int63h,27
+^écrire une image a la position x y
+%entrées:
+ al = 27
+ bx = position X
+ cx = position Y
+ ds:edx = pointeur vers une image au format ~BMS~
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,50
+^crée une image vide
+%entrées:
+ al = 50
+ ah = nombre de bit par couleur
+ ebx = largeur de l'image
+ ecx = hauteur de l'image
+ edx = couleur de l'image
+ ds:edi=position de l'image
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,51
+^lit les caractéristiques d'un fichier image
+%entrées:
+ al = 51
+ ebx = Id du fichier image
+%sorties:
+ eax = codes d'~erreurs~
+ ebx = largeur de l'image
+ ecx = hauteur de l'image
+ edx = [24MSB = taille image au format BMS 8LSB = bit par pixel]
+
+
+
+:int63h,52
+^lit l'image d'un fichier image
+%entrées:
+ al = 52
+ ebx = Id du fichier image
+ es:edi = adresse ou copier l'image
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,53
+^déplace une image avec réadaptation de la taille
+%entrées:
+al = 53
+ ds:esi = image d'origine
+ ds:edi = image de sortie
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int63h,54
+^extrait un fragment d'image
+%entrées:
+ al = 54
+ ds:esi = image d'origine
+ es:edi = image de sortie
+ ebx = position x du fragment
+ ecx = position y du fragment
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int63h,55
+^insère une image dans une autre
+%entrées:
+ al = 55
+ ds:esi = image d'origine
+ ds:edi = image de sortie
+ ebx = position x du fragment
+ ecx = position y du fragment
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+
+:int64h
+^int 64h
+ fonctions fichier
+ ~int64h,0~  ouvrir fichier
+ ~int64h,1~  fermer le fichier
+ ~int64h,2~  créer fichier
+ ~int64h,3~  supprimer fichier
+ ~int64h,4~  lit le fichier
+ ~int64h,5~  ecrire dans le fichier
+ ~int64h,6~  lit les attributs d'un fichier
+ ~int64h,7~  ecrire les attributs d'un fichier
+ ~int64h,8~  lire dans un secteur
+ ~int64h,9~  ecrire dans un secteur
+ ~int64h,10~ lire les information d'un disque
+ ~int64h,11~ définit le msb du numéros de secteur lors des fonction 8 et 9
+ ~int64h,12~ met a jour la table des partition d'un disque
+ ~int64h,13~ definis vitesse disque
+ ~int64h,14~ définis le msb de l'adresse de lecture/ecriture fichier (fonction 4 et 5)
+ ~int64h,15~ réserve espace pour fichier
+ ~int64h,16~ lit contenue répertoire
+ ~int64h,17~ lit disques disponible
+ ~int64h,18~ lit nombre de secteur et taille secteur
+
+
+:int64h,0
+^ouvrir fichier
+%entrées:
+ al = 0
+ ds:edx = chaine de caractère du nom du fichier a ouvrir
+ ebx = numéros de dossier qui contient
+%sorties:
+ eax =  codes d'~erreurs~bx=numéros du fichier
+ équivalent C: ~open_file()~ 
+
+
+
+:int64h,1
+^fermer fichier
+%entrées:
+ al = 1
+ ebx = numéros du fichier a fermer  
+%sorties:
+ eax =  codes d'~erreurs~
+ équivalent C: ~close_file()~ 
+
+
+
+:int64h,2
+^créer fichier
+%entrées:
+ al = 2
+ ds:edx = chaine de caractère du nom du fichier a créer
+ ebx = numéros de dossier qui contiendra le fichier
+%sorties:
+ eax =  codes d'~erreurs~
+ bx = numéros du fichier
+ équivalent C: ~create_file()~ 
+
+
+
+:int64h,3
+^supprimer fichier
+%entrées:
+ al = 3
+ ebx = numéros du fichier a fermer
+%sorties:
+ eax = codes d'~erreurs~
+ équivalent C: ~delete_file()~ 
+
+
+
+:int64h,4
+^lit le fichier
+%entrées:
+ al = 4
+ es:edi = zone ou copier les données
+ ebx = numéros du fichier ouvert
+ edx = offset dans le fichier
+ ecx = quantité a lire
+%sorties:
+ eax = codes d'~erreurs~
+ équivalent C: ~read_file()~ 
+
+
+
+:int64h,5
+^ecrire dans le fichier
+%entrées:
+ al = 5
+ es:esi = adresse des données a copier
+ ebx = numéros du fichier ouvert
+ edx = offset dans le fichier
+ ecx = quantité a ecrire
+%sorties:
+ eax = codes d'~erreurs~
+ équivalent C: ~write_file()~
+
+
+
+:int64h,6
+^lit les attributs d'un fichier
+%entrées:
+ al = 6
+ ah = type d'attribut a lire(0=nom 1=taille fichier 2=attributs)
+ ebx = numéros du fichier
+ ds:edx=destination des données demandé
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int64h,7
+^ecrire les attributs d'un fichier
+%entrées:
+ al = 7
+ ah = type d'attribut a modifier(0=nom 1=taille fichier 2=attributs)
+ ebx = numéros du fichier
+ ds:edx = données demandé
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int64h,8
+^lire dans un secteur
+%entrées:
+ al = 8
+ ch = n° de disque
+ cl = nombre de secteur a lire
+ ebx = numéros de secteur
+ es:edi = zone de destination
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int64h,9
+^ecrire dans un secteur
+%entrées:
+ al = 9
+ ch = n° de disque
+ cl = nombre de secteur a lire
+ ebx = numéros de secteur
+ ds:esi = donnée a écrire
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int64h,10
+^lire les information d'un disque
+%entrées:
+ al = 10
+ ch = n° de disque
+ es:edi = zone de destination
+%sorties:
+ eax =  codes d'~erreurs~
+
+:int64h,11
+^définit le msb du numéros de secteur lors des fonction 8 et 9
+ (en cours de dévellopement)
+
+
+:int64h,12
+^met a jour la table des partition d'un disque
+%entrées:
+ al = 12
+ ch = n° de disque
+%sorties:
+ eax =  codes d'~erreurs~
+
+:int64h,13
+^definis vitesse disque
+ (en cours de dévellopement)
+
+:int64h,14
+^définis le msb de l'adresse de lecture/ecriture fichier (fonction 4 et 5)
+ (en cours de dévellopement)
+
+
+:int64h,15
+^réserve espace pour fichier
+%entrées:
+ al = 15
+ ebx = numéros de descripteur fichier
+ ecx = taille du fichier a reserver
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int64h,16
+^lit contenue répertoire
+%entrées:
+ al = 16
+ ds:edi = zt ou copier les données
+ ecx = taille max
+ edx = premier fichier a lire
+%sorties:
+ eax =  codes d'~erreurs~
+ ebx = nombre de fichier chargé dans la zt
+
+
+
+:int64h,17
+^lit disques disponible
+%entrées:
+ al = 17
+ ds:edx = pointeur ou copier le bitmap de 32 octet
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+ octet 0 à 15 partitions
+ octet 16 a 19 usb
+ octet 20 a 23 sata
+ octet 24 a 28 reservé
+ octet 29 = b0-b6 reservé b7= disquette 
+ octet 30 = cdrom (ide+sata)
+ octet 31 = ata/atapi  
+
+
+
+:int64h,18
+^lit nombre de secteur et taille secteur
+%entrées:
+ al = 18
+ ch = numéros de disque
+%sorties:
+ eax =  codes d'~erreurs~
+ ecx = taille des secteurs
+ edx = msb nb de secteur
+ ebx = lsb nb de secteur
+
+
+
+
+
+:int65h
+^int 65h
+ fonction de communication inter-tâche
+
+ ~int65h,0~ ouverture canal
+ ~int65h,1~ fermeture canal
+ ~int65h,2~ tester changement descripteur
+ ~int65h,3~ tester donnée disponible sur canaux
+ ~int65h,4~ lire descripteur
+ ~int65h,5~ ecrire descripteur
+ ~int65h,6~ lire donnée sur canal
+ ~int65h,7~ envoyer donnée sur canal
+ ~int65h,8~ attendre changement descripteur sur canal
+ ~int65h,9~ attendre donnée disponible sur canal
+ ~int65h,10~ lire info sur canal
+
+
+:int65h,0
+^ouverture canal
+%entrées:
+ al = 0
+ bx = ID de la tache avec qui communiquer
+ ecx = taille du descripteur
+ edx = attribut canal
+ esi = taille de la zone tampon d'envoie ou masque d'alignement mode 2
+ edi = taille de la zone tampon de reception
+%sorties:
+ eax =  codes d'~erreurs~
+ ebx = adresse de la zone dans la mémoire haute
+ edx = adresse physique du descripteur
+
+
+
+:int65h,1
+^fermeture canal
+%entrées:
+ al = 1
+ ebx = adresse du canal dans la mémoire haute
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int65h,2
+^tester changement descripteur
+%entrées:
+ al = 2
+%sorties:
+ eax =  codes d'~erreurs~
+ ebx = adresse du canal dans la mémoire haute
+
+
+
+:int65h,3
+^tester donnée disponible sur canaux
+%entrées:
+ al = 3
+%sorties:
+ eax = codes d'~erreurs~
+ ebx = adresse du canal dans la mémoire haute
+
+
+
+:int65h,4
+^lire descripteur
+%entrées:
+ al = 4
+ ebx = adresse du canal dans la mémoire haute
+ ecx = quantité a lire
+ esi = adresse dans la zone
+ es:edi = desitination
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int65h,5
+^ecrire descripteur
+%entrées:
+ al = 5
+ ebx = adresse du canal dans la mémoire haute
+ ecx = quantité a lire
+ edi = adresse dans la zone
+ ds:esi = origine des données
+%sorties:
+ eax =  codes d'~erreurs~
+
+
+
+:int65h,6
+^lire donnée sur canal
+%entrées:
+ al = 6
+ ebx = adresse du canal dans la mémoire haute
+ ecx = taille des donnée maximum a lire
+ es:edi = zone ou seront écrite les données
+%sorties:
+ eax = codes d'~erreurs~
+ ecx = taille des données lue
+
+
+
+:int65h,7
+^envoyer donnée sur canal
+%entrées:
+ al = 7
+ ebx = adresse du canal dans la mémoire haute
+ ecx = taille des donnée a envoyer
+ ds:esi = données a envoyer
+%sorties:
+ eax = codes d'~erreurs~
+ ecx = taille des données écrite
+
+
+
+:int65h,8
+^attendre changement descripteur sur canal
+%entrées:
+ al = 8
+ ebx = adresse du canal dans la mémoire haute
+ ecx = temps a attendre
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int65h,9
+^attendre donnée disponible sur canal
+%entrées:
+ al = 9
+ ebx = adresse du canal dans la mémoire haute
+ ecx = temps a attendre
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int65h,10
+^lire info sur canal
+%entrées:
+ al = 10
+ ebx = adresse du canal dans la mémoire haute
+%sorties:
+ eax = codes d'~erreurs~
+ bx = ID de la tache au bout du canal
+ ecx = taille du descripteuredx = attribut canal
+ esi = taille de la zone tampon d'envoie
+ edi = taille de la zone tampon de reception
+ ebp = données en attente de lecture
+
+
+:int66h
+^int 66h
+ fonctions port série et parallèles
+ ~int66h,0~ envoyer octet
+ ~int66h,1~ envoyer chaine
+ ~int66h,2~ reçevoir octet
+ ~int66h,3~ reçevoir chaine
+ ~int66h,4~ lecture des bit de controle des ports
+ ~int66h,5~ ecriture des bit de controle des ports
+ ~int66h,6~ configurer port
+ ~int66h,7~ reserver accès port
+ ~int66h,8~ liberer accès port
+ ~int66h,9~ changer la taille de la zt de reception
+
+
+
+:int66h,0
+^envoyer octet
+%entrées:
+ al = 0
+ ah = numéros de port
+ cl = octet a envoyer
+%sorties:
+ eax = codes d'~erreurs~
+
+ numéros de port
+ 0 à 7 Port COM 1 à COM 8
+ 8 à 15 Port LPT 1 à LPT 8
+
+
+:int66h,1
+^envoyer chaine
+%entrées:
+ al = 1
+ ah = numéros de port
+ es:esi = donnée a envoyer
+ ecx = nombre d'octet a envoyer
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int66h,2
+^reçevoir octet
+%entrées:
+ al = 2
+ ah = numéros de port
+%sorties:
+ eax = codes d'~erreurs~
+ cl = octet reçu
+
+
+
+:int66h,3
+^reçevoir chaine
+%entrées:
+ al = 3
+ ah = numéros de port
+ es:edi = zone ou ecrire les données
+ ecx = nombre d'octet a reçevoir maximum
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+:int66h,4
+^lecture des bit de controle des ports
+%entrées:
+ al = 4
+ ah = numéros de port
+%sorties:
+ eax = code d'erreur
+ ecx = bit d'état
+
+
+ bit de controle pour port COM
+ 0 DTR
+ 1 RTS
+ 2 CTS
+ 3 DSR
+ 4 RI
+ 5 DCD/RLSD
+
+ bit de controle pour port LPT
+ 0 saut de page
+ 1 reset
+ 2 selection périphérique
+ 3 signal erreur
+ 4 signal périphérique on line
+ 5 signal plus de papier
+
+
+
+:int66h,5
+^ecriture des bit de controle des ports
+%entrées:
+ al = 5
+ ah = numéros de port
+ ecx = bit d'état
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int66h,6
+^configurer port com
+%entrées:
+ al = 6
+ ah = numéros de port
+ ecx = vitesse du port (max 115200bit/s)
+ dl = attribut
+%sorties:
+ eax = codes d'~erreurs~
+
+ détail des attributs
+ 0 0 = 7 bits par caractère 1 = 8bit par caractère
+ 1 innutilisé
+ 2 0 = 1 bit de stop, 1 =  2 bit de stop 
+ 3 0 = pas de bit de parité, 1 = présence d'un bit de parité
+ 4 0 = parité impaire(odd), 1 = parité paire(even)
+
+
+:int66h,7
+^reserver accès port
+%entrées:
+ al = 7
+ ah = numéros de port
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int66h,8
+^liberer accès port
+%entrées:
+ al = 8
+ ah = numéros de port
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int66h,9
+^changer la taille de la zt de reception d'un port com
+%entrées:
+ al = 9
+ ah = numéros de porte
+ cx = taille de la zone tampon de réception
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+
+
+
+
+:int68h
+^int 68h
+fonctions périphériques usb
+ ~int68h,0~ réservation périphérique
+ ~int68h,1~ liberation acces périphérique
+ ~int68h,2~ lecture descripteur
+ ~int68h,3~ selection configuration actuelle
+ ~int68h,10~ envoie commande brute
+ ~int68h,11~ echange données bulk
+ ~int68h,12~ ouverture connexion isocrone vers terminaison(en cours de dévellopement)
+ ~int68h,13~ ouverture connexion interruption vers terminaison(en cours de dévellopement)
+ ~int68h,14~ fermeture connexion iso ou int(en cours de dévellopement)
+ ~int68h,15~ echange données canal isocrone ou int (en cours de dévellopement)
+
+
+
+
+:int68h,0
+^réservation périphérique
+%entrées:
+ al = 0
+ bl = adresse du périphérique à reserver
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,1
+^liberation acces périphérique
+%entrées:
+ al = 1
+ bl = adresse du périphérique à liberer
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,2
+^lecture descripteur
+%entrées:
+ al = 2
+ bl = adresse du périphérique
+ bh = terminaison   `???????????????????????????`
+ dl = index du descripteur
+ dh = type de descripteur
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,3
+^selection configuration actuelle
+%entrées:
+ al = 3
+ `??????????????????????????????????????????`
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+:int68h,10
+^envoie commande
+%entrées:
+ al = 10
+ bl = adresse du périphérique
+ bh = terminaison  `????????????????????????`
+ dl = index du descripteur
+ dh = type de descripteur
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,11
+^echange donnée bulk
+%entrées:
+ al = 11
+ bl = adresse du périphérique
+ bh = terminaison + sens
+ dl = index du descripteur
+ dh = type de descripteur
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,12
+^ouverture canal isocrone
+%entrées:
+ al = 12
+ bl = adresse du périphérique
+ bh = terminaison
+ ecx = taille d'une trame
+%sorties:
+ eax = codes d'~erreurs~
+ ebx = adresse du canal si aucunes erreurs
+
+:int68h,13
+^ouverture canal interruption
+%entrées:
+ al = 13
+ bl = adresse du périphérique à liberer
+ bh = terminaison
+ dl = periodicité
+ ecx = taille d'une trame
+%sorties:
+ eax = codes d'~erreurs~
+ ebx = adresse du canal si aucunes erreurs
+
+:int68h,14
+^fermeture canal isocrone ou interruption
+%entrées:
+ al = 14
+ ebx = adresse du canal a fermer
+%sorties:
+ eax = codes d'~erreurs~
+
+
+:int68h,15
+^echange de donné sur canal isocrone ou interruption
+%entrées:
+ al = 15
+ ebx = adresse du canal 
+ ecx =taille des données a transferer
+ ds:edx =adresse de la zt des données
+%sorties:
+ eax = codes d'~erreurs~
+
+
+
+
+
+
+
+
+:erreurs
+^codes d'erreurs
+  0 fonction exécute sans erreur
+  1 paramètre incorrecte
+  2 erreur de lecture
+  3 lecteur/disque/fichier non trouvé
+  4 erreur du système de fichier
+  5 erreur d'écriture
+  6 pas de réponse disque
+  7 disque occupé
+  8 fichier déjà ouvert
+  9 interdiction de lecture
+ 10 interdiction d'ouverture
+ 11 plus assez de mémoire
+ 12 le fichier ouvert est un dossier
+ 13 erreur d'origine inconnue (normalement jamais utilisé, sauf erreur)
+ 14 nombre de couleur non reconnue
+ 15 écran absent
+ 16 zone tampon vide
+ 17 zone tampon pleine
+ 18 contrôleur ne répond pas
+ 19 contrôleur absent
+ 20 dossier non vide (dans le cas d'une suppression)
+ 21 dossier non vide (dans le cas d'une suppression)
+ 22 caractère interdit dans le nom de fichier
+ 23 création de fichier impossible
+
+
+:services
+^codes de services
+ 0 aucun service
+ 1 écran
+ 2 camera
+ 3 imprimante
+ 4 scanner
+ 5 son
+ 6 réseau Ethernet
+ 7 reseau wifi
+ 8 service dns
+ 9
+ 10 aucun service
+ 11 à 63 réservé pour les standard
+ 64 à 255 utilisable
+
+
+
+:fonctionsC
+^fonction en C
+ ~stop()~
+ ~cmd()~
+ ~delay()~
+ ~id_tache()~
+ ~arg_tot()~
+ ~arg_num()~
+ ~arg_lettre()~
+ ~printJ()~
+ ~printD()~
+ ~changeT()~
+ ~lireDH()~
+ ~changeS()~
+ ~rechercheS()~
+ ~compteur()~
+ ~message_systeme()~
+ ~message_erreur()~
+ ~lire_journal()~
+ ~ecrire_pp()~
+ ~lire_pp()~
+ ~effacer_pp()~
+ ~lire_dossier_travail()~
+ ~sous_taches()
+ ~deci()~
+ ~hexa()~
+ ~long2deci()~
+ ~long2hexa()~
+ ~etherS2B()~
+ ~ipv4S2B()~
+ ~ipv6S2B()~
+ ~etherB2S()~
+ ~ipv4B2S()~
+ ~ipv6B2S()~
+ ~base64binaire()~
+ ~raf()~
+ ~open_file()~
+ ~close_file()~
+ ~create_file()~
+ ~delete_file()~
+ ~read_file()~
+ ~write_file()~
+ ~taille_file()~
+ ~error_file()~
+
+
+
+
+
+:stop()
+^void stop()
+ termine la tache en cours
+
+
+:cmd()
+^void cmd(char* ¨commande¨)
+ Envoie une commande au systeme
+ ¨commande¨ = commande a envoyer au systeme
+
+
+:delay()
+^void delay(unsigned long ¨temps¨)
+ attend
+ ¨temps¨ = temps à attendre en milliseconde
+
+
+:id_tache()
+ ^unsigned int id_tache()
+ Renvoie l'id de la tache
+
+
+
+:arg_tot()
+^long arg_tot(char *¨string¨)
+ lit la commande de la tache
+ ¨string¨ = zone de 512 octet ou sera recopiéla commande
+
+
+:arg_num()
+^long arg_num(char ¨numero¨,char *string)
+ lit un argument par son numéros
+ ¨numero¨ = numéro de l'argument a lire
+ ¨string¨ = zone de 256 octet ou sera recopié l'argument
+
+
+:arg_lettre()
+^long arg_lettre(char ¨lettre¨,char *¨string¨)
+ lit un argument par sa lettre
+ ¨lettre¨ = numéro de l'argument a lire
+ ¨string¨ = zone de 256 octet ou sera recopié l'argument
+
+
+
+:printJ()
+^void printJ(char *¨string¨)
+ ecrit dans le journal systeme
+ ¨string¨ = chaine a ecrire dans le journal
+
+
+:printD()
+^void printD(char *¨string¨)
+ change le descriptif de tache
+ ¨string¨ = chaine a ecrire dans le descripteur de tache
+
+
+:changeT()
+^long changeT(long ¨taille¨)
+ change la taille mémoire occupé par la tache
+ ¨taille¨ = taille souhaité
+
+
+:lireDH()
+^struct dateheure lireDH()
+ lire la date et l'heure
+ renvoie une structure d type dateheure
+
+
+:changeS()
+^void changeS(unsigned char ¨service¨)
+ change le service de la tache
+ ¨service¨ = ~services~ code service fournis par l'application
+
+
+:rechercheS()
+^unsigned long rechercheS(unsigned char ¨service¨,unsigned int *table,unsigned char taille)
+ recherche une tache par son service
+ ¨service¨ = ~services~ code service recherché
+ ¨table¨ = table d'int ou seront écrit la liste des id des tache 
+ ¨taille¨ = nombre d'entrée maximum de la table
+
+
+:compteur()
+^long compteur()
+ lit le compteur temps
+ ¨¨ =
+
+
+:message_systeme()
+^void message_systeme(int ¨num¨,char* ¨chaine¨)
+ charge un message systeme
+ ¨num¨ = numéros du message a charger
+ ¨chaine¨ = zone de 256 octet ou seront copié le message systeme
+
+
+:message_erreur()
+^void message_erreur(int ¨num¨,char* ¨chaine¨)
+ charge un message d'erreur
+ ¨num¨ =   codes d'~erreurs~
+ ¨chaine¨ = zone de 256 octet ou seront copié le message d'erreur
+
+
+:lire_journal()
+^void lire_journal(char* ¨chaine¨,long ¨taille¨)
+ lit le journal systeme
+ ¨chaine¨ = endroit ou copier le journal systeme
+ ¨taille¨ = nombre d'octet maximum du journal a lire
+
+
+:ecrire_pp()
+^void ecrire_pp(char* ¨chaine¨,long ¨taille¨)
+ ecrire dans le presse papier
+ ¨¨ =
+
+
+:lire_pp()
+^void lire_pp(char* chaine,long taille)
+ lit dans le presse papier
+ ¨¨ =
+
+
+:effacer_pp()
+^void effacer_pp()
+ efface le presse papier
+
+
+:lire_dossier_travail()
+^void lire_dossier_travail(char* ¨chaine¨)
+ lit le dossier de travail
+ ¨chaine¨ = espace de 512 octet ou sera copié le dosier de travail
+
+
+:sous_taches()
+^void sous_taches(int* ¨table¨,char ¨nb¨)
+ liste les taches que l'on as créer
+ ¨table¨ = table ou seront recopié la liste de taches
+ ¨nb¨ = nombre maximum d'element de cette liste
+
+
+:deci()
+^long deci(char *¨chaine¨)
+ convertit chaine décimal en nombre
+ ¨chaine¨ = chaine a convertir
+
+
+:hexa(hexa()
+^long hexa(char *¨chaine¨)
+ convertit chaine héxadécimal en nombre
+ ¨chaine¨ = chaine a convertir
+
+
+:long2deci()
+^void long2deci(long ¨nombre¨,char *¨chaine¨)
+ convertit un nombre en chaine décimal
+ ¨nombre¨ = nombre a convertir
+ ¨chaine¨ = chaine de 16 octets ou ecrire la conversion
+
+
+:long2hexa()
+^void long2hexa(long ¨nombre¨,char *¨chaine¨)
+ convertit un nombre en chaine héxadécimal
+ ¨nombre¨ = nombre a convertir
+ ¨chaine¨ = chaine de 16 octets ou ecrire la conversion
+
+
+:etherS2B()
+^void etherS2B(char *¨entrée¨,char *¨sortie¨)
+ convertit une adresse ethernet sous forme de chaine en forma binaire
+ ¨entrée¨ = adresse en format chaine
+ ¨sortie¨ = adresse en format binaire
+
+
+
+:ipv4S2B()
+^void ipv4S2B(char *¨entree¨,char *¨sortie¨)
+ convertit une adresse ip V4 sous forme de chaine en forma binaire
+ ¨entrée¨ = adresse en format chaine
+ ¨sortie¨ = adresse en format binaire
+
+
+:ipv6S2B()
+^ipv6S2B(char *¨entree¨,char *¨sortie¨)
+ convertit une adresse ip V6 sous forme de chaine en forma binaire
+ ¨entrée¨ = adresse en format chaine
+ ¨sortie¨ = adresse en format binaire
+
+
+:etherB2S()
+^void etherB2S(char *¨entree¨,char *¨sortie¨)
+ convertit une adresse ethernet sous forme binaire en chaine
+ ¨entrée¨ = adresse en format binaire
+ ¨sortie¨ = adresse en format chaine
+
+
+
+:ipv4B2S()
+^void ipv4B2S(char *¨entree¨,char *¨sortie¨)
+ convertit une adresse ip v4 sous forme binaire en chaine
+ ¨entrée¨ = adresse en format binaire
+ ¨sortie¨ = adresse en format chaine
+
+
+
+:ipv6B2S()
+^void ipv6B2S(char *¨entree¨,char *¨sortie¨)
+ convertit une adresse ip v6 sous forme binaire en chaine
+ ¨entrée¨ = adresse en format binaire
+ ¨sortie¨ = adresse en format chaine
+
+
+:base64binaire()
+^base64binaire(char *¨entree¨,char *¨sortie¨, long ¨taille¨)
+ convertir une chaine codé en base64 en donnée binaire
+ ¨¨ =
+
+
+:raf()
+^void raf()
+ passe a la tache suivante
+ 
+
+:open_file()
+^long open_file(char* ¨nom¨)
+ ouvre un fichier, renvoie l'id du fichier ouvert ou -1 si cela as échoué
+ ¨nom¨ = nom du fichier
+
+
+:close_file()
+^long close_file(long ¨id¨)
+ ferme un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
+ ¨id¨ = id du fichier a fermer
+ 
+
+:create_file()
+^long create_file(long ¨nom¨)
+ crée un fichier, renvoie l'id du fichier ouvert ou -1 si cela as échoué
+ ¨nom¨ = nom du fichier
+
+
+:delete_file()
+^long delete_file(long ¨id¨)
+ supprime un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
+ ¨id¨ = id du fichier a supprimer
+
+
+:read_file()
+^long read_file(long ¨id¨,long ¨offset¨,long ¨count¨,char* ¨data¨)
+ lit dans un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
+ ¨id¨ = id du fichier a supprimer
+ ¨offset¨ = adresse dans le fichier
+ ¨count¨ = nombre d'octet
+ ¨data¨ = ou seront écrit les donnée lut
+
+
+:write_file()
+^long write_file(long ¨id¨,long ¨offset¨,long ¨count¨,char* ¨data¨)
+ ecrit dans un fichier, renvoie le  ~erreurs~ codes d'erreur de l'opération
+ ¨id¨ = id du fichier a supprimer
+ ¨offset¨ = adresse dans le fichier
+ ¨count¨ = nombre d'octet
+ ¨data¨ = donnée a ecrire
+
+
+
+:taille_file()
+^long taille_file(long ¨id¨)
+ lit la taille d'un fichier, renvoie la taille du fichier ouvert ou -1 si cela as échoué
+ ¨id¨ = id du fichier a supprimer
+
+
+:error_file()
+^long error_file()
+ donne le code de la dernière ~erreurs~ erreur lorsque les fonctions renvoie -1
+
+
+:utf8z:utf8:ascii
+^utf8z désigne uen chaine de caractère codé en utf8 et terminé par le caractère NULL (octet valant zéro
+
+:BMS
+^BMS: BitMap Simple
+ BMS est l'objet image standard uttilisé par les fonctions graphique de Seac
+
+              taille   contenue
+ objimage_bpp 1 octet  nombre de bit par pixel
+ objimage_att 1 octet  attributs de l'image
+ objimage_x   2 octets largeur de l'imabe en pixel
+ objimage_y   2 octets hauteur de l'imabe en pixel
+ objimage_opl 4 octets nombre d'octet par ligne
+ objimage_ctp 4 octets couleur de transparence
+ objimage_dat variable donnée de chaque pixel de gauche à droite et de haut en bas
+
+
+
+
+
+   
+ objimage_dat variable donnée de chaque pixel de gauche à droite et de haut en bas
+
+
+
+
+
+
+
+
+
+
+
+
+e gauche à droite et de haut en bas
+
+
+
+
+
