@@ -73,6 +73,9 @@ fasm ASM/DEF/en-qwi.asm BIN/en-qwi.def
 fasm ASM/DEF/bepo.asm BIN/bepo.def
 fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
+fasm ASM/DEF/gr-aza.asm BIN/gr-aza.def
+fasm ASM/DEF/gr-qwi.asm BIN/gr-qwi.def
+
 #fasm ASM/DEF/0u0.asm  BIN/0u0.def
 
 #crÃ©ation du zip de base et mise a jour du manuel zippé
@@ -156,8 +159,11 @@ cd ..
 ./ajarch BIN/bepo.def BIN/ETAGE4.BIN
 ./ajarch BIN/colemak.def BIN/ETAGE4.BIN
 ./ajarch BIN/dvorak.def BIN/ETAGE4.BIN
+./ajarch BIN/gr-aza.def BIN/ETAGE4.BIN
+./ajarch BIN/gr-qwi.def BIN/ETAGE4.BIN
 ./ajarch BIN/0u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/1u0.def BIN/ETAGE4.BIN
+./ajarch BIN/3u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/25u0.def BIN/ETAGE4.BIN
 ./ajarch BIN/FFu0.def BIN/ETAGE4.BIN
 ./ajarch BIN/F00u0.def BIN/ETAGE4.BIN
