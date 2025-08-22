@@ -66,7 +66,6 @@ jz boucle_stop_pci
 
 
 
-
 ;***********************************************************************************************************************************
 ;detecte les contolleur ATA sur le bus PCI et enregistre les adresses
 mov ebx,80000008h
@@ -514,7 +513,7 @@ mov byte[trappe_tache0],34
 gs
 mov word[158],"N" or 7000h
 
-
+;jmp blop
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
@@ -624,8 +623,6 @@ cmp ch,10h
 jne boucle_init_infopart
 
 
-
-
 ;*********************************************************************************************************************************************
 ;lit les info disque sata et met a jour les info de partitions
 mov ax,selramh 
@@ -721,7 +718,7 @@ add esi,8
 cmp ch,30h
 jne boucle_init_infopart2
 
-
+blop:
 
 
 mov byte[trappe_tache0],35

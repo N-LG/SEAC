@@ -1309,6 +1309,14 @@ mov byte[trappe_tache0],5
 mov dword[code_langue],langue_demarrage
 
 
+;verifie que l'horloge fonctionne bien
+sti
+mov ecx,[cptsf]
+@@:
+cmp ecx,[cptsf]
+je @b
+gs
+mov word[158],"I" or 7000h
 
 
 
