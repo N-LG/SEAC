@@ -612,29 +612,113 @@ int 10h
 ;out dx,al
 
 
+
 ;**********************************************************************
-;programme temporisateur, buzzer, & pic 
+;test capacités du processeur 
+mov ax,segdat
+mov ds,ax
+mov dword[at_processeur],0
 
-cli                         ;programme le temporisateur
-mov dx,43h                  
-mov al,36h                  ;paramêtres de comptage
-out dx,al
-jmp $+2
-mov dx,40h                 ;diviseur de fréquence de l'irq 0 (LSB en premier)
-mov ax,2983                ;1193200/f  ;11932: t=10ms  100Hz
-out dx,al                               ;5966: t=5ms    200Hz
-jmp $+2                                 ;2983: t=2.5ms  400Hz
-mov al,ah                  ;puis le MSB
-out dx,al                 
+;test si l'instruction cpuid est reconnue
+pushfd
+pop eax
+mov edx,eax
+xor eax,200000h
+push eax
+popfd
+pushfd
+pop eax
+cmp eax,edx
+je cpuid_absent
 
-mov dx,42h                 ;diviseur de fréquence du buzzer (LSB en premier)
-mov ax,2983                ;ax=1193200/fréquence désiré
-out dx,al
-jmp $+2
-mov al,ah                  ;puis le MSB
-out dx,al                 
+mov dword[at_processeur],1    ;cpuid ok
+
+mov eax,1
+cpuid
+
+bt edx,0
+jnc @f
+or dword[at_processeur],2    ;fpu présent
+@@:
+
+bt edx,9
+jnc @f
+or dword[at_processeur],4    ;apic présent
+@@:
+
+bt edx,15
+jnc @f
+or dword[at_processeur],8    ;cmov reconnu
+@@:
+
+bt edx,23
+jnc @f
+or dword[at_processeur],10h  ;instructions mmx présentes
+@@:
+
+bt edx,24
+jnc @f
+or dword[at_processeur],20h  ;instruction fxsave présente
+@@:
+
+bt edx,25
+jnc @f
+or dword[at_processeur],40h  ;instructions sse présentes
+@@:
+
+bt edx,26
+jnc @f
+or dword[at_processeur],80h  ;instructions sse2 présentes
+@@:
+
+bt ecx,0
+jnc @f
+or dword[at_processeur],100h ;instructions sse3 présentes
+@@:
+
+bt ecx,9
+jnc @f
+or dword[at_processeur],200h  ;instructions ssse3 présentes
+@@:
+
+bt ecx,19
+jnc @f
+or dword[at_processeur],400h ;instructions sse41 présentes
+@@:
+
+bt ecx,20
+jnc @f
+or dword[at_processeur],800h  ;instructions sse42 présentes
+@@:
+
+bt ecx,21
+jnc @f
+or dword[at_processeur],1000h  ;apic2 présent
+@@:
+
+bt ecx,26
+jnc @f
+or dword[at_processeur],2000h ;instruction xsave présente
+@@:
+
+bt ecx,28
+jnc @f
+or dword[at_processeur],4000h  ;instructions avx présentes
+@@:
 
 
+cpuid_absent:
+mov byte[trappe_tache0],2
+gs
+mov word[158],"C" or 7000h
+
+
+
+
+
+;********************************************************************
+;configure le PIC & désactive l'APIC (en attendnat de mieux le gerer)
+cli
 mov dx,20h                  ;reprogramme les pics
 mov al,11h
 out dx,al
@@ -658,11 +742,52 @@ mov al,1
 out dx,al
 
 mov dx,21h             ;regle le masquage des irq
-mov al,0A0h            ;masque les irq 5,7
+;mov al,0A0h            ;masque les irq 5,7
+mov al,0
 out dx,al
 mov dx,0A1h
-mov al,0FFh            ;masque les irq 8 à 15
+;mov al,0FFh            ;masque les irq 8 à 15
+mov al,0
 out dx,al
+
+
+
+test dword[at_processeur],4
+jz apic_absent
+
+;désactive le Local APIC
+mov ecx,1Bh
+rdmsr              ;charge le A32_APIC_BASE MSR (adresse 1Bh)
+and eax,0FFFFF7FFh ;met a zero le bit 11
+wrmsr
+
+apic_absent:
+
+
+
+
+
+;**********************************************************************
+;programme temporisateur, & buzzer
+
+                            
+mov dx,43h                  ;programme le temporisateur
+mov al,36h                  ;paramêtres de comptage
+out dx,al
+jmp $+2
+mov dx,40h                 ;diviseur de fréquence de l'irq 0 (LSB en premier)
+mov ax,2983                ;1193200/f  ;11932: t=10ms  100Hz
+out dx,al                               ;5966: t=5ms    200Hz
+jmp $+2                                 ;2983: t=2.5ms  400Hz
+mov al,ah                  ;puis le MSB
+out dx,al                 
+
+mov dx,42h                 ;diviseur de fréquence du buzzer (LSB en premier)
+mov ax,2983                ;ax=1193200/fréquence désiré
+out dx,al
+jmp $+2
+mov al,ah                  ;puis le MSB
+out dx,al                 
 
 gs
 mov word[158],"D" or 7000h
@@ -860,106 +985,6 @@ mov [tss_sauv_ss1],bx
 mov [tss_sauv_ss2],cx
 mov [tss_iom],dx
 sti      ;init des valeurs terminé, débloquage des irq
-
-
-
-;**********************************************************************
-;test capacités du processeur 
-mov dword[at_processeur],0
-
-;test si l'instruction cpuid est reconnue
-pushfd
-pop eax
-mov edx,eax
-xor eax,20000h
-push eax
-popfd
-pushfd
-pop eax
-cmp eax,edx
-je cpuid_absent
-
-mov dword[at_processeur],1
-
-mov eax,1
-cpuid
-
-bt edx,0
-jnc fpu_absent
-or dword[at_processeur],2
-fpu_absent:
-
-bt edx,9
-jnc apic_absent
-or dword[at_processeur],4
-apic_absent:
-
-bt edx,15
-jnc cmov_absent
-or dword[at_processeur],8
-cmov_absent:
-
-bt edx,23
-jnc mmx_absent
-or dword[at_processeur],10h
-mmx_absent:
-
-bt edx,24
-jnc fxsave_absent
-or dword[at_processeur],20h
-fxsave_absent:
-
-bt edx,25
-jnc sse_absent
-or dword[at_processeur],40h
-sse_absent:
-
-bt edx,26
-jnc sse2_absent
-or dword[at_processeur],80h
-sse2_absent:
-
-bt ecx,0
-jnc sse3_absent
-or dword[at_processeur],100h
-sse3_absent:
-
-bt ecx,9
-jnc ssse3_absent
-or dword[at_processeur],200h
-ssse3_absent:
-
-bt ecx,19
-jnc sse41_absent
-or dword[at_processeur],400h
-sse41_absent:
-
-bt ecx,20
-jnc sse42_absent
-or dword[at_processeur],800h
-sse42_absent:
-
-bt ecx,21
-jnc apic2_absent
-or dword[at_processeur],1000h
-apic2_absent:
-
-bt ecx,26
-jnc xsave_absent
-or dword[at_processeur],2000h
-xsave_absent:
-
-bt ecx,28
-jnc avx_absent
-or dword[at_processeur],4000h
-avx_absent:
-
-
-cpuid_absent:
-mov byte[trappe_tache0],2
-gs
-mov word[158],"F" or 7000h
-
 
 
 
@@ -1324,6 +1349,7 @@ mov word[158],"I" or 7000h
 ;fin de la séquence d'initialisation
 mov cl,0
 call affmsgsyst     ;rapel sur la version installé
+
 
 mov ax,seldat
 mov ds,ax
