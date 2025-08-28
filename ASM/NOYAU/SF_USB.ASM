@@ -1,11 +1,5 @@
 ﻿SF_USB.ASM:
 
-
-test bl,80h
-jnz erreurparamusb 
-cmp bl,0
-je erreurparamusb
-
 ;vérifie que le périphérique n'est pas déja réservé
 push eax
 push ebx
@@ -33,6 +27,17 @@ pop ds
 pop ebx
 pop eax
 
+cmp al,14  ;fermeture canal iso ou int
+je sfusb_close_ext
+cmp al,15  ;échange donnée canal isocrone ou int
+je sfusb_isoint_ext
+
+test bl,80h
+jnz erreurparamusb 
+cmp bl,0
+je erreurparamusb
+
+
 cmp al,0   ;réservation périphérique
 je sf_usb_reserve
 cmp al,1   ;liberation acces périphérique
@@ -53,10 +58,7 @@ cmp al,12   ;ouverture canal vers terminaison isocrone
 je sfusb_open_iso_ext
 cmp al,13   ;ouverture canal vers terminaison interruption
 je sfusb_open_int_ext
-cmp al,14  ;fermeture canal iso ou int
-je sfusb_close_ext
-cmp al,15  ;échange donnée canal isocrone ou int
-je sfusb_isoint_ext
+
 mov eax,cer_parami
 iret
 
@@ -745,68 +747,44 @@ ret
 
 
 erreur_transfert_uhci:
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-
-
-mov al,13
-call affcj
-mov al,"C"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_param_adterm]
-call affh2j
-
-
-mov al,13
-call affcj
-mov al," "
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+4]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+8]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+36]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+40]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+68]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+72]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov al,13
-call affcj
-
-
-popad   ;§§§§§§§§§§§§§§§§§§
+;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+;mov al,13
+;call affcj
+;mov al,"C"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_param_adterm]
+;call affh2j
+;mov al,13
+;call affcj
+;mov al," "
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+4]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+8]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+36]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+40]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+68]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+72]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+;popad   ;§§§§§§§§§§§§§§§§§§
 
 
 
@@ -1045,27 +1023,27 @@ rep movsb
 pop es
 pop ds
 
-pushad  ;§§§§§§§§§§§§§§§
-mov ecx,[ebx+uhci_bulkmem_param_tframe]
-mov esi,ebx
-add esi,[ebx+uhci_bulkmem_param_adata]
-mov al,13
-call affcj
-mov al,13
-call affcj
-mov al,"O"
-call affcj
-mov al," "
-call affcj
-bctrappe:
-mov al,[esi]
-call affh0j
-mov al," "
-call affcj
-inc esi
-dec ecx
-jnz bctrappe
-popad   ;§§§§§§§§§§§§§§§
+;pushad  ;§§§§§§§§§§§§§§§
+;mov ecx,[ebx+uhci_bulkmem_param_tframe]
+;mov esi,ebx
+;add esi,[ebx+uhci_bulkmem_param_adata]
+;mov al,13
+;call affcj
+;mov al,13
+;call affcj
+;mov al,"O"
+;call affcj
+;mov al," "
+;call affcj
+;bctrappe:
+;mov al,[esi]
+;call affh0j
+;mov al," "
+;call affcj
+;inc esi
+;dec ecx
+;jnz bctrappe
+;popad  ;§§§§§§§§§§§§§§§
 
 
 ignore_env_bulk_uhci:
@@ -1175,6 +1153,8 @@ boucle_att_bulk_uhci:
 fs
 cmp [cptsf],ecx
 ja erreur_transfert_bulk_uhci
+
+
 test dword[esi+4],800000h ;test bit 23 du control and status (td actif)
 jnz boucle_att_bulk_uhci
 test dword[esi+4],7F0000h ;test bit 16 a 22 du control and status (erreurs)
@@ -1268,69 +1248,44 @@ ret
 erreur_transfert_bulk_uhci:
 
 
-
-pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
-
-
-mov al,13
-call affcj
-mov al,"B"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_param_adterm]
-call affh2j
-
-
-mov al,13
-call affcj
-mov al," "
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+4]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov eax,[ebx+uhci_bulkmem_td+8]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+36]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+40]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+68]
-call affh2j
-
-mov al,"h"
-call affcj
-
-
-mov eax,[ebx+uhci_bulkmem_td+72]
-call affh2j
-
-mov al,"h"
-call affcj
-
-mov al,13
-call affcj
-
-
-popad   ;§§§§§§§§§§§§§§§§§§
+;pushad ;§§§§§§§§§§§§§§§§§§TRAPPE
+;mov al,13
+;call affcj
+;mov al,"B"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_param_adterm]
+;call affh2j
+;mov al,13
+;call affcj
+;mov al," "
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+4]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+8]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+36]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+40]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+68]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov eax,[ebx+uhci_bulkmem_td+72]
+;call affh2j
+;mov al,"h"
+;call affcj
+;mov al,13
+;call affcj
+;popad   ;§§§§§§§§§§§§§§§§§§
 
 
 

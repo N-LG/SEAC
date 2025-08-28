@@ -167,12 +167,12 @@ jz @b
 
 ;****************************************************************
 uhci_lit_descripteur:
-pushad
-in ax,dx
-call affh1j
-mov al,13
-call affcj
-popad
+;pushad
+;in ax,dx
+;call affh1j
+;mov al,13
+;call affcj
+;popad
 
 
 ;remplit les parametre de base du périphérique 0
@@ -1005,15 +1005,12 @@ jmp suite_active_config_usb
 
 
 
+
 ;**********************************************************************
 config_msd_usb:  ;configuration clef usb/disque dur
 cmp word[edi+6],05006h
 je config_bulkonly_usb
 jmp suite_active_config_usb
-
-
-
-
 
 
 ;*******************************************
@@ -1045,10 +1042,12 @@ jne maxlun2_config_bulkonly_usb
 mov byte[usb_commande],0 
 maxlun2_config_bulkonly_usb:
 
+
 mov esi,edi
 xor ecx,ecx
 mov cl,[esi]
 add esi,ecx
+
 cmp byte[esi+1],5
 jne suite_active_config_usb
 cmp byte[esi+3],2
@@ -1057,6 +1056,7 @@ mov al,[esi+2]
 
 mov cl,[esi]
 add esi,ecx
+
 cmp byte[esi+1],5
 jne suite_active_config_usb
 cmp byte[esi+3],2
@@ -1064,9 +1064,9 @@ jne suite_active_config_usb
 mov ah,[esi+2]
 
 test ah,80h
-jz okendp_config_bulkonly_usb
+jz @f
 xchg al,ah
-okendp_config_bulkonly_usb:
+@@:
 test ah,80h
 jnz suite_active_config_usb
 and ax,0F0Fh
@@ -1074,8 +1074,10 @@ and ax,0F0Fh
 mov ch,[usb_adresse]
 mov cl,[usb_commande] 
 mov dl,[edi+2] ;al=endpoint in ah=endpoint out cl=nb max de Lun ch=adresse dl=N° d'interface
-
 mov esi,ad_desc_clef_usb 
+
+
+
 
 boucle_config_bulkonly_usb:
 cmp byte[esi+dlu_type],0
@@ -1084,7 +1086,6 @@ add esi,64
 cmp esi,ad_desc_clef_usb+nb_desc_clef_usb*64
 jne boucle_config_bulkonly_usb
 jmp suite_active_config_usb
-
 
 ok_config_bulkonly_usb:
 mov byte[esi+dlu_type],1 ;code clef usb protocole bulk-only et commande scsi
@@ -1104,6 +1105,8 @@ sub ecx,ad_desc_clef_usb
 shr ecx,6
 add ecx,40h
 mov ch,cl
+
+
 
 mov edi,usb_commande
 mov eax,10

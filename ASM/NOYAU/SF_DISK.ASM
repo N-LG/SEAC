@@ -1892,8 +1892,6 @@ ret
 ;*********************************************************************************************************
 infodisque_ata_atapi:   ;ch =numéros de disque ata/cdrom (08h a 0Fh)
                         ;information disque es:edi=cible
-
-
 mov al,ch
 and al,0F8h
 cmp al,8h
@@ -2042,6 +2040,7 @@ push esi
 mov esi,zt_clefusb+20
 mov edi,zt_clefusb+128
 call conv_chaine_usb
+
 
 ;génère des espaces a la fin du nom
 mov esi,zt_clefusb+128
@@ -2234,6 +2233,7 @@ reset_clef_bo:
 pushad
 mov esi,edx
 
+
 ;reset la clef
 xor dh,dh
 mov dl,[esi+dlu_interface]
@@ -2253,6 +2253,7 @@ call sfusb_commande
 ;clear le stall de l'endpoint in
 xor dh,dh
 mov dl,[esi+dlu_endpin]
+or dl,80h
 mov byte[zt_clefusb],02h    ;bmRequestType
 mov byte[zt_clefusb+1],01h  ;bRequest (ici clear feature)
 mov word[zt_clefusb+2],0   ;wValue (endpoint halt)
@@ -2278,6 +2279,7 @@ mov ah,0 ;endpoint
 mov edx,zt_clefusb
 mov edi,zt_clefusb
 call sfusb_commande
+
 
 ;reseter les enregistrement des toggle bit
 mov ax,1
@@ -3830,7 +3832,6 @@ call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=qu
 cmp eax,0
 jne erreur_lit_tailledisque_usb_boscsisf
 
-
 ;lit résultat opération
 cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
 jne erreur_lit_tailledisque_usb_boscsisf
@@ -3841,8 +3842,6 @@ cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
 jne erreur_lit_tailledisque_usb_boscsisf
 cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
 jne erreur_lit_tailledisque_usb_boscsisf
-
-
 
 
 ;**********
@@ -3874,6 +3873,7 @@ call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=qu
 cmp eax,0
 jne erreur_lit_tailledisque_usb_boscsisf
 
+
 ;reçois donnée
 mov al,[edx+dlu_adresse]
 mov ah,[edx+dlu_endpin]
@@ -3902,8 +3902,6 @@ cmp  dword[zt_clefusb+40],0 ;est ce qu'il n'y as aucunes données manquante?
 jne erreur_lit_tailledisque_usb_boscsisf
 cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
 jne erreur_lit_tailledisque_usb_boscsisf
-
-
 
 
 mov ebx,[zt_clefusb+64] ;lsb taille

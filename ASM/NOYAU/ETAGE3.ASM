@@ -1350,7 +1350,6 @@ mov word[158],"I" or 7000h
 mov cl,0
 call affmsgsyst     ;rapel sur la version installé
 
-
 mov ax,seldat
 mov ds,ax
 mov es,ax
