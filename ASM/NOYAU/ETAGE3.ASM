@@ -1435,6 +1435,7 @@ include "SF_INIT.ASM"     ;detection et d'initialisation des controleur FDC, ATA
 
 gs
 mov word[158],"T" or 7000h
+mov byte[trappe_tache0],40
 jmp btacheprincipale
 
 
@@ -4705,145 +4706,189 @@ include "SF_MEM.ASM"   ;sous fonction sytème pour la gestion des espaces mémoire
                                                  ;*                        *
                                                  ;**************************
 iex0:
-mov cx,0
-jmp exsigstop
+pushad
+mov ecx,0
+jmp @f
 
 iex1:
-mov cx,1
-jmp exsigcont
+pushad
+mov ecx,1
+jmp @f
 
 iex2:
-mov cx,2
-jmp exsigstop
+pushad
+mov ecx,2
+jmp @f
 
 iex3:
-mov cx,3
-jmp exsigcont
+pushad
+mov ecx,3
+jmp @f
 
 iex4:
-mov cx,4
-jmp exsigstop
+pushad
+mov ecx,4
+jmp @f
 
 iex5:
-mov cx,5
-jmp exsigstop
+pushad
+mov ecx,5
+jmp @f
 
 iex6:
-mov cx,6
-jmp exsigstop
+pushad
+mov ecx,6
+jmp @f
 
 iex7:
-mov cx,7
-jmp exsigstop
+pushad
+mov ecx,7
+jmp @f
 
 iex8:
-mov cx,8
-jmp exsigstop
+pushad
+mov ecx,8
+jmp @f
 
 iex9:
-mov cx,9
-jmp exsigstop
+pushad
+mov ecx,9
+jmp @f
 
 iexA:
-mov cx,10
-jmp exsigstop
+pushad
+mov ecx,10
+jmp @f
 
 iexB:
-mov cx,11
-jmp exsigstop
+pushad
+mov ecx,11
+jmp @f
 
 iexC:
-mov cx,12
-jmp exsigstop
+pushad
+mov ecx,12
+jmp @f
 
 iexD:
-mov cx,13
-jmp exsigstop
+pushad
+mov ecx,13
+jmp @f
 
 iexE:
-mov cx,14
-jmp exsigstop
+pushad
+mov ecx,14
+jmp @f
 
 iexF:
-mov cx,15
-jmp exsigstop
+pushad
+mov ecx,15
+jmp @f
 
 iex10:
-mov cx,16
-jmp exsigstop
+pushad
+mov ecx,16
+jmp @f
 
 iex11:
-mov cx,17
-jmp exsigstop
+pushad
+mov ecx,17
+jmp @f
 
 iex12:
-mov cx,18
-jmp exsigstop
+pushad
+mov ecx,18
+jmp @f
 
 iex13:
-mov cx,19
-jmp exsigstop
+pushad
+mov ecx,19
+jmp @f
 
 iex14:
-mov cx,20
-jmp exsigstop
+pushad
+mov ecx,20
+jmp @f
 
 iex15:
-mov cx,21
-jmp exsigstop
+pushad
+mov ecx,21
+jmp @f
 
 iex16:
-mov cx,22
-jmp exsigstop
+pushad
+mov ecx,22
+jmp @f
 
 iex17:
-mov cx,23
-jmp exsigstop
+pushad
+mov ecx,23
+jmp @f
 
 iex18:
-mov cx,24
-jmp exsigstop
+pushad
+mov ecx,24
+jmp @f
 
 iex19:
-mov cx,25
-jmp exsigstop
+pushad
+mov ecx,25
+jmp @f
 
 iex1A:
-mov cx,26
-jmp exsigstop
+pushad
+mov ecx,26
+jmp @f
 
 iex1B:
-mov cx,27
-jmp exsigstop
+pushad
+mov ecx,27
+jmp @f
 
 iex1C:
-mov cx,28
-jmp exsigstop
+pushad
+mov ecx,28
+jmp @f
 
 iex1D:
-mov cx,29
-jmp exsigstop
+pushad
+mov ecx,29
+jmp @f
 
 iex1E:
-mov cx,30
-jmp exsigstop
+pushad
+mov ecx,30
+jmp @f
 
 iex1F:
-mov cx,31
+pushad
+mov ecx,31
 
-exsigstop:  ;exception: signale et stoppe
+
+@@:
+push ds
+push es
+push fs
+push gs
+
 mov dx,seldat      ;init pile et data
 mov ds,dx
 mov es,dx
 mov fs,dx
 mov gs,dx
+
+cmp byte[trappe_tache0],40
+jb exsigboot
+
+push ecx
+push ecx
+
 ;mov dx,selpil
 ;mov ss,dx
 ;mov esp,[sauv_esp_t0]
 ;sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême (désactivé parce que visiblement ça triple faute PARFOIS lorsque ça interromp un ring 0)
 
 
-push cx
 
 mov al,1Ch
 call affcj
@@ -4858,16 +4903,15 @@ call affh1j
 mov cl,43
 call affmsgsyst
 
-pop cx
+pop ecx
 
 add cx,10
 call affmsgsyst
 
-;test si c'est l'exception du fpu et signale les eventuelles erreur
+;test si c'est l'exception du fpu et signale les eventuelles erreur!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 jmp suite_exception
 cmp cx,26
 jne suite_exception
-push ecx
 mov al,13
 call affcj
 fnstsw ax
@@ -4914,22 +4958,237 @@ mov ecx,42
 call affmsgerr
 exfpu_np:
 
+fnclex   ;clear les exception du fpu
+suite_exception: ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+
+;affiche l'état des registres
+mov ebp,esp
+
+mov al,13
+call affcj
+mov al,"C"
+call affcj
+mov al,"S"
+call affcj
+mov al,":"
+call affcj
+mov al,"E"
+call affcj
+mov al,"I"
+call affcj
+mov al,"P"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+56]
+call affh1j
+mov al,":"
+call affcj
+ss
+mov eax,[ebp+52]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"F"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+60]
+call affh2j
+
+
+
+
+mov al,13
+call affcj
+mov al,"D"
+call affcj
+mov al,"S"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+16]
+call affh1j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"S"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+12]
+call affh1j
+mov al," "
+call affcj
+mov al,"F"
+call affcj
+mov al,"S"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+8]
+call affh1j
+mov al," "
+call affcj
+mov al,"G"
+call affcj
+mov al,"S"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+4]
+call affh1j
+
+
+
+mov al,13
+call affcj
+mov al,"E"
+call affcj
+mov al,"A"
+call affcj
+mov al,"X"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+48]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"S"
+call affcj
+mov al,"I"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+24]
+call affh2j
+
+mov al,13
+call affcj
+mov al,"E"
+call affcj
+mov al,"B"
+call affcj
+mov al,"X"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+36]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"D"
+call affcj
+mov al,"I"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+20]
+call affh2j
+
+mov al,13
+call affcj
+mov al,"E"
+call affcj
+mov al,"C"
+call affcj
+mov al,"X"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+44]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"B"
+call affcj
+mov al,"P"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+28]
+call affh2j
+
+mov al,13
+call affcj
+mov al,"E"
+call affcj
+mov al,"D"
+call affcj
+mov al,"X"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+40]
+call affh2j
+;mov al," "
+;call affcj
+;mov al,"E"
+;call affcj
+;mov al,"S"
+;call affcj
+;mov al,"P"
+;call affcj
+;mov al,"="
+;call affcj
+;ss
+;mov eax,[ebp+32]
+;call affh2j
+
 
 pop ecx
-fnclex   ;clear les exception du fpu
-suite_exception:
+cmp ecx,1
+je excontinue
+cmp ecx,3
+je excontinue
 
+
+
+;test si la tache était en train d'utiliser les fonctions fichiers
 mov ax,[id_tache_fichier]
 cmp [id_tache_exec],ax
-jne excep_fc_ok
+jne @f
 and byte[at_fc_fichier],0FEh
-excep_fc_ok:
+@@:
+
+
 
 cmp word[id_tache_exec],0 ;si c'est une tache de base on l'arrete
 je redem_id0
 mov cl,46
 call affmsgsyst
 jmp int_60
+
+
+
+
 
 redem_id0:  ;sinon on redemarre la tache principale
 mov cl,44
@@ -4949,36 +5208,38 @@ jmp selcod:btacheprincipale
 
 
 
-exsigcont:  ;exception: signale et continue
-push ecx
-push ds
-push ecx
-mov cx,seldat      
-mov ds,cx
+exsigboot:   ;c'est une exception apparu pendans la phase de boot... signale et boucle
+mov ax,selvidB8      
+mov ds,ax
+mov dx,7000h
+mov word[148],"E"or 7000h
+mov word[150],"x"or 7000h
+mov dl,cl
+shr cl,4
+and dl,0Fh
+add dl,"0"
+mov [152],dx
+mov dl,cl
+and dl,0Fh
+add dl,"0"
+mov [154],dx
+mov word[156],"-"or 7000h
+@@:
+nop
+jmp @b
 
-mov al,1Fh
-call affcj
 
-mov cl,42
-call affmsgsyst
 
-mov ax,[id_tache_exec]
-call affh1j
 
-mov cl,43
-call affmsgsyst
-
-pop ecx
-add cx,10
-call affmsgsyst
-
+excontinue:  ;continue apres une exception
 mov al,13
 call affcj
-mov al,17h
-call affcj
 
+pop gs
+pop fs
+pop es
 pop ds
-pop ecx
+popad
 iret
 
 
