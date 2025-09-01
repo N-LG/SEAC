@@ -4,7 +4,7 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.23 August 2025 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.23 September 2025 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 
@@ -41,17 +41,17 @@ db "Alignment Check",0 ;ex17
 db "Machine Check",0       ;ex18
 db "SIMD Floating-Point Exception",0         ;ex19
 db "Virtualization Exception",0    ;ex20
-db "exception # 21",0   ;21
-db "exception # 22",0   ;22
-db "exception # 23",0   ;23
-db "exception # 24",0   ;24
-db "exception # 25",0   ;25
-db "exception # 26",0   ;26
-db "exception # 27",0   ;27
-db "exception # 28",0   ;28
-db "exception # 29",0   ;29
-db "exception # 30",0   ;30
-db "exception # 31",0   ;ex31 message 41 
+db "Control Protection Exception",0   ;21
+db "Exception # 22",0   ;22
+db "Exception # 23",0   ;23
+db "Exception # 24",0   ;24
+db "Exception # 25",0   ;25
+db "Exception # 26",0   ;26
+db "Exception # 27",0   ;27
+db "Exception # 28",0   ;28
+db "Exception # 29",0   ;29
+db "Exception # 30",0   ;30
+db "Exception # 31",0   ;ex31 message 41 
 
 db 13,"Process # ",0 ;42
 db " caused the exception: ",0 ;43

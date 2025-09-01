@@ -4882,20 +4882,13 @@ jb exsigboot
 
 push ecx
 push ecx
-
-;mov dx,selpil
-;mov ss,dx
-;mov esp,[sauv_esp_t0]
-;sub esp,20h         ;pour avoir une pile sans ecraser la pile de la tache systême (désactivé parce que visiblement ça triple faute PARFOIS lorsque ça interromp un ring 0)
-
-
+push ecx
 
 mov al,1Ch
 call affcj
 
 mov cl,42
 call affmsgsyst
-
 
 mov ax,[id_tache_exec]
 call affh1j
@@ -4907,6 +4900,8 @@ pop ecx
 
 add cx,10
 call affmsgsyst
+
+
 
 ;test si c'est l'exception du fpu et signale les eventuelles erreur!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 jmp suite_exception
@@ -4966,7 +4961,27 @@ suite_exception: ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 ;affiche l'état des registres
+pop ecx
 mov ebp,esp
+cmp ecx,8
+je except_avec_erreur
+cmp ecx,10
+je except_avec_erreur
+cmp ecx,11
+je except_avec_erreur
+cmp ecx,12
+je except_avec_erreur
+cmp ecx,13
+je except_avec_erreur
+cmp ecx,14
+je except_avec_erreur
+cmp ecx,17
+je except_avec_erreur
+cmp ecx,21
+je except_avec_erreur
+
+
+
 
 mov al,13
 call affcj
@@ -5004,9 +5019,85 @@ ss
 mov eax,[ebp+60]
 call affh2j
 
+mov dx,ss
+mov edi,ebp
+add edi,64
+ss
+mov ax,[ebp+56]
+and al,3
+jz excp_suite
+ss
+mov edi,[ebp+64]
+ss
+mov dx,[ebp+68]
+jmp excp_suite
+
+
+except_avec_erreur:
+mov al,13
+call affcj
+mov al,"C"
+call affcj
+mov al,"S"
+call affcj
+mov al,":"
+call affcj
+mov al,"E"
+call affcj
+mov al,"I"
+call affcj
+mov al,"P"
+call affcj
+mov al,"="
+call affcj
+ss
+mov ax,[ebp+60]
+call affh1j
+mov al,":"
+call affcj
+ss
+mov eax,[ebp+56]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"F"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+64]
+call affh2j
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"R"
+call affcj
+mov al,"="
+call affcj
+ss
+mov eax,[ebp+52]
+call affh2j
+
+mov dx,ss
+mov edi,ebp
+add edi,68
+ss
+mov ax,[ebp+60]
+and al,3
+jz excp_suite
+ss
+mov edi,[ebp+68]
+ss
+mov dx,[ebp+72]
 
 
 
+
+
+excp_suite:
 mov al,13
 call affcj
 mov al,"D"
@@ -5050,6 +5141,16 @@ mov al,"="
 call affcj
 ss
 mov ax,[ebp+4]
+call affh1j
+mov al," "
+call affcj
+mov al,"S"
+call affcj
+mov al,"S"
+call affcj
+mov al,"="
+call affcj
+mov ax,dx
 call affh1j
 
 
@@ -5148,19 +5249,20 @@ call affcj
 ss
 mov eax,[ebp+40]
 call affh2j
-;mov al," "
-;call affcj
-;mov al,"E"
-;call affcj
-;mov al,"S"
-;call affcj
-;mov al,"P"
-;call affcj
-;mov al,"="
-;call affcj
+mov al," "
+call affcj
+mov al,"E"
+call affcj
+mov al,"S"
+call affcj
+mov al,"P"
+call affcj
+mov al,"="
+call affcj
 ;ss
 ;mov eax,[ebp+32]
-;call affh2j
+mov eax,edi
+call affh2j
 
 
 pop ecx
