@@ -51,7 +51,13 @@ mov ebx,[cmdex_handle_script]
 mov edx,cmdex_taille_script
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdex
+
+;si le fichier est vide on quitte
+cmp dword[cmdex_taille_script],0
+jne @f
+int 60h
+@@:
 
 ;change la taille de la zone mémoire si besoin
 mov ecx,[cmdex_taille_script]
@@ -73,7 +79,7 @@ mov edx,0
 mov edi,cmdex_zone_tampon
 int 64h
 cmp eax,0
-jne fin_commande_erreur
+jne erreur_autres_cmdex
 
 ;convertit toute les caractère <20h en caractère NULL
 mov edi,cmdex_zone_tampon
