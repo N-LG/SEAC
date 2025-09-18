@@ -52,6 +52,7 @@ fasm ASM/PROG/I8254X.asm BIN/I8254X.FE
 fasm ASM/PROG/jn1.asm BIN/JN1.FE
 fasm ASM/PROG/snake.asm BIN/SNAKE.FE
 fasm ASM/PROG/palette.asm BIN/PALETTE.FE
+fasm ASM/PROG/install.asm BIN/INSTALL.FE
 
 
 #compilation du noyau
@@ -64,33 +65,33 @@ fasm ASM/BOOT/MBR_BIOS.ASM BIN/BIOS.MBR
 fasm ASM/BOOT/MBR_RELAIS.ASM BIN/RELAIS.MBR
 
 #compilation des fichiers de définitions
-#fasm ASM/DEF/bug1.asm BIN/bug1.def
-fasm ASM/DEF/fr-txt.asm BIN/fr-txt.def
-fasm ASM/DEF/fr-aza.asm BIN/fr-aza.def
-#fasm ASM/DEF/be-azs.asm BIN/be-azs.def
-fasm ASM/DEF/en-txt.asm BIN/en-txt.def
-fasm ASM/DEF/en-qwi.asm BIN/en-qwi.def
+fasm ASM/DEF/0u0.asm  BIN/0u0.def
+fasm ASM/DEF/be-azs.asm BIN/be-azs.def
 fasm ASM/DEF/bepo.asm BIN/bepo.def
+#fasm ASM/DEF/bug1.asm BIN/bug1.def
+fasm ASM/DEF/ca-qws.asm BIN/ca-qws.def
+fasm ASM/DEF/ch-qzf.asm BIN/ch-qzf.def
+fasm ASM/DEF/ch-qzg.asm BIN/ch-qzg.def
 fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
+fasm ASM/DEF/en-qus.asm BIN/en-qus.def
+fasm ASM/DEF/en-qwi.asm BIN/en-qwi.def
+fasm ASM/DEF/en-txt.asm BIN/en-txt.def
+fasm ASM/DEF/ergol.asm BIN/ergol.def
+fasm ASM/DEF/fr-aza.asm BIN/fr-aza.def
+fasm ASM/DEF/fr-txt.asm BIN/fr-txt.def
 fasm ASM/DEF/gr-aza.asm BIN/gr-aza.def
 fasm ASM/DEF/gr-qwi.asm BIN/gr-qwi.def
-
-#fasm ASM/DEF/0u0.asm  BIN/0u0.def
 
 #création du zip de base et mise a jour du manuel zipp�
 cd BIN
 zip -9 SEAC.ZIP *.ids
 zip -9 SEAC.ZIP *.FE
 zip -9 SEAC.ZIP *.png
-zip -9 SEAC.ZIP *.def
 
-zip -9 CFG.ZIP LSPCI.CFG
-zip -9 CFG.ZIP LSPCI.CFG
-zip -9 CFG.ZIP MANUEL.TXT
-zip -9 CFG.ZIP MANUAL.TXT
-zip -9 CFG.ZIP AUTOCOMP.CFG
-zip -9 CFG.ZIP EXPL.CFG
+zip -9 CFG.ZIP *.CFG
+zip -9 CFG.ZIP *.def
+zip -9 CFG.ZIP *.TXT
 cd ..
 
 
@@ -111,6 +112,7 @@ cd ..
 ./ajarch BIN/EDH.FE BIN/ETAGE4.BIN
 ./ajarch BIN/EDG.FE BIN/ETAGE4.BIN
 ./ajarch BIN/ICS.FE BIN/ETAGE4.BIN
+./ajarch BIN/icones.png BIN/ETAGE4.BIN
 ./ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ./ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
 ./ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
@@ -140,36 +142,26 @@ cd ..
 ./ajarch BIN/AJARCH.FE BIN/ETAGE4.BIN
 ./ajarch BIN/DCP.FE BIN/ETAGE4.BIN
 ./ajarch BIN/PILOTE.FE BIN/ETAGE4.BIN
-./ajarch BIN/PILOTEPCI.CFG BIN/ETAGE4.BIN
 ./ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
 ./ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ./ajarch BIN/JN1.FE BIN/ETAGE4.BIN
 ./ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
-
-
-#ajout des fichiers de définition à l'archive du noyau
-./ajarch BIN/bug1.def BIN/ETAGE4.BIN
-./ajarch BIN/fr-txt.def BIN/ETAGE4.BIN
-./ajarch BIN/fr-aza.def BIN/ETAGE4.BIN
-./ajarch BIN/be-azs.def BIN/ETAGE4.BIN
-./ajarch BIN/en-txt.def BIN/ETAGE4.BIN
-./ajarch BIN/en-qwi.def BIN/ETAGE4.BIN
-./ajarch BIN/bepo.def BIN/ETAGE4.BIN
-./ajarch BIN/colemak.def BIN/ETAGE4.BIN
-./ajarch BIN/dvorak.def BIN/ETAGE4.BIN
-./ajarch BIN/gr-aza.def BIN/ETAGE4.BIN
-./ajarch BIN/gr-qwi.def BIN/ETAGE4.BIN
-./ajarch BIN/0u0.def BIN/ETAGE4.BIN
-./ajarch BIN/1u0.def BIN/ETAGE4.BIN
-./ajarch BIN/3u0.def BIN/ETAGE4.BIN
-./ajarch BIN/25u0.def BIN/ETAGE4.BIN
-./ajarch BIN/FFu0.def BIN/ETAGE4.BIN
-./ajarch BIN/F00u0.def BIN/ETAGE4.BIN
-./ajarch BIN/ETAGE24.ASM BIN/ETAGE4.BIN
-./ajarch BIN/icones.png BIN/ETAGE4.BIN
+./ajarch BIN/INSTALL.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
+
+#ajout de la bibliotheque de base pour la cr�ation d'application assembleur et d'un exemple a l'archive du noyau
+./ajarch ASM/PROG/fe.inc BIN/ETAGE4.BIN
+./ajarch ASM/PROG/hello.asm BIN/ETAGE4.BIN
+
+#ajout des sources de base pour recompiler le noyau a l'archive du noyau
+./ajarch ASM/NOYAU/ETAGE2_MBR.ASM BIN/ETAGE4.BIN
+./ajarch ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
+./ajarch BIN/BIOS.MBR BIN/ETAGE4.BIN
+./ajarch BIN/RELAIS.MBR BIN/ETAGE4.BIN
+
+
 
 
 #compilation des différents format du noyau

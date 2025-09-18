@@ -53,7 +53,7 @@ fasm ASM/PROG/I8254X.asm BIN/I8254X.FE
 fasm ASM/PROG/jn1.asm BIN/JN1.FE
 fasm ASM/PROG/snake.asm BIN/SNAKE.FE
 fasm ASM/PROG/palette.asm BIN/PALETTE.FE
-
+fasm ASM/PROG/install.asm BIN//INSTALL.FE
 
 
 :compilation du noyau
@@ -65,22 +65,27 @@ fasm ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
 fasm ASM/BOOT/MBR_BIOS.ASM BIN/BIOS.MBR
 fasm ASM/BOOT/MBR_RELAIS.ASM BIN/RELAIS.MBR
 
+
 :compilation des fichiers de définitions
-:fasm ASM/DEF/bug1.asm BIN/bug1.def
-fasm ASM/DEF/fr-txt.asm BIN/fr-txt.def
-fasm ASM/DEF/fr-aza.asm BIN/fr-aza.def
-:fasm ASM/DEF/be-azs.asm BIN/be-azs.def
-fasm ASM/DEF/en-txt.asm BIN/en-txt.def
-fasm ASM/DEF/en-qwi.asm BIN/en-qwi.def
+fasm ASM/DEF/0u0.asm  BIN/0u0.def
+fasm ASM/DEF/be-azs.asm BIN/be-azs.def
 fasm ASM/DEF/bepo.asm BIN/bepo.def
+:fasm ASM/DEF/bug1.asm BIN/bug1.def
+fasm ASM/DEF/ca-qws.asm BIN/ca-qws.def
+fasm ASM/DEF/ch-qzf.asm BIN/ch-qzf.def
+fasm ASM/DEF/ch-qzg.asm BIN/ch-qzg.def
 fasm ASM/DEF/colemak.asm BIN/colemak.def
 fasm ASM/DEF/dvorak.asm BIN/dvorak.def
-
+fasm ASM/DEF/en-qus.asm BIN/en-qus.def
+fasm ASM/DEF/en-qwi.asm BIN/en-qwi.def
+fasm ASM/DEF/en-txt.asm BIN/en-txt.def
+fasm ASM/DEF/ergol.asm BIN/ergol.def
+fasm ASM/DEF/fr-aza.asm BIN/fr-aza.def
+fasm ASM/DEF/fr-txt.asm BIN/fr-txt.def
 fasm ASM/DEF/gr-aza.asm BIN/gr-aza.def
 fasm ASM/DEF/gr-qwi.asm BIN/gr-qwi.def
 
 
-:fasm ASM/DEF/0u0.asm  BIN/0u0.def
 
 
 :création du zip de base et mise a jour du manuel zippé
@@ -88,15 +93,10 @@ cd BIN
 "C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.ids -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.FE -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.png -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip SEAC.ZIP *.def -mx9
 
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP LSPCI.CFG -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP LSPCI.CFG -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUEL.TXT -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP MANUAL.TXT -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP SYSCALL.TXT -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP AUTOCOMP.CFG -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP EXPL.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.def -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.cfg -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.txt -mx9
 cd ..
 
 
@@ -109,6 +109,7 @@ ajarch BIN/EDT.FE BIN/ETAGE4.BIN
 ajarch BIN/EDH.FE BIN/ETAGE4.BIN
 ajarch BIN/EDG.FE BIN/ETAGE4.BIN
 ajarch BIN/ICS.FE BIN/ETAGE4.BIN
+ajarch BIN/icones.png BIN/ETAGE4.BIN
 ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
 ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
@@ -147,6 +148,7 @@ ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
 ajarch BIN/JN1.FE BIN/ETAGE4.BIN
 ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
 ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
+ajarch BIN/INSTALL.FE BIN/ETAGE4.BIN
 ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 
@@ -166,26 +168,8 @@ ajarch BIN/RELAIS.MBR BIN/ETAGE4.BIN
 ajarch BIN/FASM.FE BIN/ETAGE4.BIN
 
 
-:ajout des fichiers de définition à l'archive du noyau
-ajarch BIN/bug1.def BIN/ETAGE4.BIN
-ajarch BIN/fr-txt.def BIN/ETAGE4.BIN
-ajarch BIN/fr-aza.def BIN/ETAGE4.BIN
-ajarch BIN/be-azs.def BIN/ETAGE4.BIN
-ajarch BIN/en-txt.def BIN/ETAGE4.BIN
-ajarch BIN/en-qwi.def BIN/ETAGE4.BIN
-ajarch BIN/bepo.def BIN/ETAGE4.BIN
-ajarch BIN/colemak.def BIN/ETAGE4.BIN
-ajarch BIN/dvorak.def BIN/ETAGE4.BIN
-ajarch BIN/gr-aza.def BIN/ETAGE4.BIN
-ajarch BIN/gr-qwi.def BIN/ETAGE4.BIN
 
-ajarch BIN/0u0.def BIN/ETAGE4.BIN
-ajarch BIN/1u0.def BIN/ETAGE4.BIN
-ajarch BIN/3u0.def BIN/ETAGE4.BIN
-ajarch BIN/25u0.def BIN/ETAGE4.BIN
-ajarch BIN/FFu0.def BIN/ETAGE4.BIN
-ajarch BIN/F00u0.def BIN/ETAGE4.BIN
-ajarch BIN/icones.png BIN/ETAGE4.BIN
+
 
 
 
