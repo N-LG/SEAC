@@ -1,9 +1,9 @@
-;fichier de dÃ©finition message systeme en anglais
+;fichier de définition message systeme en anglais
 
 org 0
 db "DEFL"
 dd messages_erreur,fin_messages
-db "EN",0,0
+db "eng "   ;code du language iso 639-5
 
 
 include "../NOYAU/DN_MSG_EN.ASM"

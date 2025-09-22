@@ -1,4 +1,5 @@
-﻿;fichier de définition pour clavier qwertz suisse français
+﻿clavier:
+;fichier de définition pour clavier qwertz suisse français
 
 org 0
 db "DEFC"
