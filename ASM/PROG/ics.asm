@@ -2855,7 +2855,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 1        ;numéros de l'icone
 dw 0        ;vide
 dd 32,16    ;coordonné coin supérieur gauche
-db "Explorateur de fichier",0  ;texte de l'icone
+db "File Explorer",0  ;texte de l'icone
 db "expl #",0  ;commande de l'icone
 @@:
 
@@ -2864,7 +2864,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 0        ;numéros de l'icone
 dw 0        ;vide
 dd 160,16   ;coordonné coin supérieur gauche
-db "Console de commande",0  ;texte de l'icone
+db "Tecop",0  ;texte de l'icone
 db 0  ;commande de l'icone
 @@:
 
@@ -2873,7 +2873,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 9        ;numéros de l'icone
 dw 0        ;vide
 dd 32,128    ;coordonné coin supérieur gauche
-db "Editeur binaire",0  ;texte de l'icone
+db "Hexadecimal Editor",0  ;texte de l'icone
 db "edh",0  ;commande de l'icone
 @@:
 
@@ -2882,7 +2882,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 10        ;numéros de l'icone
 dw 0        ;vide
 dd 160,128    ;coordonné coin supérieur gauche
-db "Editeur Texte",0  ;texte de l'icone
+db "Text Editor",0  ;texte de l'icone
 db "edt",0  ;commande de l'icone
 @@:
 
@@ -2891,8 +2891,8 @@ db 0        ;attributs b0=visible b1=selectionné
 db 7        ;numéros de l'icone
 dw 0        ;vide
 dd 32,240    ;coordonné coin supérieur gauche
-db "Installation",0  ;texte de l'icone
-db "man install",0  ;commande de l'icone
+db "Install",0  ;texte de l'icone
+db "install",0  ;commande de l'icone
 @@:
 
 dd @f-$     ;taille de l'objet
@@ -2900,7 +2900,7 @@ db 0        ;attributs b0=visible b1=selectionné
 db 4        ;numéros de l'icone
 dw 0        ;vide
 dd 160,240    ;coordonné coin supérieur gauche
-db "Aide",0  ;texte de l'icone
+db "Help",0  ;texte de l'icone
 db "help",0  ;commande de l'icone
 @@:
 

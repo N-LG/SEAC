@@ -3267,8 +3267,7 @@ dd 0,0,0,0,0,0   ;24 octets
 
 num_fichier:
 dd 0
-taille_fichier:
-dd 0,0
+
 taille_zone:
 dd 0
 
@@ -3297,6 +3296,9 @@ selecorigine:
 dd 0
 seleccurseur:
 dd 0
+taille_fichier:
+dd 0,0
+
 
 sauvegarde_modif:
 rb (sauvegarde_modif-offset_ligne)*7
