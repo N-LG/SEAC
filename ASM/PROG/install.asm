@@ -348,76 +348,8 @@ call envoie_cmd
 
 
 ;*********************************
-;copie du noyau
-mov edx,msg_cop1
-call ajuste_langue
-mov al,6
-int 61h
-
-;ouvre le fichier
-mov al,0
-mov edx,fichier3
-mov ebx,0
-int 64h
-cmp eax,0
-;jne 
-
-
-;test la taille du fichier
-mov al,6
-mov ah,1 ;taille
-mov edx,ZT
-int 64h
-cmp eax,0
-;jne 
-
-mov eax,[ZT]
-add eax,4095
-shr eax,12
-mov ebp,eax
-xor edx,edx
-
-
-@@:
-push ebx
-push edx
-push ebp
-mov al,4
-mov ecx,4096
-mov edi,ZT
-int 64h
-cmp eax,0
-;jne 
-
-mov al,9
-mov ch,[disque]
-mov cl,8
-mov esi,ZT
-mov ebx,[secteur]
-int 64h
-pop ebp
-pop edx
-pop ebx
-cmp eax,0
-;jne 
-
-
-add edx,4096
-add dword[secteur],8
-dec ebp
-jnz @b
-
-mov al,1
-int 64h
-
-
-
-
-
-
-;*********************************
 ;copie du MBR
-mov edx,msg_cop2
+mov edx,msg_cop1
 call ajuste_langue
 mov al,6
 int 61h
@@ -430,7 +362,7 @@ mov edi,ZT
 xor ebx,ebx
 int 64h
 cmp eax,0
-;jne 
+jne err_acf
 
 
 mov ebx,ZT
@@ -453,7 +385,7 @@ xor edx,edx
 mov edi,ZT
 int 64h
 cmp eax,0
-;jne 
+jne err_acf
 
 mov al,1
 int 64h
@@ -468,12 +400,86 @@ mov esi,ZT
 xor ebx,ebx
 int 64h
 cmp eax,0
-;jne 
+jne err_acd
+
+
+
+
+;*********************************
+;copie du noyau
+mov edx,msg_cop2
+call ajuste_langue
+mov al,6
+int 61h
+
+;ouvre le fichier
+mov al,0
+mov edx,fichier3
+mov ebx,0
+int 64h
+cmp eax,0
+jne err_acf
+
+;test la taille du fichier
+mov al,6
+mov ah,1 ;taille
+mov edx,ZT
+int 64h
+cmp eax,0
+jne err_acf
+
+mov eax,[ZT]
+add eax,4095
+shr eax,12
+mov ebp,eax
+xor edx,edx
+
+
+@@:
+push ebx
+push edx
+push ebp
+mov al,4
+mov ecx,4096
+mov edi,ZT
+int 64h
+cmp eax,0
+jne err_acf
+
+mov al,9
+mov ch,[disque]
+mov cl,8
+mov esi,ZT
+mov ebx,[secteur]
+int 64h
+pop ebp
+pop edx
+pop ebx
+cmp eax,0
+jne err_acd
+
+
+add edx,4096
+add dword[secteur],8
+dec ebp
+jnz @b
+
+mov al,1
+int 64h
 
 
 
 ;***************************
 ;copie des fichier
+mov ebx,commande4
+@@:
+mov al,[ebx]
+inc ebx
+cmp al,0
+jne @b
+dec ebx
+mov dword[ebx]," -e"
+
 mov edx,commande4
 call envoie_cmd
 
@@ -489,6 +495,25 @@ int 61h
 
 fin:
 int 60h
+
+
+
+err_acd:
+mov edx,msg_acd
+call ajuste_langue
+mov al,6
+int 61h
+int 60h
+
+
+err_acf:
+mov edx,msg_acf
+call ajuste_langue
+mov al,6
+int 61h
+int 60h
+
+
 
 
 ;*************************************************************************
@@ -761,12 +786,23 @@ db "INSTALL: preparing files in progress...",13,0
 db "INSTALL: préparation des fichier en cours...",13,0
 
 msg_cop1:
-db "INSTALL: copying boot data in progress...",13,0
-db "INSTALL: copie des données d'amorçage en cours...",13,0
+db "INSTALL: Copying files in progress...",13,0
+db "INSTALL: copie du secteur de boot en cours...",13,0
 
 msg_cop2:
-db "INSTALL: Copying files in progress...",13,0
-db "INSTALL: copie des fichiers en cours...",13,0
+db "INSTALL: Copying the boot partition in progress...",13,0
+db "INSTALL: copie de la partition de boot en cours...",13,0
+
+msg_acd:
+db "INSTALL: Error accessing the disk",13,0
+db "INSTALL: erreur lors de l'accès au disque",13,0
+
+msg_acf:
+db "INSTALL: Error accessing file",13,0
+db "INSTALL: erreur lors de l'accès au fichier",13,0
+
+
+
 
 
 msg_fin:
