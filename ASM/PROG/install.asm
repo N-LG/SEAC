@@ -224,9 +224,9 @@ je partd
 int 60h
 
 partd:
-mov edx,commande5
-call envoie_cmd
 mov edx,commande6
+call envoie_cmd
+mov edx,commande7
 call envoie_cmd
 int 60h
 
@@ -471,6 +471,14 @@ int 64h
 
 ;***************************
 ;copie des fichier
+
+mov edx,commande4
+call envoie_cmd
+
+mov edx,commande1
+call envoie_cmd
+
+
 mov ebx,commande4
 @@:
 mov al,[ebx]
@@ -480,7 +488,10 @@ jne @b
 dec ebx
 mov dword[ebx]," -e"
 
-mov edx,commande4
+
+mov word[commande4],".*"
+
+mov edx,commande5
 call envoie_cmd
 
 
@@ -845,10 +856,10 @@ crlf:
 db 13,0
 
 
-commande5:
+commande6:
 db "partd",0
 
-commande6:
+commande7:
 db "pwr -r",0
 
 
@@ -861,11 +872,11 @@ db "FASM ETAGE4.ASM ETAGE4.BIN",0
 commande3:
 db "FASM ETAGE2_MBR.ASM SEAC.BIN",0
 
-
-
+commande5:
+db "cop *"
 
 commande4:
-db "cop *.* "
+db "nd "
 
 ;configuration
 dossier:

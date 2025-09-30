@@ -255,7 +255,22 @@ jmp boucle_serpent
 
 
 
+
 ;affiche le score
+
+mov ecx,[score]
+cmp ecx,[maxscore]
+jb @f
+mov [maxscore],ecx
+@@:
+
+mov al,25
+mov ah,15
+xor ebx,ebx
+xor ecx,ecx
+mov edx,texte_score
+int 63h
+
 mov ecx,[score]
 shr ecx,2
 sub ecx,4
@@ -266,8 +281,34 @@ int 61h
 mov al,25
 mov ah,15
 xor ebx,ebx
-xor ecx,ecx
+mov ecx,16
 int 63h
+
+mov al,25
+mov ah,15
+xor ebx,ebx
+mov ecx,32
+mov edx,texte_max
+int 63h
+
+mov ecx,[maxscore]
+shr ecx,2
+sub ecx,4
+mov al,102
+mov edx,texte
+int 61h
+
+mov al,25
+mov ah,15
+xor ebx,ebx
+mov ecx,48
+int 63h
+
+
+
+
+
+
 
 mov eax,7  ;demande la mise a jour ecran
 int 63h
@@ -291,6 +332,8 @@ cmp al,85
 je droite
 cmp al,83
 je gauche
+cmp ecx,32
+je pose
 jmp boucle
 
 haut:
@@ -317,6 +360,27 @@ je boucle
 mov byte[sens],2
 jmp boucle
 
+pose:
+mov al,25
+mov ah,10
+xor ebx,ebx
+mov ecx,80
+mov edx,texte_pause
+int 63h
+
+mov eax,7  ;demande la mise a jour ecran
+int 63h
+
+@@:
+mov al,5
+int 63h
+cmp al,1
+je fin
+cmp ecx,32
+jne @b
+jmp boucle
+
+
 fin:
 int 60h
 
@@ -324,6 +388,14 @@ int 60h
 ;******************************************************************************************
 sdata1:
 org 0
+
+texte_score:
+db "score",0
+texte_max:
+db "max",0
+texte_pause:
+db "pause!",0
+
 
 sens:
 db 3  ;0=droite 1=haut 2=gauche 3=bas 
@@ -344,6 +416,8 @@ dd 0
 
 score:
 dd 16
+maxscore:
+dd 0
 
 carre:
 dd 32
