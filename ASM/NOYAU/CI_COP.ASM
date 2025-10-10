@@ -251,12 +251,109 @@ jne erreur_entree_cmdcop
 
 
 ;filtre le dossier
-cmp dword[cmdcop_nom_entree],"*.*"
+;cmp dword[cmdcop_nom_entree],"*.*"
+;je fin_filtrage_cmdcop
+
+;compte la taille des données a analyser
+mov ecx,cmdcop_zone_dossier
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+
+@@:
+;contrôle si il n'y as aucune données
+cmp ebp,cmdcop_zone_dossier
+je fin_multifichier_cmdcop
+
+
+mov ebx,cmdcop_zone_dossier
+cmp byte[cmdcop_zone_dossier],"|"
+jne @f
+inc ebx
+@@:
+
+boucle0_filtrage_cmdcop:
+mov esi,cmdcop_nom_entree
+mov edi,ebx
+
+boucle1_filtrage_cmdcop:
+mov ah,[esi]
+mov al,[edi]
+cmp ah,"*"
+je etoile_filtrage_cmdcop
+cmp ah,"?"
+je ok_filtrage_cmdcop
+cmp ax,"|"
+je suivant_filtrage_cmdcop
+cmp ax,0
+je suivant_filtrage_cmdcop
+cmp al,ah
+jne supprime_filtrage_cmdcop
+
+ok_filtrage_cmdcop:
+inc esi
+inc edi
+jmp boucle1_filtrage_cmdcop
+
+
+;efface le fichier de la liste
+supprime_filtrage_cmdcop:
+mov esi,ebx
+mov edi,ebx
+
+@@:
+cmp byte[esi],0
+je dernier_filtrage_cmdcop
+cmp byte[esi],"|"
+je @f
+inc esi
+jmp @b
+
+@@:
+inc esi
+push ecx
+sub ecx,esi
+cld
+rep movsb
+pop ecx
+jmp boucle0_filtrage_cmdcop
+
+etoile_filtrage_cmdcop:
+inc esi
+mov al,[esi]
+;cmp al,"*"
+;je  ;????????????????????
+cmp al,0
+je suivant_filtrage_cmdcop
+
+@@:
+cmp byte[edi],al
+je boucle1_filtrage_cmdcop
+cmp byte[edi],"|"
+je supprime_filtrage_cmdcop
+cmp byte[edi],0
+je supprime_filtrage_cmdcop
+inc edi
+jmp @b
+
+
+
+
+
+suivant_filtrage_cmdcop:
+cmp byte[ebx],0
 je fin_filtrage_cmdcop
-;???????????????pas d'autres options de filtrage pour l'instant
-mov eax,cer_parami
-call message_erreur_cmdcop
-int 60h
+inc ebx
+cmp byte[ebx],"|"
+jne suivant_filtrage_cmdcop
+inc ebx
+jmp boucle0_filtrage_cmdcop
+
+
+dernier_filtrage_cmdcop:
+mov byte[ebx],0
 
 
 fin_filtrage_cmdcop:
