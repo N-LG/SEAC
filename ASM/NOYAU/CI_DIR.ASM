@@ -19,7 +19,7 @@ mov ax,sel_dat1
 mov ds,ax
 mov es,ax
 
-;recupère le nom du dossier
+;recupère le nom du dossier 
 mov edx,cmddir_nom_dossier
 mov eax,18
 int 61h
@@ -50,7 +50,12 @@ mov al,6
 mov edx,cmddir_zone_tampon
 int 61h
 
-
+;récupère le filtre
+mov al,4
+mov ah,0
+mov edx,cmddir_nom_dossier
+mov cl,0
+int 61h
 
 
 ;***********************************************
@@ -63,6 +68,20 @@ mov ecx,cmddir_taille
 mov edi,cmddir_zone_tampon
 int 64h
 add edx,ebx
+
+cmp byte[cmddir_nom_dossier],0
+je @f
+push eax
+push esi
+push edi
+mov al,160
+mov esi,cmddir_nom_dossier
+mov edi,cmddir_zone_tampon
+int 61h
+pop edi
+pop esi
+pop eax
+@@:
 
 push eax
 push edx

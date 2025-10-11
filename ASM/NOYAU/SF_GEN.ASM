@@ -50,6 +50,8 @@
 ;al=152 décompresse une zone compressé par deflate
 ;al=153 décompresse un fichier compressé par deflate
 
+;al=160 filtre une liste de nom
+
 
 cmp al,0
 je sfs_envoie_cmd
@@ -145,6 +147,9 @@ cmp al,152
 je sfs_inflate
 cmp al,153
 je sfs_inflate_fichier
+
+cmp al,160
+je sfs_filtre_liste
 
 mov eax,cer_parami
 iret
@@ -4350,5 +4355,157 @@ sfs_inflate_fichier_verifpoint_ok:
 xor eax,eax
 sfs_inflate_fichier_verifpoint_erreur:
 ret
+
+
+;***********************************************
+sfs_filtre_liste:  ;ds:esi=filtre ;ds:edi=liste de nom séparé par des | et terminé par 0
+pushad
+xor edx,edx
+cmp byte[esi],"|"   ;option d'inversion de la liste (pas encore active)
+jne @f
+mov dl,1
+@@:
+
+mov ebp,esi
+mov ebx,edi
+
+;compte la taille des données a analyser
+mov ecx,edi
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+
+
+
+cmp byte[ebx],"|"
+jne @f
+inc ebx
+@@:
+
+boucle0_sfs_filtre_liste:
+mov esi,ebp
+mov edi,ebx
+
+boucle1_sfs_filtre_liste:
+mov ah,[esi]
+mov al,[edi]
+cmp ah,"<"
+je oncasse_sfs_filtre_liste
+cmp ah,">"
+je offcasse_sfs_filtre_liste
+cmp ah,"*"
+je etoile_sfs_filtre_liste
+cmp ah,"?"
+je ok_sfs_filtre_liste
+cmp ax,"|"
+je suivant_sfs_filtre_liste
+cmp ax,0
+je suivant_sfs_filtre_liste
+call test_sfs_filtre_liste
+jne supprime_sfs_filtre_liste
+
+ok_sfs_filtre_liste:
+inc esi
+inc edi
+jmp boucle1_sfs_filtre_liste
+
+oncasse_sfs_filtre_liste:
+or dl,2
+inc esi
+jmp boucle1_sfs_filtre_liste
+
+offcasse_sfs_filtre_liste:
+and dl,0FDh
+inc esi
+jmp boucle1_sfs_filtre_liste
+
+
+
+;efface le fichier de la liste
+supprime_sfs_filtre_liste:
+mov esi,ebx
+mov edi,ebx
+
+@@:
+cmp byte[esi],0
+je dernier_sfs_filtre_liste
+cmp byte[esi],"|"
+je @f
+inc esi
+jmp @b
+
+@@:
+inc esi
+push ecx
+sub ecx,esi
+cld
+rep movsb
+pop ecx
+jmp boucle0_sfs_filtre_liste
+
+etoile_sfs_filtre_liste:
+inc esi
+mov al,[esi]
+cmp al,"*"
+je  etoile_sfs_filtre_liste
+cmp al,0
+je suivant_sfs_filtre_liste
+
+@@:
+mov ah,[edi]
+call test_sfs_filtre_liste
+je boucle1_sfs_filtre_liste
+cmp byte[edi],"|"
+je supprime_sfs_filtre_liste
+cmp byte[edi],0
+je supprime_sfs_filtre_liste
+inc edi
+jmp @b
+
+
+
+suivant_sfs_filtre_liste:
+cmp byte[ebx],0
+je fin_sfs_filtre_liste
+inc ebx
+cmp byte[ebx],"|"
+jne suivant_sfs_filtre_liste
+inc ebx
+jmp boucle0_sfs_filtre_liste
+
+
+dernier_sfs_filtre_liste:
+mov byte[ebx],0
+
+
+fin_sfs_filtre_liste:
+popad
+iret
+
+test_sfs_filtre_liste:
+test dl,2
+jnz casse_sfs_filtre_liste
+cmp al,"a"
+jb @f
+cmp al,"z"
+ja @f
+sub al,20h
+@@:
+cmp ah,"a"
+jb @f
+cmp ah,"z"
+ja @f
+sub ah,20h
+@@:
+casse_sfs_filtre_liste:
+cmp al,ah
+ret
+
+
+
+
 
 
