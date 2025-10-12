@@ -4360,7 +4360,7 @@ ret
 ;***********************************************
 sfs_filtre_liste:  ;ds:esi=filtre ;ds:edi=liste de nom séparé par des | et terminé par 0
 pushad
-xor edx,edx
+xor edx,edx   ;b0=inversion b1=sensible a la casse ;b3=reccherche etoile en cours
 cmp byte[esi],"|"   ;option d'inversion de la liste (pas encore active)
 jne @f
 mov dl,1
@@ -4377,7 +4377,7 @@ je @f
 inc ecx
 jmp @b
 @@:
-
+inc ecx
 
 
 cmp byte[ebx],"|"
@@ -4386,6 +4386,7 @@ inc ebx
 @@:
 
 boucle0_sfs_filtre_liste:
+and dl,0FBh
 mov esi,ebp
 mov edi,ebx
 
@@ -4393,9 +4394,9 @@ boucle1_sfs_filtre_liste:
 mov ah,[esi]
 mov al,[edi]
 cmp ah,"<"
-je oncasse_sfs_filtre_liste
+je oncasse1_sfs_filtre_liste
 cmp ah,">"
-je offcasse_sfs_filtre_liste
+je offcasse1_sfs_filtre_liste
 cmp ah,"*"
 je etoile_sfs_filtre_liste
 cmp ah,"?"
@@ -4405,27 +4406,30 @@ je suivant_sfs_filtre_liste
 cmp ax,0
 je suivant_sfs_filtre_liste
 call test_sfs_filtre_liste
-jne supprime_sfs_filtre_liste
+jne inexacte_sfs_filtre_liste
 
 ok_sfs_filtre_liste:
 inc esi
 inc edi
 jmp boucle1_sfs_filtre_liste
 
-oncasse_sfs_filtre_liste:
+oncasse1_sfs_filtre_liste:
 or dl,2
 inc esi
 jmp boucle1_sfs_filtre_liste
 
-offcasse_sfs_filtre_liste:
+offcasse1_sfs_filtre_liste:
 and dl,0FDh
 inc esi
 jmp boucle1_sfs_filtre_liste
 
 
-
 ;efface le fichier de la liste
 supprime_sfs_filtre_liste:
+test dl,1
+jnz suivant2_sfs_filtre_liste
+supprime2_sfs_filtre_liste:
+
 mov esi,ebx
 mov edi,ebx
 
@@ -4446,11 +4450,28 @@ rep movsb
 pop ecx
 jmp boucle0_sfs_filtre_liste
 
+
+
+inexacte_sfs_filtre_liste:
+test dl,4
+jz supprime_sfs_filtre_liste
+@@:
+dec esi
+cmp byte[esi],"*"
+jne @b
+
 etoile_sfs_filtre_liste:
+or dl,4
 inc esi
 mov al,[esi]
 cmp al,"*"
 je  etoile_sfs_filtre_liste
+cmp al,"?"
+je  etoile_sfs_filtre_liste
+cmp al,"<"
+je  oncasse2_sfs_filtre_liste
+cmp al,">"
+je  offcasse2_sfs_filtre_liste
 cmp al,0
 je suivant_sfs_filtre_liste
 
@@ -4465,9 +4486,20 @@ je supprime_sfs_filtre_liste
 inc edi
 jmp @b
 
+oncasse2_sfs_filtre_liste:
+or dl,2
+jmp etoile_sfs_filtre_liste
+
+offcasse2_sfs_filtre_liste:
+and dl,0FDh
+jmp etoile_sfs_filtre_liste
 
 
 suivant_sfs_filtre_liste:
+test dl,1
+jnz supprime2_sfs_filtre_liste
+suivant2_sfs_filtre_liste:
+
 cmp byte[ebx],0
 je fin_sfs_filtre_liste
 inc ebx
@@ -4476,14 +4508,13 @@ jne suivant_sfs_filtre_liste
 inc ebx
 jmp boucle0_sfs_filtre_liste
 
-
 dernier_sfs_filtre_liste:
 mov byte[ebx],0
-
 
 fin_sfs_filtre_liste:
 popad
 iret
+
 
 test_sfs_filtre_liste:
 test dl,2
