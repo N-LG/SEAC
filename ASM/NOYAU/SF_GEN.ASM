@@ -4364,6 +4364,7 @@ xor edx,edx   ;b0=inversion b1=sensible a la casse ;b3=reccherche etoile en cour
 cmp byte[esi],"|"   ;option d'inversion de la liste (pas encore active)
 jne @f
 mov dl,1
+inc esi
 @@:
 
 mov ebp,esi
@@ -4400,7 +4401,7 @@ je offcasse1_sfs_filtre_liste
 cmp ah,"*"
 je etoile_sfs_filtre_liste
 cmp ah,"?"
-je ok_sfs_filtre_liste
+je ignore_sfs_filtre_liste
 cmp ax,"|"
 je suivant_sfs_filtre_liste
 cmp ax,0
@@ -4411,6 +4412,17 @@ jne inexacte_sfs_filtre_liste
 ok_sfs_filtre_liste:
 inc esi
 inc edi
+jmp boucle1_sfs_filtre_liste
+
+
+ignore_sfs_filtre_liste:
+inc esi
+@@:
+inc edi
+mov al,[edi]
+and al,0C0h
+cmp al,080h
+je @b
 jmp boucle1_sfs_filtre_liste
 
 oncasse1_sfs_filtre_liste:
@@ -4504,7 +4516,7 @@ cmp byte[ebx],0
 je fin_sfs_filtre_liste
 inc ebx
 cmp byte[ebx],"|"
-jne suivant_sfs_filtre_liste
+jne suivant2_sfs_filtre_liste
 inc ebx
 jmp boucle0_sfs_filtre_liste
 
