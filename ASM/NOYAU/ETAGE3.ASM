@@ -742,12 +742,10 @@ mov al,1
 out dx,al
 
 mov dx,21h             ;regle le masquage des irq
-;mov al,0A0h            ;masque les irq 5,7
-mov al,0
+mov al,0            ;démasque toutes les irq
 out dx,al
 mov dx,0A1h
-;mov al,0FFh            ;masque les irq 8 à 15
-mov al,0
+mov al,0            ;démasque toutes les irq
 out dx,al
 
 
@@ -1303,9 +1301,9 @@ mov al,0F4h    ;enable
 call env_ps2
 
 ;démasque l'irq 12
-mov dx,0A1h
-mov al,0EFh
-out dx,al
+;mov dx,0A1h
+;mov al,0FFh
+;out dx,al
 fin_init_souris:
 
 
@@ -1344,6 +1342,151 @@ gs
 mov word[158],"I" or 7000h
 
 
+;*******************************************************
+;recherche du RSDP
+mov ax,selramt
+mov bx,selramh
+mov ds,ax
+mov es,bx
+
+xor ebx,ebx
+mov bx,[40Eh]
+shl ebx,8
+mov ebp,ebx
+add ebp,1024
+
+boucle1_rsdtptr:
+cmp dword[ebx],"RSD "
+jne @f 
+cmp dword[ebx+4],"PTR "
+je rsdtptr_trouve
+@@:
+add ebx,16
+cmp ebx,ebp
+jne boucle1_rsdtptr
+
+mov ebx,0E0000h
+mov ebp,100000h
+
+boucle2_rsdtptr:
+cmp dword[ebx],"RSD "
+jne @f 
+cmp dword[ebx+4],"PTR "
+je rsdtptr_trouve
+@@:
+add ebx,16
+cmp ebx,ebp
+jne boucle2_rsdtptr
+
+
+;????????????? enregistre qu'il n'y as pas d'acpi
+jmp fin_parcours_RSDT
+
+
+rsdtptr_trouve:
+
+jmp parcours_rsdp
+cmp byte[ebx+15],0
+je v1
+cmp byte[ebx+15],2
+je v2
+jmp erreur_RSDT
+
+
+v1:
+mov ebp,ebx
+add ebp,20
+xor ax,ax
+@@:
+add al,[ebx]
+inc ebx
+cmp ebx,ebp
+jne @b
+cmp al,0
+jne erreur_RSDT
+
+
+jmp parcours_rsdp
+
+
+
+
+v2:
+mov ebp,ebx
+add ebp,36
+xor ax,ax
+@@:
+add al,[ebx]
+inc ebx
+cmp ebx,ebp
+jne @b
+cmp al,0
+jne erreur_RSDT
+
+
+
+parcours_rsdp:  ;parcours le RSDT et enregistre les tables intéressantes
+mov ecx,[ebx+4]
+add ebx,36
+sub ecx,36
+shr ecx,2
+
+boucle_parcours_RSDT:
+mov esi,[ebx]
+cmp dword[esi],"FACP"
+je enregistreFADT
+cmp dword[esi],"APIC"
+je enregistreMADT
+cmp dword[esi],"SRAT"
+je enregistreSRAT
+;?????????voir aussi pour le SLIT et le SSDT je pense qu'il va y en avoir besoin
+dec ecx
+jnz boucle_parcours_RSDT
+jmp fin_parcours_RSDT
+
+;FADT
+enregistreFADT:
+pushad
+mov eax,czm_fadt
+jmp enregistre_table_rsdp
+
+;MADT
+enregistreMADT:
+pushad
+mov eax,czm_madt
+jmp enregistre_table_rsdp
+
+;SRAT
+enregistreSRAT:
+pushad
+mov eax,czm_srat
+;jmp enregistre_table_rsdp
+
+enregistre_table_rsdp:
+mov ecx,[esi+4]
+add ecx,15
+and ecx,0FFFFFFF0h
+call resmem
+es
+mov [ebx+8],eax
+mov ecx,[esi+4]
+mov edi,ebx
+add edi,16
+cld
+rep movsb
+
+
+popad
+dec ecx
+jnz boucle_parcours_RSDT
+jmp fin_parcours_RSDT 
+
+
+erreur_RSDT:
+;???????????????????
+
+
+fin_parcours_RSDT:
 
 ;*******************************************************************
 ;fin de la séquence d'initialisation
@@ -4619,7 +4762,7 @@ ret
 
 
 ;*********************************************************************
-;sous fonctions manipulation de la gdt/ldt
+;sous fonctions manipulation de la gdt/ldt/idt
 
 modbgp:  ;modifie la base d'un descripteur de segment
         ;ax=num?ros du d?scripteur (13bit)
@@ -4682,6 +4825,32 @@ pop ecx
 pop ebx
 pop eax
 ret
+
+
+
+cridtp: ;créer ou modifie un descripteur d'interruption
+        ;al=numéros du descripteur (8bit)
+        ;ds=selecteur du segment ou se trouve l'IDT
+        ;es=selecteur de segment ou se trouve la routine a appeler
+        ;esi=offset de la routine a appeler
+        ;dl=option                     6-5 dpl
+pushad                              ;  3 1=32 0=16 
+mov bx,ax                           ;  2-0  type  100=porte d'appel
+and bx,0FFh                         ;             110=porte d'interruption
+shl bx,3                            ;             111=porte de trappe
+mov [bx],si     ;charge l'offset
+shr esi,16
+mov [bx+6],si
+mov [bx+2],es ;charge le selecteur
+shl dx,8
+and dx,0EF00h
+or dx,8000h
+mov [bx+4],dx
+popad
+ret
+
+
+
 
 
 
@@ -5317,13 +5486,21 @@ mov dx,7000h
 mov word[148],"E"or 7000h
 mov word[150],"x"or 7000h
 mov dl,cl
-shr cl,4
+shr dl,4
 and dl,0Fh
 add dl,"0"
+cmp dl,"9"
+jbe @f
+add dl,7
+@@:
 mov [152],dx
 mov dl,cl
 and dl,0Fh
 add dl,"0"
+cmp dl,"9"
+jbe @f
+add dl,7
+@@:
 mov [154],dx
 mov word[156],"-"or 7000h
 @@:
