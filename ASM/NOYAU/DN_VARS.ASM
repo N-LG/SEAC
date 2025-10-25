@@ -451,6 +451,7 @@ usb_action    equ 602h     ;action a effectuer
 usb_adresse   equ 603h     ;adresse du périphérique sur lequel on travail
 usb_tempo     equ 604h     ;temporisation a attendre si action<>0
 usb_tag       equ 608h     ;tag (dword)
+usb_rtry      equ 60Ch     ;nombre de tentative
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
 
@@ -902,4 +903,7 @@ czm_ohci equ 36  ;zoné mémoire utillisé par un controleur OHCI
 czm_ehci equ 37  ;zoné mémoire utillisé par un controleur EHCI
 czm_xhci equ 38  ;zoné mémoire utillisé par un controleur XHCI
 
-
+czm_rsdp equ 40 ;sauvegarde des table de la RSDP
+czm_fadt equ 41 ;sauvegarde de la fadt
+czm_madt equ 42 ;sauvegarde de la madt
+czm_srat equ 43 ;sauvegarde de la srat
