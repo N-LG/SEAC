@@ -88,13 +88,18 @@ je dossier_prec_cmdsup
 cmp eax,"..\"
 je dossier_prec_cmdsup
 
-cmp al,"/"
-je cmdsup_erreuradresse
-cmp al,"\"
-je cmdsup_erreuradresse
 
 mov edx,cmdsup_filtre
 @@:
+cmp word[edx],"//"
+je cmdsup_erreuradresse
+cmp word[edx],"\\"
+je cmdsup_erreuradresse
+cmp word[edx],"/\"
+je cmdsup_erreuradresse
+cmp word[edx],"\/"
+je cmdsup_erreuradresse
+
 cmp byte[edx],"/"
 je ajdossier_cmdsup
 cmp byte[edx],"\"
@@ -125,6 +130,7 @@ jmp @f
 
 
 ajdossier_cmdsup:
+inc edx
 mov ecx,edx
 mov esi,cmdsup_filtre
 mov edi,ebx
@@ -142,7 +148,24 @@ jmp boucle_separation_cmdsup
 
 finseparation_cmdsup:
 
+mov al,6
+mov edx,cmdsup_nom_dossier
+int 61h
 
+mov al,6
+mov edx,cmdsup_zone_tampon
+mov word[edx],13
+int 61h
+
+mov al,6
+mov edx,cmdsup_filtre
+int 61h
+
+
+mov al,6
+mov edx,cmdsup_zone_tampon
+mov word[edx],13
+int 61h
 
 
 ;test si le nom de l'entée contient des *,<,>,|, ou des ?
@@ -236,7 +259,7 @@ int 60h
 
 
 cmdsup_erreuradresse:
-mov eax,11 ;????????????????
+mov eax,cer_parami
 call erreur_autres_cmdsup
 int 60h
 
@@ -265,7 +288,56 @@ cmp eax,21
 jne erreur_autres2_cmdsup
 
 ;efface les fichier dans le dossier si celui ci n'est pas vide
-;????????????????????????????????????????????
+mov edi,cmdsup_zone_tampon
+mov dword[edi],"sup "
+add edi,4
+
+mov esi,cmdsup_nom_dossier
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov esi,edx
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov dword[edi],"/*"
+
+
+mov al,0    ;envoie la commande au systeme
+mov edx,cmdsup_zone_tampon 
+int 61h
+
+@@:         ;et attend que celle ci soit executé
+int 62h
+mov al,19
+mov cl,128
+mov edx,cmdsup_zone_tampon
+mov word[edx],0
+int 61h
+cmp word[cmdsup_zone_tampon],0
+jne @b
+
+
+
+
+
+
+
+
 
 
 mov eax,3    ;supprime le dossier, normalement il n'y as plus de fichier maintenant
