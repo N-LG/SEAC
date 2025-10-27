@@ -35,7 +35,6 @@ mov edx,cmdsup_filtre
 int 61h
 
 
-
 ;cherche la fin du nom de dossier
 mov ebx,cmdsup_nom_dossier
 @@:
@@ -44,6 +43,7 @@ je @f
 inc ebx
 jmp @b
 @@:
+
 
 ;ajoute un / a la fin du dossier si il n'y en as pas déjà 1
 dec ebx
@@ -55,7 +55,6 @@ inc ebx
 mov word[ebx],"/"
 @@:
 inc ebx
-
 
 
 ;si le filtre est une adresse absolue, on ignore l'adresse de base
@@ -113,6 +112,9 @@ dossier_prec_cmdsup:
 cmp ebx,cmdsup_nom_dossier
 je cmdsup_erreuradresse
 dec ebx
+cmp ebx,cmdsup_nom_dossier
+je cmdsup_erreuradresse
+dec ebx
 @@:
 cmp byte[ebx],"/"
 je @f
@@ -124,8 +126,8 @@ dec ebx
 jmp @b
 
 @@:
-mov byte[ebx+1],0
 mov edx,cmdsup_filtre+3
+inc ebx
 jmp @f
 
 
@@ -137,8 +139,10 @@ mov edi,ebx
 sub ecx,esi
 cld
 rep movsb
+mov ebx,edi
 
 @@:
+mov byte[ebx],0
 mov esi,edx
 mov edi,cmdsup_filtre
 mov ecx,64
@@ -146,26 +150,16 @@ cld
 rep movsd
 jmp boucle_separation_cmdsup
 
+
 finseparation_cmdsup:
-
-mov al,6
+;ouvre le dossier
+xor eax,eax         ;ouvre le dossier qui contiens les fichier a supprimer
+xor ebx,ebx
 mov edx,cmdsup_nom_dossier
-int 61h
-
-mov al,6
-mov edx,cmdsup_zone_tampon
-mov word[edx],13
-int 61h
-
-mov al,6
-mov edx,cmdsup_filtre
-int 61h
-
-
-mov al,6
-mov edx,cmdsup_zone_tampon
-mov word[edx],13
-int 61h
+int 64h
+cmp eax,12
+jne cmdsup_erreurdossier
+mov [cmdsup_handle_dossier],ebx
 
 
 ;test si le nom de l'entée contient des *,<,>,|, ou des ?
@@ -191,7 +185,6 @@ cmdsup_monofichier:
 mov edx,cmdsup_filtre
 call cmdsup_supprime1
 int 60h
-
 
 
 cmdsup_multifichier:
@@ -251,11 +244,7 @@ cmp eax,cer_pasm
 je boucle1_cmdsup
 cmp eax,0
 jne erreur_autres_cmdsup
-
 int 60h
-
-
-
 
 
 cmdsup_erreuradresse:
@@ -264,7 +253,10 @@ call erreur_autres_cmdsup
 int 60h
 
 
-
+cmdsup_erreurdossier:
+mov eax,cer_lecnt
+call erreur_autres_cmdsup
+int 60h
 
 
 
