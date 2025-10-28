@@ -2,8 +2,9 @@
 
 cmddir_nom_dossier equ 0
 cmddir_zt_affichage equ 512
-cmddir_handle_dossier equ 1024
-cmddir_zone_tampon equ 1028
+cmddir_filtre equ 1024
+cmddir_handle_dossier equ 1536
+cmddir_zone_tampon equ 1540
 cmddir_taille equ 4096
 
 
@@ -23,6 +24,161 @@ mov es,ax
 mov edx,cmddir_nom_dossier
 mov eax,18
 int 61h
+
+
+;récupère le filtre
+mov al,4
+mov ah,0
+mov edx,cmddir_filtre
+mov cl,0
+int 61h
+
+
+
+;cherche la fin du nom de dossier
+mov ebx,cmddir_nom_dossier
+@@:
+cmp byte[ebx],0
+je @f
+inc ebx
+jmp @b
+@@:
+
+
+;ajoute un / a la fin du dossier si il n'y en as pas déjà 1
+dec ebx
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+inc ebx
+mov word[ebx],"/"
+@@:
+inc ebx
+
+
+;si le filtre est une adresse absolue, on ignore l'adresse de base
+cmp byte[cmddir_filtre],"#"
+jne @f
+mov ebx,cmddir_nom_dossier
+@@:
+mov byte[ebx],0  ;ebx=fin de l'adresse du dossier
+
+
+;si le filtre commence par un / on le supprime
+cmp byte[cmddir_filtre],"/"
+je @f
+cmp byte[cmddir_filtre],"\"
+jne boucle_separation_cmddir
+@@:
+mov esi,cmddir_filtre+1
+mov edi,cmddir_filtre
+mov ecx,64
+cld
+rep movsd
+
+
+;sépare l'adresse et le filtre de supression
+boucle_separation_cmddir:
+mov eax,[cmddir_filtre]
+and eax,0FFFFFFh
+cmp eax,"../"
+je dossier_prec_cmddir
+cmp eax,"..\"
+je dossier_prec_cmddir
+
+
+mov edx,cmddir_filtre
+@@:
+cmp word[edx],"//"
+je cmddir_erreuradresse
+cmp word[edx],"\\"
+je cmddir_erreuradresse
+cmp word[edx],"/\"
+je cmddir_erreuradresse
+cmp word[edx],"\/"
+je cmddir_erreuradresse
+
+cmp byte[edx],"/"
+je ajdossier_cmddir
+cmp byte[edx],"\"
+je ajdossier_cmddir
+cmp byte[edx],0
+je finseparation_cmddir
+inc edx
+jmp @b
+
+dossier_prec_cmddir:
+cmp ebx,cmddir_nom_dossier
+je cmddir_erreuradresse
+dec ebx
+cmp ebx,cmddir_nom_dossier
+je cmddir_erreuradresse
+dec ebx
+@@:
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+cmp ebx,cmddir_nom_dossier
+je cmddir_erreuradresse
+dec ebx
+jmp @b
+
+@@:
+mov edx,cmddir_filtre+3
+inc ebx
+jmp @f
+
+
+ajdossier_cmddir:
+inc edx
+mov ecx,edx
+mov esi,cmddir_filtre
+mov edi,ebx
+sub ecx,esi
+cld
+rep movsb
+mov ebx,edi
+
+@@:
+mov byte[ebx],0
+mov esi,edx
+mov edi,cmddir_filtre
+mov ecx,64
+cld
+rep movsd
+jmp boucle_separation_cmddir
+
+
+finseparation_cmddir:
+;si il n'y as pas de caractère spéciaux dans le filtre, c'est qu'il s'agit d'un nom
+mov esi,cmddir_filtre
+@@:
+cmp byte[esi],"*"
+je cmddir_nomfiltreok
+cmp byte[esi],"<"
+je cmddir_nomfiltreok
+cmp byte[esi],">"
+je cmddir_nomfiltreok
+cmp byte[esi],"|"
+je cmddir_nomfiltreok
+cmp byte[esi],"?"
+je cmddir_nomfiltreok
+cmp byte[esi],0
+je @f
+inc esi
+jmp @b
+
+@@:
+mov ecx,esi
+mov esi,cmddir_filtre
+mov edi,ebx
+sub ecx,esi
+cld
+rep movsb
+mov byte[cmddir_filtre],0
+cmddir_nomfiltreok:
 
 ;ouvre le dossier
 xor eax,eax
@@ -45,17 +201,21 @@ int 61h
 mov edx,cmddir_nom_dossier
 mov al,6
 int 61h
+mov edx,cmddir_filtre
+mov al,6
+int 61h
 mov word[cmddir_zone_tampon],000Dh  ;fin et CR
 mov al,6
 mov edx,cmddir_zone_tampon
 int 61h
 
-;récupère le filtre
-mov al,4
-mov ah,0
-mov edx,cmddir_nom_dossier
-mov cl,0
-int 61h
+
+
+
+
+
+
+
 
 
 ;***********************************************
@@ -69,13 +229,13 @@ mov edi,cmddir_zone_tampon
 int 64h
 add edx,ebx
 
-cmp byte[cmddir_nom_dossier],0
+cmp byte[cmddir_filtre],0
 je @f
 push eax
 push esi
 push edi
 mov al,160
-mov esi,cmddir_nom_dossier
+mov esi,cmddir_filtre
 mov edi,cmddir_zone_tampon
 int 61h
 pop edi
@@ -116,7 +276,12 @@ jne erreur_autres_cmddir
 int 60h
 
 
+
 ;****************************************************
+cmddir_erreuradresse:
+mov eax,cer_parami
+
+
 erreur_autres_cmddir:
 push eax
 
