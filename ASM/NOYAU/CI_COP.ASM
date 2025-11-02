@@ -26,57 +26,143 @@ mov ax,sel_dat1
 mov ds,ax
 mov es,ax
 
+
+;recupère le nom du dossier 
+mov edx,cmdcop_dossier_entree
+mov eax,18
+int 61h
+
+
+
 ;recupère le nom du fichier a copier
 mov al,4
 mov ah,0
 mov cl,0
-mov edx,cmdcop_dossier_entree
+mov edx,cmdcop_nom_entree
 int 61h
 
 
-;extrait le nom du dossier du nom du fichier
-xor esi,esi
 
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+
+
+;cherche la fin du nom de dossier
+mov ebx,cmdcop_dossier_entree
 @@:
-cmp byte[edx],"/"
-je cmdcop_slash
-cmp byte[edx],"\"
-je cmdcop_slash
-cmp byte[edx],0
-je cmdcop_0
-inc edx
+cmp byte[ebx],0
+je @f
+inc ebx
 jmp @b
-
-cmdcop_slash:
-mov esi,edx
-inc edx
-jmp @b
-
-cmdcop_0:
-cmp esi,0
-je cmdcop_aucun_dossier
+@@:
 
 
-mov byte[esi],0
-inc esi
-mov ecx,edx
-sub ecx,esi
+;ajoute un / a la fin du dossier si il n'y en as pas déjà 1
+dec ebx
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+inc ebx
+mov word[ebx],"/"
+@@:
+inc ebx
+
+
+;si le filtre est une adresse absolue, on ignore l'adresse de base
+cmp byte[cmdcop_nom_entree],"#"
+jne @f
+mov ebx,cmdcop_dossier_entree
+@@:
+mov byte[ebx],0  ;ebx=fin de l'adresse du dossier
+
+
+;si le filtre commence par un / on le supprime
+cmp byte[cmdcop_nom_entree],"/"
+je @f
+cmp byte[cmdcop_nom_entree],"\"
+jne boucle_separation_cmdcop
+@@:
+mov esi,cmdcop_nom_entree+1
 mov edi,cmdcop_nom_entree
-cld
-rep movsb
-jmp @f
-
-cmdcop_aucun_dossier:
-mov esi,cmdcop_dossier_entree
-mov edi,cmdcop_nom_entree
-mov ecx,128
+mov ecx,64
 cld
 rep movsd
-mov byte[cmdcop_dossier_entree],0
+
+
+;sépare l'adresse et le filtre de supression
+boucle_separation_cmdcop:
+mov eax,[cmdcop_nom_entree]
+and eax,0FFFFFFh
+cmp eax,"../"
+je dossier_prec_cmdcop
+cmp eax,"..\"
+je dossier_prec_cmdcop
+
+
+mov edx,cmdcop_nom_entree
+@@:
+cmp word[edx],"//"
+je erreur_param_cmdcop
+cmp word[edx],"\\"
+je erreur_param_cmdcop
+cmp word[edx],"/\"
+je erreur_param_cmdcop
+cmp word[edx],"\/"
+je erreur_param_cmdcop
+
+cmp byte[edx],"/"
+je ajdossier_cmdcop
+cmp byte[edx],"\"
+je ajdossier_cmdcop
+cmp byte[edx],0
+je finseparation_cmdcop
+inc edx
+jmp @b
+
+dossier_prec_cmdcop:
+cmp ebx,cmdcop_dossier_entree
+je erreur_param_cmdcop
+dec ebx
+cmp ebx,cmdcop_dossier_entree
+je erreur_param_cmdcop
+dec ebx
+@@:
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+cmp ebx,cmdcop_dossier_entree
+je erreur_param_cmdcop
+dec ebx
+jmp @b
 
 @@:
+mov edx,cmdcop_nom_entree+3
+inc ebx
+jmp @f
 
 
+ajdossier_cmdcop:
+inc edx
+mov ecx,edx
+mov esi,cmdcop_nom_entree
+mov edi,ebx
+sub ecx,esi
+cld
+rep movsb
+mov ebx,edi
+
+@@:
+mov byte[ebx],0
+mov esi,edx
+mov edi,cmdcop_nom_entree
+mov ecx,64
+cld
+rep movsd
+jmp boucle_separation_cmdcop
+
+
+finseparation_cmdcop:
 
 
 ;récupère la destination
@@ -207,8 +293,6 @@ cmp eax,cer_dov
 jne erreur_sortie2_cmdcop
 
 
-
-
 cmdcop_ok_ouverture_dossier_sortie:
 mov [cmdcop_handle_dossier_sortie],ebx
 
@@ -308,6 +392,12 @@ int 60h
 
 
 erreur_memoire_cmdcop:
+call message_erreur_cmdcop
+int 60h
+
+
+erreur_param_cmdcop:
+mov eax,cer_parami
 call message_erreur_cmdcop
 int 60h
 
@@ -598,7 +688,7 @@ mov al,0    ;envoie la commande au systeme
 mov edx,cmdcop_zone_tampon 
 int 61h
 
-@@:
+@@:          ;et attend que celle ci soit executé
 int 62h
 mov al,19
 mov cl,128
