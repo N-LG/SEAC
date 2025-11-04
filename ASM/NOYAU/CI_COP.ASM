@@ -43,8 +43,6 @@ int 61h
 
 
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
-
 
 ;cherche la fin du nom de dossier
 mov ebx,cmdcop_dossier_entree
@@ -164,13 +162,102 @@ jmp boucle_separation_cmdcop
 
 finseparation_cmdcop:
 
+;recupère le nom du dossier 
+mov edx,cmdcop_dossier_sortie
+mov eax,18
+int 61h
+
+
+;cherche la fin du nom de dossier
+mov ebx,cmdcop_dossier_sortie
+@@:
+cmp byte[ebx],0
+je @f
+inc ebx
+jmp @b
+@@:
+
+;ajoute un / a la fin du dossier si il n'y en as pas déjà 1
+dec ebx
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+inc ebx
+mov word[ebx],"/"
+@@:
+inc ebx
 
 ;récupère la destination
 mov al,4
 mov ah,1
 mov cl,0
-mov edx,cmdcop_dossier_sortie
+mov edx,ebx
 int 61h
+
+ 
+;si ça commence par un / on le supprime
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+jne cmdcop_supslash  
+@@:
+mov esi,ebx
+mov edi,ebx
+inc esi
+mov ecx,64
+cld
+rep movsd
+cmdcop_supslash:
+
+;gestion des retours dossier
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+
+
+
+
+
+;boucle_separation_cmdcop:
+;mov eax,[cmdcop_nom_entree]
+;and eax,0FFFFFFh
+;cmp eax,"../"
+;je dossier_prec_cmdcop
+;cmp eax,"..\"
+;je dossier_prec_cmdcop
+
+
+
+
+
+;si la destination commence par un #, on ignore le dossier actuel
+cmp byte[ebx],"#"
+jne cmdcop_ignrdm
+mov esi,ebx
+mov edi,cmdcop_dossier_sortie
+mov ecx,64
+cld
+rep movsd
+
+;ajoute un / a la fin du dossier si il n'y en as pas déjà 1
+mov ebx,cmdcop_dossier_sortie
+@@:
+cmp byte[ebx],0
+je @f
+inc ebx
+jmp @b
+@@:
+dec ebx
+cmp byte[ebx],"/"
+je @f
+cmp byte[ebx],"\"
+je @f
+inc ebx
+mov word[ebx],"/"
+@@:
+inc ebx
+cmdcop_ignrdm:
+
+
 
 ;recupere le renommage eventuel de la destination
 mov al,5
@@ -558,10 +645,6 @@ mov al,6
 mov edx,cmdcop_dossier_entree
 int 61h
 mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
-int 61h
-mov al,6
 mov edx,cmdcop_nom_entree
 int 61h
 
@@ -577,10 +660,6 @@ int 61h
 
 mov al,6
 mov edx,cmdcop_dossier_sortie
-int 61h
-mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
 int 61h
 mov al,6
 mov edx,cmdcop_nom_sortie
@@ -771,10 +850,6 @@ mov al,6
 mov edx,cmdcop_dossier_entree
 int 61h
 mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
-int 61h
-mov al,6
 mov edx,cmdcop_nom_entree
 int 61h
 mov al,6
@@ -783,10 +858,6 @@ mov word[edx]," "
 int 61h
 mov al,6
 mov edx,cmdcop_dossier_sortie
-int 61h
-mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
 int 61h
 mov al,6
 mov edx,cmdcop_nom_sortie
@@ -838,10 +909,6 @@ mov al,6
 mov edx,cmdcop_dossier_entree
 int 61h
 mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
-int 61h
-mov al,6
 mov edx,cmdcop_nom_entree
 int 61h
 mov al,6
@@ -850,10 +917,6 @@ mov word[edx]," "
 int 61h
 mov al,6
 mov edx,cmdcop_dossier_sortie
-int 61h
-mov al,6
-mov edx,cmdcop_zone_tampon
-mov word[edx],"/"
 int 61h
 mov al,6
 mov edx,cmdcop_nom_sortie
