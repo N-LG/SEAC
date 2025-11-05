@@ -192,6 +192,33 @@ pop ds
 iret
 
 
+;**********************IRQ déclenché par un péripherique disque
+irq_disque2:
+push ax
+mov al,20h
+out 0A0h,al
+pop ax
+
+irq_disque1:
+push eax
+push ds
+push dx
+
+mov al,20h
+out 20h,al
+
+
+pushad
+mov al,"T"
+call affcj
+popad
+
+mov dx,seldat
+mov ds,dx
+mov dx,[id_tache_fichier]
+call prio_tache
+pop dx
+jmp commutation
 
 
 ;*******************************************************************************
@@ -5690,7 +5717,7 @@ cmp al,011000b
 je minfofichier_fat       ;ou fat32
 jmp errprmsf
 
-;*********************************
+;**************************************
 minfofichier_mem:
 cmp ah,0
 je minfofichier_mem_nom
@@ -5698,6 +5725,7 @@ cmp ah,1
 je minfofichier_mem_taille
 jmp errprmsf
 
+;******************
 minfofichier_mem_nom:
 fs
 mov edi,[ad_fichier]
@@ -5722,7 +5750,7 @@ gs
 mov byte[edi],0
 jmp finfonctionfichier
 
-
+;******************
 minfofichier_mem_taille:
 fs
 mov edi,[ad_fichier]
@@ -5784,7 +5812,7 @@ erreur_minfofichier_mem_taille:
 mov eax,cer_parami
 jmp finfonctionfichiererr
 
-;****************************
+;***************************************
 minfofichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
 call minfo_charge_descripteur
 cmp eax,0
@@ -5821,15 +5849,74 @@ pop ebx
 jmp errsysf
 
 ok_minfofichier_fat:  ;quel est l'info a modifier?
-;cmp cl,0
-;je minfofichier_fat_nom
+cmp cl,0
+je minfofichier_fat_nom
 cmp cl,1
 je minfofichier_fat_taille
 pop ebx
 jmp errprmsf
 
 
+;******************
+minfofichier_fat_nom:
 
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+;copier nom souhaité dans ad_nomfichier1
+mov edi,ad_nomfichier1
+@@:
+mov al,[edx]
+fs
+mov [edi],al
+inc edx
+inc edi
+cmp edi,ad_nomfichier1+512
+je errprmsf
+cmp al,0
+jne @b
+
+;sauvegarder position ancien descripteur??????????????????
+fs
+mov edx,[ad_dansdossier]
+
+;call minfo_fat_modedossier
+
+;créer un fichier qui correspond au nouveau nom 
+call sf_cree_fichier
+cmp eax,0
+jne finfonctionfichiererr
+
+jmp errprmsf
+
+call minfo_fat_modefichier
+
+;§§§§§§§§§§§§§§§§§§§§§
+;verifier les registres qui sont modifié par "sf_cree_fichier"
+;§§§§§§§§§§§§§§§§§§§§§
+
+;charger ancien descripteur dans ad_nomfichier1
+
+;charger nouveau descripteur dans ad_nomfichier2
+
+;copier métadonnée ancien descripteur dans nouveau
+
+;recalculer checksum?
+
+;marquer ancien descripteur comme disponible
+
+;enregistrer nouveau descripteur dans le dossier
+
+;enregistrer ancien descripteur effacé dans le dossier
+
+;enregistre dans la table ram les info qui ont changé
+
+
+
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
+
+;******************
 minfofichier_fat_taille:
 mov eax,[edx]
 fs
@@ -5881,8 +5968,6 @@ mov ebx,ecx
 mov eax,0FFFFFFF8h
 call ecrireindexfat_sp
 pop ebx
-
-
 
 boucle2_minfofichier_fat_taille:  ;supprime ceux qui ne servent plus
 mov ecx,ebx
@@ -5938,8 +6023,36 @@ mov eax,cer_parami
 ret
 
 ok_minfo_charge_descripteur_fat:
+call minfo_fat_modedossier
 
+;charge dans la zt le descripteur
+push ebx
+push ecx
+push edx
+push edi
+push es
+mov ax,seldat
+mov es,ax
+fs
+mov edx,[ad_dansdossier]
+mov ecx,512
+mov edi,zt_lminfo
+call sflirefichier
+pop es
+pop edi
+pop edx
+pop ecx
+pop ebx
+call minfo_fat_modefichier
+ret
+
+
+
+
+;******************************
 ;corrige le descripteur de fichier pour le transformer en descripteur du dossier qui contient le fichier 
+minfo_fat_modedossier:
+push eax
 fs
 mov eax,[ad_dossierfichier]
 fs
@@ -5965,27 +6078,13 @@ and ah,01b
 or al,ah
 fs
 mov [at_fichier],al
+pop eax
+ret
 
 
-;charge dans la zt le descripteur
-push ebx
-push ecx
-push edx
-push edi
-push es
-mov ax,seldat
-mov es,ax
-fs
-mov edx,[ad_dansdossier]
-mov ecx,512
-mov edi,zt_lminfo
-call sflirefichier
-pop es
-pop edi
-pop edx
-pop ecx
-pop ebx
-
+;*****************************
+;reviens en mode fichier apres être passé en mode dossier
+minfo_fat_modefichier:
 push eax
 fs
 mov eax,[ad_dossierfichier]
@@ -6005,6 +6104,7 @@ fs
 mov [at_fichier],al
 pop eax
 ret
+
 
 
 ;******************************
@@ -6061,32 +6161,7 @@ pop ebx
 
 minfo_sauvegarde_descripteur2:
 
-;corrige le descripteur de fichier pour le transformer en descripteur du dossier qui contient le fichier 
-fs
-mov eax,[ad_dossierfichier]
-fs
-xchg [ad_fichier],eax
-fs
-mov [ad_dossierfichier],eax
-fs
-mov eax,[to_dossierfichier]
-fs
-xchg [to_fichier],eax
-fs
-mov [to_dossierfichier],eax
-
-fs                       
-mov al,[at_fichier]
-fs
-mov [sauv_at_fichier],al
-mov ah,al
-and al,00111100b
-shr ah,6
-or al,10b
-and ah,01b
-or al,ah
-fs
-mov [at_fichier],al
+call minfo_fat_modedossier
 
 
 ;enregistre le descripteur
@@ -6110,24 +6185,7 @@ pop edx
 pop ecx
 pop ebx
 
-push eax
-fs
-mov eax,[ad_dossierfichier]
-fs
-xchg [ad_fichier],eax
-fs
-mov [ad_dossierfichier],eax
-fs
-mov eax,[to_dossierfichier]
-fs
-xchg [to_fichier],eax
-fs
-mov [to_dossierfichier],eax
-fs                       
-mov al,[sauv_at_fichier]
-fs
-mov [at_fichier],al
-pop eax
+call minfo_fat_modefichier
 ret
 
 
@@ -7239,6 +7297,5 @@ jne sff_lit_disques_bouclepart
 
 jmp finfonctionfichier
  
-
 
 

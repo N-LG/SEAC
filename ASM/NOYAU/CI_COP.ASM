@@ -211,22 +211,40 @@ rep movsd
 cmdcop_supslash:
 
 ;gestion des retours dossier
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!
+boucle_retour_dossier_cmdcop:
+mov eax,[ebx]
+and eax,0FFFFFFh
+cmp eax,"../"
+je @f
+cmp eax,"..\"
+jne fin_retour_dossier_cmdcop
 
+@@:
+mov esi,ebx
+mov edi,ebx
+add esi,3
+mov ecx,64
+cmp edi,cmdcop_dossier_sortie
+je erreur_param_cmdcop
+dec edi
+@@:
+cmp edi,cmdcop_dossier_sortie
+je erreur_param_cmdcop
+dec edi
+cmp byte[edi],"/"
+je @f
+cmp byte[edi],"\"
+je @f
+jmp @b
 
+@@:
+inc edi
+mov ebx,edi
+cld
+rep movsd
+jmp boucle_retour_dossier_cmdcop
 
-
-
-;boucle_separation_cmdcop:
-;mov eax,[cmdcop_nom_entree]
-;and eax,0FFFFFFh
-;cmp eax,"../"
-;je dossier_prec_cmdcop
-;cmp eax,"..\"
-;je dossier_prec_cmdcop
-
-
-
+fin_retour_dossier_cmdcop:
 
 
 ;si la destination commence par un #, on ignore le dossier actuel

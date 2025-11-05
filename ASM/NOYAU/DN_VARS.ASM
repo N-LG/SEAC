@@ -864,7 +864,8 @@ cer_efo    equ 40 ;exception du fpu
 cer_efu    equ 41 ;exception du fpu
 cer_efp    equ 42 ;exception du fpu
 cer_ahci   equ 43 ;erreur controleur AHCI
-
+cer_absf   equ 44 ;attribut absent de ce systeme de fichier
+cer_atnm   equ 45 ;attribut non modifiable
 
 ;ne pas oublier d'ajouter le texte correspondant dans le fichier DN_MSG.ASM
 
