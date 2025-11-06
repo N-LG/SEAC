@@ -215,22 +215,7 @@ db 0                                            ;erreur 46
 db 0                                            ;erreur 47
 db 0                                            ;erreur 48
 db 0                                            ;erreur 49
-db "erreur durant l'ouverture du fichier d'entrée:",0      ;erreur 50
-db "erreur durant l'ouverture du fichier de sortie:",0     ;erreur 51
-db "erreur durant l'ouverture du dossier d'entrée:",0      ;erreur 52
-db "erreur durant l'ouverture du dossier de sortie:",0     ;erreur 53
-db "erreur durant la création du fichier d'entrée:",0      ;erreur 54
-db "erreur durant la création du fichier de sortie:",0     ;erreur 55
-db "erreur durant la création du dossier d'entrée:",0      ;erreur 56
-db "erreur durant la création du dossier de sortie:",0     ;erreur 57
-db "erreur durant la lecture dans le fichier d'entrée:",0  ;erreur 58
-db "erreur durant la lecture dans le fichier de sortie:",0 ;erreur 59
-db "erreur durant la lecture dans le dossier d'entrée:",0  ;erreur 60
-db "erreur durant la lecture dans le dossier de sortie:",0 ;erreur 61
-db "erreur durant l'écriture dans le fichier d'entrée:",0  ;erreur 62
-db "erreur durant l'écriture dans le fichier de sortie:",0 ;erreur 63
-db "erreur durant l'écriture dans le dossier d'entrée:",0  ;erreur 64
-db "erreur durant l'écriture dans le dossier de sortie:",0 ;erreur 65
+
 
 
 fin_messages:

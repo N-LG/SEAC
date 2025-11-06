@@ -135,11 +135,21 @@ popad
 mov eax,cer_prd
 jmp finabsoluefonctionfichier
 
-
 errinterdit: ;action non autorisé
 popad
 mov eax,cer_ano
 jmp finabsoluefonctionfichier
+
+errpnmo: ;parametre non modifiable
+popad
+mov eax,cer_pnmo
+jmp finabsoluefonctionfichier
+
+errpabs: ;parametre absent
+popad
+mov eax,cer_pabs
+jmp finabsoluefonctionfichier
+
 
 
 finfonctionfichiererr:    ;préserve eax
@@ -1688,12 +1698,13 @@ clc
 popad
 ret
 
-
 erinitdescrfdcourant:
 stc
 popad
 ret
 
+
+;***************************************
 sauvdescp:                 ;sauvegarde du descripteur de partition
 pushad
 xor ebx,ebx
@@ -5628,9 +5639,32 @@ ret
 ;*******************************************************************************
 ;                                                   ****************************
 infofichier:      ;lire les métadonnée du fichier
-                  ;ah=numéros                        0=nom 1=taille fichier 2=attributs
-		  ;ebx=numéros du fichier
-		  ;ds:edx=destination des données demandé
+                       ;ah=numéros  du parametre
+                       ;0=nom
+                       ;1=taille fichier
+                       ;2=attributs binaires
+             	       ;ebx=numéros du fichier
+		       ;ds:edx=destination des données demandé
+
+			;attributs binaire:
+			;0 0=fichier 1=dossier
+			;1 1=lecture seule
+			;2 1=fichier caché
+			;3 1=fichier système
+
+
+;a rajouter:
+                  ;10 date de création
+                  ;11 date de modification
+                  ;12 date de dernier accès
+                  ;13 date de péremption 
+                  ;20 id  créateur
+                  ;21 ids derniers modificateur
+                  ;22 ids derniers accès
+                  ;23 id  propriétaire
+                  ;24 ids autorisation modification
+                  ;25 ids autorisation accès
+
 call initdescrfdcourant
 jc errprmsf
 
@@ -5660,14 +5694,26 @@ jmp finfonctionfichier
 
 
 infofichier_iso9660:
-;?????????????????????????????????????
-jmp errprmsf
+cmp ah,0
+je infofichier_iso9660_nom
+cmp ah,2
+je infofichier_iso9660_att
+jmp errpabs
 
+infofichier_iso9660_nom:
+;???????????????
+jmp errpabs
+
+infofichier_iso9660_att:
+;???????????????
+jmp errpabs
 
 infofichier_mem:
 cmp ah,1
 je infofichier_mem_nom
-jmp errprmsf
+cmp ah,2
+je infofichier_mem_att
+jmp errpabs
 
 infofichier_mem_nom:
 fs
@@ -5684,12 +5730,35 @@ cmp al,0
 jne boucle_infofichier_mem_nom
 jmp finfonctionfichier
 
+infofichier_mem_att:
+;???????????????
+jmp errpabs
 
 
+;*************
 infofichier_fat:
-;????????????????????????????????????
-jmp errprmsf
+cmp ah,0
+je infofichier_fat_nom
+cmp ah,2
+je infofichier_fat_att
+jmp errpabs
 
+infofichier_fat_nom:
+;???????????????
+jmp errpabs
+
+infofichier_fat_att:
+mov al,[esi+0Bh]
+xor ecx,ecx
+mov ah,al
+shl al,1
+shr ah,4
+and al,0Eh
+and ah,1
+or cl,al
+or cl,ah
+mov [edx],ecx
+jmp finfonctionfichier
 
 
 
@@ -5699,6 +5768,17 @@ minfofichier:     ;modifie les métadonnée du fichier
                   ;ah=numéros       (voir "lire les info fichier")
 		  ;ebx=numéros du fichier
 		  ;ds:edx=source des données
+
+cmp ah,0
+je @f
+cmp ah,1
+je @f
+cmp ah,2
+je @f
+jmp errpnmo
+
+
+@@:
 mov cl,ah
 call initdescrfdcourant
 jc errprmsf
@@ -5707,6 +5787,8 @@ jc errprmsf
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp al,000100b
+je errpnmo   ;ou iso9660
 cmp al,001000b
 je minfofichier_mem
 cmp al,010000b 
@@ -5723,7 +5805,14 @@ cmp ah,0
 je minfofichier_mem_nom
 cmp ah,1
 je minfofichier_mem_taille
-jmp errprmsf
+jmp errpabs
+
+
+;errpnmo: ;parametre non modifiable
+;errpabs: ;parametre absent
+
+
+
 
 ;******************
 minfofichier_mem_nom:
@@ -5876,11 +5965,24 @@ je errprmsf
 cmp al,0
 jne @b
 
+;reserve une zt pour la lecture du dossier
+mov ecx,40000h
+fs
+mov [to_ztexpdossier],ecx
+add ecx,2048
+call resmem
+sti
+jc errmemouvfichier ;erreur d'allocation de mémoire
+add ebx,10h
+fs
+mov [ad_ztexpdossier],ebx
+
+
 ;sauvegarder position ancien descripteur??????????????????
 fs
 mov edx,[ad_dansdossier]
 
-;call minfo_fat_modedossier
+call minfo_fat_modedossier
 
 ;créer un fichier qui correspond au nouveau nom 
 call sf_cree_fichier
@@ -5911,6 +6013,12 @@ call minfo_fat_modefichier
 
 ;enregistre dans la table ram les info qui ont changé
 
+;libère la mémoire reservé
+fs
+mov ebx,[ad_ztexpdossier]
+sub ebx,10h
+call libmem
+sti
 
 
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
@@ -6957,7 +7065,8 @@ cmp byte[zt_lminfo],02Eh
 je suite2_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
 je suite2_sff_lit_dossier_fat
-
+test byte[zt_lminfo+0Bh],08h ;test si il a l'attribut du nom de volume
+jnz suite2_sff_lit_dossier_fat
 cmp byte[zt_lminfo+0Bh],0Fh
 je vfat_sff_lit_dossier_fat
 
