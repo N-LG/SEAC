@@ -387,6 +387,8 @@ fs
 mov [to_dossierfichier],eax
 fs
 mov [ad_dansdossier],eax
+fs
+mov [to_dansdossier],eax
 
 fs
 mov ax,[id_tache_exec]
@@ -606,6 +608,8 @@ fs
 mov [to_dossierfichier],eax
 fs
 mov [ad_dansdossier],eax
+fs
+mov [to_dansdossier],eax
 jmp dossiersuivant
 
 
@@ -721,6 +725,8 @@ fs
 mov [to_dossierfichier],eax
 fs
 mov [ad_dansdossier],eax
+fs
+mov [to_dansdossier],eax
 jmp dossiersuivant
 
 
@@ -790,6 +796,8 @@ fs
 mov [to_dossierfichier],eax
 fs
 mov [ad_dansdossier],eax
+fs
+mov [to_dansdossier],eax
 
 fs                ;charge l'ID de la tache en cours d'execution
 mov ax,[id_tache_exec]
@@ -1381,6 +1389,11 @@ fs
 add eax,[po_descripteur_expdossier]
 fs
 mov [ad_dansdossier],eax     ;position du descripteur dans le dossier
+fs
+mov ax,[to_descripteur_expdossier]
+fs
+mov [to_dansdossier],eax     ;taille du descripteur dans le dossier
+
 
 fs                            ;enregistre les données du fichier
 mov eax,[ad_fichier_expdossier]
@@ -1482,16 +1495,16 @@ mov eax,[at_fichier+20]
 gs
 cmp eax,[ebx+20]
 jne nok_verif_dejaouvert
-;fs
-;mov eax,[at_fichier+24]   ;on n'as pas encore besoin de cette partie du descripteur
-;gs
-;cmp eax,[ebx+24]
-;jne nok_verif_dejaouvert
-;fs
-;mov eax,[at_fichier+28]
-;gs
-;cmp eax,[ebx+28]
-;jne nok_verif_dejaouvert
+fs
+mov eax,[at_fichier+24] 
+gs
+cmp eax,[ebx+24]
+jne nok_verif_dejaouvert
+fs
+mov eax,[at_fichier+28]
+gs
+cmp eax,[ebx+28]
+jne nok_verif_dejaouvert
 
 fs
 mov ax,[id_tache_exec]
@@ -2766,6 +2779,7 @@ add ebx,32
 shl ecx,5  ;x32
 add edx,ebx
 sub edx,ecx
+push ecx
 jmp cree_fichier_fat_suite_ecriture
 
 cree_fichier_fat_suite_findossier:  ;fin de dossier trouvé
@@ -2773,15 +2787,24 @@ fs
 sub ebx,[ad_ztexpdossier]
 shl ecx,5  ;x32
 add edx,ebx
-inc ecx
+push ecx
+inc ecx   ;ajouter ici de quoi rajouter des descripteur vide en attente!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 cree_fichier_fat_suite_ecriture:   ;ecriture descripteur
 mov ax,seldat
 mov es,ax
 mov esi,ad_nomfichier2
+push edx
 call sfecrirefichier
+pop edx
+pop ecx
 cmp eax,0
 jne cree_fichier_fat_erreur
+
+fs                             ;sauvegarde de l'emplacement du fichier créer
+mov [ad_dansdossier_nv],edx
+fs
+mov [to_dansdossier_nv],ecx 
 
 pop es
 popad
@@ -2881,7 +2904,7 @@ ignore_ajclust_change_en_dossier_fat:
 fs
 or byte[ebx+zt_lminfo+0Bh],10h
 
-call minfo_sauvegarde_descripteur2
+call minfo_sauvegarde_descripteur
 cmp eax,0
 jne fin_change_en_dossier_fat
 
@@ -2915,7 +2938,7 @@ xor esi,esi                           ;met a zéro le numéros de cluster si c'est
 
 ignore_raz_change_en_dossier_fat:
 
-
+;??????????????????????????????????????????????????????????changer cette partie pour créer de base de dossier de 128Ko??????????????????????????????????????????????????????????????????????????????????????????????????
 
 fs
 mov dword[ad_nomfichier2+00h],02020202Eh ;autoreference du dossier
@@ -3196,6 +3219,7 @@ jmp boucle_supprime_entree_fichier_fat
 fin_supprime_entree_fichier_fat:
 
 popad
+call minfo_sauvegarde_table
 call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -3297,7 +3321,8 @@ pop ebx
 fs
 mov [ebx+zt_lminfo+12h],dx
 popad
- 
+
+call minfo_sauvegarde_table 
 call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -5063,6 +5088,7 @@ mov [ebx+zt_lminfo+18h],dx
 popad
 
 fin_ecrire_meta_fichier:
+call minfo_sauvegarde_table
 call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -5692,7 +5718,7 @@ mov eax,[to_fichier]
 mov [edx],eax
 jmp finfonctionfichier
 
-
+;************************************
 infofichier_iso9660:
 cmp ah,0
 je infofichier_iso9660_nom
@@ -5700,14 +5726,20 @@ cmp ah,2
 je infofichier_iso9660_att
 jmp errpabs
 
+
+;************
 infofichier_iso9660_nom:
 ;???????????????
 jmp errpabs
 
+
+;********
 infofichier_iso9660_att:
 ;???????????????
 jmp errpabs
 
+
+;***********************************
 infofichier_mem:
 cmp ah,1
 je infofichier_mem_nom
@@ -5715,6 +5747,8 @@ cmp ah,2
 je infofichier_mem_att
 jmp errpabs
 
+
+;*********
 infofichier_mem_nom:
 fs
 mov edi,[ad_fichier]
@@ -5730,12 +5764,14 @@ cmp al,0
 jne boucle_infofichier_mem_nom
 jmp finfonctionfichier
 
+
+;*********
 infofichier_mem_att:
 ;???????????????
 jmp errpabs
 
 
-;*************
+;******************************
 infofichier_fat:
 cmp ah,0
 je infofichier_fat_nom
@@ -5743,10 +5779,15 @@ cmp ah,2
 je infofichier_fat_att
 jmp errpabs
 
+
+;**********
 infofichier_fat_nom:
 ;???????????????
-jmp errpabs
+mov dword[edx],0
+jmp finfonctionfichier
 
+
+;**********
 infofichier_fat_att:
 mov al,[esi+0Bh]
 xor ecx,ecx
@@ -5776,19 +5817,16 @@ je @f
 cmp ah,2
 je @f
 jmp errpnmo
-
-
 @@:
-mov cl,ah
+
 call initdescrfdcourant
 jc errprmsf
-
 
 fs
 mov al,[at_fichier]
 and al,00111100b
 cmp al,000100b
-je errpnmo   ;ou iso9660
+je errpnmo               ;ou iso9660
 cmp al,001000b
 je minfofichier_mem
 cmp al,010000b 
@@ -5799,20 +5837,26 @@ cmp al,011000b
 je minfofichier_fat       ;ou fat32
 jmp errprmsf
 
-;**************************************
+
+
+
+;***************
+fin_minfofichier:
+call minfo_sauvegarde_table
+call minfo_sauvegarde_descripteur
+jmp finfonctionfichiererr
+
+
+
+
+
+;********************************************
 minfofichier_mem:
 cmp ah,0
 je minfofichier_mem_nom
 cmp ah,1
 je minfofichier_mem_taille
 jmp errpabs
-
-
-;errpnmo: ;parametre non modifiable
-;errpabs: ;parametre absent
-
-
-
 
 ;******************
 minfofichier_mem_nom:
@@ -5838,6 +5882,7 @@ dec edi
 gs
 mov byte[edi],0
 jmp finfonctionfichier
+
 
 ;******************
 minfofichier_mem_taille:
@@ -5901,7 +5946,7 @@ erreur_minfofichier_mem_taille:
 mov eax,cer_parami
 jmp finfonctionfichiererr
 
-;***************************************
+;******************************************
 minfofichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
 call minfo_charge_descripteur
 cmp eax,0
@@ -5948,10 +5993,6 @@ jmp errprmsf
 
 ;******************
 minfofichier_fat_nom:
-
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-
 ;copier nom souhaité dans ad_nomfichier1
 mov edi,ad_nomfichier1
 @@:
@@ -5970,48 +6011,140 @@ mov ecx,40000h
 fs
 mov [to_ztexpdossier],ecx
 add ecx,2048
+push ebx
 call resmem
 sti
 jc errmemouvfichier ;erreur d'allocation de mémoire
 add ebx,10h
 fs
 mov [ad_ztexpdossier],ebx
-
-
-;sauvegarder position ancien descripteur??????????????????
-fs
-mov edx,[ad_dansdossier]
+pop ebx
 
 call minfo_fat_modedossier
 
 ;créer un fichier qui correspond au nouveau nom 
+fs
+mov dword[ad_dansdossier_nv],0
+fs
+mov dword[to_dansdossier_nv],0 
 call sf_cree_fichier
 cmp eax,0
 jne finfonctionfichiererr
 
-jmp errprmsf
-
-call minfo_fat_modefichier
-
-;§§§§§§§§§§§§§§§§§§§§§
-;verifier les registres qui sont modifié par "sf_cree_fichier"
-;§§§§§§§§§§§§§§§§§§§§§
-
-;charger ancien descripteur dans ad_nomfichier1
-
-;charger nouveau descripteur dans ad_nomfichier2
 
 ;copier métadonnée ancien descripteur dans nouveau
+mov esi,zt_lminfo
+xor ecx,ecx
+fs
+cmp byte[esi+0Bh],0Fh
+jne @f
+fs
+mov cl,[esi]
+and cl,3Fh
+shl ecx,5
+@@:
+add esi,ecx
+
+mov edi,ad_nomfichier2
+xor ecx,ecx
+fs
+cmp byte[edi+0Bh],0Fh
+jne @f
+fs
+mov cl,[edi]
+and cl,3Fh
+shl ecx,5
+@@:
+add edi,ecx
+
+fs
+mov al,[esi+0Bh]
+fs
+mov ebp,[esi+0Ch]
+fs
+mov ecx,[esi+10h]
+fs
+mov edx,[esi+14h]
+fs
+mov [edi+0Bh],al
+fs
+mov [edi+0Ch],ebp
+fs
+mov [edi+10h],ecx
+fs
+mov [edi+14h],edx
+fs
+mov eax,[esi+18h]
+fs
+mov edx,[esi+1Ch]
+fs
+mov [edi+18h],edx
+fs
+mov [edi+1Ch],edx
+
 
 ;recalculer checksum?
 
-;marquer ancien descripteur comme disponible
-
 ;enregistrer nouveau descripteur dans le dossier
+push es
+mov ax,seldat
+mov es,ax
+fs
+mov edx,[ad_dansdossier_nv]
+fs
+mov ecx,[to_dansdossier_nv]
+mov esi,ad_nomfichier2
+call sfecrirefichier
+pop es
+cmp eax,0
+jne finfonctionfichiererr
+
+
+
+;marquer ancien descripteur comme disponible
+mov esi,zt_lminfo
+mov ecx,1
+fs
+cmp byte[esi+0Bh],0Fh
+jne @f
+fs
+mov cl,[esi]
+and ecx,3Fh
+@@:
+fs
+mov byte[esi],0E5h
+add esi,32
+dec cl
+jnz @b
+
 
 ;enregistrer ancien descripteur effacé dans le dossier
+push es
+mov ax,seldat
+mov es,ax
+fs
+mov edx,[ad_dansdossier]
+fs
+mov ecx,[to_dansdossier]
+mov esi,zt_lminfo
+call sfecrirefichier
+pop es
+cmp eax,0
+jne finfonctionfichiererr
+
+
 
 ;enregistre dans la table ram les info qui ont changé
+call minfo_fat_modefichier
+fs
+mov edx,[ad_dansdossier_nv]
+fs
+mov ecx,[to_dansdossier_nv]
+fs
+mov [ad_dansdossier],edx
+fs
+mov [to_dansdossier],ecx
+call minfo_sauvegarde_table
 
 ;libère la mémoire reservé
 fs
@@ -6019,9 +6152,10 @@ mov ebx,[ad_ztexpdossier]
 sub ebx,10h
 call libmem
 sti
+pop ebx
 
-
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+xor eax,eax
+jmp finfonctionfichiererr
 
 
 ;******************
@@ -6097,11 +6231,9 @@ jmp boucle2_minfofichier_fat_taille
 fin_minfofichier_fat_taille:
 call sauvegarde_zt_fat   ;transfert la zt fat ram sur le disque si celle ci as été modifié
 pop ebx
+jmp fin_minfofichier
 
 
-fin_minfofichier:
-call minfo_sauvegarde_descripteur
-jmp finfonctionfichiererr
 
 
 
@@ -6143,7 +6275,8 @@ mov ax,seldat
 mov es,ax
 fs
 mov edx,[ad_dansdossier]
-mov ecx,512
+fs
+mov ecx,[to_dansdossier]
 mov edi,zt_lminfo
 call sflirefichier
 pop es
@@ -6216,7 +6349,7 @@ ret
 
 
 ;******************************
-minfo_sauvegarde_descripteur:
+minfo_sauvegarde_table:
 
 ;sauvegarde le descripteur dans la table en ram
 push ebx
@@ -6265,9 +6398,12 @@ mov [ebx+28],edi
 pop edi
 pop esi
 pop ebx
+ret
 
 
-minfo_sauvegarde_descripteur2:
+
+
+minfo_sauvegarde_descripteur:
 
 call minfo_fat_modedossier
 
@@ -6283,7 +6419,8 @@ mov ax,seldat
 mov es,ax
 fs
 mov edx,[ad_dansdossier]
-mov ecx,512
+fs
+mov ecx,[to_dansdossier]
 mov esi,zt_lminfo
 call sfecrirefichier
 pop es
@@ -7065,10 +7202,10 @@ cmp byte[zt_lminfo],02Eh
 je suite2_sff_lit_dossier_fat
 cmp byte[zt_lminfo],0E5h
 je suite2_sff_lit_dossier_fat
-test byte[zt_lminfo+0Bh],08h ;test si il a l'attribut du nom de volume
-jnz suite2_sff_lit_dossier_fat
 cmp byte[zt_lminfo+0Bh],0Fh
 je vfat_sff_lit_dossier_fat
+test byte[zt_lminfo+0Bh],08h ;test si il a l'attribut du nom de volume
+jnz suite2_sff_lit_dossier_fat
 
 mov esi,zt_lminfo             ;fichier fat classique
 cld

@@ -312,6 +312,7 @@ to_fichier equ 168h  ;taille du fichier
 ad_dossierfichier equ 16Ch ;adresse du dossier qui dans lequel le dossier est rangé
 to_dossierfichier equ 170h ;taille du dossier dans lequel le dossier est rangé
 ad_dansdossier equ 174h   ;adresse du descripteur de fichier dans le dossier
+to_dansdossier equ 178h    ;taille du descripteur de fichier dans le dossier
 
 ad_ztexpdossier equ 180h           ;zone tampon provisoire d'exploration de dossier
 to_ztexpdossier equ 184h           ;taille de cette zone  
@@ -323,6 +324,8 @@ ad_fichier_expdossier equ 198h     ;adresse du fichier
 at_fichier_expdossier equ 19Ch     ;type du fichier actuellement analysé (seulement les deux premier bit utilisé)
 
 option_ouverture equ 1A0h     ;option de la fonction d'ouverture fichier 0=on ne créer pas de fichier 1=on créer des fichier 2=on vient de créer un fichier et on peut le transformer en dossier
+ad_dansdossier_nv equ 1A4h    ;adresse du descripteur du nouveau fichier dans le dossier
+to_dansdossier_nv equ 1A8h    ;taille du descripteur du nouveau fichier dans le dossier
 
 
 zt_dapbios equ 1C0h                ;Disk Address Packet utilisé lors de l'appel des fonction bios pour lire/ecrire sur un disque
