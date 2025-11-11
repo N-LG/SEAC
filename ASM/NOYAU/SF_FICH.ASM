@@ -1390,7 +1390,7 @@ add eax,[po_descripteur_expdossier]
 fs
 mov [ad_dansdossier],eax     ;position du descripteur dans le dossier
 fs
-mov ax,[to_descripteur_expdossier]
+mov eax,[to_descripteur_expdossier]
 fs
 mov [to_dansdossier],eax     ;taille du descripteur dans le dossier
 
@@ -1632,6 +1632,9 @@ cree_fichier:       ;sinon on créer le fichier
 call sf_cree_fichier
 cmp eax,0
 jne errouvfichier
+
+
+
 
 ;remet a 0 les pointeurs de parcours dossier et recommence a essayer de trouver le fichier 
 xor eax,eax
@@ -6599,6 +6602,7 @@ fs
 mov [ebx+zt_lminfo+18h],dx
 popad
 
+call minfo_sauvegarde_table
 call minfo_sauvegarde_descripteur
 cmp eax,0
 jne finfonctionfichiererr

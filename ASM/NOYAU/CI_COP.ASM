@@ -555,6 +555,7 @@ je @f
 bt word[cmdcop_options],1
 jnc erreur_cs_cmdcop 
 
+
 mov eax,0         ;ouvre le fichier de destination
 mov ebx,[cmdcop_handle_dossier_sortie]
 mov edx,cmdcop_nom_sortie
@@ -586,6 +587,8 @@ int 64h
 cmp eax,0
 jne erreur_es_cmdcop
 
+
+
 ;copie les données dans la destination
 
 boucle_cmd_cop:
@@ -602,6 +605,8 @@ int 64h
 cmp eax,0
 jne erreur_le_cmdcop
 
+
+
 mov eax,5         ;ecrit dans le fichier
 mov ebx,[cmdcop_handle_sortie]
 mov ecx,cmdcop_taille_tampon
@@ -610,6 +615,7 @@ mov esi,cmdcop_zone_tampon
 int 64h
 cmp eax,0
 jne erreur_es_cmdcop
+
 
 add dword[cmdcop_offset_transfert],cmdcop_taille_tampon
 sub dword[cmdcop_taille_entree],cmdcop_taille_tampon
