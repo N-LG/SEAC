@@ -5902,47 +5902,7 @@ mov [edi+8],eax
 fs
 mov [to_fichier],eax
 
-;mise a jour du descripteur
-and ebx,0FFFFh
-shl ebx,5   ;multiplie par 32
-fs
-add ebx,[ad_ficho]
-
-fs
-mov esi,[at_fichier]
-fs
-mov edi,[at_fichier+4]
-gs
-mov [ebx],esi
-gs
-mov [ebx+4],edi
-
-fs
-mov esi,[at_fichier+8]
-fs
-mov edi,[at_fichier+12]
-gs
-mov [ebx+8],esi
-gs
-mov [ebx+12],edi
-
-fs
-mov esi,[at_fichier+16]
-fs
-mov edi,[at_fichier+20]
-gs
-mov [ebx+16],esi
-gs
-mov [ebx+20],edi
-
-fs
-mov esi,[at_fichier+24]
-fs
-mov edi,[at_fichier+28]
-gs
-mov [ebx+24],esi
-gs
-mov [ebx+28],edi
+call minfo_sauvegarde_table
 jmp finfonctionfichier
 
 erreur_minfofichier_mem_taille:
@@ -5951,6 +5911,7 @@ jmp finfonctionfichiererr
 
 ;******************************************
 minfofichier_fat:               ;calcul de l'offset en cas de descripteur de type vfat
+mov cl,ah
 call minfo_charge_descripteur
 cmp eax,0
 jne finfonctionfichiererr
@@ -6031,6 +5992,16 @@ mov dword[ad_dansdossier_nv],0
 fs
 mov dword[to_dansdossier_nv],0 
 call sf_cree_fichier
+
+;libère la mémoire reservé
+push eax
+push ebx
+fs
+mov ebx,[ad_ztexpdossier]
+sub ebx,10h
+call libmem
+pop ebx
+pop ebx
 cmp eax,0
 jne finfonctionfichiererr
 
@@ -6088,6 +6059,7 @@ mov [edi+1Ch],edx
 
 ;recalculer checksum?
 
+
 ;enregistrer nouveau descripteur dans le dossier
 push es
 mov ax,seldat
@@ -6101,7 +6073,6 @@ call sfecrirefichier
 pop es
 cmp eax,0
 jne finfonctionfichiererr
-
 
 
 ;marquer ancien descripteur comme disponible
@@ -6136,7 +6107,6 @@ cmp eax,0
 jne finfonctionfichiererr
 
 
-
 ;enregistre dans la table ram les info qui ont changé
 call minfo_fat_modefichier
 fs
@@ -6147,16 +6117,8 @@ fs
 mov [ad_dansdossier],edx
 fs
 mov [to_dansdossier],ecx
-call minfo_sauvegarde_table
-
-;libère la mémoire reservé
-fs
-mov ebx,[ad_ztexpdossier]
-sub ebx,10h
-call libmem
-sti
 pop ebx
-
+call minfo_sauvegarde_table
 xor eax,eax
 jmp finfonctionfichiererr
 
