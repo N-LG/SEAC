@@ -5672,6 +5672,9 @@ infofichier:      ;lire les métadonnée du fichier
                        ;0=nom
                        ;1=taille fichier
                        ;2=attributs binaires
+                       ;10 date de création
+                       ;11 date de modification
+                       ;12 date de dernier accès
              	       ;ebx=numéros du fichier
 		       ;ds:edx=destination des données demandé
 
@@ -5681,11 +5684,15 @@ infofichier:      ;lire les métadonnée du fichier
 			;2 1=fichier caché
 			;3 1=fichier système
 
+			;format des dates
+			;0 dw ms
+			;2 db min
+			;3 db h
+			;4 db jour
+			;5 db mois
+			;6 dw année
 
 ;a rajouter:
-                  ;10 date de création
-                  ;11 date de modification
-                  ;12 date de dernier accès
                   ;13 date de péremption 
                   ;20 id  créateur
                   ;21 ids derniers modificateur
@@ -5727,27 +5734,77 @@ cmp ah,0
 je infofichier_iso9660_nom
 cmp ah,2
 je infofichier_iso9660_att
+cmp ah,10
+je infofichier_iso9660_date_crea
 jmp errpabs
 
 
-;************
+;***********
 infofichier_iso9660_nom:
-;???????????????
-jmp errpabs
+fs
+mov cl,[zt_lminfo+32]
+mov esi,zt_lminfo+33
+@@:
+fs
+mov al,[esi]
+cmp al,";"
+je @f
+mov [edx],al
+inc esi
+inc edx
+dec cl
+jnz @b
+@@:
+mov byte[edx],0
+jmp finfonctionfichier
 
 
-;********
+;***********
 infofichier_iso9660_att:
-;???????????????
-jmp errpabs
+fs
+mov al,[zt_lminfo+23] ;b0= caché  b1=dossier
+mov ah,al
+and al,1
+and ah,2
+shl al,2
+shr ah,1
+or al,ah
+and eax,09h
+mov [edx],eax
+jmp finfonctionfichier
+
+
+;***********
+infofichier_iso9660_date_crea:
+xor eax,eax
+fs
+mov al,[zt_lminfo+18]
+add ax,1990
+mov [edx+6],ax 
+fs
+mov ax,[zt_lminfo+19]
+mov [edx+5],al
+mov [edx+4],ah
+fs
+mov ax,[zt_lminfo+21]
+mov [edx+3],al
+mov [edx+2],ah
+
+mov cx,1000
+xor eax,eax
+fs
+mov al,[zt_lminfo+23]
+push edx
+mul ecx
+pop edx
+mov [edx],ax
+jmp finfonctionfichier
 
 
 ;***********************************
 infofichier_mem:
 cmp ah,1
 je infofichier_mem_nom
-cmp ah,2
-je infofichier_mem_att
 jmp errpabs
 
 
@@ -5768,25 +5825,84 @@ jne boucle_infofichier_mem_nom
 jmp finfonctionfichier
 
 
-;*********
-infofichier_mem_att:
-;???????????????
-jmp errpabs
 
-
-;******************************
+;************************************
 infofichier_fat:
 cmp ah,0
 je infofichier_fat_nom
 cmp ah,2
 je infofichier_fat_att
+cmp ah,10
+je infofichier_fat_date_crea
+cmp ah,11
+je infofichier_fat_date_modi
+cmp ah,12
+je infofichier_fat_date_accs
 jmp errpabs
 
 
 ;**********
 infofichier_fat_nom:
-;???????????????
-mov dword[edx],0
+cmp ebx,0
+je infofichier_fat_nom_court
+
+mov esi,zt_lminfo
+add esi,ebx
+mov edi,edx
+
+boucle_infofichier_fat_nom_long:
+sub esi,32
+xor eax,eax
+gs
+mov ax,[esi+01h]
+call utf8_vfat
+gs
+mov ax,[esi+03h]
+call utf8_vfat
+gs
+mov ax,[esi+05h]
+call utf8_vfat
+gs
+mov ax,[esi+07h]
+call utf8_vfat
+gs
+mov ax,[esi+09h]
+call utf8_vfat
+gs
+mov ax,[esi+0Eh]
+call utf8_vfat
+gs
+mov ax,[esi+10h]
+call utf8_vfat
+gs
+mov ax,[esi+12h]
+call utf8_vfat
+gs
+mov ax,[esi+14h]
+call utf8_vfat
+gs
+mov ax,[esi+16h]
+call utf8_vfat
+gs
+mov ax,[esi+18h]
+call utf8_vfat
+gs
+mov ax,[esi+1Ch]
+call utf8_vfat
+gs
+mov ax,[esi+1Eh]
+call utf8_vfat
+cmp esi,zt_lminfo
+jne boucle_infofichier_fat_nom_long
+fs
+mov byte[edi],0
+pop gs
+pop fs
+jmp finfonctionfichier
+
+
+infofichier_fat_nom_court:
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 jmp finfonctionfichier
 
 
@@ -5804,6 +5920,67 @@ or cl,ah
 mov [edx],ecx
 jmp finfonctionfichier
 
+
+
+;**********
+infofichier_fat_date_accs:
+mov dword[edx],0
+mov edi,ebx
+add edi,zt_lminfo+12h
+jmp infofichier_fat_jour
+
+;***********
+infofichier_fat_date_crea:
+mov esi,ebx
+mov edi,ebx
+add edi,zt_lminfo+10h
+add esi,zt_lminfo+0Eh
+jmp infofichier_fat_heure
+
+;************
+infofichier_fat_date_modi:
+mov esi,ebx
+mov edi,ebx
+add edi,zt_lminfo+18h
+add esi,zt_lminfo+16h
+
+infofichier_fat_heure:
+mov cx,2000
+fs
+mov ax,[esi]
+and ax, 0Fh
+push edx
+mul cx
+pop edx
+mov [edx],ax
+fs
+mov ax,[esi]
+shr ax,5
+and al, 1Fh
+mov [edx+2],al
+fs
+mov ax,[esi]
+shr ax,11
+and al, 01Fh
+mov [edx+3],al
+
+infofichier_fat_jour:
+fs
+mov al,[edi]
+and al, 1Fh
+mov [edx+4],al
+fs
+mov ax,[edi]
+shr ax,5
+and al, 0Fh
+mov [edx+5],al
+fs
+mov ax,[edi]
+shr al,9
+and ax, 07Fh
+add ax,1980
+mov [edx+6],ax
+jmp finfonctionfichier
 
 
 ;*******************************************************************************
