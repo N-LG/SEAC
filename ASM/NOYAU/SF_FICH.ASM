@@ -3025,10 +3025,10 @@ or cx,dx
 pop eax
 push ecx
 mov dl,ah
-and dx,3Fh
-shl dx,5
-and ax,1Fh
-shl ax,11
+and dx,1Fh
+shl dx,11
+and ax,3Fh
+shl ax,5
 or dx,ax
 push edx
 xor edx,edx
@@ -5730,11 +5730,16 @@ jmp finfonctionfichier
 
 ;************************************
 infofichier_iso9660:
-cmp ah,0
+mov cl,ah
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+cmp cl,0
 je infofichier_iso9660_nom
-cmp ah,2
+cmp cl,2
 je infofichier_iso9660_att
-cmp ah,10
+cmp cl,10
 je infofichier_iso9660_date_crea
 jmp errpabs
 
@@ -5779,7 +5784,7 @@ infofichier_iso9660_date_crea:
 xor eax,eax
 fs
 mov al,[zt_lminfo+18]
-add ax,1990
+add ax,1900
 mov [edx+6],ax 
 fs
 mov ax,[zt_lminfo+19]
@@ -5803,7 +5808,7 @@ jmp finfonctionfichier
 
 ;***********************************
 infofichier_mem:
-cmp ah,1
+cmp ah,0
 je infofichier_mem_nom
 jmp errpabs
 
@@ -5828,23 +5833,56 @@ jmp finfonctionfichier
 
 ;************************************
 infofichier_fat:
-cmp ah,0
+mov cl,ah
+call minfo_charge_descripteur
+cmp eax,0
+jne finfonctionfichiererr
+
+xor ebx,ebx
+fs
+cmp byte[zt_lminfo+0Bh],0Fh
+jne @f
+fs
+mov bl,[zt_lminfo]
+and ebx,3Fh
+shl ebx,5
+@@:
+
+fs                            ;verifie que le descripteur est le bon
+mov ax,[ebx+zt_lminfo+14h]
+shl eax,16
+fs
+mov ax,[ebx+zt_lminfo+1Ah]
+fs                       
+mov ch,[at_fichier]
+and ch,0111100b
+cmp ch,011000b   ;FAT32?
+je @f
+and eax,0FFFFh
+@@:
+fs
+cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
+jne errsysf
+
+cmp cl,0
 je infofichier_fat_nom
-cmp ah,2
+cmp cl,2
 je infofichier_fat_att
-cmp ah,10
+cmp cl,10
 je infofichier_fat_date_crea
-cmp ah,11
+cmp cl,11
 je infofichier_fat_date_modi
-cmp ah,12
+cmp cl,12
 je infofichier_fat_date_accs
 jmp errpabs
 
 
 ;**********
 infofichier_fat_nom:
+jmp finfonctionfichier
 cmp ebx,0
 je infofichier_fat_nom_court
+
 
 mov esi,zt_lminfo
 add esi,ebx
@@ -5900,15 +5938,51 @@ pop gs
 pop fs
 jmp finfonctionfichier
 
-
+;*****
 infofichier_fat_nom_court:
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+mov esi,zt_lminfo
+
+@@:
+mov al,[esi]
+cmp al," "
+je @f
+mov [edx],al
+inc esi
+inc edi
+cmp esi,zt_lminfo+8
+jne @b
+
+@@:
+mov eax,[zt_lminfo+8]
+and eax,0FFFFFFh
+cmp eax,202020h
+je @f
+
+mov byte[edx],"."
+inc edx
+mov [edx],al
+shr eax,8
+inc edx
+cmp al,20h
+je @f
+mov [edx],al
+shr eax,8
+inc edx
+cmp al,20h
+je @f
+mov [edx],al
+shr eax,8
+inc edx
+
+@@:
+mov byte[edx],0
 jmp finfonctionfichier
 
 
 ;**********
 infofichier_fat_att:
-mov al,[esi+0Bh]
+fs
+mov al,[zt_lminfo+0Bh+ebx]
 xor ecx,ecx
 mov ah,al
 shl al,1
@@ -5924,7 +5998,7 @@ jmp finfonctionfichier
 
 ;**********
 infofichier_fat_date_accs:
-mov dword[edx],0
+mov dword[edx],0FFFFFFFFh
 mov edi,ebx
 add edi,zt_lminfo+12h
 jmp infofichier_fat_jour
@@ -5948,7 +6022,7 @@ infofichier_fat_heure:
 mov cx,2000
 fs
 mov ax,[esi]
-and ax, 0Fh
+and ax, 01Fh
 push edx
 mul cx
 pop edx
@@ -5956,7 +6030,7 @@ mov [edx],ax
 fs
 mov ax,[esi]
 shr ax,5
-and al, 1Fh
+and al, 3Fh
 mov [edx+2],al
 fs
 mov ax,[esi]
@@ -5976,7 +6050,7 @@ and al, 0Fh
 mov [edx+5],al
 fs
 mov ax,[edi]
-shr al,9
+shr ax,9
 and ax, 07Fh
 add ax,1980
 mov [edx+6],ax
@@ -6093,17 +6167,16 @@ call minfo_charge_descripteur
 cmp eax,0
 jne finfonctionfichiererr
 
-
 push ebx
 xor ebx,ebx
 fs
 cmp byte[zt_lminfo+0Bh],0Fh
-jne minfofichier_nvfat
+jne @f
 fs
 mov bl,[zt_lminfo]
 and ebx,3Fh
 shl ebx,5
-minfofichier_nvfat:
+@@:
 
 fs                            ;verifie que le descripteur est le bon
 mov ax,[ebx+zt_lminfo+14h]
@@ -6114,9 +6187,9 @@ fs
 mov ch,[at_fichier]
 and ch,0111100b
 cmp ch,011000b   ;FAT32?
-je pas32_minfofichier_fat
+je @f
 and eax,0FFFFh
-pas32_minfofichier_fat:
+@@:
 fs
 cmp eax,[ad_fichier]  ;on compare le numéros du premier cluster enregistré en ram et celui lut sur le disque
 je ok_minfofichier_fat
@@ -6386,6 +6459,8 @@ minfo_charge_descripteur:
 fs
 mov al,[at_fichier]
 and al,00111100b
+cmp al,000100b
+je ok_minfo_charge_descripteur_fat
 cmp al,010000b 
 je minfo_charge_descripteur_fat       ;on teste si le fichier est fat12,
 cmp al,010100b
