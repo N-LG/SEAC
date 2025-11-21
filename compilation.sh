@@ -53,7 +53,7 @@ fasm ASM/PROG/jn1.asm BIN/JN1.FE
 fasm ASM/PROG/snake.asm BIN/SNAKE.FE
 fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 fasm ASM/PROG/install.asm BIN/INSTALL.FE
-
+fasm ASM/PROG/iff.asm BIN/IFF.FE
 
 #compilation du noyau
 fasm ASM/NOYAU/ETAGE3.ASM BIN/ETAGE3.BIN
@@ -149,6 +149,7 @@ cd ..
 ./ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/INSTALL.FE BIN/ETAGE4.BIN
+./ajarch BIN/IFF.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 #ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
