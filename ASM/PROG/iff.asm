@@ -1,4 +1,4 @@
-iff:
+ï»¿iff:
 pile equ 4096 ;definition de la taille de la pile
 include "fe.inc"
 db "lit les informations d'un fichier"
@@ -23,16 +23,17 @@ mov edx,zt
 int 64h
 cmp eax,0
 je @f
+cmp eax,12
+je @f
 
+erreurfichier:
 mov al,6
 mov edx,msg_erreur_ouverture
 call ajuste_langue
 int 61h
 
 mov al,6
-mov edx,zt
-int 61h
-mov word[edx],13
+mov edx,msg_ligne
 int 61h
 int 60h
 
@@ -47,14 +48,20 @@ mov ebx,[handle_fichier]
 mov edx,zt
 int 64h
 cmp eax,0
-jne @f
+jne erreurfichier
+
+mov al,6
+mov edx,msg_nom
+call ajuste_langue
+int 61h
+
 mov al,6
 mov edx,zt
 int 61h
-mov word[edx],13
+
 mov al,6
+mov edx,msg_ligne
 int 61h
-@@:
 
 
 
@@ -135,9 +142,13 @@ int 61h
 @@:
 
 
+mov al,6
+mov edx,msg_ligne
+int 61h
+
 pas_attributs:
 
-;********lire date de création
+;********lire date de crÃ©ation
 mov al,6
 mov ah,10
 mov ebx,[handle_fichier]
@@ -155,7 +166,7 @@ call affiche_date
 @@:
 
 
-;********lire date de dernière modification
+;********lire date de derniÃ¨re modification
 mov al,6
 mov ah,11
 mov ebx,[handle_fichier]
@@ -191,6 +202,8 @@ call affiche_date
 @@:
 
 
+
+int 60h
 
 
 
@@ -232,6 +245,10 @@ int 61h
 
 cmp dword[zt],0FFFFFFFFh
 jne @f
+
+mov al,6
+mov edx,msg_ligne
+int 61h
 ret
 @@:
 
@@ -262,11 +279,13 @@ int 61h
 mov al,6
 mov edx,msg_min
 int 61h
-
+push edx
 xor eax,eax
+xor edx,edx
 mov ecx,1000
 mov ax,[zt]
 div ecx
+pop edx
 mov ecx,eax
 mov al,102
 mov edx,zt+8
@@ -280,7 +299,8 @@ int 61h
 ret
 
 ;***************************
-ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
+ajuste_langue:  ;selectionne le message adaptÃ© a la langue employÃ© par le systÃ¨me
+ret
 push eax
 mov eax,20
 int 61h
@@ -317,6 +337,9 @@ org 0
 msg_erreur_ouverture:
 db "IFF: erreur d'ouverure du fichier ",0
 
+msg_nom:
+db 13,"Information sur le fichier: ",0
+
 msg_attribut:
 db "Attributs: ",0
 msg_dossier:
@@ -324,20 +347,20 @@ db "dossier,",0
 msg_lecturseule:
 db "lecture seule,",0
 msg_cache:
-db "chaché,",0
+db "chachÃ©,",0
 msg_systeme:
-db "système,",0
+db "systÃ¨me,",0
 
 msg_taille:
 db "Taille: ",0
 msg_octet:
-db " Octets",13
+db " Octets",13,0
 
 msg_dcreation:
-db "Date de création du fichier: ",0
+db "Date de crÃ©ation du fichier: ",0
 
 msg_dmodif:
-db "Date de dernière modification: ",0
+db "Date de derniÃ¨re modification: ",0
 
 msg_dacces:
 db "Date du dernier acces: ",0
@@ -367,12 +390,12 @@ rb 512
 
 sdata2:
 org 0
-db 0;données du segment ES
+db 0;donnÃ©es du segment ES
 sdata3:
 org 0
-;données du segment FS
+;donnÃ©es du segment FS
 sdata4:
 org 0
-;données du segment GS
+;donnÃ©es du segment GS
 findata:
 

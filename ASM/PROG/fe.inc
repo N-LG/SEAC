@@ -148,3 +148,5 @@ cer_efo    equ 40 ;exception du fpu
 cer_efu    equ 41 ;exception du fpu
 cer_efp    equ 42 ;exception du fpu
 cer_ahci   equ 43 ;erreur controleur AHCI
+cer_pnmo   equ 44 ;parametre non modifiable
+cer_pabs   equ 45 ;parametre absent

@@ -2323,6 +2323,7 @@ int 64h
 cmp eax,0
 jne sauvegarde_objets_erreur
 
+
 ;ecrit les objets
 mov al,5
 mov ebx,[handle_fichier]
@@ -2332,6 +2333,8 @@ mov esi,[ad_objet]
 int 64h
 cmp eax,0
 jne sauvegarde_objets_erreur
+
+
 
 ;ferme le fichier
 mov eax,1
