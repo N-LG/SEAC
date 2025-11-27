@@ -3012,7 +3012,41 @@ je commande4
 cmp byte[ad_zdc+4],"-"
 je commande4
 
-jmp commande_fichier
+cmp byte[ad_zdc+6],0
+jne commande_fichier
+cmp dword[ad_zdc],0BFCEBBCEh
+jne commande_fichier
+cmp word[ad_zdc+4],0BBCEh
+jne commande_fichier
+mov eax,74696166h 
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+mov eax,72617020h 
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+mov eax,4C2D4E20h 
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+shr eax,8
+call affcj
+mov al,47h 
+call affcj
+mov al,13 
+call affcj
+jmp pascommande
 
 
 commande4:

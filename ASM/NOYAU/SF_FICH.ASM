@@ -5767,7 +5767,7 @@ jmp finfonctionfichier
 ;***********
 infofichier_iso9660_att:
 fs
-mov al,[zt_lminfo+23] ;b0= caché  b1=dossier
+mov al,[zt_lminfo+25] ;b0= caché  b1=dossier
 mov ah,al
 and al,1
 and ah,2
@@ -5879,10 +5879,14 @@ jmp errpabs
 
 ;**********
 infofichier_fat_nom:
-jmp finfonctionfichier
 cmp ebx,0
 je infofichier_fat_nom_court
-
+push fs
+push gs
+push ds
+pop fs
+mov ax,seldat
+mov gs,ax
 
 mov esi,zt_lminfo
 add esi,ebx
@@ -5943,16 +5947,18 @@ infofichier_fat_nom_court:
 mov esi,zt_lminfo
 
 @@:
+fs
 mov al,[esi]
 cmp al," "
 je @f
 mov [edx],al
 inc esi
-inc edi
+inc edx
 cmp esi,zt_lminfo+8
 jne @b
 
 @@:
+fs
 mov eax,[zt_lminfo+8]
 and eax,0FFFFFFh
 cmp eax,202020h

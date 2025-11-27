@@ -88,7 +88,7 @@ je sfs_copier
 cmp al,16
 je sfs_coller
 cmp al,17
-je sfs_sup_copiercoller
+je sfs_info_copiercoller
 cmp al,18
 je sfs_lire_dossier
 cmp al,19
@@ -1187,9 +1187,13 @@ iret
 
 
 
+
 ;***************************************************
-;copier    ;es:edx ecx
+;copier    ;es:edx ecx=taille   ebx=type
 sfs_copier:
+cmp ecx,0
+je sfs_sup_copiercoller
+
 pushad
 push ds
 push es
@@ -1200,6 +1204,7 @@ mov ax,selramh
 mov es,ax
 mov ax,seldat
 mov fs,ax
+mov ebp,ebx
 
 fs
 mov ebx,[ad_copiercoller]
@@ -1215,6 +1220,9 @@ fs
 mov [ad_copiercoller],ebx
 es
 mov dword[ebx+8],czm_cc    ;code zone mémoire copier-coller
+es
+mov dword[ebx+12],ebp     ;type de data
+
 
 pascreerzone_sfs_copier:
 es
@@ -1225,7 +1233,7 @@ jae ok_sfs_copier
 call libmem    ;si la zone est trop petite on la supprime 
 ;jc erreur_sfs_copier   
 push ecx
-add ecx,15
+add ecx,19
 and ecx,0FFFFFFF0h
 call resmem          ;et on en créer une autre
 pop ecx
@@ -1234,10 +1242,12 @@ fs
 mov [ad_copiercoller],ebx
 es
 mov dword[ebx+8],czm_cc    ;code zone mémoire copier-coller
+es
+mov dword[ebx+12],ebp     ;type de data
 
 ok_sfs_copier:   
 es
-mov [ebx+12],ecx    ;on enregistre la taille exacte des données
+mov [ebx+16],ecx    ;on enregistre la taille exacte des données
 mov esi,edx
 mov edi,ebx
 add edi,10h
@@ -1259,69 +1269,7 @@ mov eax,cer_pasm
 iret
 
 
-
-
-
-
-;************************************************
-;coller
-sfs_coller:
-push ebx
-push esi
-push edi
-push ds
-push fs
-mov ax,selramh
-mov ds,ax
-mov ax,seldat
-mov fs,ax
-
-fs
-mov ebx,[ad_copiercoller]
-cmp ebx,0
-je rac_sfs_coller
-cmp [ebx+12],ecx
-ja erreur_sfs_coller
-
-mov ecx,[ebx+12]
-mov esi,ebx
-add esi,10h
-mov edi,edx
-cld              ;et on copie les données
-rep movsb
-mov ecx,[ebx+12]
-
-pop fs
-pop ds
-pop edi
-pop esi
-pop ebx
-xor eax,eax
-iret
-
-rac_sfs_coller: ;rien a coller
-pop fs
-pop ds
-pop edi
-pop esi
-pop ebx
-xor eax,eax
-xor ecx,ecx
-iret
-
-erreur_sfs_coller:
-mov ecx,[ebx+12]
-pop fs
-pop ds
-pop edi
-pop esi
-pop ebx
-mov eax,cer_pasm
-iret
-
-
-
-;*******************************************
+;************
 ;suppression données coper coller
 sfs_sup_copiercoller:
 pushad
@@ -1336,6 +1284,85 @@ mov dword[ad_copiercoller],0
 fin_sfs_sup_copiercoller:
 pop ds
 popad
+iret
+
+
+
+
+
+;************************************************
+;coller
+sfs_coller:
+push esi
+push edi
+push ds
+mov ax,seldat
+mov ds,ax
+
+mov ebx,[ad_copiercoller]
+mov ax,selramh
+mov ds,ax
+cmp ebx,0
+je rac_sfs_coller
+cmp [ebx+16],ecx
+ja erreur_sfs_coller
+
+
+mov ecx,[ebx+16]
+mov esi,ebx
+add esi,10h
+mov edi,edx
+cld              ;et on copie les données
+rep movsb
+mov eax,[ebx+12]
+mov ecx,[ebx+16]
+mov ebx,eax
+pop ds
+pop edi
+pop esi
+xor eax,eax
+iret
+
+rac_sfs_coller: ;rien a coller
+pop ds
+pop edi
+pop esi
+xor eax,eax
+xor ecx,ecx
+xor ebx,ebx
+iret
+
+erreur_sfs_coller:
+mov ecx,[ebx+16]
+pop ds
+pop edi
+pop esi
+xor ebx,ebx
+mov eax,cer_pasm
+iret
+
+
+
+;************
+;information données copier coller
+sfs_info_copiercoller:
+
+push ds
+mov ax,seldat
+mov ds,ax
+xor eax,eax
+xor ecx,ecx
+mov ebx,[ad_copiercoller]
+cmp ebx,0
+je @f
+mov ax,selramh
+mov ds,ax
+mov eax,[ebx+12]
+mov ecx,[ebx+16]
+@@:
+pop ds
+mov ebx,eax
+xor eax,eax
 iret
 
 
