@@ -757,3 +757,51 @@ pop esi
 pop edx
 pop eax
 ret
+
+
+;******************************************************************************************
+;test la taille et la granularité d'un registre BAR, reserve une zone mémoire pour ça et configure le BAR
+resmempci:
+;eax=adresse de la BAR dans le PCI config space
+;sortie eax=adresse absolue dans la mémoire ecx=taille de la zone
+push ebx
+push edx
+mov dx,0CF8h
+out dx,eax
+nop
+jmp $+2
+
+mov dx,0CFCh
+mov eax,0FFFFFFFFh
+out dx,eax
+nop
+jmp $+2
+in eax,dx
+shr eax,4
+mov ecx,10h
+@@:
+shr eax,1
+jc @f
+shl ecx,1
+jmp @b
+@@:
+mov eax,ecx ;ecx=taille de la zone a adresser
+dec eax     ;eax=masque
+call resmemg
+jc @f 
+mov eax,ebx
+push eax
+add eax,100000h
+out dx,eax
+pop eax
+pop edx
+pop ebx
+ret
+
+;pas de reservation possible
+@@:
+pop edx
+xor ecx,ecx
+pop ebx
+xor eax,eax
+ret

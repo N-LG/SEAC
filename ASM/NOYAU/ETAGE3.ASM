@@ -4862,7 +4862,7 @@ ret
 
 
 
-cridtp: ;créer ou modifie un descripteur d'interruption
+;cridtp: ;créer ou modifie un descripteur d'interruption
         ;al=numéros du descripteur (8bit)
         ;ds=selecteur du segment ou se trouve l'IDT
         ;es=selecteur de segment ou se trouve la routine a appeler

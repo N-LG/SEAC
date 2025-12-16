@@ -55,7 +55,7 @@ mov eax,ebx
 add eax,4
 out dx,eax
 mov dx,0CFCh
-mov eax,0   ;command + status register
+mov eax,400h   ;command + status register 
 out dx,eax
 
 @@:
@@ -78,7 +78,7 @@ mov dx,0CFCh
 in eax,dx
 cmp ax,0FFFFh
 je pasctrlata
-mov ecx,eax
+mov ecx,eax         ;ch=progif
 and eax,0FFFF0000h 
 cmp eax,001010000h  ;classe=01h sous-classe=01h
 jne pasctrlata
@@ -154,8 +154,9 @@ and eax,0FFFCh
 cmp eax,0
 jne bar1_ok
 bar1_nok:
-mov eax,3F6h
+mov eax,3F4h
 bar1_ok:
+add ax,2
 mov [esi+dd_adress_ctrl],ax
 mov [esi+dd_adress_ctrl+32],ax
 
@@ -220,11 +221,11 @@ and eax,0FFFCh
 cmp eax,0
 jne bar3_ok
 bar3_nok:
-mov eax,376h
+mov eax,374h
 bar3_ok:
+add ax,2
 mov [esi+dd_adress_ctrl],ax
 mov [esi+dd_adress_ctrl+32],ax
-
 
 jmp @f
 ctrlata1_nok:
@@ -245,6 +246,91 @@ mov dword[esi+34h],0
 mov dword[esi+38h],0
 mov dword[esi+3Ch],0
 @@:
+
+jmp temptest
+;enregistre les irq du compatibility mode
+;test ch,1
+;jnz @f
+;pushad
+;mov al,"A"
+;call affcj
+;popad
+;push esi
+;push ds
+;push es
+;mov dx,selidt      ;modifie l'idt
+;mov ds,dx
+;mov si,selcod
+;mov es,si
+;mov dl,06Eh
+;mov esi,irq_disque2 
+;mov al,3Eh
+;call cridtp 
+;pop es
+;pop ds
+;pop esi
+;@@:
+
+;test ch,4
+;jnz @f
+;pushad
+;mov al,"B"
+;call affcj
+;popad
+
+push esi
+push ds
+push es
+mov dx,selidt      ;modifie l'idt
+mov ds,dx
+mov si,selcod
+mov es,si
+mov dl,06Eh
+mov esi,irq_disque2 
+mov al,3Fh
+;call cridtp 
+pop es
+pop ds
+pop esi
+@@:
+
+;enregistre les irq du native mode
+test ch,5
+jz @f
+pushad
+mov al,"C"
+call affcj
+popad
+
+mov dx,0CF8h
+mov eax,ebx
+add eax,34h     ;IRQ
+out dx,eax
+mov dx,0CFCh
+in eax,dx
+cmp al,0FFh
+je @f
+cmp al,0
+je @f
+
+push esi
+push ds
+push es
+mov dx,selidt      ;modifie l'idt
+mov ds,dx
+mov si,selcod
+mov es,si
+mov dl,06Eh
+mov esi,irq_disque1 
+cmp al,8
+add al,30h
+;call cridtp 
+pop es
+pop ds
+pop esi
+@@:
+temptest:
+
 add esi,64
 cmp esi,ad_descd+256
 je fin_detec_ata
@@ -513,7 +599,6 @@ mov byte[trappe_tache0],34
 gs
 mov word[158],"N" or 7000h
 
-;jmp blop
 
 ;********************************************************************************************************************************
 ;lit les info disque ata et met a jour les info de partitions
@@ -597,7 +682,6 @@ jne boucle_init_ata_conv_secteur
 
 init_ata_conv_secteur:
 mov byte[esi+dd_nb_octet_sec],cl
-
 mov al,12
 int 64h
 jmp pasinfopart
@@ -718,8 +802,6 @@ add esi,8
 cmp ch,30h
 jne boucle_init_infopart2
 
-blop:
-
 
 mov byte[trappe_tache0],35
 gs
@@ -751,8 +833,8 @@ cmp dh,00h          ;UHCI
 je ctrl_uhci
 ;cmp dh,10h          ;OHCI
 ;je ctrl_ohci
-cmp dh,20h          ;EHCI
-je ctrl_ehci
+;cmp dh,20h          ;EHCI
+;je ctrl_ehci
 ;cmp dh,30h          ;XHCI
 ;je ctrl_xhci
 jmp pasctrl
@@ -764,13 +846,13 @@ mov eax,ebx
 and eax,0FFFFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 
-;active controle par e/s
+;active controle par e/s et desactive les irqs
 mov dx,0CF8h
 mov eax,[esi+dcu_pci]
 add eax,4
 out dx,eax
 mov dx,0CFCh
-mov eax,5   ;command + status register
+mov eax,405h   ;command + status register (405=bus master+e/s+irq desactive)
 out dx,eax
 
 mov dx,0CF8h
@@ -791,7 +873,7 @@ mov eax,0FFFh
 mov ecx,139264   ;136Koctets
 mov [esi+dcu_to],ecx
 call resmemg 
-;§§§§§§§§§§§§§§§§§§§§§§§§que faire en cas d'imposibilité de réserver de la mémoire   
+jc pasctrl
 es
 mov word[ebx+8],czm_uhci  
 add ebx,100010h   ;adresse physique
@@ -810,6 +892,7 @@ mov eax,ebx
 and eax,0FFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+
 call init_ohci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
 
@@ -821,6 +904,18 @@ mov eax,ebx
 and eax,0FFFFFF00h
 mov [esi+dcu_pci],eax  ;coordonnée PCI
 
+;réserve adresse de base
+mov eax,[esi+dcu_pci]
+add eax,8
+push ebx
+call resmempci
+mov eax,ebx
+pop ebx
+cmp ecx,0
+jz pasctrl
+sub eax,100000h
+mov [esi+dcu_es],eax
+
 
 ;active controle par mémoire
 mov dx,0CF8h
@@ -828,25 +923,16 @@ mov eax,[esi+dcu_pci]
 add eax,4
 out dx,eax
 mov dx,0CFCh
-mov eax,6   ;command + status register (6=bus master+memory space)
+mov eax,406h   ;command + status register (406=bus master+memory space+irq desactive)
 out dx,eax
 
 
-;récupère adresse de base
-mov dx,0CF8h
-mov eax,[esi+dcu_pci]
-add eax,10h 
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-and eax,0FFFFFF00h
-sub eax,100000h
-mov [esi+dcu_es],eax
 
 ;récupère le nombre de port
 mov edi,[esi+dcu_es]
 es
 mov eax,[edi+4]
+mov al,1
 and al,0Fh
 mov [esi+dcu_nb_port],al 
 
@@ -855,7 +941,10 @@ mov [esi+dcu_nb_port],al
 xor eax,eax
 es
 mov al,[edi]
+mov eax,1
 add [esi+dcu_es],eax
+
+
 
 
 call init_ehci    ;voir SF_USM.ASM
