@@ -402,6 +402,7 @@ out dx,eax
 ;mov ax,8040h     ; master latency timer=128  cache line size=64 
 ;out dx,eax
 
+
 es
 test dword[esi+24h],1
 jz handoffbiosok
@@ -427,8 +428,6 @@ jb erreur_ctrl_ahci
 jmp @b
 
 handoffbiosok:
-
-
 ;active le mode ahci
 es
 or dword[esi+4],80000000h
@@ -465,7 +464,6 @@ boucle_test_port_ahci:
 test edx,01h
 jz passe_test_port_ahci
 
-
 ;création espace port
 pushad
 push ebx
@@ -477,8 +475,9 @@ pop ebx
 jc erreur_port_ahci
 es
 mov dword[edi+8],czm_sata
-
 call reset_port_ahci  ;reset et desactive le port (voir SF_DISK.ASM)
+
+
 
 ;config port
 es
@@ -487,8 +486,6 @@ es
 mov [edi+zsata_ad_port],ebx  ;enregistre l'adresse port de base de cette interface
 es
 mov byte[edi+zsata_conv_secteur],9 ;enregistre par defaut que les secteurs font 512 octets
-
-
 mov eax,edi
 add eax,zsata_liste+100000h   ;configure l'adresse de la liste de commande
 es
@@ -501,7 +498,6 @@ es
 mov [ebx+08h],eax
 es
 mov dword[ebx+0Ch],0
-
 call start_port_ahci  ;active le port (voir SF_DISK.ASM)
 
 erreur_port_ahci:
@@ -519,10 +515,10 @@ popad
 
 
 pas_ctrl_ahci:
+
 add ebx,100h
 test ebx,7F000000h
 jz boucle_detec_ahci
-
 
 
 ;liste les disques ahci***********
@@ -907,13 +903,13 @@ mov [esi+dcu_pci],eax  ;coordonnée PCI
 ;réserve adresse de base
 mov eax,[esi+dcu_pci]
 add eax,8
-push ebx
+;push ebx
 call resmempci
-mov eax,ebx
-pop ebx
+;mov eax,ebx
+;pop ebx
 cmp ecx,0
 jz pasctrl
-sub eax,100000h
+;sub eax,100000h
 mov [esi+dcu_es],eax
 
 
@@ -924,7 +920,7 @@ add eax,4
 out dx,eax
 mov dx,0CFCh
 mov eax,406h   ;command + status register (406=bus master+memory space+irq desactive)
-out dx,eax
+;out dx,eax
 
 
 
@@ -947,7 +943,7 @@ add [esi+dcu_es],eax
 
 
 
-call init_ehci    ;voir SF_USM.ASM
+;call init_ehci    ;voir SF_USM.ASM
 jmp fin_init_ctrl
 
 

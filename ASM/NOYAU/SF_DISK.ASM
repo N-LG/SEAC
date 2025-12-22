@@ -1403,8 +1403,24 @@ ret
 ;*************************************************************************
 infodisqueata:
 
+pushad
+push ds
+mov ax,selvidB8
+mov ds,ax
+mov word[156],"0" or 7000h
+pop ds
+popad
+
 call selection_ata
 jc eroqpsecteurata
+
+pushad
+push ds
+mov ax,selvidB8
+mov ds,ax
+mov word[156],"1" or 7000h
+pop ds
+popad
 
 fs
 mov dx,[edi+dd_adress_base]
@@ -1440,6 +1456,14 @@ call attdok
 pop ecx
 jc ernrpsecteurata
 
+pushad
+push ds
+mov ax,selvidB8
+mov ds,ax
+mov word[156],"2" or 7000h
+pop ds
+popad
+
 fs
 mov dx,[edi+dd_adress_base]
 push esi
@@ -1471,6 +1495,14 @@ ret
 
 ;envoie la commande  de démarrage
 @@:
+pushad
+push ds
+mov ax,selvidB8
+mov ds,ax
+mov word[156],"4" or 7000h
+pop ds
+popad
+
 mov al,"?"   ;fonction désactivé tant que j'ai pas une machine ou la tester
 call affcj
 mov al,"S"
@@ -1550,10 +1582,9 @@ out dx,al
 call attsl       
 jnc selection_ata_ok
 
-mov al,08h        ;envoye la commande device reset si il est occupé???
+mov al,04h        ;envoye la commande device reset si il est occupé
 fs
 mov dx,[edi+dd_adress_ctrl]
-add dx,7
 out dx,al
 
 call attsl       
@@ -1644,10 +1675,9 @@ out dx,al
 call attsl       
 jnc envoie_coord_ata_lba28_ok ;pour la suite ça fonctionne comme le lba28
 
-mov al,08h        ;envoye la commande device reset si il est occupé???
+mov al,04h        ;envoye la commande device reset si il est occupé
 fs
 mov dx,[edi+dd_adress_ctrl]
-add dx,7
 out dx,al
 
 call attsl       
@@ -1681,10 +1711,9 @@ call attsl
 jnc envoie_coord_ata_lba28_ok
 
 
-mov al,08h        ;envoye la commande device reset si il est occupé???
+mov al,04h        ;envoye la commande device reset si il est occupé
 fs
 mov dx,[edi+dd_adress_ctrl]
-add dx,7
 out dx,al
 
 call attsl       
@@ -1698,7 +1727,7 @@ ret
 envoie_coord_ata_lba28_ok:
 fs
 mov dx,[edi+dd_adress_ctrl]
-mov al,2h           ;désactive interruption
+mov al,2h           ;active interruption
 out dx,al
 
 fs
@@ -1755,10 +1784,9 @@ call attsl
 jnc envoie_coord_ata_lba48_ok
 
 
-mov al,08h        ;envoye la commande device reset si il est occupé???
+mov al,04h        ;envoye la commande device reset si il est occupé
 fs
 mov dx,[edi+dd_adress_ctrl]
-add dx,7
 out dx,al
 
 call attsl       
@@ -1772,7 +1800,7 @@ ret
 envoie_coord_ata_lba48_ok:
 fs
 mov dx,[edi+dd_adress_ctrl]
-mov al,2h           ;désactive interruption
+mov al,2h           ;active interruption
 out dx,al
 
 fs
@@ -1832,6 +1860,7 @@ mov dx,[edi+dd_adress_ctrl]
 in al,dx     ;lit 1 fois le alternate status register et ignore le résultat
 
 
+
 fs
 mov dx,[edi+dd_adress_base]
 add dx,7
@@ -1840,6 +1869,7 @@ fs
 add ecx,[cptsf]
 
 bocpre:
+;int 62h
 in al,dx
 and al,89h
 cmp al,08h       ;drq=1  bsy=0 err=0
@@ -2804,7 +2834,6 @@ push ebx
 push edx
 push ebp
 
-
 ;activer execution première commande
 gs
 mov ebx,[esi+zsata_ad_port]
@@ -2820,7 +2849,7 @@ wbinvd
 gs
 cmp dword[ebx+38h],0  ;attendre fin execution
 je @f
-int 62h
+;int 62h
 fs
 cmp ebp,[cptsf]
 ja @b
@@ -2872,16 +2901,29 @@ ret
 reset_port_ahci:
 pushad
 sti
+wbinvd
+gs
+mov ecx,[ebx+28h]
+and cl,0Fh
+cmp cl,0
+jne @f
+
+popad
+mov eax,cer_lecnt
+ret
+
+@@:
 gs
 and dword[ebx+18h],0FFFFFFEEh    ;arrete le port (stop commande fis et rec fis)
 gs
 or  dword[ebx+18h],06h         ;energise le port 
 wbinvd
 
+
 ;attend que l'arret soit effectif
 fs
 mov ecx,[cptsf]
-add ecx,800h
+add ecx,200h
 @@:
 wbinvd
 gs
@@ -2910,8 +2952,9 @@ gs
 mov dword[ebx+2Ch],0
 wbinvd
 
+
 ;attend la fin du reset
-add ecx,800h
+add ecx,200h
 @@:
 wbinvd
 gs
@@ -2919,8 +2962,8 @@ mov eax,[ebx+28h]
 and al,0Fh
 cmp al,3
 je fin_reset_ahci
-;cmp al,0
-;je erreur_reset_ahci
+cmp al,0
+je erreur_reset_ahci
 fs
 cmp ecx,[cptsf] 
 ja @b
@@ -2974,7 +3017,7 @@ wbinvd
 ;attend que que la rec fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,800h
+add ecx,200h
 @@:
 wbinvd
 gs
@@ -3008,7 +3051,7 @@ wbinvd
 ;attend que que la cmd fis soit démarré
 fs
 mov ecx,[cptsf]
-add ecx,800h
+add ecx,200h
 @@:
 wbinvd
 gs
@@ -3576,6 +3619,9 @@ sff_lit_tailledisque_sata:
 call init_ahci    ;entrée: cl=nb de secteur (0=256) ch=disque sata , sortie=ecx=nb d'octet gs:esi=zone d'echange du port sata  gs:edx=zone d'echange des données bp=nombre de secteur
 mov ebx,edx
 call libmem
+cmp eax,0
+jne errlecnt
+
 
 gs
 mov ebx,[esi+zsata_ad_port]
@@ -3733,24 +3779,28 @@ jmp finfonctionfichieroktriple
 
 ;****************************************
 sff_lit_tailledisque_usb_boscsisf:   ;ds:edx=descripteur de la clef
+mov ebp,8
+boucle_lit_tailledisque_usb_boscsisf:
+
+
 ;**********
 ;prépare cbw (test unit ready)
-inc dword[usb_tag]
-mov ecx,0C70EB49Dh
-xor ecx,[usb_tag]
-mov dword[zt_clefusb],43425355h ;mot magique "USBC"
-mov [zt_clefusb+4],ecx ;tag
-mov dword[zt_clefusb+8],0    ;taille des données
-mov byte[zt_clefusb+0ch],00h   ;flag 
-mov al,[edx+dlu_lun]
-mov [zt_clefusb+0Dh],al   ;lun
-mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
-mov byte[zt_clefusb+0Fh],00h  ;commande 
-mov dword[zt_clefusb+10h],0   ;vide
-mov dword[zt_clefusb+14h],0   ;vide
-mov dword[zt_clefusb+18h],0   ;vide
-mov dword[zt_clefusb+1Ch],0   ;vide
-mov dword[zt_clefusb+20h],0   ;vide
+;inc dword[usb_tag]
+;mov ecx,0C70EB49Dh
+;xor ecx,[usb_tag]
+;mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+;mov [zt_clefusb+4],ecx ;tag
+;mov dword[zt_clefusb+8],0    ;taille des données
+;mov byte[zt_clefusb+0ch],00h   ;flag 
+;mov al,[edx+dlu_lun]
+;mov [zt_clefusb+0Dh],al   ;lun
+;mov byte[zt_clefusb+0Eh],10   ;taille de la commande 
+;mov byte[zt_clefusb+0Fh],00h  ;commande 
+;mov dword[zt_clefusb+10h],0   ;vide
+;mov dword[zt_clefusb+14h],0   ;vide
+;mov dword[zt_clefusb+18h],0   ;vide
+;mov dword[zt_clefusb+1Ch],0   ;vide
+;mov dword[zt_clefusb+20h],0   ;vide
 
 ;envoie cbw
 ;mov al,[edx+dlu_adresse]
@@ -3805,6 +3855,11 @@ mov dword[zt_clefusb+18h],0   ;vide
 mov dword[zt_clefusb+1Ch],0   ;vide
 mov dword[zt_clefusb+20h],0   ;vide
 
+pushad
+mov al,"a"
+call affcj
+popad
+
 ;envoie cbw
 mov al,[edx+dlu_adresse]
 mov ah,[edx+dlu_endpout]
@@ -3813,7 +3868,13 @@ mov ecx,31
 mov edi,zt_clefusb
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb_boscsisf
+jne retente_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"b"
+call affcj
+popad
+
 
 ;reçois donnée
 mov al,[edx+dlu_adresse]
@@ -3821,7 +3882,14 @@ mov ah,[edx+dlu_endpin]
 mov ecx,36
 mov edi,zt_clefusb+72
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;on ignore les eventuelles erreur a ce moment la
+cmp eax,0
+jne retente_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"c"
+call affcj
+popad
+
 
 ;reçois csw
 mov al,[edx+dlu_adresse]
@@ -3830,7 +3898,15 @@ mov ecx,13
 mov edi,zt_clefusb+32
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb_boscsisf
+jne retente_lit_tailledisque_usb_boscsisf
+
+
+pushad
+mov al,"d"
+call affcj
+popad
+
+
 
 ;lit résultat opération
 cmp  dword[zt_clefusb+32],53425355h ;est ce le mot magique "USBS"?
@@ -3871,7 +3947,12 @@ mov ecx,31
 mov edi,zt_clefusb
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb_boscsisf
+jne retente_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"e"
+call affcj
+popad
 
 
 ;reçois donnée
@@ -3880,7 +3961,14 @@ mov ah,[edx+dlu_endpin]
 mov ecx,8
 mov edi,zt_clefusb+64
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
-;on ignore les eventuelles erreur a ce moment la
+cmp eax,0
+jne retente_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"f"
+call affcj
+popad
+
 
 ;reçois csw
 mov al,[edx+dlu_adresse]
@@ -3889,7 +3977,13 @@ mov ecx,13
 mov edi,zt_clefusb+32
 call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
 cmp eax,0
-jne erreur_lit_tailledisque_usb_boscsisf
+jne retente_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"g"
+call affcj
+popad
+
 
 
 ;lit résultat opération
@@ -3904,6 +3998,12 @@ cmp  byte[zt_clefusb+44],0 ;est ce que le code d'erreur est ok?
 jne erreur_lit_tailledisque_usb_boscsisf
 
 
+pushad
+mov al,"h"
+call affcj
+popad
+
+
 mov ebx,[zt_clefusb+64] ;lsb taille
 mov ecx,[zt_clefusb+68]  ;taille secteur
 xor eax,eax
@@ -3912,6 +4012,88 @@ bswap ebx
 bswap ecx
 ret
 
+
+
+
+retente_lit_tailledisque_usb_boscsisf:
+dec ebp
+jz erreur_lit_tailledisque_usb_boscsisf
+
+call reset_clef_bo
+
+;**********
+;prépare cbw (request sense)
+inc dword[usb_tag]
+mov ecx,0C70EB49Dh
+xor ecx,[usb_tag]
+mov dword[zt_clefusb],43425355h ;mot magique "USBC"
+mov [zt_clefusb+4],ecx ;tag
+mov dword[zt_clefusb+8],18     ;taille des données
+mov byte[zt_clefusb+0ch],80h   ;flag (in) 
+mov al,[edx+dlu_lun]
+mov [zt_clefusb+0Dh],al   ;lun
+mov byte[zt_clefusb+0Eh],6    ;taille de la commande 
+mov byte[zt_clefusb+0Fh],3    ;commande 
+mov byte[zt_clefusb+10h],0   ;DESC
+mov word[zt_clefusb+11h],0   ;vide
+mov dword[zt_clefusb+13h],18   ;taille reservé
+mov dword[zt_clefusb+14h],0   ;vide
+mov dword[zt_clefusb+18h],0   ;vide
+mov dword[zt_clefusb+1Ch],0   ;vide
+mov dword[zt_clefusb+20h],0   ;vide
+
+pushad
+mov al,"i"
+call affcj
+popad
+
+
+;envoie cbw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpout]
+or ah,80h
+mov ecx,31
+mov edi,zt_clefusb
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb_boscsisf
+
+
+pushad
+mov al,"j"
+call affcj
+popad
+
+
+;reçois donnée
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,18
+mov edi,zt_clefusb+64
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+jne erreur_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"k"
+call affcj
+popad
+
+
+
+;reçois csw
+mov al,[edx+dlu_adresse]
+mov ah,[edx+dlu_endpin]
+mov ecx,13
+mov edi,zt_clefusb+32
+call sfusb_bulk        ;al=périphérique ah=endpoint+bit7=sens(0=in 1=out) ecx=quantité de données ds:edi=adresse des données 
+cmp eax,0
+je boucle_lit_tailledisque_usb_boscsisf
+
+pushad
+mov al,"L"
+call affcj
+popad
 
 
 erreur_lit_tailledisque_usb_boscsisf:

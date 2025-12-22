@@ -790,6 +790,7 @@ dec eax     ;eax=masque
 call resmemg
 jc @f 
 mov eax,ebx
+add eax,10h
 push eax
 add eax,100000h
 out dx,eax
