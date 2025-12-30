@@ -1402,25 +1402,8 @@ ret
 
 ;*************************************************************************
 infodisqueata:
-
-pushad
-push ds
-mov ax,selvidB8
-mov ds,ax
-mov word[156],"0" or 7000h
-pop ds
-popad
-
 call selection_ata
 jc eroqpsecteurata
-
-pushad
-push ds
-mov ax,selvidB8
-mov ds,ax
-mov word[156],"1" or 7000h
-pop ds
-popad
 
 fs
 mov dx,[edi+dd_adress_base]
@@ -1449,20 +1432,11 @@ out dx,al
 suiteinfodisqueata:
 mov bx,256     ;bx=nombre de mot a transferer
 
-
 push ecx
 mov ecx,100
 call attdok
 pop ecx
 jc ernrpsecteurata
-
-pushad
-push ds
-mov ax,selvidB8
-mov ds,ax
-mov word[156],"2" or 7000h
-pop ds
-popad
 
 fs
 mov dx,[edi+dd_adress_base]
@@ -1495,13 +1469,7 @@ ret
 
 ;envoie la commande  de démarrage
 @@:
-pushad
-push ds
-mov ax,selvidB8
-mov ds,ax
-mov word[156],"4" or 7000h
-pop ds
-popad
+
 
 mov al,"?"   ;fonction désactivé tant que j'ai pas une machine ou la tester
 call affcj
@@ -1876,6 +1844,7 @@ cmp al,08h       ;drq=1  bsy=0 err=0
 je tsfok
 cmp al,01h        ;err=1
 je tsfnok
+
 fs
 cmp [cptsf],ecx
 jb bocpre

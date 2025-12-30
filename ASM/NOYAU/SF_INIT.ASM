@@ -247,7 +247,7 @@ mov dword[esi+38h],0
 mov dword[esi+3Ch],0
 @@:
 
-jmp temptest
+
 ;enregistre les irq du compatibility mode
 ;test ch,1
 ;jnz @f
@@ -278,58 +278,53 @@ jmp temptest
 ;call affcj
 ;popad
 
-push esi
-push ds
-push es
-mov dx,selidt      ;modifie l'idt
-mov ds,dx
-mov si,selcod
-mov es,si
-mov dl,06Eh
-mov esi,irq_disque2 
-mov al,3Fh
+;push esi
+;push ds
+;push es
+;mov dx,selidt      ;modifie l'idt
+;mov ds,dx
+;mov si,selcod
+;mov es,si
+;mov dl,06Eh
+;mov esi,irq_disque2 
+;mov al,3Fh
 ;call cridtp 
-pop es
-pop ds
-pop esi
-@@:
+;pop es
+;pop ds
+;pop esi
+;@@:
 
 ;enregistre les irq du native mode
-test ch,5
-jz @f
-pushad
-mov al,"C"
-call affcj
-popad
+;test ch,5
+;jz @f
 
-mov dx,0CF8h
-mov eax,ebx
-add eax,34h     ;IRQ
-out dx,eax
-mov dx,0CFCh
-in eax,dx
-cmp al,0FFh
-je @f
-cmp al,0
-je @f
+;mov dx,0CF8h
+;mov eax,ebx
+;add eax,34h     ;IRQ
+;out dx,eax
+;mov dx,0CFCh
+;in eax,dx
+;cmp al,0FFh
+;je @f
+;cmp al,0
+;je @f
 
-push esi
-push ds
-push es
-mov dx,selidt      ;modifie l'idt
-mov ds,dx
-mov si,selcod
-mov es,si
-mov dl,06Eh
-mov esi,irq_disque1 
-cmp al,8
-add al,30h
+;push esi
+;push ds
+;push es
+;mov dx,selidt      ;modifie l'idt
+;mov ds,dx
+;mov si,selcod
+;mov es,si
+;mov dl,06Eh
+;mov esi,irq_disque1 
+;cmp al,8
+;add al,30h
 ;call cridtp 
-pop es
-pop ds
-pop esi
-@@:
-temptest:
+;pop es
+;pop ds
+;pop esi
+;@@:
 
 add esi,64
 cmp esi,ad_descd+256
