@@ -220,7 +220,7 @@
 :int61h,12
 ^lire le compteur temps
 %entrées:
-al = 12
+ al = 12
 %sorties:
  eax = 32bit de poids faible du compteur temps
  edx = 32bit de poids fort du compteur temps
@@ -255,7 +255,8 @@ al = 12
 ^copier des données dans le presse papier
 %entrées:
  al = 15
- es:edx = pointeur vers les données a copierecx = taille des données a copier
+ es:edx = pointeur vers les données a copier
+ ecx = taille des données a copier
 %sorties:
  eax = codes d'~erreurs~
 
@@ -265,7 +266,8 @@ al = 12
 ^lire des données dans le presse papier
 %entrées:
  al = 16
- es:edx = pointeur vers l'endroit ou il faut écrire le presse papierecx = taille des données a maximum que l'on peut écrire
+ es:edx = pointeur vers l'endroit ou il faut écrire le presse papier
+ ecx = taille des données a maximum que l'on peut écrire
 %sorties:
  eax = codes d'~erreurs~
 
@@ -300,9 +302,6 @@ al = 12
  eax = codes d'~erreurs~
 
 
-
-
-
 :int61h,100
 ^convertir une chaine de caractère représentant un nombre décimal
 %entrées:
@@ -311,8 +310,6 @@ al = 12
 %sorties:
  eax =  codes d'~erreurs~
  ecx = valeur de ce nombre
-
-
 
 :int61h,101
 ^convertir une chaine de caractère représentant un nombre hexadécimal
@@ -438,7 +435,10 @@ al = 12
 :int61h,116
 ^convertir une chaine Base64(tout type) en binaire
 %entrées:
-al = 116ds:esi = chaine en base64 a convertirecx = taille de la chaineds:edi = pointeur vers une zone mémoire ou sera copié le résultat
+ al = 116
+ ds:esi = chaine en base64 a convertir
+ ecx = taille de la chaine
+ ds:edi = pointeur vers une zone mémoire ou sera copié le résultat
 %sorties:
  eax = codes d'~erreurs~
 
@@ -452,7 +452,7 @@ al = 116ds:esi = chaine en base64 a convertirecx = taille de la chaineds:edi = p
  ecx = taille des donnée
  ds:edi = pointeur vers une zone mémoire ou sera copié le résultat
 %sorties:
-eax = codes d'~erreurs~
+ eax = codes d'~erreurs~
 
 
 
@@ -635,14 +635,14 @@ fonctions d'interface
 %sorties:
  al = code de touche ou du bouton souris (valeurs F0h à FFh)
  ah = état des touche spéciales
-	│7│6│5│4│3│2│1│0│  
-	 │ │ │ │ │ │ │ └───── Maj gauche
+ │7│6│5│4│3│2│1│0│  
+  │ │ │ │ │ │ │ └───── Maj gauche
   │ │ │ │ │ │ └────── Maj droit
-	 │ │ │ │ │ └─────── Ctrl gauche 
-	 │ │ │ │ └──────── Ctrl droit
-	 │ │ │ └───────── Alt
-	 │ │ └────────── Alt Gr
-	 └─┴─────────── innutilisé
+  │ │ │ │ │ └─────── Ctrl gauche 
+  │ │ │ │ └──────── Ctrl droit
+  │ │ │ └───────── Alt
+  │ │ └────────── Alt Gr
+  └─┴─────────── innutilisé
  ebx = 0 ou position X si souris
  ecx = caractère associé a la touche ou position Y si souris
 
@@ -1377,25 +1377,32 @@ al = 53
  al = 4
  ah = numéros de port
 %sorties:
- eax = code d'erreur
- ecx = bit d'état
+ eax = codes d'~erreurs~
+ ecx = bit d'~état du port~
 
 
- bit de controle pour port COM
- 0 DTR
- 1 RTS
- 2 CTS
- 3 DSR
- 4 RI
- 5 DCD/RLSD
+:état du port
+^Bits d'état des ports série et parallèle
 
- bit de controle pour port LPT
- 0 saut de page
- 1 reset
- 2 selection périphérique
- 3 signal erreur
- 4 signal périphérique on line
- 5 signal plus de papier
+ Bits de controle pour port COM
+ │6 et +│5│4│3│2│1│0│ 
+  │    │ │ │ │ │ │ └──── DTR
+  │    │ │ │ │ │ └───── RTS
+  │    │ │ │ │ └────── CTS
+  │    │ │ │ └─────── DSR
+  │    │ │ └──────── RI
+  │    │ └───────── DCD/RLSD
+  └────┴────────── innutilisé
+
+ Bits de controle pour port LPT
+ │6 et +│5│4│3│2│1│0│
+  │    │ │ │ │ │ │ └──── saut de page
+  │    │ │ │ │ │ └───── reset
+  │    │ │ │ │ └────── selection phériphérique
+  │    │ │ │ └─────── signal erreur 
+  │    │ │ └──────── signal périphérique on line
+  │    │ └───────── signal plus de papier
+  └────┴────────── innutilisé
 
 
 
@@ -1404,7 +1411,7 @@ al = 53
 %entrées:
  al = 5
  ah = numéros de port
- ecx = bit d'état
+ ecx = bit d'~état du port~
 %sorties:
  eax = codes d'~erreurs~
 
@@ -1420,11 +1427,13 @@ al = 53
  eax = codes d'~erreurs~
 
  détail des attributs
- 0 0 = 7 bits par caractère 1 = 8bit par caractère
- 1 innutilisé
- 2 0 = 1 bit de stop, 1 =  2 bit de stop 
- 3 0 = pas de bit de parité, 1 = présence d'un bit de parité
- 4 0 = parité impaire(odd), 1 = parité paire(even)
+ │7│6│5│4│3│2│1│0│  
+  │ │ │ │ │ │ │ └──── 0 = 7 bits par caractère 1 = 8bit par caractère
+  │ │ │ │ │ │ └───── innutilisé
+  │ │ │ │ │ └────── 0 = 1 bit de stop, 1 =  2 bit de stop  
+  │ │ │ │ └─────── 0 = pas de bit de parité, 1 = présence d'un bit de parité
+  │ │ │ └──────── 0 = parité impaire(odd), 1 = parité paire(even)
+  └─┴─┴───────── innutilisé
 
 
 :int66h,7
@@ -1456,11 +1465,6 @@ al = 53
 
 
 
-
-
-
-
-
 :int68h
 ^int 68h
 fonctions périphériques usb
@@ -1474,8 +1478,6 @@ fonctions périphériques usb
  ~int68h,13~ ouverture connexion interruption vers terminaison(en cours de dévellopement)
  ~int68h,14~ fermeture connexion iso ou int(en cours de dévellopement)
  ~int68h,15~ echange données canal isocrone ou int (en cours de dévellopement)
-
-
 
 
 :int68h,0
@@ -1584,11 +1586,6 @@ fonctions périphériques usb
  ds:edx =adresse de la zt des données
 %sorties:
  eax = codes d'~erreurs~
-
-
-
-
-
 
 
 
@@ -1705,7 +1702,7 @@ fonctions périphériques usb
 
 
 :id_tache()
- ^unsigned int id_tache()
+^unsigned int id_tache()
  Renvoie l'id de la tache
 
 
@@ -1996,9 +1993,7 @@ fonctions périphériques usb
 
 
 
-e gauche à droite et de haut en bas
 
 
 
-
-
+                                
