@@ -2371,17 +2371,10 @@ je trame_tcp_seq_ok
 ja trame_tcp_aquitte    ;si on l'as déjà reçu on la ré acquitte (parce que l'ack n'as pas dût être reçu par le destinataire)
 
 ;sauvegarde la trame reçu en avance
-push esi
-push eax
-mov ax,[esi+tcp_flag]
-and eax,00F0h
-shr eax,2 ;div par  16 mul par 4
-mov ecx,[taille_niv_sup]
-sub ecx,eax
-add esi,eax
 mov al,5
+mov esi,zt_decod
+mov ecx,[to_decod]
 call trame_attente
-pop eax
 cmp esi,0
 je verifie_trame_attente
 mov ecx,400
@@ -2392,15 +2385,6 @@ mov [esi+zone_attente_tcp_seq_trame],eax
 mov [esi+zone_attente_tcp_compteur],ecx      ;valeur compteur maximum pour conserver la trame
 mov [esi+zone_attente_tcp_compteur+4],edx
 mov [esi+zone_attente_tcp_descr],edi        ;adresse du descripteur de la connexion
-pop esi
-
-mov ax,[esi+tcp_flag]
-test ax,0100h  ;test si c'est une demande de fin de connexion
-jnz trame_tcp_demande_fin
-
-mov ax,[esi+tcp_flag]
-test ax,0200h ;test si c'est une demande de synchro et met a jour
-jnz trame_tcp_maj_num_seq
 jmp verifie_trame_attente
 
 
