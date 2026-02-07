@@ -1391,6 +1391,7 @@ es
 mov ecx,[to_texte]
 sub ecx,esi
 add esi,edi
+cld
 rep movsb
 
 xor ecx,ecx     ;et efface la dernière ligne
@@ -1474,7 +1475,7 @@ iret
 
 ;*******************************************************************************************
 sfv_menu:       ;met en surbrillance certaine ligne pour faire un choix par menu
-		;entrée cl=première ligne du menu ch=nombre de ligne  bh=couleur de base (3bits) bl=ligne preselectionné 
+		;entrée cl=première ligne du menu ch=nombre de ligne  bh=couleur de base bl=ligne preselectionné 
                 ;retour: bl=ligne selectionné bh=touche qui as validé
 
 push ecx
@@ -1507,6 +1508,7 @@ add ch,cl      ;cl=ligne min   ch=ligne max
 mov al,cl
 add al,bl
 mov ah,bh
+
 
 sfv_menu_maj:
 push eax
@@ -1548,9 +1550,14 @@ add esi,eax
 add edi,eax
 
 pop eax
-and ah,07h
+push edx
 mov al,ah
+mov dl,ah
 shl ah,4
+shr dl,4
+or ah,dl   ;al= couleur de base ah=couleur inverse
+pop edx
+
 
 boucle_menu_maj:
 cmp ebx,esi
@@ -1672,9 +1679,14 @@ add esi,eax
 add edi,eax
 
 pop eax
-and ah,07h
+push edx
 mov al,ah
+mov dl,ah
 shl ah,4
+shr dl,4
+or ah,dl   ;al= couleur de base ah=couleur inverse
+pop edx
+
 
 
 boucle_menu_entree:
@@ -3225,6 +3237,7 @@ es
 mov al,[octet_pixel]
 mul ecx
 mov ecx,eax    ;on multiplie ecx par le nombre d'octet par pixel pour avoir le nombre d'octet 
+cld
 rep movsb
 pop edi
 pop esi
@@ -4956,9 +4969,18 @@ cmp eax,0
 jne sfv_lire_image_erreur
 
 mov esi,[edx+sfv_lire_image_zone1]
-cmp dword[esi],474E5089h
-je sfv_lire_image_png
+;cmp dword[esi],474E5089h
+;je sfv_lire_image_png
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
+cmp dword[esi],474E5089h
+jne @f
+cmp dword[esi+4],0A1A0A0Dh ;signature PNG
+je sfv_lire_image_png
+@@:
+mov eax,[esi]
+and eax,0FFFFFFh
+cmp eax,0FFD8FFh
+je sfv_lire_image_jpeg
 mov eax,cer_parami
 jmp sfv_lire_image_erreur
 
@@ -5103,6 +5125,7 @@ push esi
 mov ecx,[esi]
 add esi,8
 bswap ecx
+cld
 rep movsb
 pop esi
 mov eax,[esi]
@@ -6576,6 +6599,22 @@ ret
 
 
 
+
+
+;************************************************************************
+sfv_lire_image_jpeg:
+mov eax,cer_parami
+jmp sfv_lire_image_erreur
+
+
+
+
+
+
+
+
+
+
 ;********************************************************************************************************************************************
 sfv_lit_frag:      	;extrait un fragment d'une image
 pushad			;ds:esi=adresse de l'image   ds:edi=adresse du fragment  ebx=position x du fragment ecx=position y du fragment
@@ -6604,6 +6643,7 @@ push ecx
 push esi
 push edi
 mov ecx,ebp
+cld
 rep movsb
 pop edi
 pop esi
