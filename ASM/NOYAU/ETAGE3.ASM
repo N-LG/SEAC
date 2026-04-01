@@ -930,15 +930,15 @@ finpalgraf:
 
 
 ;définition française au démarrage
-;include "DN_MSG_FR.ASM"    ;messages systeme en français
-;include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
-;langue_demarrage equ "fra "
+include "DN_MSG_FR.ASM"    ;messages systeme en français
+include "DN_CLAV_FR.ASM"      ;clavier Français azerty 
+langue_demarrage equ "fra "
 
 
 ;définition anglaise au démarrage
-include "DN_MSG_EN.ASM"    ;messages systeme en anglais
-include "DN_CLAV_USI.ASM"    ;clavier US International
-langue_demarrage equ "eng "
+;include "DN_MSG_EN.ASM"    ;messages systeme en anglais
+;include "DN_CLAV_USI.ASM"    ;clavier US International
+;langue_demarrage equ "eng "
 
 tabacc:
 include "DN_ACC.ASM"
@@ -1344,6 +1344,7 @@ mov word[158],"I" or 7000h
 
 ;*******************************************************
 ;recherche du RSDP
+jmp fin_parcours_RSDT  ;on désactive parce que ça bug pour l'instant
 mov ax,selramt
 mov bx,selramh
 mov ds,ax
@@ -2574,6 +2575,8 @@ es
 mov cx,[no_ligne_jcsl]    ;num ligne a afficher
 es
 mov di,[resxt]   ;nb de carac par ligne
+es
+mov byte[coul_car],7
 
 boucle_trouve_ligne0:
 cmp ecx,0
