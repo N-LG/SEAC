@@ -24,6 +24,7 @@ fasm ASM/PROG/cdns.asm BIN/CDNS.FE
 fasm ASM/PROG/chttp.asm BIN/CHTTP.FE
 fasm ASM/PROG/cftp.asm BIN/CFTP.FE
 fasm ASM/PROG/ctftp.asm BIN/CTFTP.FE
+fasm ASM/PROG/nsn.asm BIN/NSN.FE
 fasm ASM/PROG/whois.asm BIN/WHOIS.FE
 fasm ASM/PROG/sdns.asm BIN/SDNS.FE
 fasm ASM/PROG/ping.asm BIN/PING.FE
@@ -56,9 +57,6 @@ fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 fasm ASM/PROG/install.asm BIN/INSTALL.FE
 fasm ASM/PROG/iff.asm BIN/IFF.FE
 
-:compilation du noyau
-fasm ASM/NOYAU/ETAGE3.ASM BIN/ETAGE3.BIN
-fasm ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
 
 
 :compilation des secteur de boot
@@ -86,6 +84,11 @@ fasm ASM/DEF/gr-aza.asm BIN/gr-aza.def
 fasm ASM/DEF/gr-qwi.asm BIN/gr-qwi.def
 
 
+
+
+:compilation du noyau général
+fasm ASM/NOYAU/ETAGE3.ASM BIN/ETAGE3.BIN
+fasm ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
 
 
 :création du zip de base et mise a jour du manuel zippé
@@ -119,6 +122,7 @@ ajarch BIN/CDNS.FE BIN/ETAGE4.BIN
 ajarch BIN/CHTTP.FE BIN/ETAGE4.BIN
 ajarch BIN/CFTP.FE BIN/ETAGE4.BIN
 ajarch BIN/CTFTP.FE BIN/ETAGE4.BIN
+ajarch BIN/NSN.FE BIN/ETAGE4.BIN
 ajarch BIN/WHOIS.FE BIN/ETAGE4.BIN
 ajarch BIN/PING.FE BIN/ETAGE4.BIN
 ajarch BIN/TRACE.FE BIN/ETAGE4.BIN
@@ -157,6 +161,9 @@ ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 ajarch ASM/PROG/fe.inc BIN/ETAGE4.BIN
 ajarch ASM/PROG/hello.asm BIN/ETAGE4.BIN
 
+:ajout de fasm
+ajarch BIN/FASM.FE BIN/ETAGE4.BIN
+
 :ajout des sources de base pour recompiler le noyau a l'archive du noyau
 ajarch ASM/NOYAU/ETAGE2_MBR.ASM BIN/ETAGE4.BIN
 ajarch ASM/NOYAU/ETAGE4.ASM BIN/ETAGE4.BIN
@@ -164,8 +171,6 @@ ajarch BIN/BIOS.MBR BIN/ETAGE4.BIN
 ajarch BIN/RELAIS.MBR BIN/ETAGE4.BIN
 
 
-:ajout de fasm
-ajarch BIN/FASM.FE BIN/ETAGE4.BIN
 
 
 
@@ -174,14 +179,11 @@ ajarch BIN/FASM.FE BIN/ETAGE4.BIN
 
 
 
-
-:compilation des différents format du noyau
+:compilation des différents format du noyau (sauf pxe)
 copy BIN\ETAGE3.BIN  ASM\NOYAU\ETAGE3.BIN 
 copy BIN\ETAGE4.BIN  ASM\NOYAU\ETAGE4.BIN 
 fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
-:fasm ASM/NOYAU/ETAGE2_EFI.ASM BIN/SEAC.EFI
 fasm ASM/NOYAU/ETAGE1_DSQ.ASM BIN/SEAC.IMG
-:fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
 fasm ASM/NOYAU/ETAGE1_ISO.ASM BIN/SEAC.ISO
 
 :ajarch usb.ids ETAGE4.BIN
@@ -191,7 +193,72 @@ fasm ASM/NOYAU/ETAGE1_ISO.ASM BIN/SEAC.ISO
 fasm ASM/NOYAU/ETAGE2_IMB.ASM BIN/SEAC.IMB
 
 
-del ajarch.exe
 
+
+
+
+
+
+
+;recompilation de la base du noyau pour pxe
+fasm ASM/NOYAU/ETAGE4pxe.ASM BIN/ETAGE4.BIN
+
+
+:création du zip de base et mise a jour du manuel zippé
+cd BIN
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip pxe2.sh -mx9
+
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.ids -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.FE -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.png -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.def -mx9
+
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip LSPCI.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip LSPCI.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip MANUEL.TXT -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip MANUAL.TXT -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip AUTOCOMP.CFG -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip EXPL.CFG -mx9
+
+
+
+:ajout des sources de base pour recompiler le noyau a l'archive du noyau
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip ../ASM/NOYAU/ETAGE2_MBR.ASM 
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip ../ASM/NOYAU/ETAGE4.ASM 
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip BIOS.MBR 
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip RELAIS.MBR 
+cd ..
+
+
+
+
+:ajout des applications et de leurs données de base à l'archive du noyau
+ajarch BIN/pxe1.sh BIN/ETAGE4.BIN
+ajarch BIN/CTFTP.FE BIN/ETAGE4.BIN
+ajarch BIN/DCP.FE BIN/ETAGE4.BIN
+ajarch BIN/PILOTE.FE BIN/ETAGE4.BIN
+ajarch BIN/PILOTEPCI.CFG BIN/ETAGE4.BIN
+ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
+ajarch BIN/RTL8169.FE BIN/ETAGE4.BIN
+ajarch BIN/BCM5755.FE BIN/ETAGE4.BIN
+ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
+ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
+ajarch BIN/IPCONFIG.FE BIN/ETAGE4.BIN
+
+ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
+ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
+
+
+:compilation des différents format du noyau
+copy BIN\ETAGE3.BIN  ASM\NOYAU\ETAGE3.BIN 
+copy BIN\ETAGE4.BIN  ASM\NOYAU\ETAGE4.BIN 
+fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
+fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
+
+
+
+
+
+del ajarch.exe
 color F0
 
