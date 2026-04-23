@@ -167,7 +167,6 @@ cd ..
 
 #compilation des diffÃ©rents format du noyau
 fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
-#fasm ASM/NOYAU/ETAGE2_EFI.ASM BIN/SEAC.EFI
 fasm ASM/NOYAU/ETAGE1_DSQ.ASM BIN/SEAC.IMG
 fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
 fasm ASM/NOYAU/ETAGE1_ISO.ASM BIN/SEAC.ISO
@@ -177,6 +176,86 @@ fasm ASM/NOYAU/ETAGE1_ISO.ASM BIN/SEAC.ISO
 #./ajarch fond.png ETAGE4.BIN
 
 fasm ASM/NOYAU/ETAGE2_IMB.ASM BIN/SEAC.IMB
+
+
+
+
+
+
+
+
+
+
+
+#recompilation de la base du noyau pour pxe
+fasm ASM/NOYAU/ETAGE4pxe.ASM BIN/ETAGE4.BIN
+
+
+#création du zip de base et mise a jour du manuel zippé
+cd BIN
+zip -9 pxe.zip pxe2.sh -mx9
+
+zip -9  pxe.zip *.ids -mx9
+zip -9 pxe.zip *.FE -mx9
+zip -9 pxe.zip *.png -mx9
+zip -9 pxe.zip *.def -mx9
+
+zip -9 pxe.zip LSPCI.CFG
+zip -9 pxe.zip LSPCI.CFG
+zip -9 pxe.zip MANUEL.TXT
+zip -9 pxe.zip MANUAL.TXT
+zip -9 pxe.zip AUTOCOMP.CFG
+zip -9 pxe.zip EXPL.CFG
+
+
+
+#ajout des sources de base pour recompiler le noyau a l'archive du noyau
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip ../ASM/NOYAU/ETAGE2_MBR.ASM
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip ../ASM/NOYAU/ETAGE4.ASM
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip BIOS.MBR
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip RELAIS.MBR
+cd ..
+
+
+
+
+#ajout des applications et de leurs données de base à l'archive du noyau
+./ajarch BIN/pxe1.sh BIN/ETAGE4.BIN
+./ajarch BIN/CTFTP.FE BIN/ETAGE4.BIN
+./ajarch BIN/DCP.FE BIN/ETAGE4.BIN
+./ajarch BIN/PILOTE.FE BIN/ETAGE4.BIN
+./ajarch BIN/PILOTEPCI.CFG BIN/ETAGE4.BIN
+./ajarch BIN/RTL8139.FE BIN/ETAGE4.BIN
+./ajarch BIN/RTL8169.FE BIN/ETAGE4.BIN
+./ajarch BIN/BCM5755.FE BIN/ETAGE4.BIN
+./ajarch BIN/3C90X.FE BIN/ETAGE4.BIN
+./ajarch BIN/I8254X.FE BIN/ETAGE4.BIN
+./ajarch BIN/IPCONFIG.FE BIN/ETAGE4.BIN
+
+
+
+:compilation du noyau pour le boot par pxe
+copy BIN\ETAGE4.BIN  ASM\NOYAU\ETAGE4.BIN
+fasm ASM/NOYAU/ETAGE2_MBR.ASM BIN/SEAC.BAZ
+fasm ASM/NOYAU/ETAGE1_PXE.ASM BIN/SEAC.PXE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 rm -f ajarch
 
