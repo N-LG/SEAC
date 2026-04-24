@@ -747,9 +747,11 @@ pop edx
 
 ;calcule la taille de l'image de fond et aggrandit la zone
 mov ecx,edx
-and edx,0FFh
 push edx
-shr ecx,2
+xor eax,eax
+and ecx,0FFh
+xor ebx,ebx
+shr ecx,3
 fs
 mov ax,[resx_ecran]
 fs
@@ -761,7 +763,6 @@ add eax,14 ;eax=taille de l'image
 mov ecx,eax
 mov edx,ad_fond
 call redim_mem
-
 
 
 ;cree  l'image de fond vide
@@ -794,9 +795,6 @@ mov ebx,[handle_fichier]
 int 64h
 
 
-
-
-
 ;calcul la taille intermédiaire
 xor eax,eax
 xor ecx,ecx
@@ -808,7 +806,7 @@ mul ecx
 mov cx,[esi+objimage_y]
 div ecx
 cmp ax,[edi+objimage_x]
-jb autre_carac_base
+ja autre_carac_base
 
 xor ebx,ebx
 xor ecx,ecx
@@ -826,9 +824,6 @@ mul ecx
 mov cx,[esi+objimage_x]
 div ecx
 
-;cmp ax,[edi+objimage_y]
-;ja autre_carac_base
-
 
 xor ebx,ebx
 xor ecx,ecx
@@ -841,10 +836,11 @@ fin_calcul_intermediaire:
 mov ah,[edi+objimage_bpp]
 mov edx,[couleur_fond]
 mov edi,[to_tempo]
-shr edi,1
+shr edi,2
 add edi,[ad_tempo]
 mov al,50
 int 63h
+
 
 
 ;extrait le fragment
