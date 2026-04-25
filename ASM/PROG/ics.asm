@@ -739,7 +739,7 @@ jne erreur_fond
 
 ;agrandit la zone tampon pour l'acceuillir
 push edx
-shr edx,7       ;8 pour la taille, -1 pour doubler cette taille
+shr edx,7       ;8 pour la taille, -1 pour doubler cette taille et avoir de la place pour l'mage intermédiaire
 mov ecx,edx
 mov edx,ad_tempo
 call redim_mem
@@ -795,52 +795,49 @@ mov ebx,[handle_fichier]
 int 64h
 
 
-;calcul la taille intermédiaire
-xor eax,eax
-xor ecx,ecx
+;calcul les dimensions intermédiaire
 mov esi,[ad_fond]
 mov edi,[ad_tempo]
+
+;calcul par un redimensionnement par la largeur
+xor eax,eax
+xor ebx,ebx
+xor ecx,ecx
+mov ax,[edi+objimage_x]
+mov cx,[esi+objimage_y]
+mul ecx
+mov cx,[esi+objimage_x]
+div ecx
+
+cmp ax,[edi+objimage_y]
+ja @f      ;si la hauteur de l'image n'est pas suffisante on redimensionne par la hauteur
+
+
+mov bx,[edi+objimage_x]
+mov ecx,eax
+jmp fin_calcul_intermediaire
+
+
+@@:
 mov ax,[esi+objimage_x]
 mov cx,[edi+objimage_y]
 mul ecx
 mov cx,[esi+objimage_y]
 div ecx
-cmp ax,[edi+objimage_x]
-ja autre_carac_base
-
-xor ebx,ebx
-xor ecx,ecx
+mov ebx,eax
 mov cx,[edi+objimage_y]
-mov bx,ax
-jmp fin_calcul_intermediaire
 
 
-autre_carac_base:
-xor eax,eax
-xor ecx,ecx
-mov ax,[esi+objimage_y]
-mov cx,[edi+objimage_x]
-mul ecx
-mov cx,[esi+objimage_x]
-div ecx
+fin_calcul_intermediaire: ;ebx/ecx=dimension du fragment a extraire
 
-
-xor ebx,ebx
-xor ecx,ecx
-mov bx,[edi+objimage_x]
-mov cx,ax
-
-
-fin_calcul_intermediaire:
 ;crée l'image intermédiaire
 mov ah,[edi+objimage_bpp]
 mov edx,[couleur_fond]
 mov edi,[to_tempo]
-shr edi,2
+shr edi,1
 add edi,[ad_tempo]
 mov al,50
 int 63h
-
 
 
 ;extrait le fragment
