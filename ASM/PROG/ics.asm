@@ -654,10 +654,25 @@ int 62h
 jmp @b 
 @@:
 
+
 ;affiche le fond
 xor ebx,ebx
 xor ecx,ecx
+xor esi,esi
+xor edi,edi
 mov edx,[ad_fond]
+cmp byte[edx+objimage_bpp],32
+jne @f
+push edx
+mov si,[edx+objimage_x]
+mov di,[edx+objimage_y]
+mov edx,[couleur_fond]
+mov al,22
+mov ah,24
+int 63h
+pop edx
+
+@@:
 mov al,27   ;afficher image    
 int 63h
 
@@ -866,12 +881,13 @@ mov edi,[ad_fond]
 mov al,53
 int 63h
 
-
 ;libère mémoire
 mov ecx,0
 mov edx,ad_tempo
 call redim_mem
 ret
+
+
 
 
 pas_de_fond:
