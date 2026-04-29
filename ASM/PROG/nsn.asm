@@ -450,10 +450,10 @@ cmp byte[esi+6],0
 je ouvrir_gopher
 @@:
 
-;cmp dword[esi],"http"
-;jne @f
-;cmp byte[esi+4],0
-;je ouvrir_http
+cmp dword[esi],"http"
+jne @f
+cmp byte[esi+4],0
+je ouvrir_http
 ;cmp word[esi+4],"s"
 ;je ouvrir_https
 ;@@:
@@ -1085,15 +1085,265 @@ mov edi,fichier_mem
 mov ecx,64
 cld
 rep movsd
+jmp detecte_type
 
 
+
+;****************************************************
+ouvrir_http:
+
+;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
+mov cx,80
+mov al,100
+mov edx,zt_port
+cmp byte[edx],0
+je @f
+int 61h
+@@:
+mov [port_serveur],cx
+
+
+;etablie une connexion
+inc word[port_local]
+mov al,0
+mov bx,[id_tache]
+mov ecx,64
+mov edx,1
+mov esi,20000h
+mov edi,20000h
+int 65h
+cmp eax,0
+jne aff_err_net
+mov [adresse_canal],ebx
+
+
+mov al,5
+mov ebx,[adresse_canal]
+mov ecx,34h
+mov esi,commande_ethernet
+mov edi,0
+mov byte[esi],8h
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+
+;attend que le programme réponde
+mov al,8
+mov ebx,[adresse_canal]
+mov ecx,200  ;500ms
+int 65h
+cmp eax,cer_ddi
+jne aff_err_serv
+
+;lit la réponse du programme
+mov al,4
+mov ebx,[adresse_canal]
+mov ecx,1
+mov esi,0
+mov edi,commande_ethernet
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+cmp byte[commande_ethernet],88h
+jne aff_err_serv
+
+
+;*************************
+;envoie requete
+mov edx,http_req1
+call envoie_utf8z
+
+mov edx,zt_ressource
+cmp byte[edx],0
+jne @f
+mov word[edx],"/"
+@@:
+call envoie_utf8z
+
+mov edx,http_req2
+call envoie_utf8z
+
+mov edx,zt_host
+call envoie_utf8z
+
+mov edx,http_req3
+call envoie_utf8z
+
+mov dword[taille],0
+
+;***********************
+;attend réponse
+mov al,9
+mov ecx,1000
+mov ebx,[adresse_canal]
+int 65h
+cmp eax,cer_ddi    ;???????????????????????????probleme
+jne aff_err_serv
+
+;**************************
+lecture_entete:
+mov al,6
+mov ecx,20000h
+sub ecx,[taille]
+mov edi,zt_recep
+add edi,[taille]
+mov ebx,[adresse_canal]
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+cmp ecx,0
+je lecture_entete  ;??????????????????????????????probleme
+
+add [taille],ecx
+
+;recherche si fin d'en_tête 
+mov edi,zt_recep-3
+mov esi,zt_recep
+add edi,[taille]
+@@:
+cmp dword[esi],0A0D0A0Dh
+je fin_entete
+inc esi
+cmp esi,edi
+jne @b
+jmp lecture_entete
+
+
+fin_entete:
+add esi,4    ;esi=début du fichier
+
+;jmp fichier_formate
+
+;****************************
+;affiche si réponse négative
+cmp dword[zt_recep+8]," 200"
+je ok_chargement
+
+
+
+;jmp aff_err_serv   ;?????????????????????????????????
+
+
+
+;*****************************
+;extrait taille donnée
+ok_chargement:
+mov edx,zt_recep  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
+mov edi,taille_http
+
+
+push edi
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+mov ebp,edi
+pop edi
+sub ebp,edi
+
+
+
+boucle1_cherche_taille:
+push edx
+push edi
+mov ecx,ebp
+
+boucle2_cherche_taille:
+mov al,[edx]
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+cmp al,[edi]
+jne suivant_cherche_taille
+inc edx
+inc edi
+dec ecx
+jnz boucle2_cherche_taille
+
+pop edi
+pop edx
+add edx,ebp
+mov al,100
+int 61h
+mov [taille_totale],ecx
+jmp @f
+
+
+suivant_cherche_taille:
+pop edi
+pop edx
+inc edx
+cmp edx,esi
+jb boucle1_cherche_taille
+mov dword[taille_totale],40000h
+@@:
+
+
+;aggrandit la zone pour 
+pushad
+mov al,8
+mov ecx,[taille_totale]
+shl ecx,8
+
+add ecx,zt_recep
+mov dx,sel_dat1
+int 61h
+popad
+
+
+;supprime l'en-tête
+mov edi,zt_recep
+mov ecx,[taille]
+add ecx,edi
+sub ecx,esi
+sub [taille],ecx
+rep movsb
+
+
+
+
+
+
+
+;télécharge la suite du document
+boucle_telecharge_http:
+mov al,6
+mov ecx,1FFFFh
+mov edi,zt_recep
+mov ebx,[adresse_canal]
+add edi,[taille]
+int 65h
+cmp eax,0
+jne @f   ;???????????????????????gestion
+cmp ecx,0
+je boucle_telecharge_http
+
+add [taille],ecx
+
+mov ecx,[taille]
+cmp ecx,[taille_totale]
+jb boucle_telecharge_http
+
+
+@@:
+
+
+;jmp affiche_page
 
 
 
 
 ;*************************************************
 ;detecte le format du fichier en mémoire
-
+detecte_type:
 
 
 
@@ -2144,6 +2394,13 @@ ret
 
 ;*****************************
 envoie_utf8z:
+pushad
+mov al,6
+int 61h
+popad
+
+
+
 push ebx
 mov esi,edx
 xor ecx,ecx
@@ -2340,8 +2597,8 @@ db "protocole de communication inconnu",0
 
 
 msg8:
-db 13,"NG: memory reservation error",13,0
-db 13,"NG: erreur de reservation mémoire",13,0
+db 13,"NSN: memory reservation error",13,0
+db 13,"NSN: erreur de reservation mémoire",13,0
 
 
 msg_paramg:
@@ -2351,6 +2608,22 @@ db 13,"option de la page:",0
 
 crlf:
 db 13,10,0
+
+
+http_req1:
+db "GET ",0
+http_req2:
+db " HTTP/1.0",13,10,"Host: ",0
+http_req3:
+db 13,10,"User-Agent: SEaC"
+
+db 13,10,13,10,0
+
+taille_http:
+db "content-length: ",0 
+
+taille_totale:
+dd 0
 
 
 nb_motclef:
