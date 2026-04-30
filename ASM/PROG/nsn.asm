@@ -627,7 +627,6 @@ mov dx,sel_dat1
 int 61h
 
 
-
 boucle_reception_gopher:
 
 ;on verifie qu'il y as la place de copier les données
@@ -714,6 +713,9 @@ int 60h
 ;*************************************************
 ;convertie le menu gopher
 fichier_gopher:
+cmp dword[taille],0
+je fichier_formate
+
 
 ;agrandit la zone
 mov al,8
@@ -728,7 +730,6 @@ mov edi,zt_recep
 mov esi,zt_recep
 add edi,[taille]
 mov ebp,edi
-
 ;mov dword[edi],":ind"
 ;mov word[edi+4],"ex"
 ;mov word[edi+6],0A0Dh
@@ -1089,7 +1090,7 @@ jmp detecte_type
 
 
 
-;****************************************************
+;****************************************************************************************
 ouvrir_http:
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
@@ -1215,84 +1216,40 @@ jmp lecture_entete
 fin_entete:
 add esi,4    ;esi=début du fichier
 
-;jmp fichier_formate
+
 
 ;****************************
-;affiche si réponse négative
-cmp dword[zt_recep+8]," 200"
-je ok_chargement
-
-
-
+;affiche si réponse négative?????????????????
+;cmp dword[zt_recep+8]," 200"
+;je ok_chargement
 ;jmp aff_err_serv   ;?????????????????????????????????
-
+;ok_chargement:
 
 
 ;*****************************
 ;extrait taille donnée
-ok_chargement:
-mov edx,zt_recep  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
+mov dword[taille_attendue],0
+mov edx,zt_recep  
 mov edi,taille_http
-
-
-push edi
-@@:
-cmp byte[edi],0
+call cherche_option_http  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
+cmp edx,zt_recep
 je @f
-inc edi
-jmp @b
-@@:
-mov ebp,edi
-pop edi
-sub ebp,edi
-
-
-
-boucle1_cherche_taille:
-push edx
-push edi
-mov ecx,ebp
-
-boucle2_cherche_taille:
-mov al,[edx]
-cmp al,"A"
-jb @f
-cmp al,"Z"
-ja @f
-add al,20h
-@@:
-cmp al,[edi]
-jne suivant_cherche_taille
-inc edx
-inc edi
-dec ecx
-jnz boucle2_cherche_taille
-
-pop edi
-pop edx
 add edx,ebp
 mov al,100
 int 61h
-mov [taille_totale],ecx
-jmp @f
-
-
-suivant_cherche_taille:
-pop edi
-pop edx
-inc edx
-cmp edx,esi
-jb boucle1_cherche_taille
-mov dword[taille_totale],40000h
+mov [taille_attendue],ecx 
 @@:
 
 
-;aggrandit la zone pour 
+;aggrandit la zone pour reçevoir le document
 pushad
 mov al,8
-mov ecx,[taille_totale]
-shl ecx,8
-
+mov ecx,[taille_attendue]
+shl ecx,1
+cmp ecx,0
+jne @f
+mov ecx,80000h
+@@:
 add ecx,zt_recep
 mov dx,sel_dat1
 int 61h
@@ -1304,7 +1261,8 @@ mov edi,zt_recep
 mov ecx,[taille]
 add ecx,edi
 sub ecx,esi
-sub [taille],ecx
+mov [taille],ecx
+cld
 rep movsb
 
 
@@ -1325,15 +1283,17 @@ cmp eax,0
 jne @f   ;???????????????????????gestion
 cmp ecx,0
 je boucle_telecharge_http
-
 add [taille],ecx
+cmp dword[taille_attendue],0
+je boucle_telecharge_http
 
-mov ecx,[taille]
-cmp ecx,[taille_totale]
+mov ecx,[taille_attendue]
+cmp [taille],ecx
 jb boucle_telecharge_http
 
 
 @@:
+
 
 
 ;jmp affiche_page
@@ -1614,7 +1574,10 @@ ignore_ajout_rubrique:
 ;***********************************************
 ;recherche la rubrique
 recherche_rubrique:
+mov ebp,zt_recep
 mov ebx,zt_recep
+add ebp,[taille]
+
 boucle_recherche:
 cmp byte[ebx],":"
 jne suite_recherche 
@@ -1658,7 +1621,7 @@ jmp boucle_test_nom
 
 suite_recherche:
 call atteint_ligne_suivante
-cmp ebx,[taille];?????????????????????????????????????????
+cmp ebx,ebp
 jb boucle_recherche
 
 ;si aucunes rubrique n'as été trouvé, on affiche une erreur
@@ -1675,7 +1638,11 @@ mov word[offsety],0
 ;*************************************************************************************************************************
 ;*************************************************************************************************************************
 affiche_page:
+mov ebp,zt_recep
 mov ebx,[page_encours]
+add ebp,[taille]
+
+
 
 call raz_ecr
 mov dword[fin_cliquable],cliquable
@@ -1704,12 +1671,11 @@ dec cx
 affiche_ligne:
 mov eax,zt_recep
 mov esi,ebx
-add eax,[taille]
-;add eax,100
-cmp byte[ebx],":"
-je touche_boucle
-cmp ebx,eax
+
+cmp esi,ebp
 jae touche_boucle
+cmp byte[esi],":"
+je touche_boucle
 
 push ecx
 mov dl,[coul_base]
@@ -2260,8 +2226,8 @@ cmp byte[ebx+1],0
 jne fin_ligne_trouve
 @@:
 inc ebx
-cmp ebx,[taille]
-jmp atteint_ligne_suivante
+cmp ebx,ebp
+jne atteint_ligne_suivante
 ret
 
 fin_ligne_trouve:
@@ -2394,13 +2360,6 @@ ret
 
 ;*****************************
 envoie_utf8z:
-pushad
-mov al,6
-int 61h
-popad
-
-
-
 push ebx
 mov esi,edx
 xor ecx,ecx
@@ -2418,6 +2377,72 @@ mov ebx,[adresse_canal]
 int 65h
 pop ebx
 ret
+
+
+;************************************
+cherche_option_http:
+
+;cherche la taile de la variable
+push edi
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+mov ebp,edi
+pop edi
+sub ebp,edi
+
+
+
+boucle1_cherche_option_http:
+push edx
+push edi
+mov ecx,ebp
+
+boucle2_cherche_option_http:
+mov al,[edx]
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+cmp al,[edi]
+jne suivant_cherche_option_http
+inc edx
+inc edi
+dec ecx
+jnz boucle2_cherche_option_http
+
+pop edi
+pop edx
+
+;place edx apres les : et les espaces apres le nom de l'attribut
+add edx,ebp
+@@:
+cmp byte[edx],":"
+je @f
+inc edx
+jmp @b
+@@:
+inc edx
+cmp byte[edx]," "
+je @b
+ret
+
+
+suivant_cherche_option_http:
+pop edi
+pop edx
+inc edx
+cmp edx,esi
+jne boucle1_cherche_option_http
+ret
+
+
+
 
 
 
@@ -2615,14 +2640,18 @@ db "GET ",0
 http_req2:
 db " HTTP/1.0",13,10,"Host: ",0
 http_req3:
-db 13,10,"User-Agent: SEaC"
+db 13,10,"User-Agent: NSn/SEaC"
 
 db 13,10,13,10,0
 
 taille_http:
-db "content-length: ",0 
+db "content-length",0 
+type_http:
+db "content-type",0 
 
-taille_totale:
+
+
+taille_attendue:
 dd 0
 
 
