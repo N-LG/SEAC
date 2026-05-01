@@ -16,6 +16,9 @@ org 0
 ;[ok]ajouter des touches de raccourcis (F7 à F12)
 ;ajouter timeout réponse serveur
 ;affichage destination liens si on survole le lien
+;[ok]téléchargement HTTP
+;lecture type de fichier
+;conversion html vers stx
 
 
 ;*****************************************
@@ -691,28 +694,460 @@ sub dword[taille],3
 
 
 fin_reception_gopher:
-cmp byte[zt_ressource],0
-je fichier_gopher
-cmp byte[zt_ressource],"0"
-je fichier_formate
-cmp byte[zt_ressource],"1"
-je fichier_gopher
-cmp byte[zt_ressource],"7"
-je fichier_gopher
+;récupère le type
+xor eax,eax
+mov al,[zt_ressource]
+cmp al,0
+jne @f
+mov al,"1"
+@@:
+mov [zt_type],ax
+jmp detecte_type
 
 
+
+
+
+
+
+
+
+;****************************************************************************************
+ouvrir_fichier:  ;ouvre le fichier
+
+
+
+
+
+;***********************************
+;extrait le nom de fichier de l'url
+mov esi,zt_host
+mov edi,fichier
+@@:
+mov al,[esi]
+cmp al,"0"
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+mov byte[edi],"/"
+mov esi,zt_ressource
+inc edi
+@@:
+mov al,[esi]
+cmp al,"0"
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+
+
+
+;**********************
+;test si le fichier en mémoire est le fichier a lire
+;mov esi,fichier
+;mov edi,fichier_mem
+;@@:
+;mov al,[esi]
+;cmp al,[edi]
+;jne @f
+;cmp al,0
+;je recherche_rubrique
+;inc esi
+;inc edi
+;jmp @b
+
+;@@:
+
+
+
+
+
+
+mov edx,fichier
+xor eax,eax
+xor ebx,ebx
+int 64h
+cmp eax,0
+je @f
+xor eax,eax
+mov ebx,1
+int 64h
+cmp eax,0
+jne aff_err_fichier
+@@:
+mov [handle],ebx
+
+
+;lit taille fichier
+mov ebx,[handle]
+mov edx,taille
 mov al,6
-mov edx,zt_recep
+mov ah,1 ;fichier
+int 64h
+cmp eax,0
+jne aff_err_fichier
+
+
+;agrandit la zone mémoire pour pouvoir contenir 2 fois le fichier pour rajouter le listing des mots clefs
+mov dx,sel_dat1
+mov ecx,[taille]
+shl ecx,2
+add ecx,zt_recep
+mov al,8
 int 61h
-int 60h
+cmp eax,0
+jne aff_err_mem
 
 
+;charge fichier
+mov ebx,[handle]
+mov ecx,[taille]
+mov edx,0   ;offset dans le fichier
+mov edi,zt_recep   ;offset dans le segment
+mov al,4
+int 64h
+cmp eax,0
+jne aff_err_fichier
+
+
+;ferme le fichier
+mov al,1
+mov ebx,[handle]
+int 64h
+
+;enregistre le fichier comme étant celui en mémoire
+mov esi,fichier
+mov edi,fichier_mem
+mov ecx,64
+cld
+rep movsd
+jmp detecte_type
+
+
+
+;****************************************************************************************
+ouvrir_http:
+
+;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
+mov cx,80
+mov al,100
+mov edx,zt_port
+cmp byte[edx],0
+je @f
+int 61h
+@@:
+mov [port_serveur],cx
+
+
+;etablie une connexion
+inc word[port_local]
+mov al,0
+mov bx,[id_tache]
+mov ecx,64
+mov edx,1
+mov esi,20000h
+mov edi,20000h
+int 65h
+cmp eax,0
+jne aff_err_net
+mov [adresse_canal],ebx
+
+
+mov al,5
+mov ebx,[adresse_canal]
+mov ecx,34h
+mov esi,commande_ethernet
+mov edi,0
+mov byte[esi],8h
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+
+;attend que le programme réponde
+mov al,8
+mov ebx,[adresse_canal]
+mov ecx,200  ;500ms
+int 65h
+cmp eax,cer_ddi
+jne aff_err_serv
+
+;lit la réponse du programme
+mov al,4
+mov ebx,[adresse_canal]
+mov ecx,1
+mov esi,0
+mov edi,commande_ethernet
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+cmp byte[commande_ethernet],88h
+jne aff_err_serv
+
+
+;*************************
+;envoie requete
+mov edx,http_req1
+call envoie_utf8z
+
+mov edx,zt_ressource
+cmp byte[edx],0
+jne @f
+mov word[edx],"/"
+@@:
+call envoie_utf8z
+
+
+cmp byte[zt_param],0
+je @f
+mov edx,http_req2
+call envoie_utf8z
+mov edx,zt_param
+call envoie_utf8z
+@@:
+
+
+
+
+
+mov edx,http_req3
+call envoie_utf8z
+
+mov edx,zt_host
+call envoie_utf8z
+
+mov edx,http_req4
+call envoie_utf8z
+
+mov dword[taille],0
+
+;***********************
+;attend réponse
+mov al,9
+mov ecx,1000
+mov ebx,[adresse_canal]
+int 65h
+cmp eax,cer_ddi    ;???????????????????????????probleme
+jne aff_err_serv
+
+;**************************
+lecture_entete:
+mov al,6
+mov ecx,20000h
+sub ecx,[taille]
+mov edi,zt_recep
+add edi,[taille]
+mov ebx,[adresse_canal]
+int 65h
+cmp eax,0
+jne aff_err_serv
+
+cmp ecx,0
+je lecture_entete  ;??????????????????????????????probleme
+
+add [taille],ecx
+
+;recherche si fin d'en_tête 
+mov edi,zt_recep-3
+mov esi,zt_recep
+add edi,[taille]
+@@:
+cmp dword[esi],0A0D0A0Dh
+je fin_entete
+inc esi
+cmp esi,edi
+jne @b
+jmp lecture_entete
+
+
+fin_entete:
+add esi,4    ;esi=début du fichier
+
+
+
+;****************************
+;affiche si réponse négative?????????????????
+;cmp dword[zt_recep+8]," 200"
+;je ok_chargement
+;jmp aff_err_serv   ;?????????????????????????????????
+;ok_chargement:
+
+
+;*****************************
+;extrait taille donnée
+mov dword[taille_attendue],0
+mov edx,zt_recep  
+mov edi,taille_http
+call cherche_option_http  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
+cmp edx,esi
+je @f
+mov al,100
+int 61h
+mov [taille_attendue],ecx 
+@@:
+
+;extrait le type de fichier
+mov dword[zt_type],0
+mov edx,zt_recep  
+mov edi,type_http
+call cherche_option_http  ;cherche "Content-Type: " dans l'en-tête (insensible a la casse)
+mov edi,zt_type
+@@:
+cmp edx,esi
+je @f
+mov al,[edx]
+cmp al,0Ah
+je @f
+cmp al,0Dh
+je @f
+mov [edi],al
+inc edx
+inc edi
+cmp edi,zt_type+63
+jne @b
+@@:
+mov byte[edi],0
+
+
+
+
+
+
+
+
+
+
+;aggrandit la zone pour reçevoir le document
+pushad
+mov al,8
+mov ecx,[taille_attendue]
+shl ecx,1
+cmp ecx,0
+jne @f
+mov ecx,80000h
+@@:
+add ecx,zt_recep
+mov dx,sel_dat1
+int 61h
+popad
+
+
+;supprime l'en-tête
+mov edi,zt_recep
+mov ecx,[taille]
+add ecx,edi
+sub ecx,esi
+mov [taille],ecx
+cld
+rep movsb
+
+
+
+
+
+
+
+;télécharge la suite du document
+boucle_telecharge_http:
+mov al,6
+mov ecx,1FFFFh
+mov edi,zt_recep
+mov ebx,[adresse_canal]
+add edi,[taille]
+int 65h
+cmp eax,0
+jne @f   ;???????????????????????gestion
+cmp ecx,0
+je boucle_telecharge_http
+add [taille],ecx
+cmp dword[taille_attendue],0
+je boucle_telecharge_http
+
+mov ecx,[taille_attendue]
+cmp [taille],ecx
+jb boucle_telecharge_http
+
+
+@@:
+
+
+
+;jmp affiche_page
+
+
+
+
+;*******************************************************************************************************
+;detecte le format du fichier en mémoire
+detecte_type:
+cmp word[zt_type],"0"
+je fichier_formate
+cmp word[zt_type],"1"
+je conversion_menugopher
+cmp word[zt_type],"7"
+je conversion_menugopher
+
+
+;si le type est inconnue, on propose de le télécharger
+pushad
+call raz_ecr
+call affiche_adresse
+mov al,11
+mov ah,[coul_base]
+mov edx,msg_enreg
+call ajuste_langue
+int 63h
+mov al,6
+mov ah,[coul_base]
+mov edx,zt_enreg
+mov ecx,256
+int 63h
+cmp al,01
+je backspace
+
+
+;créer le fichier
+mov al,2
+mov edx,zt_enreg
+xor ebx,ebx
+int 64h
+cmp eax,0
+jne backspace ;??????????????????????????????????que faire en cas d'erreur de création
+
+
+;ecrire dans le fichier
+mov al,5
+mov esi,zt_recep
+xor edx,edx
+mov ecx,[taille]
+int 64h
+cmp eax,0
+jne backspace ;??????????????????????????????????que faire en cas d'erreur d'écriture
+
+
+;fermer le fichier
+mov al,1
+int 64h
+popad
+
+
+
+
+;retour arrière dans le menu
+jmp backspace
 
 
 
 ;*************************************************
 ;convertie le menu gopher
-fichier_gopher:
+conversion_menugopher:
 cmp dword[taille],0
 je fichier_formate
 
@@ -927,7 +1362,7 @@ jb boucle_conversion_menugopher
 
 fin_conversion_menugopher:
 
-;remplace le menu
+;remplace le menu par le fichier formaté
 mov ecx,edi
 mov esi,zt_recep
 mov edi,zt_recep
@@ -970,341 +1405,8 @@ ret
 
 
 
-
-;****************************************************************************************
-ouvrir_fichier:  ;ouvre le fichier
-
-
-
-
-
-;***********************************
-;extrait le nom de fichier de l'url
-mov esi,zt_host
-mov edi,fichier
-@@:
-mov al,[esi]
-cmp al,"0"
-je @f
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-@@:
-mov byte[edi],"/"
-mov esi,zt_ressource
-inc edi
-@@:
-mov al,[esi]
-cmp al,"0"
-je @f
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-@@:
-
-
-
-
-;**********************
-;test si le fichier en mémoire est le fichier a lire
-;mov esi,fichier
-;mov edi,fichier_mem
-;@@:
-;mov al,[esi]
-;cmp al,[edi]
-;jne @f
-;cmp al,0
-;je recherche_rubrique
-;inc esi
-;inc edi
-;jmp @b
-
-;@@:
-
-
-
-
-
-
-mov edx,fichier
-xor eax,eax
-xor ebx,ebx
-int 64h
-cmp eax,0
-je @f
-xor eax,eax
-mov ebx,1
-int 64h
-cmp eax,0
-jne aff_err_fichier
-@@:
-mov [handle],ebx
-
-
-;lit taille fichier
-mov ebx,[handle]
-mov edx,taille
-mov al,6
-mov ah,1 ;fichier
-int 64h
-cmp eax,0
-jne aff_err_fichier
-
-
-;agrandit la zone mémoire pour pouvoir contenir 2 fois le fichier pour rajouter le listing des mots clefs
-mov dx,sel_dat1
-mov ecx,[taille]
-shl ecx,2
-add ecx,zt_recep
-mov al,8
-int 61h
-cmp eax,0
-jne aff_err_mem
-
-
-;charge fichier
-mov ebx,[handle]
-mov ecx,[taille]
-mov edx,0   ;offset dans le fichier
-mov edi,zt_recep   ;offset dans le segment
-mov al,4
-int 64h
-cmp eax,0
-jne aff_err_fichier
-
-
-;ferme le fichier
-mov al,1
-mov ebx,[handle]
-int 64h
-
-;enregistre le fichier comme étant celui en mémoire
-mov esi,fichier
-mov edi,fichier_mem
-mov ecx,64
-cld
-rep movsd
-jmp detecte_type
-
-
-
-;****************************************************************************************
-ouvrir_http:
-
-;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
-mov cx,80
-mov al,100
-mov edx,zt_port
-cmp byte[edx],0
-je @f
-int 61h
-@@:
-mov [port_serveur],cx
-
-
-;etablie une connexion
-inc word[port_local]
-mov al,0
-mov bx,[id_tache]
-mov ecx,64
-mov edx,1
-mov esi,20000h
-mov edi,20000h
-int 65h
-cmp eax,0
-jne aff_err_net
-mov [adresse_canal],ebx
-
-
-mov al,5
-mov ebx,[adresse_canal]
-mov ecx,34h
-mov esi,commande_ethernet
-mov edi,0
-mov byte[esi],8h
-int 65h
-cmp eax,0
-jne aff_err_serv
-
-
-;attend que le programme réponde
-mov al,8
-mov ebx,[adresse_canal]
-mov ecx,200  ;500ms
-int 65h
-cmp eax,cer_ddi
-jne aff_err_serv
-
-;lit la réponse du programme
-mov al,4
-mov ebx,[adresse_canal]
-mov ecx,1
-mov esi,0
-mov edi,commande_ethernet
-int 65h
-cmp eax,0
-jne aff_err_serv
-
-cmp byte[commande_ethernet],88h
-jne aff_err_serv
-
-
-;*************************
-;envoie requete
-mov edx,http_req1
-call envoie_utf8z
-
-mov edx,zt_ressource
-cmp byte[edx],0
-jne @f
-mov word[edx],"/"
-@@:
-call envoie_utf8z
-
-mov edx,http_req2
-call envoie_utf8z
-
-mov edx,zt_host
-call envoie_utf8z
-
-mov edx,http_req3
-call envoie_utf8z
-
-mov dword[taille],0
-
-;***********************
-;attend réponse
-mov al,9
-mov ecx,1000
-mov ebx,[adresse_canal]
-int 65h
-cmp eax,cer_ddi    ;???????????????????????????probleme
-jne aff_err_serv
-
-;**************************
-lecture_entete:
-mov al,6
-mov ecx,20000h
-sub ecx,[taille]
-mov edi,zt_recep
-add edi,[taille]
-mov ebx,[adresse_canal]
-int 65h
-cmp eax,0
-jne aff_err_serv
-
-cmp ecx,0
-je lecture_entete  ;??????????????????????????????probleme
-
-add [taille],ecx
-
-;recherche si fin d'en_tête 
-mov edi,zt_recep-3
-mov esi,zt_recep
-add edi,[taille]
-@@:
-cmp dword[esi],0A0D0A0Dh
-je fin_entete
-inc esi
-cmp esi,edi
-jne @b
-jmp lecture_entete
-
-
-fin_entete:
-add esi,4    ;esi=début du fichier
-
-
-
-;****************************
-;affiche si réponse négative?????????????????
-;cmp dword[zt_recep+8]," 200"
-;je ok_chargement
-;jmp aff_err_serv   ;?????????????????????????????????
-;ok_chargement:
-
-
-;*****************************
-;extrait taille donnée
-mov dword[taille_attendue],0
-mov edx,zt_recep  
-mov edi,taille_http
-call cherche_option_http  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
-cmp edx,zt_recep
-je @f
-add edx,ebp
-mov al,100
-int 61h
-mov [taille_attendue],ecx 
-@@:
-
-
-;aggrandit la zone pour reçevoir le document
-pushad
-mov al,8
-mov ecx,[taille_attendue]
-shl ecx,1
-cmp ecx,0
-jne @f
-mov ecx,80000h
-@@:
-add ecx,zt_recep
-mov dx,sel_dat1
-int 61h
-popad
-
-
-;supprime l'en-tête
-mov edi,zt_recep
-mov ecx,[taille]
-add ecx,edi
-sub ecx,esi
-mov [taille],ecx
-cld
-rep movsb
-
-
-
-
-
-
-
-;télécharge la suite du document
-boucle_telecharge_http:
-mov al,6
-mov ecx,1FFFFh
-mov edi,zt_recep
-mov ebx,[adresse_canal]
-add edi,[taille]
-int 65h
-cmp eax,0
-jne @f   ;???????????????????????gestion
-cmp ecx,0
-je boucle_telecharge_http
-add [taille],ecx
-cmp dword[taille_attendue],0
-je boucle_telecharge_http
-
-mov ecx,[taille_attendue]
-cmp [taille],ecx
-jb boucle_telecharge_http
-
-
-@@:
-
-
-
-;jmp affiche_page
-
-
-
-
 ;*************************************************
-;detecte le format du fichier en mémoire
-detecte_type:
-
+conversion_html:
 
 
 
@@ -2360,6 +2462,10 @@ ret
 
 ;*****************************
 envoie_utf8z:
+pushad
+mov al,6
+int 61h
+popad
 push ebx
 mov esi,edx
 xor ecx,ecx
@@ -2627,8 +2733,15 @@ db 13,"NSN: erreur de reservation mémoire",13,0
 
 
 msg_paramg:
+db 13,"page option:",0
 db 13,"option de la page:",0
-db 13,"option de la page:",0
+
+
+msg_enreg:
+db 13,"Unknown document type, what name do you want to save it under? (Press Esc to cancel)",13,0
+db 13,"type de document inconnu, sous quel nom voulez vous l'enregistrer? (echap pour annuler)",13,0
+
+
 
 
 crlf:
@@ -2638,8 +2751,10 @@ db 13,10,0
 http_req1:
 db "GET ",0
 http_req2:
-db " HTTP/1.0",13,10,"Host: ",0
+db "?",0
 http_req3:
+db " HTTP/1.0",13,10,"Host: ",0
+http_req4:
 db 13,10,"User-Agent: NSn/SEaC"
 
 db 13,10,13,10,0
@@ -2828,7 +2943,10 @@ zt_param:
 rb 256
 zt_ancre:
 rb 256
-
+zt_enreg:
+rb 256
+zt_type:
+rb 64
 
 ligne_vide:
 rb 512
