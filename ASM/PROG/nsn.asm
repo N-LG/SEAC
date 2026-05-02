@@ -41,6 +41,8 @@ mov al,8
 mov ecx,zt_recep+20000h
 mov dx,sel_dat1
 int 61h
+cmp eax,0
+jne aff_err_mem
 
 
 ;génère un numéros de port local pseudo aléatoirement
@@ -173,7 +175,6 @@ jmp boucle_enreg_historique
 fin_enreg_historique:
 inc edi
 mov [fin_historique],edi
-
 
 
 
@@ -1878,6 +1879,14 @@ cmp al,82
 je moins
 cmp al,84
 je plus
+cmp al,78
+je moinsp
+cmp al,81
+je plusp
+
+
+
+
 cmp al,0F0h
 je clique
 
@@ -2080,6 +2089,36 @@ cmp byte[esi],":"
 je touche_boucle
 inc word[offsety]
 jmp affiche_page
+
+
+
+moinsp:
+fs
+mov ax,[resy_texte]
+sub ax,2
+cmp word[offsety],ax     
+jb @f
+sub [offsety],ax
+jmp affiche_page
+@@:
+mov word[offsety],0     
+jmp affiche_page
+
+
+
+
+plusp:
+fs
+mov ax,[resy_texte]
+sub ax,2
+@@:
+cmp byte[esi],":"
+je touche_boucle
+inc word[offsety]
+dec ax
+jnz @b
+jmp affiche_page
+
 
 ;*****************************************
 clique:
