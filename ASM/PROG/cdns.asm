@@ -690,6 +690,17 @@ ret
 @@:
 
 
+;purge les requetes reçu en retard
+mov al,6
+mov ebx,[adresse_canal]
+mov ecx,1024
+mov edi,port_out
+int 65h
+cmp ecx,0
+jne @b
+
+
+
 ;créer une requete DNS
 mov dword[index_serveur],serveurs_dns
 boucle_test_different_serveur:
@@ -764,7 +775,7 @@ jne erreur_envoyer_requete
 ;attend serveur réponse
 mov al,9
 mov ebx,[adresse_canal]
-mov ecx,300
+mov ecx,600
 int 65h
 cmp eax,cer_ddi
 je okdata
@@ -1272,7 +1283,7 @@ rb 2
 arcount:
 rb 2
 data_dns:
-rb 500
+rb 1024
 
 
 
