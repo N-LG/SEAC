@@ -828,7 +828,7 @@ base1a:
 db "cd ",0
 
 base1b:
-db 13,"ex boot.sh",0
+db 13,"ex boot.sh -v",0
 
 
 fichier2:
