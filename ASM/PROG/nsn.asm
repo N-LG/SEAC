@@ -120,6 +120,12 @@ cmp byte[zt_url],0
 jne ouvrir_url
 
 ;selectionne le raccourcis F7 si aucune adresse n'est renseigné
+mov esi,raccourcis
+mov edi,zt_url
+mov ecx,128
+cld
+rep movsd
+
 
 
 
@@ -1089,7 +1095,7 @@ jb boucle_telecharge_http
 ;detecte le format du fichier en mémoire
 detecte_type:
 cmp word[zt_type],"0"
-je fichier_formate
+je fichier_txt
 cmp word[zt_type],"1"
 je conversion_menugopher
 cmp word[zt_type],"7"
@@ -1150,7 +1156,7 @@ jmp backspace
 ;convertie le menu gopher
 conversion_menugopher:
 cmp dword[taille],0
-je fichier_formate
+je fichier_stx
 
 
 ;agrandit la zone
@@ -1372,7 +1378,7 @@ sub ecx,esi
 mov [taille],ecx
 cld
 rep movsb
-jmp fichier_formate
+jmp fichier_stx
 
 
 
@@ -1414,30 +1420,14 @@ conversion_html:
 
 
 ;*************************************************
-fichier_formate:
-mov al,6
-mov edx,zt_recep
-int 61h
+fichier_stx:
+mov byte[mode],1
 
-;transforme cr et lf en zéros
-mov ecx,[taille]
-mov ebx,zt_recep
-add ecx,ebx
+;mov al,6
+;mov edx,zt_recep
+;int 61h
 
-boucle_transf:
-cmp byte[ebx],10
-je transf_zero
-cmp byte[ebx],13
-je transf_zero
-jmp ignore_transf
-
-transf_zero:
-mov byte[ebx],0
-
-ignore_transf:
-inc ebx
-cmp ebx,ecx
-jbe boucle_transf
+call transforme_crlf
 
 ;???????????????????????????????????????????
 jmp ignore_ajout_rubrique
@@ -1736,7 +1726,13 @@ call atteint_ligne_suivante
 @@:
 mov [page_encours],ebx
 mov word[offsety],0
+jmp affiche_page
 
+
+fichier_txt:
+mov byte[mode],0
+call transforme_crlf
+mov dword[page_encours],zt_recep
 
 ;*************************************************************************************************************************
 ;*************************************************************************************************************************
@@ -1744,7 +1740,6 @@ affiche_page:
 mov ebp,zt_recep
 mov ebx,[page_encours]
 add ebp,[taille]
-
 
 
 call raz_ecr
@@ -1771,7 +1766,63 @@ mov cx,[resy_texte]
 dec cx
 
 
-affiche_ligne:
+test byte[mode],1
+jnz affiche_ligne_stx 
+
+
+
+
+
+;**************
+affiche_ligne_txt:
+mov esi,ebx
+
+cmp esi,ebp
+jae touche_boucle
+
+push ecx
+mov dl,[coul_base]
+
+
+continue_ligne_txt:
+fs
+mov cx,[resx_texte]
+@@:
+call lirecarac
+fs
+mov [edi],eax
+fs
+mov [edi+3],dl
+add edi,4
+dec cx
+jnz @b
+
+call lirecarac
+cmp byte[esi],0
+je @f
+
+pop ecx
+dec cx
+jz touche_boucle
+push ecx
+jmp continue_ligne_txt
+
+
+@@:
+call atteint_ligne_suivante
+pop ecx
+dec cx
+jnz affiche_ligne_txt
+jmp touche_boucle
+
+
+
+
+
+
+
+;*****************
+affiche_ligne_stx:
 mov eax,zt_recep
 mov esi,ebx
 
@@ -1819,14 +1870,12 @@ inc esi
 
 
 
-
-
-
-continue_ligne:
+continue_ligne_stx:
 fs
 mov cx,[resx_texte]
 @@:
 call lirecarac
+call carac_stx
 fs
 mov [edi],eax
 fs
@@ -1836,6 +1885,7 @@ dec cx
 jnz @b
 
 call lirecarac
+call carac_stx
 cmp byte[esi],0
 je @f
 
@@ -1843,14 +1893,17 @@ pop ecx
 dec cx
 jz touche_boucle
 push ecx
-jmp continue_ligne
+jmp continue_ligne_stx
 
 
 @@:
 call atteint_ligne_suivante
 pop ecx
 dec cx
-jnz affiche_ligne
+jnz affiche_ligne_stx
+
+
+
 
 
 
@@ -2685,13 +2738,13 @@ add esi,4
 
 fin_lireutf8:
 pop ecx
-
 cmp eax,0
 jne @f
 dec esi
+@@:
 ret
 
-@@:
+carac_stx:
 cmp eax,"~"
 je @f
 cmp eax,"/"
@@ -2713,7 +2766,8 @@ mov ebx,[fin_cliquable]
 mov [ebx],esi
 mov [ebx+4],edi
 popad
-jmp lirecarac
+call  lirecarac
+jmp carac_stx
 
 fin_lien:
 mov dl,dh
@@ -2722,7 +2776,8 @@ mov ebx,[fin_cliquable]
 mov [ebx+8],edi
 add dword[fin_cliquable],12
 popad
-jmp lirecarac
+call  lirecarac
+jmp carac_stx
 
 
 stop_lien:
@@ -2736,6 +2791,35 @@ cmp byte[esi],"~"
 jne @b
 inc esi
 jmp fin_lien
+
+
+
+
+;*********************
+transforme_crlf:
+;transforme cr et lf en zéros
+mov ecx,[taille]
+mov ebx,zt_recep
+add ecx,ebx
+
+boucle_transf:
+cmp byte[ebx],10
+je transf_zero
+cmp byte[ebx],13
+je transf_zero
+jmp ignore_transf
+
+transf_zero:
+mov byte[ebx],0
+
+ignore_transf:
+inc ebx
+cmp ebx,ecx
+jbe boucle_transf
+ret
+
+
+
 
 
 
@@ -2857,7 +2941,8 @@ dd 0
 
 
 
-
+mode:
+db 0
 
 id_tache:
 dw 0
