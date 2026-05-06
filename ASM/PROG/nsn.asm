@@ -348,54 +348,54 @@ mov byte[edi],0
 
 
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
-mov al,6
-mov edx,zt_protocole
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_protocole
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_user
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_user
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_host
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_host
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_port
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_port
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_ressource
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_ressource
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_param
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_param
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
-mov al,6
-mov edx,zt_ancre
-int 61h
-mov al,6
-mov edx,crlf
-int 61h
+;mov al,6
+;mov edx,zt_ancre
+;int 61h
+;mov al,6
+;mov edx,crlf
+;int 61h
 
 
 ;int 60h
@@ -420,9 +420,9 @@ int 61h
 
 
 
+;********************************************************************************************************************téléchargement des données
+;********************************************************************************************************************
 
-
-;************************************
 ;identifie le protocole
 
 mov esi,zt_protocole
@@ -489,7 +489,8 @@ mov [page_encours],edx
 jmp affiche_erreur
 
 
-;*********************************************************************************************************************
+
+;*********************************************************************************
 ouvrir_gopher:
 
 
@@ -662,23 +663,21 @@ mov ebx,[adresse_canal]
 int 65h
 cmp eax,0
 jne fin_reception_gopher
-
-
-
-
 cmp ecx,0
 je @f
+
+
 ;????????????????????
-pushad
-mov al,6
-mov edx,zt_recep
-add edx,[taille]
-push edx
-add edx,ecx
-mov byte[edx],0
-pop edx
-int 61h
-popad
+;pushad
+;mov al,6
+;mov edx,zt_recep
+;add edx,[taille]
+;push edx
+;add edx,ecx
+;mov byte[edx],0
+;pop edx
+;int 61h
+;popad
 ;?????????????????
 
 
@@ -921,9 +920,6 @@ call envoie_utf8z
 @@:
 
 
-
-
-
 mov edx,http_req3
 call envoie_utf8z
 
@@ -959,6 +955,7 @@ jne aff_err_serv
 cmp ecx,0
 je lecture_entete  ;??????????????????????????????probleme
 
+
 add [taille],ecx
 
 ;recherche si fin d'en_tête 
@@ -978,7 +975,6 @@ fin_entete:
 add esi,4    ;esi=début du fichier
 
 
-
 ;****************************
 ;affiche si réponse négative?????????????????
 ;cmp dword[zt_recep+8]," 200"
@@ -995,10 +991,15 @@ mov edi,taille_http
 call cherche_option_http  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
 cmp edx,esi
 je @f
+
+mov al,6
+int 61h
 mov al,100
 int 61h
 mov [taille_attendue],ecx 
 @@:
+
+
 
 ;extrait le type de fichier
 mov dword[zt_type],0
@@ -1014,6 +1015,8 @@ cmp al,0Ah
 je @f
 cmp al,0Dh
 je @f
+cmp al,";"
+je @f
 mov [edi],al
 inc edx
 inc edi
@@ -1023,7 +1026,11 @@ jne @b
 mov byte[edi],0
 
 
-
+;????????????????
+mov al,6
+mov edx,zt_type
+int 61h
+;???????????????
 
 
 
@@ -1037,7 +1044,7 @@ mov al,8
 mov ecx,[taille_attendue]
 shl ecx,1
 cmp ecx,0
-jne @f
+;jne @f
 mov ecx,80000h
 @@:
 add ecx,zt_recep
@@ -1054,9 +1061,6 @@ sub ecx,esi
 mov [taille],ecx
 cld
 rep movsb
-
-
-
 
 
 
@@ -1085,13 +1089,19 @@ jb boucle_telecharge_http
 @@:
 
 
-
 ;jmp affiche_page
 
 
 
+;*****************************************************************************************************************************************************
+;*****************************************************************************************************************************************************
+;????????????????
+mov al,6
+mov edx,zt_type
+int 61h
+;???????????????
 
-;*******************************************************************************************************
+
 ;detecte le format du fichier en mémoire
 detecte_type:
 cmp word[zt_type],"0"
@@ -1102,6 +1112,26 @@ cmp word[zt_type],"7"
 je conversion_menugopher
 
 
+;text/...
+cmp dword[zt_type],"text"
+jne detecte_type_pastexte
+cmp byte[zt_type+4],"/"
+jne detecte_type_pastexte
+;text/stx
+cmp dword[zt_type+5],"stx"
+je fichier_stx 
+;text/html
+cmp dword[zt_type+5],"html"
+jne @f
+cmp byte[zt_type+9],0
+je conversion_html 
+@@:
+;tous les autres
+jmp fichier_txt
+detecte_type_pastexte:
+
+
+;*************************
 ;si le type est inconnue, on propose de le télécharger
 pushad
 call raz_ecr
@@ -2421,7 +2451,7 @@ jne fin_ligne_trouve
 @@:
 inc ebx
 cmp ebx,ebp
-jne atteint_ligne_suivante
+jb atteint_ligne_suivante
 ret
 
 fin_ligne_trouve:
