@@ -1026,14 +1026,6 @@ jne @b
 mov byte[edi],0
 
 
-;????????????????
-mov al,6
-mov edx,zt_type
-int 61h
-;???????????????
-
-
-
 
 
 
@@ -1122,10 +1114,11 @@ cmp dword[zt_type+5],"stx"
 je fichier_stx 
 ;text/html
 cmp dword[zt_type+5],"html"
-jne @f
-cmp byte[zt_type+9],0
+;jne @f
+;cmp byte[zt_type+9],0
 je conversion_html 
 @@:
+int 3h
 ;tous les autres
 jmp fichier_txt
 detecte_type_pastexte:
@@ -1444,6 +1437,331 @@ ret
 
 ;*************************************************
 conversion_html:
+
+mov edx,zt_recep
+mov al,6
+int 61h
+
+
+;gestion du caractère d'échapement
+;gestion d'une image
+;gestion d'un tableau
+
+
+;agrandit la zone?????????????????????????
+mov al,8
+mov ecx,[taille]
+shl ecx,2
+add ecx,zt_recep
+mov dx,sel_dat1
+int 61h
+
+;parcours le document
+mov edi,zt_recep
+mov esi,zt_recep
+add edi,[taille]
+mov ebp,edi
+
+
+;commence a la balise body
+recherche_body:
+cmp byte[esi],"<"
+jne suite_recherche_body
+cmp byte[esi+1],"B"
+je @f
+cmp byte[esi+1],"b"
+jne suite_recherche_body
+@@:
+cmp byte[esi+2],"O"
+je @f
+cmp byte[esi+2],"o"
+jne suite_recherche_body
+@@:
+cmp byte[esi+3],"D"
+je @f
+cmp byte[esi+3],"d"
+jne suite_recherche_body 
+@@:
+cmp byte[esi+4],"Y"
+je ignore_balise_inc
+cmp byte[esi+4],"y"
+je ignore_balise_inc
+suite_recherche_body:
+inc esi
+cmp esi,ebp
+jae fichier_txt
+jmp recherche_body
+
+
+
+;*************
+boucle_parcours_html:
+cmp byte[esi],"<"
+je @f
+mov [edi],al
+inc esi
+inc edi
+cmp esi,ebp
+jae fin_conversion_html
+jmp boucle_parcours_html
+@@:
+
+;extrait le nom de la balise en minuscule
+push edi
+mov edi,type_balise
+inc esi
+@@:
+mov al,[esi]
+cmp al,">"
+je html_fin_extrait_nom
+cmp al," "
+je html_fin_extrait_nom
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+mov [edi],al
+inc esi
+inc edi
+cmp esi,ebp
+je fin_conversion_html
+cmp edi,type_balise+59
+je @f
+jmp @b
+
+html_fin_extrait_nom:
+mov dword[edi],0
+pop edi
+
+;cherche de quel type de balise il s'agit
+
+cmp word[type_balise],"a"
+je balise_a
+cmp dword[type_balise],"br"
+je balise_br
+cmp dword[type_balise],"/br"
+je balise_br
+cmp dword[type_balise],"em"
+je balise_em
+cmp dword[type_balise],"img"
+;je balise_img
+cmp dword[type_balise],"h1"
+je balise_h1
+cmp dword[type_balise],"h2"
+je balise_h2
+cmp dword[type_balise],"h3"
+je balise_h3
+cmp dword[type_balise],"hr"
+je balise_hr
+cmp dword[type_balise],"td"
+;je balise_td
+cmp dword[type_balise],"u"
+je balise_u
+
+
+;on ignore la balise inconnue
+ignore_balise_inc:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp boucle_parcours_html
+
+
+;**************
+balise_a:
+cmp dword[esi],"href"
+je href_balise_a
+cmp byte[esi],">"
+je fin_balise_a
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp balise_a
+
+href_balise_a:
+add esi,4
+cmp word[esi],223Dh   ;(=")
+jne balise_a
+add esi,2
+mov edx,esi
+
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+
+
+mov byte[edi],"~"
+inc edi
+call ajoute_jusque_balise
+mov byte[edi],"|"
+inc edi
+push esi
+mov esi,edx
+call ajoute_jusque_guil
+mov byte[edi],"~"
+inc edi
+pop esi
+fin_balise_a:
+jmp boucle_parcours_html
+
+;******
+balise_br:
+mov byte[edi],13
+inc edi
+jmp boucle_parcours_html
+
+
+;******
+balise_em:
+mov byte[edi],"@"
+inc edi
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+call ajoute_jusque_balise
+mov byte[edi],"@"
+inc edi
+jmp boucle_parcours_html
+
+
+;******
+balise_h3:
+mov byte[edi],13
+inc edi
+mov byte[edi],"#"
+inc edi
+jmp @f
+
+balise_h2:
+mov byte[edi],13
+inc edi
+@@:
+mov byte[edi],"#" 
+inc edi
+jmp @f
+
+balise_h1:
+mov byte[edi],13
+inc edi
+@@:
+mov byte[edi],"#"
+inc edi
+
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+
+@@:
+inc esi
+call ajoute_jusque_balise
+mov byte[edi],13
+inc edi
+
+cmp esi,ebp
+jae fin_conversion_html
+jmp boucle_parcours_html
+
+
+;******
+balise_hr:
+mov byte[edi],13
+inc edi
+mov ecx,20
+@@:
+mov byte[edi],"-"
+inc edi
+dec ecx
+jnz @b
+mov byte[edi],13
+inc edi
+jmp boucle_parcours_html
+
+
+;******
+balise_u:
+mov byte[edi],"_"
+inc edi
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+call ajoute_jusque_balise
+mov byte[edi],"_"
+inc edi
+jmp boucle_parcours_html
+
+
+
+
+;***********remplace le fichier html
+fin_conversion_html:
+mov ecx,edi
+mov esi,zt_recep
+mov edi,zt_recep
+add esi,[taille]
+sub ecx,esi
+cmp ecx,0
+je fichier_texte
+mov [taille],ecx
+cld
+rep movsb
+jmp fichier_stx
+
+
+
+;*******************
+ajoute_jusque_balise:
+mov al,[esi]
+cmp al,"<"
+je @f
+mov [edi],al
+inc esi
+inc edi
+cmp esi,ebp
+jb  ajoute_jusque_balise
+
+
+ajoute_jusque_guil:
+mov al,[esi]
+cmp al,22h   ;="
+je @f
+mov [edi],al
+inc esi
+inc edi
+cmp esi,ebp
+jb  ajoute_jusque_guil
+
+@@:
+ret
+
+
 
 
 
@@ -1786,6 +2104,10 @@ cmp cx,0
 je @f
 dec cx
 call atteint_ligne_suivante
+cmp ebx,ebp
+jb atteint_ligne_suivante
+
+
 jmp @b
 @@:
 
@@ -3100,6 +3422,8 @@ rb 256
 zt_enreg:
 rb 256
 zt_type:
+rb 64
+type_balise:
 rb 64
 
 ligne_vide:
