@@ -1118,7 +1118,6 @@ cmp dword[zt_type+5],"html"
 ;cmp byte[zt_type+9],0
 je conversion_html 
 @@:
-int 3h
 ;tous les autres
 jmp fichier_txt
 detecte_type_pastexte:
@@ -1437,11 +1436,9 @@ ret
 
 ;*************************************************
 conversion_html:
-
 mov edx,zt_recep
 mov al,6
 int 61h
-
 
 ;gestion du caractère d'échapement
 ;gestion d'une image
@@ -1461,7 +1458,6 @@ mov edi,zt_recep
 mov esi,zt_recep
 add edi,[taille]
 mov ebp,edi
-
 
 ;commence a la balise body
 recherche_body:
@@ -1496,21 +1492,27 @@ jmp recherche_body
 
 ;*************
 boucle_parcours_html:
-cmp byte[esi],"<"
+mov al,[esi]
+cmp al,"<"
+je balise_html_trouve
+cmp al,10
+je @f
+cmp al,13
 je @f
 mov [edi],al
-inc esi
 inc edi
+@@:
+inc esi
 cmp esi,ebp
 jae fin_conversion_html
 jmp boucle_parcours_html
-@@:
+
 
 ;extrait le nom de la balise en minuscule
-push edi
-mov edi,type_balise
+balise_html_trouve:
+mov ebx,type_balise
 inc esi
-@@:
+boucle_extrait_nom_balise:
 mov al,[esi]
 cmp al,">"
 je html_fin_extrait_nom
@@ -1522,20 +1524,24 @@ cmp al,"Z"
 ja @f
 add al,20h
 @@:
-mov [edi],al
+mov [ebx],al
 inc esi
-inc edi
+inc ebx
 cmp esi,ebp
 je fin_conversion_html
-cmp edi,type_balise+59
-je @f
-jmp @b
+cmp ebx,type_balise+59
+je html_fin_extrait_nom
+jmp boucle_extrait_nom_balise
 
 html_fin_extrait_nom:
-mov dword[edi],0
-pop edi
+mov dword[ebx],0
+
 
 ;cherche de quel type de balise il s'agit
+int 3
+mov edx,type_balise
+mov al,6
+int 61h
 
 cmp word[type_balise],"a"
 je balise_a
@@ -1568,7 +1574,7 @@ je @f
 inc esi
 cmp esi,ebp
 jae fin_conversion_html
-jmp @b
+jmp ignore_balise_inc
 @@:
 inc esi
 cmp esi,ebp
@@ -1578,21 +1584,10 @@ jmp boucle_parcours_html
 
 ;**************
 balise_a:
-cmp dword[esi],"href"
-je href_balise_a
-cmp byte[esi],">"
-je fin_balise_a
-inc esi
-cmp esi,ebp
-jae fin_conversion_html
-jmp balise_a
-
-href_balise_a:
-add esi,4
-cmp word[esi],223Dh   ;(=")
-jne balise_a
-add esi,2
-mov edx,esi
+mov edx,option_href
+call recherche_option_html
+cmp edx,0
+je ignore_balise_inc
 
 @@:
 cmp byte[esi],">"
@@ -1602,12 +1597,12 @@ cmp esi,ebp
 jae fin_conversion_html
 jmp @b
 @@:
-
+inc esi
 
 mov byte[edi],"~"
 inc edi
 call ajoute_jusque_balise
-mov byte[edi],"|"
+mov byte[edi],"/"
 inc edi
 push esi
 mov esi,edx
@@ -1615,8 +1610,7 @@ call ajoute_jusque_guil
 mov byte[edi],"~"
 inc edi
 pop esi
-fin_balise_a:
-jmp boucle_parcours_html
+jmp ignore_balise_inc
 
 ;******
 balise_br:
@@ -1722,13 +1716,17 @@ jmp boucle_parcours_html
 
 ;***********remplace le fichier html
 fin_conversion_html:
+mov dword[edi],0
+add edi,1
+
+
 mov ecx,edi
 mov esi,zt_recep
 mov edi,zt_recep
 add esi,[taille]
 sub ecx,esi
 cmp ecx,0
-je fichier_texte
+je fichier_txt
 mov [taille],ecx
 cld
 rep movsb
@@ -1762,7 +1760,41 @@ jb  ajoute_jusque_guil
 ret
 
 
+;****************
+recherche_option_html:
+push esi
+reset_recherche_option_html:
+mov ebx,edx
 
+boucle_recherche_option_html:
+mov al,[esi]
+cmp al,">"
+je fin_recherche_option_html
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+inc esi
+cmp al,[ebx]
+jne reset_recherche_option_html
+inc ebx
+cmp esi,ebp
+jae @f
+cmp byte[ebx],0
+jne boucle_recherche_option_html
+cmp word[esi],223Dh   ;(=")
+jne boucle_recherche_option_html
+add esi,2
+mov edx,esi
+pop esi
+ret
+
+fin_recherche_option_html:
+xor edx,edx
+pop esi
+ret
 
 
 
@@ -2197,6 +2229,7 @@ inc esi
 @@:
 cmp byte[esi],">"
 jne @f
+mov dword[edi],20202020h
 add edi,4
 inc esi
 jmp @b
@@ -3238,7 +3271,8 @@ taille_http:
 db "content-length",0 
 type_http:
 db "content-type",0 
-
+option_href:
+db "href",0
 
 
 taille_attendue:
