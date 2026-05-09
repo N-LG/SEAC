@@ -18,7 +18,10 @@ org 0
 ;affichage destination liens si on survole le lien
 ;[ok]téléchargement HTTP
 ;lecture type de fichier
-;conversion html vers stx
+;html: gestion du caractère d'échapement
+;html: gestion d'une image
+;html: gestion d'un tableau
+
 
 
 ;*****************************************
@@ -37,10 +40,7 @@ mov fs,dx
 
 
 ;agrandit la zone mémoire
-mov al,8
-mov ecx,zt_recep+20000h
-mov dx,sel_dat1
-int 61h
+call ajuste_memoire
 cmp eax,0
 jne aff_err_mem
 
@@ -801,12 +801,9 @@ jne aff_err_fichier
 
 
 ;agrandit la zone mémoire pour pouvoir contenir 2 fois le fichier pour rajouter le listing des mots clefs
-mov dx,sel_dat1
 mov ecx,[taille]
 shl ecx,2
-add ecx,zt_recep
-mov al,8
-int 61h
+call ajuste_memoire
 cmp eax,0
 jne aff_err_mem
 
@@ -1027,23 +1024,14 @@ mov byte[edi],0
 
 
 
-
-
-
 ;aggrandit la zone pour reçevoir le document
 pushad
-mov al,8
 mov ecx,[taille_attendue]
 shl ecx,1
-cmp ecx,0
-;jne @f
-mov ecx,80000h
-@@:
-add ecx,zt_recep
-mov dx,sel_dat1
-int 61h
+call ajuste_memoire
+cmp eax,0
+jne aff_err_mem
 popad
-
 
 ;supprime l'en-tête
 mov edi,zt_recep
@@ -1087,13 +1075,6 @@ jb boucle_telecharge_http
 
 ;*****************************************************************************************************************************************************
 ;*****************************************************************************************************************************************************
-;????????????????
-mov al,6
-mov edx,zt_type
-int 61h
-;???????????????
-
-
 ;detecte le format du fichier en mémoire
 detecte_type:
 cmp word[zt_type],"0"
@@ -1355,7 +1336,7 @@ jmp @b
 @@:
 
 ;ressource
-mov byte[edi],"/"
+mov byte[edi],"|"
 inc edi
 mov [edi],cl
 inc edi
@@ -1440,18 +1421,16 @@ mov edx,zt_recep
 mov al,6
 int 61h
 
-;gestion du caractère d'échapement
-;gestion d'une image
-;gestion d'un tableau
 
-
-;agrandit la zone?????????????????????????
-mov al,8
+;agrandit la zone mémoire
 mov ecx,[taille]
 shl ecx,2
-add ecx,zt_recep
-mov dx,sel_dat1
-int 61h
+call ajuste_memoire
+cmp eax,0
+jne aff_err_mem
+
+
+
 
 ;parcours le document
 mov edi,zt_recep
@@ -1538,11 +1517,6 @@ mov dword[ebx],0
 
 
 ;cherche de quel type de balise il s'agit
-int 3
-mov edx,type_balise
-mov al,6
-int 61h
-
 cmp word[type_balise],"a"
 je balise_a
 cmp dword[type_balise],"br"
@@ -1561,6 +1535,11 @@ cmp dword[type_balise],"h3"
 je balise_h3
 cmp dword[type_balise],"hr"
 je balise_hr
+cmp word[type_balise],"sc"
+jne @f
+cmp dword[type_balise+2],"ript"
+je balise_script
+@@:
 cmp dword[type_balise],"td"
 ;je balise_td
 cmp dword[type_balise],"u"
@@ -1601,9 +1580,12 @@ inc esi
 
 mov byte[edi],"~"
 inc edi
+cmp byte[esi],"<"
+je @f
 call ajoute_jusque_balise
-mov byte[edi],"/"
+mov byte[edi],"|"
 inc edi
+@@:
 push esi
 mov esi,edx
 call ajoute_jusque_guil
@@ -1695,6 +1677,19 @@ jmp boucle_parcours_html
 
 
 ;******
+balise_script:
+@@:
+cmp byte[esi],"<"
+je boucle_parcours_html
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+
+
+
+
+;******
 balise_u:
 mov byte[edi],"_"
 inc edi
@@ -1730,6 +1725,12 @@ je fichier_txt
 mov [taille],ecx
 cld
 rep movsb
+
+
+mov edx,zt_recep
+mov al,6
+int 61h
+
 jmp fichier_stx
 
 
@@ -1809,8 +1810,8 @@ mov byte[mode],1
 
 call transforme_crlf
 
-;???????????????????????????????????????????
-jmp ignore_ajout_rubrique
+
+jmp ignore_ajout_rubrique;???????????????????????????????????????????
 
 ;***************************************************
 ;fait une liste des mots clefs
@@ -2135,12 +2136,13 @@ mov cx,[offsety]
 cmp cx,0
 je @f
 dec cx
+mov esi,ebx
 call atteint_ligne_suivante
 cmp ebx,ebp
-jb atteint_ligne_suivante
-
-
-jmp @b
+jb @b
+mov ebx,esi
+inc cx
+sub [offsety],cx
 @@:
 
 
@@ -2598,7 +2600,7 @@ mov edx,zt_url
 @@:
 mov al,[ebx]
 inc ebx
-cmp al,"/"
+cmp al,"|"
 je @f
 cmp byte[ebx],"~"
 jne @b
@@ -2747,7 +2749,38 @@ jmp affiche_page
 
 
 
-;**********************************************************************************************
+
+;**********************************************************************************************************************************************************
+;**********************************************************************************************************************************************************
+ajuste_memoire:
+cmp ecx,20000h   ;on reserve une quantité minimum de 128Ko
+jae @f
+mov ecx,20000h
+@@:
+add ecx,zt_recep
+mov al,8
+mov dx,sel_dat1
+int 61h
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 raz_ecr:
 pushad
 fs
@@ -2939,10 +2972,6 @@ ret
 
 ;*****************************
 envoie_utf8z:
-pushad
-mov al,6
-int 61h
-popad
 push ebx
 mov esi,edx
 xor ecx,ecx
@@ -3132,7 +3161,7 @@ ret
 carac_stx:
 cmp eax,"~"
 je @f
-cmp eax,"/"
+cmp eax,"|"
 je stop_lien
 ret
 
