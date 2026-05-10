@@ -1209,7 +1209,7 @@ push esi
 inc esi
 menugopher_nomurl:
 mov al,[esi]
-cmp al,"/"
+cmp al,"|"
 jne @f
 mov al,"\"
 @@:
@@ -1220,7 +1220,7 @@ jmp menugopher_nomurl
 @@:
 pop esi
 
-mov byte[edi],"/"
+mov byte[edi],"|"
 inc edi
 
 @@:
@@ -1259,7 +1259,7 @@ push esi
 inc esi
 menugopher_nomlien:
 mov al,[esi]
-cmp al,"/"
+cmp al,"|"
 jne @f
 mov al,"\"
 @@:
@@ -1270,7 +1270,7 @@ jmp menugopher_nomlien
 @@:
 pop esi
 
-mov byte[edi],"/"
+mov byte[edi],"|"
 inc edi
 
 ;ajoute url lien
@@ -1336,7 +1336,7 @@ jmp @b
 @@:
 
 ;ressource
-mov byte[edi],"|"
+mov byte[edi],"/"
 inc edi
 mov [edi],cl
 inc edi
@@ -1439,33 +1439,13 @@ add edi,[taille]
 mov ebp,edi
 
 ;commence a la balise body
-recherche_body:
-cmp byte[esi],"<"
-jne suite_recherche_body
-cmp byte[esi+1],"B"
-je @f
-cmp byte[esi+1],"b"
-jne suite_recherche_body
-@@:
-cmp byte[esi+2],"O"
-je @f
-cmp byte[esi+2],"o"
-jne suite_recherche_body
-@@:
-cmp byte[esi+3],"D"
-je @f
-cmp byte[esi+3],"d"
-jne suite_recherche_body 
-@@:
-cmp byte[esi+4],"Y"
-je ignore_balise_inc
-cmp byte[esi+4],"y"
-je ignore_balise_inc
-suite_recherche_body:
-inc esi
-cmp esi,ebp
-jae fichier_txt
-jmp recherche_body
+mov edx,mot_body
+call recherche_chaine
+cmp edx,0
+je fichier_txt
+mov esi,edx
+jmp ignore_balise_inc 
+
 
 
 
@@ -1678,6 +1658,11 @@ jmp boucle_parcours_html
 
 ;******
 balise_script:
+mov edx,mot_script
+call recherche_chaine
+cmp edx,0
+je @f
+mov esi,edx
 @@:
 cmp byte[esi],"<"
 je boucle_parcours_html
@@ -1797,6 +1782,45 @@ xor edx,edx
 pop esi
 ret
 
+
+;**********************
+recherche_chaine:
+push ebx
+push esi
+push edi
+reset_recherche_chaine:
+mov ebx,edx
+mov edi,esi
+
+boucle_recherche_chaine:
+mov al,[esi]
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+inc esi
+cmp al,[ebx]
+jne reset_recherche_chaine
+inc ebx
+cmp esi,ebp
+jae @f
+cmp byte[ebx],0
+jne boucle_recherche_chaine
+
+mov edx,edi
+pop edi
+pop esi
+pop ebx
+ret
+
+@@:
+xor edx,edx
+pop edi
+pop esi
+pop ebx
+ret
 
 
 
@@ -2768,19 +2792,7 @@ ret
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+;***********
 raz_ecr:
 pushad
 fs
@@ -3302,6 +3314,12 @@ type_http:
 db "content-type",0 
 option_href:
 db "href",0
+
+mot_body:
+db "<body",0
+mot_script:
+db "</script",0
+
 
 
 taille_attendue:
