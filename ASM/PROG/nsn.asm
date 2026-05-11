@@ -1578,7 +1578,8 @@ jmp ignore_balise_inc
 balise_br:
 mov byte[edi],13
 inc edi
-jmp boucle_parcours_html
+jmp ignore_balise_inc
+
 
 
 ;******
@@ -1635,10 +1636,9 @@ inc esi
 call ajoute_jusque_balise
 mov byte[edi],13
 inc edi
-
 cmp esi,ebp
 jae fin_conversion_html
-jmp boucle_parcours_html
+jmp ignore_balise_inc
 
 
 ;******
@@ -1653,7 +1653,8 @@ dec ecx
 jnz @b
 mov byte[edi],13
 inc edi
-jmp boucle_parcours_html
+jmp ignore_balise_inc
+
 
 
 ;******
@@ -2348,11 +2349,9 @@ je moinsp
 cmp al,81
 je plusp
 
-
-
-
 cmp al,0F0h
 je clique
+
 
 jmp touche_boucle
 
@@ -2689,7 +2688,8 @@ jmp ouvrir_url
 
 
 
-;*****************************************************************************************
+;****************************************************************************************************************************************************
+;****************************************************************************************************************************************************
 aff_err_mem:
 mov edx,msg8
 call ajuste_langue
@@ -3305,7 +3305,6 @@ http_req3:
 db " HTTP/1.0",13,10,"Host: ",0
 http_req4:
 db 13,10,"User-Agent: NSn/SEaC"
-
 db 13,10,13,10,0
 
 taille_http:
