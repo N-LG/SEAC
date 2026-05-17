@@ -45,8 +45,37 @@ mov edx,zt_recep
 mov ebx,0
 cmp byte[edx],0
 jne ok_ouvrir
-mov edx,fichier
-call ajuste_langue
+
+;créer le nom du manuel adapté a la langue systeme
+mov dword[edx],"man_"
+add edx,4
+mov eax,20
+int 61h
+mov [edx],eax
+cmp byte[edx],0
+je @f
+cmp byte[edx]," "
+je @f
+inc edx
+cmp byte[edx],0
+je @f
+cmp byte[edx]," "
+je @f
+inc edx
+cmp byte[edx],0
+je @f
+cmp byte[edx]," "
+je @f
+inc edx
+cmp byte[edx],0
+je @f
+cmp byte[edx]," "
+je @f
+inc edx
+@@:
+mov dword[edx],".stx"
+
+mov edx,zt_recep
 mov ebx,1
 ok_ouvrir:
 xor eax,eax
@@ -90,11 +119,10 @@ jne aff_err_fichier
 add dword[taille],zt_recep
 
 
-;transforme cr et lf en zéros et ~ en marque de liens
+;transforme cr et lf en zéros et ~ _ @ en couleur
 mov ecx,[taille]
 mov ebx,zt_recep
-mov al,13h
-;add ecx,ebx
+mov ax,1717h
 
 boucle_transf:
 cmp byte[ebx],10
@@ -102,30 +130,72 @@ je transf_zero
 cmp byte[ebx],13
 je transf_zero
 cmp word[ebx],7E7Eh      ;~~
-je doubletidle
+je double
+cmp word[ebx],5F5Fh      ;__
+je double
+cmp word[ebx],4040h      ;@@
+je double
 cmp byte[ebx],"~"
 je transf_tidle
+cmp byte[ebx],"_"
+je transf_ligne
+cmp byte[ebx],"@"
+je transf_arobase
 jmp ignore_transf
 
-doubletidle:
-mov word[ebx],177Eh
+double:
+mov [ebx+1],ah
 jmp ignore_transf
 
 
 transf_tidle:
-mov byte[ebx],al
-cmp al,17h
-je transf_tidle2
-mov al,17h
+cmp al,ah
+jne @f
+mov al,13h
+mov [ebx],al
 jmp ignore_transf
 
-transf_tidle2:
-mov al,13h
+transf_ligne:
+cmp al,ah
+jne @f
+mov al,1Eh
+mov [ebx],al
 jmp ignore_transf
+
+transf_arobase:
+cmp al,ah
+jne @f
+mov al,16h
+mov [ebx],al
+jmp ignore_transf
+
+@@:
+mov al,ah
+mov [ebx],al
+jmp ignore_transf
+
 
 transf_zero:
 mov byte[ebx],0
-mov al,13h
+mov ax,1717h
+cmp byte[ebx+1],22h
+je transf_parag
+cmp word[ebx+1],"##"
+je transf_stitre
+cmp byte[ebx+1],"#"
+jne ignore_transf
+
+mov ax,1A1Ah
+jmp ignore_transf
+
+transf_stitre:
+mov ax,1212h
+jmp ignore_transf
+
+transf_parag:
+mov ax,1F1Fh
+jmp ignore_transf
+
 
 ignore_transf:
 inc ebx
@@ -213,25 +283,44 @@ mov edx,msg2
 int 61h
 
 afficheligne:
-cmp byte[ebx],"%"
-je coul_blanc
-cmp byte[ebx],"^"
+cmp byte[ebx],">"
+jne @f
+inc ebx
+mov al,6
+mov edx,msg_tab
+int 61h
+jmp afficheligne 
+@@:
+
+cmp byte[ebx],22h  ;22h = "
+je coul_parag
+cmp word[ebx],"##"
+je coul_stitre
+cmp byte[ebx],"#"
 jne suite_affligne
 
 mov al,6
-mov edx,vert
+mov edx,msg_titre
 int 61h
+inc ebx
 jmp suite_affligne
 
-coul_blanc:
+coul_stitre:
 mov al,6
-mov edx,blanc
+mov edx,msg_stitre
 int 61h
+add ebx,2
+jmp suite_affligne
+
+coul_parag:
+mov al,6
+mov edx,msg_parag
+int 61h
+inc ebx
 
 suite_affligne:
 mov al,6
 mov edx,ebx
-inc edx
 cmp byte[ebx],":"
 je fin
 int 61h
@@ -518,9 +607,6 @@ dec dword[nb_ligne]
 jnz boucle_ligne
 
 mov al,6
-mov edx,blanc
-int 61h
-mov al,6
 mov edx,msg_crlf
 int 61h
 int 60h
@@ -700,8 +786,8 @@ db 13,"MAN: aucune entrée dans le manuel concernant ",22h,0
 msg2:
 db 22h,13,0
 msg3:
-db 13,"MAN: error in keyword parameters",13,0
-db 13,"MAN: erreur dans les parametres du mot clef",13,0
+db 13,"MAN: missing keyword",13,"to display the list of available keywords, enter the command ",22h,"man *",22h,13,0
+db 13,"MAN: mot clef manquant",13,"pour afficher la liste des mots clefs disponibles, entrez la commande ",22h,"man *",22h,13,0
 msg4:
 db 13,"MAN: error accessing manual file",13,0
 db 13,"MAN: erreur d'acces au fichier du manuel",13,0
@@ -709,7 +795,7 @@ msg5:
 db 13,"MAN: content of section ",22h,0
 db 13,"MAN: contenu de la rubrique ",22h,0
 msg6:
-db 13,"MAN: list of available keyword:",13,13h,0
+db 13,"MAN: list of available keywords:",13,13h,0
 db 13,"MAN: liste des mots clefs disponibles:",13,13h,0
 msg8:
 db 13,"MAN: memory reservation error",13,0
@@ -718,11 +804,14 @@ db 13,"MAN: erreur de reservation mémoire",13,0
 msg_crlf:
 db 13,17h,0
 
-blanc:
+msg_parag:
 db 1Fh,0
-vert:
+msg_titre:
 db 1Ah,0
-
+msg_stitre:
+db 12h,0
+msg_tab:
+db "    ",0
 
 largeur:
 dd 0
@@ -738,9 +827,7 @@ dd 0
 
 
 
-fichier:
-db "MANUAL.TXT",0
-db "MANUEL.TXT",0
+
 handle:
 dd 0
 taille:
