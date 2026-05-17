@@ -2,68 +2,69 @@ SMLTX;
 :commands:command:cmd
 #commands available with the SEaC operating system:
 
-##-Built-in commands:
-~AF~ displays a line of text or the contents of a file
-~EFJ~ clear system log
-~DIR~/~LS~ list the contents of a folder
-~DEF~ loads a definition file
-~SUP~/~RM~ delete a file
-~COP~ copies a file
-~VER~ displays the system version
-~CD~ changes working folder
-~ND~ create new folder
-~LD~ lists installed disks and partitions
-~LM~ displays the memory organization
-~LV~ displays supported video modes
-~LT~/~PS~ show running tasks
-~MODV~ changes the video mode
-~EFJ~ clear system log
-~FDS~ set system folder
-~MTT~ modifies the execution time of the task
-~STOP~ stop a task
-##-Editors:
-~EDT~ text editor
-~EDH~ hex editor
-~EDG~ character map editor
-~PARTD~ partitioner/disk formatter
-##-Various
-~FASM~ x86 assembler compiler
-~ADJARCH~
-~EXPL~ file explorer
-~CALC~ calculator
-~DATE~ system clock
-~UTF8~ unicode to utf8 conversion
-~MAN~ manual
-~TERM~ serial and TCP terminal
-~LSPCI~ list installed pci devices
-~LSUSB~ list installed usb devices
-~ICS~ GUI
-~VOIR~ image file viewer
-~PILOTE~ driver manager
-##-Network Driver
-~RTL8139~ ~3C90X~ ~I8254X~
-##-Network usage:
-~IPCONFIG~ network card configurator
-~PING~ test connection
-~CDNS~ DNS client
-~TRACE~ trace route
-~CIRC~ IRC client
-~SNIF~ displays received frame metadata
-~SCANIP~ ip address scanner
-~CHTTP~ http client
-~CFTP~ ftp client
-##-Servers:
-~SHTTP~ http server
-~STFTP~ tftp server
-~STLNT~ telnet remote command server
+##Built-in commands:
+>~AF~ displays a line of text or the contents of a file
+>~EFJ~ clear system log
+>~DIR~/~LS~ list the contents of a folder
+>~DEF~ loads a definition file
+>~SUP~/~RM~ delete a file
+>~COP~ copies a file
+>~VER~ displays the system version
+>~CD~ changes working folder
+>~ND~ create new folder
+>~LD~ lists installed disks and partitions
+>~LM~ displays the memory organization
+>~LV~ displays supported video modes
+>~LT~/~PS~ show running tasks
+>~MODV~ changes the video mode
+>~EFJ~ clear system log
+>~FDS~ set system folder
+>~MTT~ modifies the execution time of the task
+>~STOP~ stop a task
+##Editors:
+>~EDT~ text editor
+>~EDH~ hex editor
+>~EDG~ character map editor
+>~PARTD~ partitioner/disk formatter
+##Various
+>~FASM~ x86 assembler compiler
+>~ADJARCH~
+>~EXPL~ file explorer
+>~CALC~ calculator
+>~DATE~ system clock
+>~UTF8~ unicode to utf8 conversion
+>~MAN~ manual
+>~TERM~ serial and TCP terminal
+>~LSPCI~ list installed pci devices
+>~LSUSB~ list installed usb devices
+>~ICS~ GUI
+>~VOIR~ image file viewer
+>~PILOTE~ driver manager
+##Network Driver
+>~RTL8139~ ~3C90X~ ~I8254X~
+>##-Network usage:
+>~IPCONFIG~ network card configurator
+>~PING~ test connection
+>~CDNS~ DNS client
+>~TRACE~ trace route
+>~CIRC~ IRC client
+>~SNIF~ displays received frame metadata
+>~SCANIP~ ip address scanner
+>~CHTTP~ http client
+>~CFTP~ ftp client
+##Servers:
+>~SHTTP~ http server
+>~STFTP~ tftp server
+>~STLNT~ telnet remote command server
 
 :ajarch
 #AJARCH
 ajarch allows you to add any file to a kernel file (extension .~BAZ~)
 
 "command: ajarch XXX YYY
- with XXX=name of the file to add
-      YYY=kernel file name
+>with:
+>>XXX=name of the file to add
+>>YYY=kernel file name
 :calc
 #CALC: calculator
 
@@ -74,52 +75,52 @@ you can reuse the result of the last calculation by using the variable x in your
 :cd:cop:sup:rm:ren:dir:ls:nd
 #Commands for file manipulation
 
-##command: cd     
+"command: cd     
 change folder, cd.. return to parent folder
-##command: dir (or ls)
+"command: dir (or ls)
  Lists the contents of the folder in use
-##command: sup XXX (or rm XXX)
+"command: sup XXX (or rm XXX)
  delete the XXX file
-##command: cop XXX YYY
+"command: cop XXX YYY
  copy the XXX file to the YYY folder with ZZZ options
   -e overwrites existing files
   -f only copies files
   -d only copies folders
   -n creates the destination folder
   -r:NNNN renames the copied file
-##command: ld
+"command: ld
  list the partitions and cdrom which have been detected by the system (no argument)
-##command: nd XXX
+"command: nd XXX
  create new directory XXX
 :lm:lt:ps:mtt:stop
 #Application management commands
 
-##command: lm
+"command: lm
 List the memory spaces used by the system (no argument)
-##command: lt (or ps)
+"command: lt (or ps)
 List Tasks running on the system
-##command: stop XXX
+"command: stop XXX
 Stop task numbers XXX
-##command: mtt XXX YYY
+"command: mtt XXX YYY
 set the execution time of the task XXX to the value YYY (unit of time 2.5ms)
 :lv:mod
 #Video setting commands
 
-##command: lv       
+"command: lv       
 List of display modes recognized by the video card
-##command: modv XXX
+"command: modv XXX
 change the video mode of the screen to the mode
 XXX = mode numbers, XXX*YYY for resolution
 :efj:af:fds
 #Log Manipulation Commands
 
-##command: efj
+"command: efj
 Erase the contents of the system log
-##command: fds
+"command: fds
 Makes system record that the folder in use is the system folder
-##command: ver
+"command: ver
 Show system version in system log
-##command: af XXX
+"command: af XXX
 add XXX text or XXX file content to log
 :tecop:tui
 #TECOP
@@ -129,10 +130,10 @@ The tecop is the name of the interface which makes it possible to drive the SEaC
 You access the tecop by pressing the "list" key (located to the left of the right ctrl key) or by Ctrl+Alt+Tab
 
 the tecop consists of 4 zones (from top to bottom):
-- Interface available (white on blue background)
-- System Log
-- Work address (in green on a black background)
-- Command being drafted
+>- Interface available (white on blue background)
+>- System Log
+>- Work address (in green on a black background)
+>- Command being drafted
 
 the up and down arrow keys as well as start, end, page up, and page down allow navigation in the log file
 the inser and shift+inser keys are used to navigate through the history of commands
@@ -141,27 +142,42 @@ the function keys allow access to the interfaces listed at the top of the screen
 #DEF
 loading a language, keyboard, or additional font definition file
 
-##command: def XXX
+"command: def XXX
+>with
 >>XXX = name of the file to load
 
-##-languages
-fr-txt.def -> system message in French
-en-txt.def -> system message in English
+##languages
+>fr-txt.def  -> system message in French
+>en-txt.def  -> system message in English
 
-##-keyboards
-fr-aza.def -> azerty special Seac
-be-azs.def -> Belgian azerty
-en-qwi.def -> qwerty US international
-bepo.def -> Bepo
-dvorak.def -> Dvorak
-colemak.def -> Colemak
+##keyboards
+>fr-aza.def  -> French enhanced azerty
+>be-azs.def  -> Belgian azerty 
+>ca-qws.def  -> cananadian qwerty 
+>ch-qzf.def  -> French German qwertz
+>ch-qzg.def  -> Swiss German qwertz
+>en-qus.def  -> simple US qwerty
+>en-qwi.def  -> international US qwerty 
+>gr-aza.def  -> Greek/azerty combination (switch with Ctrl+Alt+`)
+>gr-qwi.def  -> Greek/qwerty combination (switch with Ctrl+Alt+`)
+>bepo.def    -> Bépo 
+>colemak.def -> Colemak
+>dvorak.def  -> Dvorak 
+>ergol.def   -> Ergol
 
-##-fonts
-0u0.def -> characters from 0 to FF
-1u0.def -> characters from 100 to 1FF (incomplete)
-25u0.def -> characters from 2500 to 25FF
-F00u0.def -> characters from F0000 to F00FF
-fonts are editable with ~edg~  
+
+##fonts
+>0u0.def     -> characters from 0 to FF (Latin)
+>1u0.def     -> characters from 100 to 1FF (extended Latin 1)
+>2u0.def     -> characters from 200 to 2FF (extended Latin 2) @Very incomplete@
+>3u0.def     -> characters from 300 to 3FF (Greek)
+>4u0.def     -> characters from 400 to 4FF (Cyrillic) @incomplete@
+>5u0.def     -> characters from 500 to 5FF (Cyrillic, Armenian, Hebrew) @Very incomplete@
+>25u0.def    -> characters from 2500 to 25FF (symbols)
+>FFu0.def    -> characters from FF00 to FFFF (CJC/Japanese compatibility) @incomplete@
+>F00u0.def   -> characters from F0000 to F00FF (personalisé)
+
+"fonts are editable with ~edg~  
 :edg
 #EDG
 matrix font editor (in a ~def~ file)
@@ -173,8 +189,8 @@ matrix font editor (in a ~def~ file)
 run a script
 
 "command: ex XXX -v
->>XXX = name of file to execute
->>-v = we execute the list of commands without checking if the previous one has finished (optional parameter)
+>XXX = name of file to execute
+>-v = we execute the list of commands without checking if the previous one has finished (optional parameter)
 :edt
 #EDT
 text editor
@@ -195,24 +211,21 @@ partitioning tools
 
 :ipconfig
 #IPCONFIG
- configure ethernet cards
+configure ethernet cards
 
-command: ipconfig
- displays information on the active ip driver
+"command: ipconfig
+displays information on the active ip driver
 
-##command: ipconfig X YYY ZZZZZ
->>configure parameter YYY with value ZZZZZ in card X
->>possible values ​​for YYY:
->>>amac = mac address
->>>ipv4 = ip v4 address
->>>mas4 = ip v4 subnet mask
->>>pas4 = ip gateway v4
->>>ip6p = private ip v6 address
->>>ip6g = global ip v6 address
-
-"command: ipconfig X comp ZZZZZZ
->>configure X card settings
->>with ZZZZZZ list of parameters separated by a space:
+"command: ipconfig X YYY ZZZZZ
+configure parameter YYY with value ZZZZZ in card X
+>possible values ​​for YYY:
+>>amac = mac address
+>>ipv4 = ip v4 address
+>>mas4 = ip v4 subnet mask
+>>pas4 = ip gateway v4
+>>ip6p = private ip v6 address
+>>ip6g = global ip v6 address
+>>comp = list of parameters separated by a space:
 >>>v4 ip address
 >>>subnet mask ip v4
 >>>ip gateway v4
@@ -223,8 +236,9 @@ command: ipconfig
 displays a help topic in the log
 
 "command: man XXX YYY
->>with XXX = keyword of the section
->>> YYY = name of the file where the information is contained (optional parameter)
+>with
+>>XXX = keyword of the section
+>>YYY = name of the file where the information is contained (optional parameter)
 
  by default, the database is the MANUAL.TXT file located in the ~system folder~
 
@@ -233,8 +247,9 @@ displays a help topic in the log
 http-server
 
 "command: shttp XXX YYYY
->>with: XXX = name of the site files folder that can be consulted
->>>YYYY = optional parameters
+>with:
+>>XXX = name of the site files folder that can be consulted
+>>YYYY = optional parameters
 
 optional parameters:
 -c:XXX network interface numbers to use
@@ -242,8 +257,9 @@ optional parameters:
 #STFTP: tftp server
 
 "command: stftp X YYY
->>with: XXX = name of the site files folder that can be downloaded
->>>YYYY = optional parameters
+>with:
+>>XXX = name of the site files folder that can be downloaded
+>>YYYY = optional parameters
 
 optional parameters:
 -c:XXX network interface numbers to use
@@ -253,7 +269,8 @@ optional parameters:
 #STLNT: telnet server
 
 "command: stlnt XXXX
->>with: XXXX = optional parameters
+>with:
+>>XXXX = optional parameters
 
 optional parameters:
 -c:XXX network interface numbers to use (0 by default)
@@ -270,14 +287,15 @@ we define the system folder with the command ~fds~
 ethernet frame interceptor
 
 ##command: snif X
-with: X = network interface numbers to use
+>with:
+>>X = network interface numbers to use
 :ping
 #PING
 link test by echo request with the ICMP protocol
 
 "command: ping XXX YYYY
->>with: XXX = address of the machine to be tested
->>>YYYY = optional parameters
+>with: XXX = address of the machine to be tested
+>>YYYY = optional parameters
 
 optional parameters:
 -c:XXX network interface numbers to use (0 by default)
@@ -287,9 +305,9 @@ optional parameters:
 allows you to determine the path taken by the packets transmitted to a machine on an IP network
 
 "command: trace XXX YYYY
->>with:
->>>XXX = target machine address
->>>YYYY = optional parameters
+>with:
+>>XXX = target machine address
+>>YYYY = optional parameters
 
 optional parameters:
 >-c:XXX network interface numbers to use (0 by default)
@@ -301,9 +319,9 @@ DNS resolver, allows to obtain the info of the machine according to the name
 do not search for name start persistent service
 
 "command: cdns XXX YYYY
->>with:
->>>XXX = machine name
->>>YYYY = optional parameters
+>with:
+>>XXX = machine name
+>>YYYY = optional parameters
 
 optional parameters:
 >-s:XXX selects a particular DNS server (internal list by default)
@@ -329,10 +347,10 @@ client for messaging system using the IRC protocol
 to communicate with the #devse channel on the server irc.libera.chat:6667 for example
 
 "command: circ XXX YY ZZZZ
->>with:
->>>XXX = server address
->>>YY = server port
->>>ZZZZ = optional parameters
+>with:
+>>XXX = server address
+>>YY = server port
+>>ZZZZ = optional parameters
 
 optional parameters:
 >-c:XXX network interface numbers to use
@@ -346,8 +364,8 @@ starts the driver for a 3Com or compatible card
 "command: I8254x XXX
 starts the driver for an Intel or compatible card
 
->>with:
->>>XXX = ~pci address~ of the card
+>with:
+>>XXX = ~pci address~ of the card
 
 driver configuration is done with ~IPCONFIG~
 :fasm
@@ -356,9 +374,9 @@ driver configuration is done with ~IPCONFIG~
  for more information, see ~http://flatassembler.net~
 
 "command: fasm XXX YYY
->>with:
->>>XXX = source file name
->>>YYY = name of the executable file to create
+>with:
+>>XXX = source file name
+>>YYY = name of the executable file to create
   ^
  /!\ under SEAC, the names of executable files must be in uppercase
  ---
@@ -375,9 +393,9 @@ driver configuration is done with ~IPCONFIG~
  allows to visualize the encodings of a Unicode character/glyph in utf8
 
 "command: utf8 XX YY
->>with:
->>>XX = character/glyph numbers
->>>YY = number of characters to display (optional parameter, 1 by default)
+>with:
+>>XX = character/glyph numbers
+>>YY = number of characters to display (optional parameter, 1 by default)
 :lspci
 #LSPCI
 allows you to view the peripherals connected to the PCI and AGP bus
@@ -395,9 +413,9 @@ the usb.ibs file is maintained by Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.c
 decompresses archives which are in PKzip Gzip and Tar format
 
 "command: dcp XXX YYYY
->>with:
->>>XXX = name of the archive to decompress
->>>YYYY = optional parameters
+>with:
+>>XXX = name of the archive to decompress
+>>YYYY = optional parameters
 
 optional parameters:
 >-e overwrites the destination file
@@ -407,10 +425,10 @@ optional parameters:
 send ICMP pings to a range of ip addresses to test their presence
 
 "command: scanip XXX YYY ZZZZ
->>with:
->>>XXX = address of the first machine in the range to be tested
->>>YYY = address of the last machine in the range to be tested
->>>ZZZZ = optional parameters
+>with:
+>>XXX = address of the first machine in the range to be tested
+>>YYY = address of the last machine in the range to be tested
+>>ZZZZ = optional parameters
 
 optional parameters:
 >-c:XXX network interface numbers to use
@@ -420,9 +438,9 @@ optional parameters:
 resource downloader with HTTP protocol
 
 "command: chttp XXX YYYY
->>with:
->>>XXX = resource address
->>>YYYY = optional parameters
+>with:
+>>XXX = resource address
+>>YYYY = optional parameters
 
 optional parameters:
 >-c:XXX network interface numbers to use
@@ -434,9 +452,9 @@ optional parameters:
 resource downloader with FTP protocol
 
 "command: cftp XXX YYYY
->>with:
->>>XXX = resource address
->>>YYYY = optional parameters
+>with:
+>>XXX = resource address
+>>YYYY = optional parameters
 
 ###optional parameters:
 >-c:XXX network interface numbers to use
@@ -450,16 +468,16 @@ resource downloader with FTP protocol
 file explorer
 
 "command: expl XXX
->>with:
->>>XXX = folder to open
+>with:
+>>XXX = folder to open
 
 :ics:gui:desktop
 #ICS
  Simplified command interface
 
 "command: ics XXX
->>with:
->>>XXX = optional parameters
+>with:
+>>XXX = optional parameters
 
 optional parameters:
 >-f:XXX image file that serves as background
@@ -472,9 +490,9 @@ optional parameters:
 
 
 "command: voir XXX YYY
->>with:
->>>XXX = image name
->>>YYY = optional parameters
+>with:
+>>XXX = image name
+>>YYY = optional parameters
 optional parameters:
 >-c:XXX screen background color
 >-t hides text information
@@ -488,9 +506,9 @@ displays the time and date of the machine's internal clock
 Displays info on a domain
 
 "command: whois XXX YYY
->>with:
->>>XXX = domain name
->>>YYY = optional parameters
+>with:
+>>XXX = domain name
+>>YYY = optional parameters
 
 optional parameters:
 
@@ -500,10 +518,10 @@ the program queries a server dedicated to certain top-level domains (.com .net.o
 #CTFTP: TFTP client
 
 "Command: ctftp XXXX YYYY ZZZZ
->>with
->>>XXXX = server address
->>>YYYY = operation to be performed
->>>ZZZZ = optional parameters
+>with
+>>XXXX = server address
+>>YYYY = operation to be performed
+>>ZZZZ = optional parameters
 
 operation to be performed:
 >-r:XXX read file XXX from server
@@ -521,10 +539,10 @@ starts a device driver
 
 "Command: driver XXX YYY
  
->>with
->>>XXX = type of driver to load only "pci" for the moment
+>with
+>>XXX = type of driver to load only "pci" for the moment
 
->>>YYY = address of the device to load, if this parameter is absent we start all the detected devices
+>>YYY = address of the device to load, if this parameter is absent we start all the detected devices
 
 :pci address:pci
 
@@ -534,12 +552,12 @@ a pci address has the following format:
 
 "XX:YY.Z
 
->>with
->>>XX = bus numbers
+>with
+>>XX = bus numbers
 
->>>YY = card numbers
+>>YY = card numbers
 
->>>Z  = function numbers
+>>Z  = function numbers
 
 :install
 #Steps to do a manual installation of Seac
