@@ -70,7 +70,7 @@ mov es,ax
 
 ;se déclare comme un nouveau service TLS
 mov al,10
-mov ah,7 ;7=service TLS?????????
+mov ah,9 ;service TLS
 int 61h
 
 
@@ -110,18 +110,21 @@ mov ax,[zt_decode+ebx]
 mov [id_tache_ethernet],ax
 
 
-
+;***************************************************************************************************************************
+;***************************************************************************************************************************
 boucle_principale:
 
 
 ;lit si une nouvelle connexion as été ouverte
-;???????????????????????????????????????????????????????????
-
+mov al,2
+int 65h
+cmp eax,cer_ddi
+jne echange_donnee
 
 
 
 ;lit la requete qui as été envoyé
-;mov al,
+mov al,4
 mov ecx,512
 xor esi,esi
 mov edi,zt_decode
@@ -152,6 +155,13 @@ abandon_cnx:
 
 ;?????????????????????????????????
 
+
+mov word[zt_decode],00FFh  ;on signale que la commande est inconnue
+mov al,5
+mov ecx,34h
+mov edi,0
+mov esi,info_adresse_carte
+int 65h
 
 
 jmp  echange_donnee
@@ -204,6 +214,124 @@ jne abandon_cnx
 
 cmp byte[zt_decode],88h
 jne abandon_cnx
+
+
+
+
+
+
+
+;préparation client helo
+mov edi,zt_decod
+;en tête TLS
+mov byte[edi+TTLS_type],16h ;handshake
+mov word[edi+TTLS_version],304; ;????versin 1.3
+
+;en tête handshake
+mov byte[edi+TTLSh_type],1  ;client hello
+mov word[edi+TTLSh_ch_version],303; ;version 1.2 pour des raison de compatibilité
+add edi,TTLSh_ch_random
+;????????????????????????générer 32 octets random
+add edi,32
+
+;session id
+mov byte[edi],0 ;pas de session ID
+inc edi
+
+;cypher suite
+mov word[edi],200h ;2 en MSB first 
+mov word[edi+2],3300h ;33h en MSB first: TLS_DHE_RSA_WITH_AES_128_CBC_SHA selon exemple, sinon voir plus bas
+add edi+4
+
+;compression methode
+mov byte[edi],1
+mov byte[edi+1],0 ;aucune compression
+add edi,2
+
+
+;les extentions************
+mov ebx,edi
+add edi,2
+
+;renegotiation_info
+mov word[edi],1FFh
+mov word[edi+2],100h
+mov byte[edi+4],0
+add edi,5
+
+;server name
+mov word[edi],0
+mov ecx,nom_serveur;??????????
+@@:
+cmp byte[ecx],0
+je @f
+inc ecx
+jmp @b
+@@:
+sub ecx,nom_serveur;???????????
+mov ax,cx
+xchg al,ah
+mov [edi+2],ax
+add edi,4
+mov esi,nom_serveur;????????
+cld
+rep movsb
+
+;algo de signature supporté ???????trouver doc pour comprendre les correspondance valeur/algo
+mov word[edi],0D00h
+mov word[edi+2],800h  ;4algo   supporté
+mov word[edi+4],104h
+mov word[edi+6],304h
+mov word[edi+8],106h
+mov word[edi+10],306h
+add edi,12
+
+
+;ec_point_format ?????????????trouver doc pour comprendre
+mov word[edi],0B00h
+mov word[edi+2],200h
+mov word[edi+2],200h
+add edi,6
+
+
+;courbe elliptique ?????????????trouver doc pour comprendre
+mov word[edi],0A00h
+mov word[edi+2],600h  
+mov word[edi+4],400h    ;elliptic curve length=4 (2 curves)
+mov word[edi+6],1700h   ;secp256r1 elliptic curve
+mov word[edi+8],1800h   ;secp384r1 elliptic curve
+add edi,10
+
+
+;bourrage pour faire une trame de handshake de 512 octet (sans compter l'en tête TLS)
+mov word[edi],1500h
+mov ecx,zt_decode+512+5
+sub ecx,edi
+mov word[edi+2],ch  
+mov word[edi+3],cl  
+add edi,4
+xor eax,eax
+cld
+rep stosb
+
+
+;enregistre les tailles
+mov ecx,edi
+sub ecx,zt_decod
+
+mov [zt_decod+TTLS_taille],ch ;taille trame tls
+mov [zt_decod+TTLS_taille+1],cl
+sub ecx,4;en tête handshake 
+
+mov byte[zt_decod+TTLSh_taille],0
+mov [zt_decod+TTLSh_taille+1],ch ;taille trame handshake
+mov [zt_decod+TTLSh_taille+2],cl
+
+mov ecx,edi
+sub ecx,ebx
+sub ecx,????????
+mov [ebx],ch   ;taille des extensions
+mov [ebx+1],cl   
 
 
 
