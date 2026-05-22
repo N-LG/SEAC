@@ -464,9 +464,9 @@ cmp dword[esi],"http"
 jne @f
 cmp byte[esi+4],0
 je ouvrir_http
-;cmp word[esi+4],"s"
-;je ouvrir_https
-;@@:
+cmp word[esi+4],"s"
+je ouvrir_https
+@@:
 
 ;cmp dword[esi],"ftp"
 ;je ouvrir_ftp
@@ -834,6 +834,27 @@ jmp detecte_type
 
 
 
+
+
+;****************************************************************************************
+ouvrir_https:
+
+;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
+mov cx,443
+mov al,100
+mov edx,zt_port
+cmp byte[edx],0
+je @f
+int 61h
+@@:
+mov [port_serveur],cx
+mov bx,[id_tache]
+jmp suite_cnx_http
+
+
+
+
+
 ;****************************************************************************************
 ouvrir_http:
 
@@ -846,12 +867,13 @@ je @f
 int 61h
 @@:
 mov [port_serveur],cx
+mov bx,[id_tache]
 
+suite_cnx_http:
 
 ;etablie une connexion
 inc word[port_local]
 mov al,0
-mov bx,[id_tache]
 mov ecx,64
 mov edx,1
 mov esi,20000h
@@ -861,13 +883,16 @@ cmp eax,0
 jne aff_err_net
 mov [adresse_canal],ebx
 
+;prépare la commande d'ouverture de port
+mov byte[commande_ethernet],8h
+;???????????????????????????????????????????????
 
+;envoie la commande d'ouverture de port
 mov al,5
 mov ebx,[adresse_canal]
 mov ecx,34h
 mov esi,commande_ethernet
 mov edi,0
-mov byte[esi],8h
 int 65h
 cmp eax,0
 jne aff_err_serv

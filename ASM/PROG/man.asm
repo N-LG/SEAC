@@ -98,7 +98,7 @@ jne aff_err_fichier
 ;agrandit la zone mémoire pour pouvoir contenir le fichier
 mov dx,sel_dat1
 mov ecx,[taille]
-add ecx,zt_recep+1
+add ecx,zt_recep+2
 mov al,8
 int 61h
 cmp eax,0
@@ -114,9 +114,14 @@ mov al,4
 int 64h
 cmp eax,0
 jne aff_err_fichier
-
-
 add dword[taille],zt_recep
+
+
+;verifie que le fichier a la bonne entête
+cmp dword[zt_recep],"SMLT"
+jne aff_err_format
+cmp word[zt_recep+4],"X;"
+jne aff_err_format
 
 
 ;transforme cr et lf en zéros et ~ _ @ en couleur
@@ -292,6 +297,8 @@ int 61h
 jmp afficheligne 
 @@:
 
+cmp byte[ebx],":"
+je fin
 cmp byte[ebx],22h  ;22h = "
 je coul_parag
 cmp word[ebx],"##"
@@ -321,8 +328,6 @@ inc ebx
 suite_affligne:
 mov al,6
 mov edx,ebx
-cmp byte[ebx],":"
-je fin
 int 61h
 mov al,6
 mov edx,msg_crlf
@@ -776,30 +781,40 @@ call message_console
 int 60h
 
 
+aff_err_format:
+mov edx,msg9
+call message_console
+int 60h
+
+
 ;*******************************************************
 sdata1:   ;données dans le segment de donnée N°1
 org 0
 
 msg1:
-db 13,"MAN: no entry in the manual about ",22h,0
-db 13,"MAN: aucune entrée dans le manuel concernant ",22h,0
+db 13,16h,"MAN: no entry in the manual about ",22h,0
+db 13,16h,"MAN: aucune entrée dans le manuel concernant ",22h,0
 msg2:
-db 22h,13,0
+db 22h,17h,13,0
 msg3:
-db 13,"MAN: missing keyword",13,"to display the list of available keywords, enter the command ",22h,"man *",22h,13,0
-db 13,"MAN: mot clef manquant",13,"pour afficher la liste des mots clefs disponibles, entrez la commande ",22h,"man *",22h,13,0
+db 13,16h,"MAN: missing keyword",13,"to display the list of available keywords, enter the command ",22h,"man *",22h,17h,13,0
+db 13,16h,"MAN: mot clef manquant",13,"pour afficher la liste des mots clefs disponibles, entrez la commande ",22h,"man *",22h,17h,13,0
 msg4:
-db 13,"MAN: error accessing manual file",13,0
-db 13,"MAN: erreur d'acces au fichier du manuel",13,0
+db 13,16h,"MAN: error accessing manual file",17h,13,0
+db 13,16h,"MAN: erreur d'acces au fichier du manuel",17h,13,0
 msg5:
-db 13,"MAN: content of section ",22h,0
-db 13,"MAN: contenu de la rubrique ",22h,0
+db 13,17h,"MAN: content of section ",22h,0
+db 13,17h,"MAN: contenu de la rubrique ",22h,0
 msg6:
-db 13,"MAN: list of available keywords:",13,13h,0
-db 13,"MAN: liste des mots clefs disponibles:",13,13h,0
+db 13,17h,"MAN: list of available keywords:",13,13h,0
+db 13,17h,"MAN: liste des mots clefs disponibles:",13,13h,0
 msg8:
-db 13,"MAN: memory reservation error",13,0
-db 13,"MAN: erreur de reservation mémoire",13,0
+db 13,16h,"MAN: memory reservation error",17h,13,0
+db 13,16h,"MAN: erreur de reservation mémoire",17h,13,0
+msg9:
+db 13,16h,"MAN: file format error",17h,13,0
+db 13,16h,"MAN: erreur de format du fichier",17h,13,0
+
 
 msg_crlf:
 db 13,17h,0

@@ -36,11 +36,25 @@ canal_temp equ 1
 canal_protocole equ 2
 canal_client equ 4
 canal_serveur equ 8
+canal_taille_recu equ 12
 
 canal_clef equ 64 ;?????????
 canal_iv equ 64 ;?????????
+canal_nom_serveur equ 256
 
-canal_taille equ 2048
+
+canal_client_hello equ 1024
+canal_serveur_hello equ 1024
+canal_certificate equ 1024
+canal_serveur_key_exchange equ 1024
+canal_certificate_request equ 1024
+canal_serveur_hello_done equ 1024
+canal_certificate_verify equ 1024
+canal_client_key_exchange equ 1024
+canal_zt_recetption equ 2048
+
+
+canal_taille equ canal_zt_recetption+10000h
 
 
 ;************************************
@@ -52,8 +66,8 @@ TTLS_taille equ 3
 TTLSh_type equ 5
 TTLSh_taille equ 6
 
-TTLSh_ch_version equ 8
-TTLSh_ch_random equ 10
+TTLSh_ch_version equ 9
+TTLSh_ch_random equ 11
 
 ;session id(1) + data
 ;cypher suite(2) + data
@@ -114,13 +128,11 @@ mov [id_tache_ethernet],ax
 ;***************************************************************************************************************************
 boucle_principale:
 
-
 ;lit si une nouvelle connexion as été ouverte
 mov al,2
 int 65h
 cmp eax,cer_ddi
 jne echange_donnee
-
 
 
 ;lit la requete qui as été envoyé
@@ -130,9 +142,11 @@ xor esi,esi
 mov edi,zt_decode
 int 65h
 cmp eax,0
-;jne ?????
+;jne ??????????????????????????????????????????????????????
 
-
+;vérifie que la reque est de type ouverture TCP
+cmp byte[zt_decode],4
+jne commande_inconnue
 
 ;cherche un canal disponible
 mov ecx,nb_canaux
@@ -151,24 +165,33 @@ int 61h
 
 ;rejete la demande de connexion
 abandon_cnx:
+mov byte[edx+canal_etat],0
 
-
-;?????????????????????????????????
-
-
+commande_inconnue:
 mov word[zt_decode],00FFh  ;on signale que la commande est inconnue
 mov al,5
 mov ecx,34h
 mov edi,0
-mov esi,info_adresse_carte
+mov esi,zt_decode
 int 65h
+jmp echange_donnee
 
-
-jmp  echange_donnee
 
 ;*******************
 canal_disponible:
+;enregistre les infos
+mov byte[edx+canal_etat],1
 mov [edx+canal_client],ebx
+mov byte[zt_decode+512]   ;copie le nom du serveur
+mov edi,edx
+mov esi,zt_decode+34h
+add edi,canal_nom_serveur
+cld
+@@:
+lodsb
+stosb
+cmp al,0
+jne @b
 
 
 ;etablire une connexion avec le serveur de destination
@@ -181,10 +204,9 @@ mov esi,20000h
 mov edi,20000h
 int 65h
 pop edx
-
+cmp eax,0
+;jne ????????????????????????????????????????????
 mov [edx+canal_serveur],ebx
-
-
 
 
 mov al,5
@@ -216,13 +238,8 @@ cmp byte[zt_decode],88h
 jne abandon_cnx
 
 
-
-
-
-
-
 ;préparation client helo
-mov edi,zt_decod
+mov edi,zt_decode
 ;en tête TLS
 mov byte[edi+TTLS_type],16h ;handshake
 mov word[edi+TTLS_version],304; ;????versin 1.3
@@ -232,6 +249,15 @@ mov byte[edi+TTLSh_type],1  ;client hello
 mov word[edi+TTLSh_ch_version],303; ;version 1.2 pour des raison de compatibilité
 add edi,TTLSh_ch_random
 ;????????????????????????générer 32 octets random
+mov dword[edi]   ,452e58B5h
+mov dword[edi+4] ,06fd7236h
+mov dword[edi+8] ,7c87ed34h
+mov dword[edi+12],92fcd744h
+mov dword[edi+16],89eaac78h
+mov dword[edi+20],be1147f8h
+mov dword[edi+24],7d7d9912h
+mov dword[edi+28],h
+;??????????????????????????génération manuelle pour l'instant
 add edi,32
 
 ;session id
@@ -241,7 +267,7 @@ inc edi
 ;cypher suite
 mov word[edi],200h ;2 en MSB first 
 mov word[edi+2],3300h ;33h en MSB first: TLS_DHE_RSA_WITH_AES_128_CBC_SHA selon exemple, sinon voir plus bas
-add edi+4
+add edi,4
 
 ;compression methode
 mov byte[edi],1
@@ -261,19 +287,22 @@ add edi,5
 
 ;server name
 mov word[edi],0
-mov ecx,nom_serveur;??????????
+mov ecx,edx
+add ecx,nom_serveur
 @@:
 cmp byte[ecx],0
 je @f
 inc ecx
 jmp @b
 @@:
-sub ecx,nom_serveur;???????????
+sub ecx,edx
+sub ecx,nom_serveur
 mov ax,cx
 xchg al,ah
 mov [edi+2],ax
 add edi,4
-mov esi,nom_serveur;????????
+mov esi,edx
+add esi,nom_serveur
 cld
 rep movsb
 
@@ -298,17 +327,17 @@ add edi,6
 mov word[edi],0A00h
 mov word[edi+2],600h  
 mov word[edi+4],400h    ;elliptic curve length=4 (2 curves)
-mov word[edi+6],1700h   ;secp256r1 elliptic curve
+mov word[edi+6],1700h   ;secp256r1 elliptic curve   (voir https://std.neuromancer.sk/secg/)
 mov word[edi+8],1800h   ;secp384r1 elliptic curve
 add edi,10
 
 
-;bourrage pour faire une trame de handshake de 512 octet (sans compter l'en tête TLS)
+;bourrage pour faire une trame de 512 octet (sans compter l'en tête TLS)
 mov word[edi],1500h
 mov ecx,zt_decode+512+5
 sub ecx,edi
-mov word[edi+2],ch  
-mov word[edi+3],cl  
+mov [edi+2],ch  
+mov [edi+3],cl  
 add edi,4
 xor eax,eax
 cld
@@ -317,28 +346,32 @@ rep stosb
 
 ;enregistre les tailles
 mov ecx,edi
-sub ecx,zt_decod
+sub ecx,zt_decode
+push ecx
 
-mov [zt_decod+TTLS_taille],ch ;taille trame tls
-mov [zt_decod+TTLS_taille+1],cl
+mov [zt_decode+TTLS_taille],ch ;taille trame tls
+mov [zt_decode+TTLS_taille+1],cl
 sub ecx,4;en tête handshake 
 
-mov byte[zt_decod+TTLSh_taille],0
-mov [zt_decod+TTLSh_taille+1],ch ;taille trame handshake
-mov [zt_decod+TTLSh_taille+2],cl
+mov byte[zt_decode+TTLSh_taille],0
+mov [zt_decode+TTLSh_taille+1],ch ;taille trame handshake
+mov [zt_decode+TTLSh_taille+2],cl
 
 mov ecx,edi
 sub ecx,ebx
-sub ecx,????????
+;sub ecx,????????
 mov [ebx],ch   ;taille des extensions
 mov [ebx+1],cl   
-
-
+pop ecx
 
 
 ;envoie client hello
-
-
+mov al,7
+mov esi,ztdecod
+mov ebx[edx+canal_serveur]
+int 65h
+cmp eax,0
+;jne ??????????????????????????
 
 
 
@@ -346,12 +379,36 @@ mov [ebx+1],cl
 ;*******************************************
 ;*******************************************
 echange_donnee:
-
 ;lit les donné reçu sur chaque canal coté serveur
 
+mov ecx,nb_canaux
+mov edx,canaux
+boucle_parcours_serveur:
+cmp byte[edx+canal_etat],0
+jne recept_donnee
+suite_parcours_serveur:
+add edx,canal_taille
+dec ecx
+jnz boucle_parcours_serveur
+jmp boucle_principale
+
+;*************************
+;*************************
+recept_donnee:
+push ecx
+push edx
+
+;lit sur canal
+mov al,6
+mov edi,zt_decode
+mov ecx,2048
+int 65h
+cmp eax,0
+jne erreur_canal
+cmp ecx,0
+je envoie_donnee
 
 
-;déchiffre les données
 
 
 
@@ -381,7 +438,26 @@ envoie_donnee:
 ;envoie les données au serveur
 
 
-jmp boucle_principale
+
+
+;*************
+pop edx
+pop ecx
+jmp suite_parcours_serveur
+
+
+
+
+erreur_canal:
+;on ferme les canaux exterieur
+
+
+;on rend le canal disponible
+
+;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+pop edx
+pop ecx
+jmp suite_parcours_serveur
 
 
 
