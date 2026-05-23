@@ -102,7 +102,44 @@ int 61h
 
 shl ebx,1
 mov ax,[zt_recep+ebx]
-mov [id_tache],ax
+mov [id_ethernet],ax
+
+
+;**************************************************************
+;determine l'id du service TLS
+mov byte[zt_recep],0
+
+mov al,5   
+mov ah,"c"   ;numéros de l'option de commande a lire
+mov cl,0 ;0=256 octet max
+mov edx,zt_recep
+int 61h
+xor ebx,ebx
+cmp eax,0
+jne @f
+
+mov al,100  
+mov edx,zt_recep
+int 61h
+mov ebx,ecx    ;ebx=numéros de l'interface
+
+@@:
+mov al,11
+mov ah,9     ;code service 
+mov cl,16
+mov edx,zt_recep
+int 61h
+
+shl ebx,1
+mov ax,[zt_recep+ebx]
+mov [id_tls],ax
+
+
+
+
+
+
+
 
 
 
@@ -508,7 +545,7 @@ mov [port_serveur],cx
 ;etablie une connexion
 inc word[port_local]
 mov al,0
-mov bx,[id_tache]
+mov bx,[id_ethernet]
 mov ecx,64
 mov edx,1
 mov esi,20000h
@@ -848,7 +885,7 @@ je @f
 int 61h
 @@:
 mov [port_serveur],cx
-mov bx,[id_tache]
+mov bx,[id_tls]
 jmp suite_cnx_http
 
 
@@ -867,14 +904,14 @@ je @f
 int 61h
 @@:
 mov [port_serveur],cx
-mov bx,[id_tache]
+mov bx,[id_ethernet]
 
 suite_cnx_http:
 
 ;etablie une connexion
 inc word[port_local]
 mov al,0
-mov ecx,64
+mov ecx,512
 mov edx,1
 mov esi,20000h
 mov edi,20000h
@@ -886,11 +923,17 @@ mov [adresse_canal],ebx
 ;prépare la commande d'ouverture de port
 mov byte[commande_ethernet],8h
 ;???????????????????????????????????????????????
+mov esi,zt_host
+mov edi,commande_ethernet+32 
+mov ecx,480
+cld
+rep movb
+
 
 ;envoie la commande d'ouverture de port
 mov al,5
 mov ebx,[adresse_canal]
-mov ecx,34h
+mov ecx,512
 mov esi,commande_ethernet
 mov edi,0
 int 65h
@@ -3393,16 +3436,21 @@ ip_serveur:
 dd 0
 cmd_ip6:
 dd 0,0,0,0
-index_recep:
-dd 0
+cmdtls_nom:
+rb 512-32
+
+
 
 
 
 mode:
 db 0
 
-id_tache:
+id_ethernet:
 dw 0
+id_tls:
+dw 0
+
 
 adresse_canal:
 dd 0
