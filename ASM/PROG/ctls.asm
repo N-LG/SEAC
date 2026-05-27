@@ -38,6 +38,8 @@ canal_protocole equ 2
 canal_client equ 4
 canal_serveur equ 8
 canal_taille_recu equ 12
+canal_offset_reception equ 16
+
 
 canal_clef equ 64 ;?????????
 canal_iv equ 64 ;?????????
@@ -52,10 +54,9 @@ canal_certificate_request equ 1024
 canal_serveur_hello_done equ 1024
 canal_certificate_verify equ 1024
 canal_client_key_exchange equ 1024
-canal_zt_recetption equ 2048
-
-
-canal_taille equ (canal_zt_recetption+10000h)
+canal_zt_reception equ 2048
+canal_taille_reception equ 10000h
+canal_taille equ (canal_zt_reception+canal_taille_reception)
 
 
 ;************************************
@@ -551,16 +552,237 @@ recept_donnee:
 push ecx
 push edx
 
-;lit sur canal
+
+;reçoit donnée sur le canal
+mov edi,edx
+add edi,canal_zt_reception
+add edi,[edx+canal_offset_reception]
+mov ecx,canal_taille_reception
+sub ecx,[edx+canal_offset_reception]
 mov al,6
 mov ebx,[edx+canal_serveur]
-mov ecx,2048
-mov edi,zt_decode
 int 65h
 cmp eax,0
 jne erreur_canal
-cmp ecx,0
+add [edx+canal_offset_reception],ecx
+
+cmp dword[edx+canal_offset_reception],0
 je envoie_donnee
+
+
+;vérifie qu'un paquet tls complet as été reçu
+xor ecx,ecx
+mov esi,edx
+add esi,canal_zt_reception
+mov ch,[esi+3]
+mov cl,[esi+4]
+add ecx,5
+cmp ecx,[edx+canal_offset_reception]
+ja envoie_donnee
+
+
+int 3h
+
+;copie la trame tls complete dans la zone de décodage
+mov eax,ecx
+mov edi,zt_decode
+cld
+rep movsb
+
+
+;décale les données dans la zone de reception
+mov ecx,[edx+canal_offset_reception]
+sub ecx,eax
+mov [edx+canal_offset_reception],ecx
+cmp ecx,0
+je @f
+mov edi,edx
+add edi,canal_zt_reception
+cld
+rep movsb
+@@:
+
+
+
+
+mov ecx,eax
+;décode la trame
+cmp byte[zt_decode + TTLS_type],15h
+je decode_alert
+cmp byte[zt_decode + TTLS_type],16h
+je decode_handshake
+;cmp byte[zt_decode + TTLS_type],17h
+;je decode_application_data
+;jmp envoie_donnee
+
+decode_alert:
+;?????????????
+mov esi,zt_decode
+call affiche
+;???????????????
+jmp envoie_donnee
+
+
+
+
+decode_handshake:
+;cmp byte[zt_decode + TTLSh_type],00h
+;je decode_hello_request
+;cmp byte[zt_decode + TTLSh_type],01h
+;je decode_client_hello
+cmp byte[zt_decode + TTLSh_type],02h
+je decode_server_hello
+cmp byte[zt_decode + TTLSh_type],0Bh
+je decode_certificate
+;cmp byte[zt_decode + TTLSh_type],0Ch
+;je decode_server_key_exchange
+;cmp byte[zt_decode + TTLSh_type],0Dh
+;je decode_certificate_request
+cmp byte[zt_decode + TTLSh_type],0Eh
+je decode_server_hello_done
+;cmp byte[zt_decode + TTLSh_type],0Fh
+;je decode_certificate_verify
+;cmp byte[zt_decode + TTLSh_type],10h
+;je decode_client_key_exchange
+;cmp byte[zt_decode + TTLSh_type],14h
+;je decode_finished
+
+;?????????????
+mov esi,zt_decode
+call affiche
+;???????????????
+jmp envoie_donnee
+
+
+
+
+
+decode_server_hello:
+mov edi,ecx         ;ne fait que l'afficher
+mov esi,zt_decode
+
+mov ecx,5
+call affiche
+
+mov ecx,6
+call affiche
+
+mov ecx,32
+call affiche
+
+xor ecx,ecx
+mov cl,[esi]
+inc ecx
+call affiche
+
+mov ecx,2
+call affiche
+
+mov ecx,1
+call affiche
+
+mov ecx,2
+call affiche
+
+@@:
+xor ecx,ecx
+mov ch,[esi+2]
+mov cl,[esi+3]
+add ecx,4
+call affiche
+
+cmp edi,0
+ja @b
+
+
+jmp envoie_donnee
+
+
+
+
+
+decode_certificate:
+;?????????????
+mov esi,zt_decode
+call affiche
+;???????????????
+
+jmp envoie_donnee
+
+
+
+
+
+
+decode_server_hello_done:
+
+;?????????????
+mov esi,zt_decode
+call affiche
+;???????????????
+
+jmp envoie_donnee
+
+
+
+
+
+
+
+
+
+;**************************************************************************
+affiche:
+;!!!!!!!!!!!!!!!!!!on affiche les donnée brutes
+pushad
+mov edi,ecx
+xor ebx,ebx
+grdgrgr:
+mov cl,[esi]
+mov al,105
+mov edx,zt_tempo
+int 61h
+mov word[zt_tempo+2]," "
+inc ebx
+cmp ebx,16
+jne @f
+xor ebx,ebx
+mov word[zt_tempo+2],13
+@@:
+mov al,6
+mov edx,zt_tempo
+int 61h
+inc esi
+dec edi
+jnz grdgrgr
+
+mov byte[zt_tempo],13
+mov byte[zt_tempo+1],"-"
+mov word[zt_tempo+2],13
+mov al,6
+mov edx,zt_tempo
+int 61h
+popad
+;!!!!!!!!!!!!!!!!!!on as fini d'afficher les données brutes
+add esi,ecx
+sub edi,ecx
+ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ;si on est en mode établissement de la connexion, enregistre les informations reçu
