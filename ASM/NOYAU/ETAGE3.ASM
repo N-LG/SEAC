@@ -5548,6 +5548,8 @@ jmp @b
 
 
 excontinue:  ;continue apres une exception
+mov al,17h
+call affcj
 mov al,13
 call affcj
 

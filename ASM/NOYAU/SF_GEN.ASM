@@ -1211,7 +1211,7 @@ mov ebx,[ad_copiercoller]
 cmp ebx,0
 jne pascreerzone_sfs_copier
 push ecx  ;si la zone de copier coller n'existe pas on la créer
-add ecx,15
+add ecx,1Fh
 and ecx,0FFFFFFF0h
 call resmem
 pop ecx
@@ -1233,7 +1233,7 @@ jae ok_sfs_copier
 call libmem    ;si la zone est trop petite on la supprime 
 ;jc erreur_sfs_copier   
 push ecx
-add ecx,19
+add ecx,1Fh
 and ecx,0FFFFFFF0h
 call resmem          ;et on en créer une autre
 pop ecx
@@ -1250,7 +1250,7 @@ es
 mov [ebx+16],ecx    ;on enregistre la taille exacte des données
 mov esi,edx
 mov edi,ebx
-add edi,10h
+add edi,20
 cld              ;et on copie les données
 rep movsb
 pop fs
@@ -1310,7 +1310,7 @@ ja erreur_sfs_coller
 
 mov ecx,[ebx+16]
 mov esi,ebx
-add esi,10h
+add esi,20
 mov edi,edx
 cld              ;et on copie les données
 rep movsb
