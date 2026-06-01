@@ -925,9 +925,9 @@ mov byte[commande_ethernet],8h
 ;???????????????????????????????????????????????
 mov esi,zt_host
 mov edi,commande_ethernet+32 
-mov ecx,480
+mov ecx,512-32
 cld
-rep movb
+rep movsb
 
 
 ;envoie la commande d'ouverture de port
@@ -2919,7 +2919,7 @@ jne fin_ligne_trouve
 @@:
 inc ebx
 cmp ebx,ebp
-jb atteint_ligne_suivante
+jbe atteint_ligne_suivante
 ret
 
 fin_ligne_trouve:
@@ -3141,6 +3141,11 @@ ret
 
 ;*************************************************
 lirecarac:
+xor eax,eax
+cmp esi,ebp
+jb @f
+ret
+@@:
 push ecx
 mov al,[esi]
 test al,080h
@@ -3528,7 +3533,7 @@ db "F12",13,13
 db "pour enregistrer la page courante en raccourcis faites CTRL+touche dans la page de navigation",0
 
 fichier_parametres:
-db "NG.DAT",0
+db "NSN.DAT",0
 
 parametres:
 coul_base:

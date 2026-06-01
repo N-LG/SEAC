@@ -2457,6 +2457,7 @@ mov eax,16
 mov edx,esi
 int 61h
 
+
 add [seleccurseur],ecx  ;déplace le curseur
 mov byte[data_modif],1 
 call replace_cur
@@ -2965,7 +2966,6 @@ int 61h
 
 cmp dword[taille_zone],0
 je fin_verif_zt2
-
 mov ecx,8
 @@:
 mov eax,ebx
