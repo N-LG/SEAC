@@ -39,25 +39,24 @@ canal_client equ 4
 canal_serveur equ 8
 canal_taille_recu equ 12
 canal_offset_reception equ 16
+canal_offset_handshake equ 20
 
 
-canal_clef equ 64 ;?????????
-canal_iv equ 64 ;?????????
 canal_nom_serveur equ 256
 
 
-canal_client_hello equ 1024
-canal_serveur_hello equ 1024
-canal_certificate equ 1024
-canal_serveur_key_exchange equ 1024
-canal_certificate_request equ 1024
-canal_serveur_hello_done equ 1024
-canal_certificate_verify equ 1024
-canal_client_key_exchange equ 1024
-canal_zt_reception equ 2048
-canal_taille_reception equ 10000h
-canal_taille equ (canal_zt_reception+canal_taille_reception)
+canal_random_client equ 512
+canal_clef_prive equ 1024
+canal_clef_publique equ 2048
 
+
+canal_zt_reception equ 4096
+canal_taille_reception equ 10000h
+
+canal_handshake equ (canal_zt_reception+canal_taille_reception)
+canal_taille_handshake equ 10000h
+
+canal_taille equ (canal_handshake+canal_taille_handshake)
 
 ;************************************
 ;trames TLS handshake
@@ -243,6 +242,51 @@ cmp byte[zt_decode],88h
 jne abandon_cnx
 
 
+
+
+;génère une zone pseudo aléatoire a partir des conteurs temps
+pushad
+mov al,9
+int 61h
+mov [zt_pr],bx
+mov [zt_pr+2],si
+mov [zt_pr+4],cx
+mov [zt_pr+6],dx
+mov al,12
+int 61h
+mov [zt_pr+8],eax
+mov [zt_pr+12],edx
+popad
+
+
+;calcule clef privé a partir d'un hach de la mémoire
+mov ecx,edx
+shr ecx,1
+xor esi,esi
+mov edi,edx
+add edi,canal_clef_prive
+call calc_SHA256
+
+
+
+;calcul clef publique
+;??????????????????????????????
+
+
+
+;calcul valeur  "random" du client hello
+mov ecx,edx
+shr ecx,1
+mov esi,ecx
+mov edi,edx
+add edi,canal_random_client
+call calc_SHA256
+
+
+
+
+
+
 ;préparation client helo
 mov edi,zt_decode
 ;en tête TLS
@@ -253,17 +297,14 @@ mov word[edi+TTLS_version],103h;
 mov byte[edi+TTLSh_type],1  ;client hello
 mov word[edi+TTLSh_ch_version],303h; ;version 1.2 pour des raison de compatibilité
 add edi,TTLSh_ch_random
-;????????????????????????générer 32 octets random
-mov dword[edi]   ,452e58B5h
-mov dword[edi+4] ,06fd7236h
-mov dword[edi+8] ,7c87ed34h
-mov dword[edi+12],92fcd744h
-mov dword[edi+16],89eaac78h
-mov dword[edi+20],4e1147f8h
-mov dword[edi+24],7d7d9912h
-mov dword[edi+28],44BEE7a5h
-;??????????????????????????génération manuelle pour l'instant
-add edi,32
+
+;copie le random
+mov esi,edx
+add esi,canal_random_client
+mov ecx,8
+cld
+rep movsd
+
 
 ;session id
 mov byte[edi],0 ;pas de session ID
@@ -513,11 +554,8 @@ popad
 
 
 
-
-
-
-
-
+;sauvegarde client hello
+call sauvegarde_handshake
 
 
 ;envoie client hello
@@ -913,6 +951,25 @@ pop eax
 ret
 
 
+
+;********************
+sauvegarde_handshake: ; voir si il faut prendre en compte la totalité de la trame ou juste l'en tête
+pushad
+mov edi,edx
+add edi,canal_handshake
+add edi,[edx+canal_offset_handshake]
+add [edx+canal_offset_handshake],ecx
+cld
+rep movsb
+popad
+ret
+
+
+
+
+
+
+
 mge_taille equ 1024
 include "mge_code.inc"
 include "crypto_code.inc"
@@ -935,6 +992,10 @@ dw 0
 msg_plus_canaux:
 db "CTLS: no more TLS available",13,0
 db "CTLS: plus de canaux de connexion TLS disponible",13,0
+
+
+zt_pr:
+rb 16
 
 zt_tempo:
 rb 512
