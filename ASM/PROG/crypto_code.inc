@@ -1086,7 +1086,37 @@ ret
 ;******************************************************************************************************************
 ;inspiration: https://sha256algorithm.com/
 
+;************************
+calc_SHA224:
+push dword 224
+push edi
+
+;calcul le nombre de bloc de 64 octet
+mov [taille_SHA],ecx
+mov ebp,ecx
+add ebp,9+63
+shr ebp,6
+inc ecx  ;pour inclure l'octet a 80h
+
+;initialise le hachage initiale
+mov dword[hachage+00],0c1059ed8h
+mov dword[hachage+04],0367cd507h
+mov dword[hachage+08],03070dd17h
+mov dword[hachage+12],0f70e5939h
+mov dword[hachage+16],0ffc00b31h
+mov dword[hachage+20],068581511h
+mov dword[hachage+24],064f98fa7h
+mov dword[hachage+28],0befa4fa4h
+jmp bouclE_sha2
+
+
+
+
+
+
+;************************
 calc_SHA256:
+push dword 256
 push edi
 
 ;calcul le nombre de bloc de 64 octet
@@ -1105,11 +1135,15 @@ mov dword[hachage+16],0510e527fh
 mov dword[hachage+20],09b05688ch
 mov dword[hachage+24],01f83d9abh
 mov dword[hachage+28],05be0cd19h
+;jmp bouclE_sha2
 
 
-boucle_sha256:
 
-mov edi,variables_sha256
+
+;*******
+bouclE_sha2:
+
+mov edi,variables_sha2
 cmp ecx,0
 je @f
 cmp ecx,64
@@ -1124,7 +1158,7 @@ stosb
 pop ecx
 
 @@:
-cmp edi,variables_sha256+64
+cmp edi,variables_sha2+64
 je @f
 mov byte[edi],0
 inc edi
@@ -1140,7 +1174,7 @@ jae sha256_fincopiebloc
 mov eax,[taille_SHA]
 shl eax,3
 bswap eax
-mov  [variables_sha256+60],eax
+mov  [variables_sha2+60],eax
 jmp sha256_fincopiebloc
 
 
@@ -1160,20 +1194,20 @@ sha256_fincopiebloc:
 
 pushad
 ;mise du bloc en doublemot de 32bits little endian
-mov esi,variables_sha256
+mov esi,variables_sha2
 @@:
 mov eax,[esi]
 bswap eax
 mov [esi],eax
 add esi,4
-cmp esi,variables_sha256+64
+cmp esi,variables_sha2+64
 jne @b
 
 
 
 ;boucle calcul de w16 à w63 ****************************************
-mov esi,variables_sha256
-boucle_calc_ws:
+mov esi,variables_sha2
+boucle_calc_ws256:
 
 mov eax,[esi]   ;w+0 (16)
 mov [esi+64],eax ;w+16 (0)
@@ -1202,14 +1236,14 @@ xor edx,eax
 add [esi+64],edx ;w+16 (0)
 
 add esi,4
-cmp esi,variables_sha256+192
-jne boucle_calc_ws
+cmp esi,variables_sha2+192
+jne boucle_calc_ws256
 
 
 
-;chargement valeurs initiales A-H
+;chargement valeurs initiales A-H******************************
 mov esi,hachage
-mov edi,A_sha256
+mov edi,A_sha2
 mov ecx,8
 cld
 rep movsd
@@ -1218,119 +1252,121 @@ rep movsd
 
 ;boucle calcul A-H progressif ******************************************
 xor esi,esi
-boucle_calc_wk:
+boucle_calc_wk256:
 
 ;temp1
-mov eax,[H_sha256]
-mov [temp1_sha256],eax 
+mov eax,[H_sha2]
+mov [temp1_sha2],eax 
 
-mov edx,[E_sha256]
+mov edx,[E_sha2]
 ror edx,6
-mov eax,[E_sha256]
+mov eax,[E_sha2]
 ror eax,11
 xor edx,eax
-mov eax,[E_sha256]
+mov eax,[E_sha2]
 ror eax,25
 xor edx,eax
-add [temp1_sha256],edx 
+add [temp1_sha2],edx 
 
-mov eax,[E_sha256]
+mov eax,[E_sha2]
 not eax
-and eax,[G_sha256]
-mov edx,[E_sha256]
-and edx,[F_sha256]
+and eax,[G_sha2]
+mov edx,[E_sha2]
+and edx,[F_sha2]
 xor eax,edx
-add [temp1_sha256],eax 
+add [temp1_sha2],eax 
 
 mov edx,[esi+constantes_sha256]
-add [temp1_sha256],edx 
+add [temp1_sha2],edx 
 
-mov eax,[esi+variables_sha256]
-add [temp1_sha256],eax 
+mov eax,[esi+variables_sha2]
+add [temp1_sha2],eax 
 
 ;temp2
-mov eax,[A_sha256]
-and eax,[B_sha256]
-mov edx,[A_sha256]
-and edx,[C_sha256]
+mov eax,[A_sha2]
+and eax,[B_sha2]
+mov edx,[A_sha2]
+and edx,[C_sha2]
 xor eax,edx
-mov edx,[B_sha256]
-and edx,[C_sha256]
+mov edx,[B_sha2]
+and edx,[C_sha2]
 xor eax,edx
-mov [temp2_sha256],eax 
+mov [temp2_sha2],eax 
 
-mov edx,[A_sha256]
+mov edx,[A_sha2]
 ror edx,2
-mov eax,[A_sha256]
+mov eax,[A_sha2]
 ror eax,13
 xor edx,eax
-mov eax,[A_sha256]
+mov eax,[A_sha2]
 ror eax,22
 xor edx,eax
-add [temp2_sha256],edx 
+add [temp2_sha2],edx 
 
 ;H
-mov eax,[G_sha256] 
-mov [H_sha256],eax
+mov eax,[G_sha2] 
+mov [H_sha2],eax
 
 ;G
-mov eax,[F_sha256]
-mov [G_sha256],eax
+mov eax,[F_sha2]
+mov [G_sha2],eax
 
 ;F
-mov eax,[E_sha256]
-mov [F_sha256],eax
+mov eax,[E_sha2]
+mov [F_sha2],eax
 
 ;E
-mov eax,[D_sha256]
-add eax,[temp1_sha256]
-mov [E_sha256],eax
+mov eax,[D_sha2]
+add eax,[temp1_sha2]
+mov [E_sha2],eax
 
 ;D
-mov eax,[C_sha256]
-mov [D_sha256],eax
+mov eax,[C_sha2]
+mov [D_sha2],eax
 
 ;C
-mov eax,[B_sha256]
-mov [C_sha256],eax
+mov eax,[B_sha2]
+mov [C_sha2],eax
 
 ;B
-mov eax,[A_sha256]
-mov [B_sha256],eax
+mov eax,[A_sha2]
+mov [B_sha2],eax
 
 ;A
-mov eax,[temp1_sha256]
-add eax,[temp2_sha256]
-mov [A_sha256],eax
+mov eax,[temp1_sha2]
+add eax,[temp2_sha2]
+mov [A_sha2],eax
 
 add esi,4
 cmp esi,256
-jne boucle_calc_wk
+jne boucle_calc_wk256
 
 
-mov eax,[A_sha256]
+mov eax,[A_sha2]
 add [hachage],eax
-mov eax,[B_sha256]
+mov eax,[B_sha2]
 add [hachage+4],eax
-mov eax,[C_sha256]
+mov eax,[C_sha2]
 add [hachage+8],eax
-mov eax,[D_sha256]
+mov eax,[D_sha2]
 add [hachage+12],eax
-mov eax,[E_sha256]
+mov eax,[E_sha2]
 add [hachage+16],eax
-mov eax,[F_sha256]
+mov eax,[F_sha2]
 add [hachage+20],eax
-mov eax,[G_sha256]
+mov eax,[G_sha2]
 add [hachage+24],eax
-mov eax,[H_sha256]
+mov eax,[H_sha2]
 add [hachage+28],eax
 
 popad
 dec ebp
-jnz boucle_sha256
+jnz bouclE_sha2
 
-;copie de la chaine de hachage calculé
+
+;copie de la chaine de hachage calculé***********************
 pop edi
+pop ecx
 mov eax,[hachage]
 bswap eax
 mov [edi],eax
@@ -1352,10 +1388,152 @@ mov [edi+20],eax
 mov eax,[hachage+24]
 bswap eax
 mov [edi+24],eax
+cmp ecx,256
+jne @f
 mov eax,[hachage+28]
 bswap eax
 mov [edi+28],eax
-
+@@:
 xor eax,eax
 ret
+
+
+
+
+;************************
+calc_SHA384:
+push dword 384
+push edi
+
+;calcul le nombre de bloc de 64 octet
+mov [taille_SHA],ecx
+mov ebp,ecx
+add ebp,9+63
+shr ebp,6
+inc ecx  ;pour inclure l'octet a 80h
+
+;initialise le hachage initiale
+mov dword[hachage+00],0c1059ed8h
+mov dword[hachage+04],0cbbb9d5dh
+mov dword[hachage+08],0367cd507h
+mov dword[hachage+12],0629a292ah
+mov dword[hachage+16],03070dd17h
+mov dword[hachage+20],09159015ah
+mov dword[hachage+24],0f70e5939h
+mov dword[hachage+28],0152fecd8h
+mov dword[hachage+32],0ffc00b31h
+mov dword[hachage+36],067332667h
+mov dword[hachage+40],068581511h
+mov dword[hachage+44],08eb44a87h
+mov dword[hachage+48],064f98fa7h
+mov dword[hachage+52],0db0c2e0dh
+mov dword[hachage+56],0befa4fa4h
+mov dword[hachage+60],047b5481dh
+jmp boucle_sha512
+
+
+
+
+
+;************************
+calc_SHA512:
+push dword 512
+push edi
+
+;calcul le nombre de bloc de 64 octet
+mov [taille_SHA],ecx
+mov ebp,ecx
+add ebp,9+63
+shr ebp,6
+inc ecx  ;pour inclure l'octet a 80h
+
+;initialise le hachage initiale
+mov dword[hachage+00],0f3bcc908h
+mov dword[hachage+04],06a09e667h
+mov dword[hachage+08],084caa73bh
+mov dword[hachage+12],0bb67ae85h
+mov dword[hachage+16],0fe94f82bh
+mov dword[hachage+20],03c6ef372h
+mov dword[hachage+24],05f1d36f1h
+mov dword[hachage+28],0a54ff53ah
+mov dword[hachage+32],0ade682d1h
+mov dword[hachage+36],0510e527fh
+mov dword[hachage+40],02b3e6c1fh
+mov dword[hachage+44],09b05688ch
+mov dword[hachage+48],0fb41bd6bh
+mov dword[hachage+52],01f83d9abh
+mov dword[hachage+56],0137e2179h
+mov dword[hachage+60],05be0cd19h
+;jmp boucle_sha512
+
+;https://github.com/RealFoxerity/tls13/blob/master/crypto/sha2_consts.c
+
+
+;*******
+boucle_sha512:
+
+mov edi,variables_sha2
+cmp ecx,0
+je @f
+cmp ecx,128
+ja sha512_copiebloc
+
+dec ecx
+push ecx
+cld
+rep movsb
+mov al,080h
+stosb
+pop ecx
+
+@@:
+cmp edi,variables_sha2+128
+je @f
+mov byte[edi],0
+inc edi
+jmp @b
+
+
+@@:
+mov eax,ecx
+xor ecx,ecx
+cmp eax,56  ;?????????????????????
+jae sha512_fincopiebloc
+
+mov eax,[taille_SHA]
+shl eax,3
+bswap eax
+mov  [variables_sha2+60],eax ;????????????
+jmp sha512_fincopiebloc
+
+
+
+;si il reste + de 64 octets: copie 128 octet et decremente ecx
+sha512_copiebloc:
+push ecx
+mov ecx,32
+cld
+rep movsd
+pop ecx
+sub ecx,128
+sha512_fincopiebloc:
+
+
+
+
+pushad
+;mise du bloc en doublemot de 64bits little endian???????
+mov esi,variables_sha2
+@@:
+mov eax,[esi]
+mov edx,[esi+4]
+bswap eax
+bswap edx
+mov [esi+4],eax
+mov [esi],edx
+add esi,8
+cmp esi,variables_sha2+64
+jne @b
+
+
 

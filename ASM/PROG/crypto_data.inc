@@ -65,44 +65,34 @@ rb 256          ;160 192 224 octet
 ;***************************************************************************************************************
 taille_SHA:
 dd 0
-A_sha256:
-dd 0
-B_sha256:
-dd 0
-C_sha256:
-dd 0
-D_sha256:
-dd 0
-E_sha256:
-dd 0
-F_sha256:
-dd 0
-G_sha256:
-dd 0
-H_sha256:
-dd 0
-temp1_sha256:
-dd 0
-temp2_sha256:
-dd 0
+A_sha2:
+dd 0,0
+B_sha2:
+dd 0,0
+C_sha2:
+dd 0,0
+D_sha2:
+dd 0,0
+E_sha2:
+dd 0,0
+F_sha2:
+dd 0,0
+G_sha2:
+dd 0,0
+H_sha2:
+dd 0,0
+temp1_sha2:
+dd 0,0
+temp2_sha2:
+dd 0,0
 hachage:
-rb 32
+rb 64
 
 
 
 
 
 
-init_sha1:
-dd 067452301h,0efcdab89h,098badcfeh,010325476h,0c3d2e1f0h
-
-init_sha224:
-dd 0c1059ed8h,0367cd507h,03070dd17h,0f70e5939h
-dd 0ffc00b31h,068581511h,064f98fa7h,0befa4fa4h
-
-init_sha256:
-dd 06a09e667h,0bb67ae85h,03c6ef372h,0a54ff53ah
-dd 0510e527fh,09b05688ch,01f83d9abh,05be0cd19h
 
 constantes_sha256:
 dd 0428a2f98h,071374491h,0b5c0fbcfh,0e9b5dba5h
@@ -122,8 +112,34 @@ dd 0391c0cb3h,04ed8aa4ah,05b9cca4fh,0682e6ff3h
 dd 0748f82eeh,078a5636fh,084c87814h,08cc70208h
 dd 090befffah,0a4506cebh,0bef9a3f7h,0c67178f2h
 
-variables_sha256:
-rb 256
+;les nombre 64 bit sont séparé en 2 nombres 32bits avec le MSB en premier (parce que c'est moin chiant a recopier)
+constantes_sha512:
+dd 0428a2f98h,0d728ae22h,071374491h,023ef65cdh,0b5c0fbcfh,0ec4d3b2fh,0e9b5dba5h,08189dbbch
+dd 03956c25bh,0f348b538h,059f111f1h,0b605d019h,0923f82a4h,0af194f9bh,0ab1c5ed5h,0da6d8118h
+dd 0d807aa98h,0a3030242h,012835b01h,045706fbeh,0243185beh,04ee4b28ch,0550c7dc3h,0d5ffb4e2h
+dd 072be5d74h,0f27b896fh,080deb1feh,03b1696b1h,09bdc06a7h,025c71235h,0c19bf174h,0cf692694h
+dd 0e49b69c1h,09ef14ad2h,0efbe4786h,0384f25e3h,00fc19dc6h,08b8cd5b5h,0240ca1cch,077ac9c65h
+dd 02de92c6fh,0592b0275h,04a7484aah,06ea6e483h,05cb0a9dch,0bd41fbd4h,076f988dah,0831153b5h
+dd 0983e5152h,0ee66dfabh,0a831c66dh,02db43210h,0b00327c8h,098fb213fh,0bf597fc7h,0beef0ee4h
+dd 0c6e00bf3h,03da88fc2h,0d5a79147h,0930aa725h,006ca6351h,0e003826fh,014292967h,00a0e6e70h
+dd 027b70a85h,046d22ffch,02e1b2138h,05c26c926h,04d2c6dfch,05ac42aedh,053380d13h,09d95b3dfh
+dd 0650a7354h,08baf63deh,0766a0abbh,03c77b2a8h,081c2c92eh,047edaee6h,092722c85h,01482353bh
+dd 0a2bfe8a1h,04cf10364h,0a81a664bh,0bc423001h,0c24b8b70h,0d0f89791h,0c76c51a3h,00654be30h
+dd 0d192e819h,0d6ef5218h,0d6990624h,05565a910h,0f40e3585h,05771202ah,0106aa070h,032bbd1b8h
+dd 019a4c116h,0b8d2d0c8h,01e376c08h,05141ab53h,02748774ch,0df8eeb99h,034b0bcb5h,0e19b48a8h
+dd 0391c0cb3h,0c5c95a63h,04ed8aa4ah,0e3418acbh,05b9cca4fh,07763e373h,0682e6ff3h,0d6b2b8a3h
+dd 0748f82eeh,05defb2fch,078a5636fh,043172f60h,084c87814h,0a1f0ab72h,08cc70208h,01a6439ech
+dd 090befffah,023631e28h,0a4506cebh,0de82bde9h,0bef9a3f7h,0b2c67915h,0c67178f2h,0e372532bh
+dd 0ca273eceh,0ea26619ch,0d186b8c7h,021c0c207h,0eada7dd6h,0cde0eb1eh,0f57d4f7fh,0ee6ed178h
+dd 006f067aah,072176fbah,00a637dc5h,0a2c898a6h,0113f9804h,0bef90daeh,01b710b35h,0131c471bh
+dd 028db77f5h,023047d84h,032caab7bh,040c72493h,03c9ebe0ah,015c9bebch,0431d67c4h,09c100d4ch
+dd 04cc5d4beh,0cb3e42b6h,0597f299ch,0fc657e2ah,05fcb6fabh,03ad6faech,06c44198ch,04a475817h
+
+
+
+
+variables_sha2:
+rb 512
 
 
 
