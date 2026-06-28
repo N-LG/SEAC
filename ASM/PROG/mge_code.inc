@@ -13,7 +13,7 @@ mge_:
 ;mge_decalp:    ;edx=edx*2
 ;mge_hexa:  affiche edx en hexadécimal
 ;mge_deci:  affiche edx en décimal
-
+;mge_exp_mod: ;edi=edi^esi modulo ecx
 
 
 
@@ -359,3 +359,75 @@ jmp @b
 
 popad
 ret
+
+
+;*******************************************************
+mge_exp_mod: ;edi=edi^esi modulo ecx
+pushad
+mov ebp,edi
+
+mov edi,mge_temp3 ;exposant
+call mge_copie
+
+mov esi,ebp
+mov edi,mge_temp4 ;retenue
+call mge_copie
+
+
+mov edi,ebp    ;resultat
+call mge_efface
+mov byte[edi],1
+
+
+boucle_mge_exp_mod:
+
+;si le lsb de l'exposant est a 1
+test byte[mge_temp3],1
+jz @f
+
+;alors on multiplie la retenue avec le résultat
+mov esi,mge_temp4
+mov edi,ebp
+call mge_multiplie
+
+;et on applique le modulot dans le résultat
+mov esi,ecx
+mov edi,mge_temp5
+call mge_copie
+mov esi,ebp
+mov edi,mge_temp5
+call mge_divise
+
+@@:
+
+;décale l'exposant
+mov edx,mge_temp3
+call mge_decalm
+
+;test si l'exposant est a zéro
+mov edi,mge_temp5
+call mge_efface
+mov esi,mge_temp3
+mov edi,mge_temp5
+call mge_compare
+je @f
+
+;élève la retenue au carré
+mov esi,mge_temp4
+mov edi,mge_temp4
+call mge_multiplie
+
+;applique le modulo sur la retenue
+mov esi,ecx
+mov edi,mge_temp5
+call mge_copie
+mov esi,mge_temp4
+mov edi,mge_temp5
+call mge_divise
+jmp boucle_mge_exp_mod
+
+@@:
+
+popad
+ret
+

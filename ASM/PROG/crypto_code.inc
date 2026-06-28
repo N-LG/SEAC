@@ -292,6 +292,90 @@ ret
 
 
 
+;***********************************************
+;fonctions initialisation bloc compteur a partir du nonce créer pour les mode CTR, CCM, et GCM
+;ebp = taille du nonce
+;ebx = adresse du nonce
+
+err_init_iv:
+mov eax,cer_parami
+ret
+
+
+
+;**********
+init_iv_ctr:     ;appendice B de la documentation nist
+cmp ebp,0    ;taille minimal du nonce
+je err_init_iv
+cmp ebp,16    ;taille maximal du nonce
+ja err_init_iv
+pushad
+mov ecx,ebp
+mov esi,ebx
+mov edi,init_vec
+cld
+rep movsb
+xor eax,eax
+@@:
+cmp edi,init_vec+16
+jne @f
+stosb
+jmp @b
+@@:
+popad
+xor eax,eax
+ret
+
+
+;***********
+init_iv_ccm:
+cmp ebp,7     ;taille minimal du nonce (appendice A de la doc du nist concernant le CCM)
+jb err_init_iv
+cmp ebp,13    ;taille maximal du nonce
+ja err_init_iv
+pushad
+mov al,14
+mov ecx,ebp
+mov esi,ebx
+sub al,cl     
+mov edi,init_vec+1
+mov [init_vec],al   ;taille du compteur-1
+cld
+rep movsb
+xor eax,eax
+@@:
+cmp edi,init_vec+15
+jne @f
+stosb
+jmp @b
+@@:
+popad
+xor eax,eax
+ret
+
+
+;*************???????????????????????????????
+init_iv_gcm:
+pushad
+mov ecx,ebp
+mov esi,ebx
+mov edi,init_vec+1
+mov [init_vec],cl;???????????????
+cld
+rep movsb
+xor eax,eax
+@@:
+cmp edi,init_vec+16
+jne @f
+stosb
+jmp @b
+@@:
+popad
+xor eax,eax
+ret
+
+
+
 
 
 
@@ -303,16 +387,7 @@ call AESkeygen
 cmp eax,0
 jne err_encAES
 
-;enregistre le vecteur d'initialisation
-mov eax,[ebx]
-mov edx,[ebx+4]
-mov [init_vec],eax
-mov [init_vec+4],eax
-mov eax,[ebx+8]
-mov edx,[ebx+12]
-mov [init_vec+8],eax
-mov [init_vec+12],eax
-
+;init_vec as été initialisé avant d'appeler la fonction!
 
 @@:
 ;genere la clef a partir du compteur
@@ -341,28 +416,16 @@ mov [edi+12],edx
 
 
 ;incrémente le compteur
-mov eax,[init_vec+12]
-mov edx,[init_vec+8]
-bswap eax
-bswap edx
-inc eax
-adc edx,0
-bswap eax
-bswap edx
-mov [init_vec+12],eax
-mov [init_vec+8],edx
-
-mov eax,[init_vec+4]
-mov edx,[init_vec]
-bswap eax
-bswap edx
-adc eax,0
-adc edx,0
-bswap eax
-bswap edx
-mov [init_vec+4],eax
-mov [init_vec],edx
-
+mov ebx,15
+inc byte[ebx]
+dec ebx
+@@:
+adc byte[ebx+init_vec],0
+jnc @f
+dec ebx
+jnz @b
+adc byte[ebx+init_vec],0
+@@:
 
 add esi,16
 add edi,16
@@ -1096,7 +1159,7 @@ mov [taille_SHA],ecx
 mov ebp,ecx
 add ebp,9+63
 shr ebp,6
-inc ecx  ;pour inclure l'octet a 80h
+
 
 ;initialise le hachage initiale
 mov dword[hachage+00],0c1059ed8h
@@ -1107,7 +1170,7 @@ mov dword[hachage+16],0ffc00b31h
 mov dword[hachage+20],068581511h
 mov dword[hachage+24],064f98fa7h
 mov dword[hachage+28],0befa4fa4h
-jmp bouclE_sha2
+jmp boucle_sha256
 
 
 
@@ -1124,7 +1187,7 @@ mov [taille_SHA],ecx
 mov ebp,ecx
 add ebp,9+63
 shr ebp,6
-inc ecx  ;pour inclure l'octet a 80h
+
 
 ;initialise le hachage initiale
 mov dword[hachage+00],06a09e667h
@@ -1135,28 +1198,32 @@ mov dword[hachage+16],0510e527fh
 mov dword[hachage+20],09b05688ch
 mov dword[hachage+24],01f83d9abh
 mov dword[hachage+28],05be0cd19h
-;jmp bouclE_sha2
+;jmp boucle_sha256
 
 
 
 
 ;*******
-bouclE_sha2:
+boucle_sha256:
 
 mov edi,variables_sha2
-cmp ecx,0
-je @f
+cmp ecx,-1 
+je sha256_bloc_taille
+cmp ecx,0 
+je sha256_bloc_final
 cmp ecx,64
-ja sha256_copiebloc
+jae sha256_bloc_complet
 
-dec ecx
-push ecx
+
+;si il rest moins de 64 octets on remplis le bloc avec du remplissage
+mov edx,ecx
 cld
 rep movsb
-mov al,080h
+mov al,080h  ;on met un octet 80h a la fin
 stosb
-pop ecx
 
+mov ecx,-1
+;on replit jusqu'a zero la fin du bloc
 @@:
 cmp edi,variables_sha2+64
 je @f
@@ -1164,11 +1231,8 @@ mov byte[edi],0
 inc edi
 jmp @b
 
-
 @@:
-mov eax,ecx
-xor ecx,ecx
-cmp eax,56
+cmp edx,56 
 jae sha256_fincopiebloc
 
 mov eax,[taille_SHA]
@@ -1178,9 +1242,29 @@ mov  [variables_sha2+60],eax
 jmp sha256_fincopiebloc
 
 
+;*****
+sha256_bloc_final:
+mov byte[edi],80h
+inc edi
+
+;********
+sha256_bloc_taille:
+cmp edi,variables_sha2+64
+je @f
+mov byte[edi],0
+inc edi
+jmp sha256_bloc_taille
+@@:
+
+mov eax,[taille_SHA]
+shl eax,3
+bswap eax
+mov  [variables_sha2+60],eax
+jmp sha256_fincopiebloc
+
 
 ;si il reste + de 64 octets: copie 64 octet et decremente ecx
-sha256_copiebloc:
+sha256_bloc_complet:
 push ecx
 mov ecx,16
 cld
@@ -1188,7 +1272,6 @@ rep movsd
 pop ecx
 sub ecx,64
 sha256_fincopiebloc:
-
 
 
 
@@ -1244,9 +1327,22 @@ jne boucle_calc_ws256
 ;chargement valeurs initiales A-H******************************
 mov esi,hachage
 mov edi,A_sha2
-mov ecx,8
-cld
-rep movsd
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+add edi,4
+movsd
+
 
 
 
@@ -1361,7 +1457,7 @@ add [hachage+28],eax
 
 popad
 dec ebp
-jnz bouclE_sha2
+jnz boucle_sha256
 
 
 ;copie de la chaine de hachage calculé***********************
@@ -1471,21 +1567,24 @@ mov dword[hachage+60],05be0cd19h
 
 ;*******
 boucle_sha512:
-
 mov edi,variables_sha2
-cmp ecx,0
-je @f
+cmp ecx,-1 
+je sha512_bloc_taille
+cmp ecx,0 
+je sha512_bloc_final
 cmp ecx,128
-ja sha512_copiebloc
+jae sha512_bloc_complet
 
-dec ecx
-push ecx
+
+;si il rest moins de 128 octets on remplis le bloc avec du remplissage
+mov edx,ecx
 cld
 rep movsb
-mov al,080h
+mov al,080h  ;on met un octet 80h a la fin
 stosb
-pop ecx
 
+mov ecx,-1
+;on replit jusqu'a zero la fin du bloc
 @@:
 cmp edi,variables_sha2+128
 je @f
@@ -1493,23 +1592,40 @@ mov byte[edi],0
 inc edi
 jmp @b
 
-
 @@:
-mov eax,ecx
-xor ecx,ecx
-cmp eax,56  ;?????????????????????
+cmp edx,112 
 jae sha512_fincopiebloc
 
 mov eax,[taille_SHA]
 shl eax,3
 bswap eax
-mov  [variables_sha2+60],eax ;????????????
+mov  [variables_sha2+124],eax
 jmp sha512_fincopiebloc
 
 
+;*****
+sha512_bloc_final:
+mov byte[edi],80h
+inc edi
 
-;si il reste + de 64 octets: copie 128 octet et decremente ecx
-sha512_copiebloc:
+;********
+sha512_bloc_taille:
+cmp edi,variables_sha2+128
+je @f
+mov byte[edi],0
+inc edi
+jmp sha512_bloc_taille
+@@:
+
+mov eax,[taille_SHA]
+shl eax,3
+bswap eax
+mov  [variables_sha2+124],eax
+jmp sha512_fincopiebloc
+
+
+;si il reste + de 128 octets: copie 128 octet et decremente ecx
+sha512_bloc_complet:
 push ecx
 mov ecx,32
 cld
@@ -1520,9 +1636,8 @@ sha512_fincopiebloc:
 
 
 
-
 pushad
-;mise du bloc en doublemot de 64bits little endian???????
+;mise du bloc en doublemot de 32bits little endian
 mov esi,variables_sha2
 @@:
 mov eax,[esi]
@@ -1532,8 +1647,205 @@ bswap edx
 mov [esi+4],eax
 mov [esi],edx
 add esi,8
-cmp esi,variables_sha2+64
+cmp esi,variables_sha2+128
 jne @b
 
 
 
+;boucle calcul de w16 à w63 ***************************************
+mov esi,variables_sha2
+boucle_calc_ws512:
+
+mov eax,[esi]   ;w+0 (16)
+mov ebx,[esi+4]
+mov [esi+128],eax ;w+16 (0)
+mov [esi+132],ebx
+
+
+mov eax,[esi+8] ;w+1 (15)
+mov ebx,[esi+12]
+mov cl,1
+call ror512
+mov edx,eax
+mov edi,ebx
+mov eax,[esi+8] ;w+1 (15)
+mov ebx,[esi+12]
+mov cl,8
+call ror512
+xor edx,eax
+xor edi,ebx
+mov eax,[esi+8] ;w+1 (15)
+mov ebx,[esi+12]
+mov cl,7
+call shr512
+xor edx,eax
+xor edi,ebx
+add [esi+128],edx ;w+16 (0)
+adc [esi+132],edi
+
+
+mov eax,[esi+72] ;w+9 (7)
+mov ebx,[esi+80]
+add [esi+128],eax ;w+16 (0)
+adc [esi+132],ebx
+
+
+mov eax,[esi+112] ;w+14 (2)
+mov ebx,[esi+120]
+mov cl,19
+call ror512
+mov edx,eax
+mov edi,ebx
+mov eax,[esi+112] ;w+14 (2)
+mov ebx,[esi+120]
+mov cl,61
+call ror512
+xor edx,eax
+xor edi,ebx
+mov eax,[esi+112] ;w+14 (2)
+mov ebx,[esi+120]
+mov cl,6
+call shr512
+xor edx,eax
+xor edi,ebx
+add [esi+128],edx ;w+16 (0)
+adc [esi+132],edi
+
+
+add esi,8
+cmp esi,variables_sha2+384
+jne boucle_calc_ws512
+
+
+
+
+;chargement valeurs initiales A-H******************************
+mov esi,hachage
+mov edi,A_sha2
+mov ecx,16
+cld
+rep movsd
+
+
+;?????????????????????????????
+
+
+;boucle calcul A-H progressif ******************************************
+xor esi,esi
+boucle_calc_wk512:
+
+;temp1
+mov eax,[H_sha2]
+mov [temp1_sha2],eax 
+
+mov edx,[E_sha2]
+ror edx,6
+mov eax,[E_sha2]
+ror eax,11
+xor edx,eax
+mov eax,[E_sha2]
+ror eax,25
+xor edx,eax
+add [temp1_sha2],edx 
+
+mov eax,[E_sha2]
+not eax
+and eax,[G_sha2]
+mov edx,[E_sha2]
+and edx,[F_sha2]
+xor eax,edx
+add [temp1_sha2],eax 
+
+mov edx,[esi+constantes_sha256]
+add [temp1_sha2],edx 
+
+mov eax,[esi+variables_sha2]
+add [temp1_sha2],eax 
+
+;temp2
+mov eax,[A_sha2]
+and eax,[B_sha2]
+mov edx,[A_sha2]
+and edx,[C_sha2]
+xor eax,edx
+mov edx,[B_sha2]
+and edx,[C_sha2]
+xor eax,edx
+mov [temp2_sha2],eax 
+
+mov edx,[A_sha2]
+ror edx,2
+mov eax,[A_sha2]
+ror eax,13
+xor edx,eax
+mov eax,[A_sha2]
+ror eax,22
+xor edx,eax
+add [temp2_sha2],edx 
+
+;H
+mov eax,[G_sha2] 
+mov [H_sha2],eax
+
+;G
+mov eax,[F_sha2]
+mov [G_sha2],eax
+
+;F
+mov eax,[E_sha2]
+mov [F_sha2],eax
+
+;E
+mov eax,[D_sha2]
+add eax,[temp1_sha2]
+mov [E_sha2],eax
+
+;D
+mov eax,[C_sha2]
+mov [D_sha2],eax
+
+;C
+mov eax,[B_sha2]
+mov [C_sha2],eax
+
+;B
+mov eax,[A_sha2]
+mov [B_sha2],eax
+
+;A
+mov eax,[temp1_sha2]
+add eax,[temp2_sha2]
+mov [A_sha2],eax
+
+add esi,4
+cmp esi,256
+jne boucle_calc_wk512
+
+
+
+
+
+
+
+
+
+
+
+
+
+;???????????????????????????????????????
+
+
+ror512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
+;??????????????????????
+ret
+
+
+
+
+
+
+
+shr512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
+;????????????????????????
+ret
