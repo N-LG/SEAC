@@ -417,14 +417,15 @@ mov [edi+12],edx
 
 ;incrémente le compteur
 mov ebx,15
-inc byte[ebx]
-dec ebx
+inc byte[ebx+init_vec]
 @@:
-adc byte[ebx+init_vec],0
 jnc @f
+cmp ebx,0
+je @f
 dec ebx
-jnz @b
+stc
 adc byte[ebx+init_vec],0
+jmp @b
 @@:
 
 add esi,16
@@ -1727,8 +1728,6 @@ cld
 rep movsd
 
 
-;?????????????????????????????
-
 
 ;boucle calcul A-H progressif ******************************************
 xor esi,esi
@@ -1736,108 +1735,257 @@ boucle_calc_wk512:
 
 ;temp1
 mov eax,[H_sha2]
+mov ebx,[H_sha2+4]
 mov [temp1_sha2],eax 
+mov [temp1_sha2+4],ebx 
 
-mov edx,[E_sha2]
-ror edx,6
+
 mov eax,[E_sha2]
-ror eax,11
-xor edx,eax
+mov ebx,[E_sha2+4]
+mov cl,14
+call ror512
+mov edx,eax
+mov edi,ebx
 mov eax,[E_sha2]
-ror eax,25
+mov ebx,[E_sha2+4]
+mov cl,18
+call ror512
 xor edx,eax
+xor edi,ebx
+mov eax,[E_sha2]
+mov ebx,[E_sha2+4]
+mov cl,41
+call ror512
+xor edx,eax
+xor edi,ebx
 add [temp1_sha2],edx 
+adc [temp1_sha2+4],edi 
 
 mov eax,[E_sha2]
+mov ebx,[E_sha2+4]
 not eax
+not ebx
 and eax,[G_sha2]
+and ebx,[G_sha2+4]
 mov edx,[E_sha2]
+mov edi,[E_sha2+4]
 and edx,[F_sha2]
+and edi,[F_sha2+4]
 xor eax,edx
+xor ebx,edi
 add [temp1_sha2],eax 
+adc [temp1_sha2+4],ebx 
 
-mov edx,[esi+constantes_sha256]
-add [temp1_sha2],edx 
+
+mov eax,[esi+constantes_sha512+4]
+mov ebx,[esi+constantes_sha512]
+add [temp1_sha2],eax 
+adc [temp1_sha2+4],ebx 
 
 mov eax,[esi+variables_sha2]
+mov ebx,[esi+variables_sha2+4]
 add [temp1_sha2],eax 
+adc [temp1_sha2+4],ebx 
+
 
 ;temp2
 mov eax,[A_sha2]
+mov ebx,[A_sha2+4]
 and eax,[B_sha2]
+and ebx,[B_sha2+4]
 mov edx,[A_sha2]
+mov edi,[A_sha2+4]
 and edx,[C_sha2]
+and edi,[C_sha2+4]
 xor eax,edx
+xor ebx,edi
 mov edx,[B_sha2]
+mov edi,[B_sha2+4]
 and edx,[C_sha2]
+and edi,[C_sha2+4]
 xor eax,edx
+xor ebx,edi
 mov [temp2_sha2],eax 
+mov [temp2_sha2+4],ebx 
 
-mov edx,[A_sha2]
-ror edx,2
 mov eax,[A_sha2]
-ror eax,13
-xor edx,eax
+mov ebx,[A_sha2+4]
+mov cl,28
+call ror512 
+mov edx,eax
+mov edi,ebx
 mov eax,[A_sha2]
-ror eax,22
+mov ebx,[A_sha2+4]
+mov cl,34
+call ror512 
 xor edx,eax
+xor edi,ebx
+mov eax,[A_sha2]
+mov ebx,[A_sha2+4]
+mov cl,39
+call ror512 
+xor edx,eax
+xor edi,ebx
 add [temp2_sha2],edx 
+adc [temp2_sha2+4],edi 
 
 ;H
 mov eax,[G_sha2] 
+mov ebx,[G_sha2+4] 
 mov [H_sha2],eax
+mov [H_sha2+4],ebx
 
 ;G
 mov eax,[F_sha2]
+mov ebx,[F_sha2+4]
 mov [G_sha2],eax
+mov [G_sha2+4],ebx
 
 ;F
 mov eax,[E_sha2]
+mov ebx,[E_sha2+4]
 mov [F_sha2],eax
+mov [F_sha2+4],ebx
 
 ;E
 mov eax,[D_sha2]
+mov ebx,[D_sha2+4]
 add eax,[temp1_sha2]
+adc ebx,[temp1_sha2+4]
 mov [E_sha2],eax
+mov [E_sha2+4],ebx
 
 ;D
 mov eax,[C_sha2]
+mov ebx,[C_sha2+4]
 mov [D_sha2],eax
+mov [D_sha2+4],ebx
 
 ;C
 mov eax,[B_sha2]
+mov ebx,[B_sha2+4]
 mov [C_sha2],eax
+mov [C_sha2+4],ebx
 
 ;B
 mov eax,[A_sha2]
+mov ebx,[A_sha2+4]
 mov [B_sha2],eax
+mov [B_sha2+4],ebx
 
 ;A
 mov eax,[temp1_sha2]
+mov ebx,[temp1_sha2+4]
 add eax,[temp2_sha2]
+adc ebx,[temp2_sha2+4]
 mov [A_sha2],eax
+mov [A_sha2+4],ebx
 
-add esi,4
-cmp esi,256
+add esi,8
+cmp esi,512
 jne boucle_calc_wk512
 
+;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!!!!!!!!!!!!!??????????????????????
+mov eax,[A_sha2]
+mov ebx,[A_sha2+4]
+add [hachage],eax
+adc [hachage+4],ebx
+
+mov eax,[B_sha2]
+mov ebx,[B_sha2+4]
+add [hachage+8],eax
+add [hachage+12],ebx
+
+mov eax,[C_sha2]
+mov ebx,[C_sha2]
+add [hachage+16],eax
+adc [hachage+20],ebx
+
+mov eax,[D_sha2]
+mov ebx,[D_sha2+4]
+add [hachage+24],eax
+adc [hachage+28],ebx
+
+mov eax,[E_sha2]
+mov ebx,[E_sha2+4]
+add [hachage+32],eax
+adc [hachage+36],ebx
+
+mov eax,[F_sha2]
+mov ebx,[F_sha2+4]
+add [hachage+40],eax
+adc [hachage+44],eax
+
+mov eax,[G_sha2]
+mov ebx,[G_sha2+4]
+add [hachage+48],eax
+adc [hachage+52],ebx
+
+mov eax,[H_sha2]
+mov ebx,[H_sha2+4]
+add [hachage+56],eax
+add [hachage+60],ebx
+
+popad
+dec ebp
+jnz boucle_sha512
 
 
-
-
-
-
-
-
-
-
-
-
-;???????????????????????????????????????
-
-
-ror512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
-;??????????????????????
+;copie de la chaine de hachage calculé***********************
+pop edi
+pop ecx
+mov eax,[hachage]
+mov ebx,[hachage+4]
+bswap eax
+bswap ebx
+mov [edi+4],eax
+mov [edi],ebx
+mov eax,[hachage+8]
+mov ebx,[hachage+12]
+bswap eax
+bswap ebx
+mov [edi+12],eax
+mov [edi+8],ebx
+mov eax,[hachage+16]
+mov ebx,[hachage+20]
+bswap eax
+bswap ebx
+mov [edi+20],eax
+mov [edi+16],ebx
+mov eax,[hachage+24]
+mov ebx,[hachage+28]
+bswap eax
+bswap ebx
+mov [edi+28],eax
+mov [edi+24],ebx
+mov eax,[hachage+32]
+mov ebx,[hachage+36]
+bswap eax
+bswap ebx
+mov [edi+36],eax
+mov [edi+32],ebx
+mov eax,[hachage+40]
+mov ebx,[hachage+44]
+bswap eax
+bswap ebx
+mov [edi+44],eax
+mov [edi+40],ebx
+mov eax,[hachage+48]
+mov ebx,[hachage+52]
+bswap eax
+bswap ebx
+mov [edi+52],eax
+mov [edi+48],ebx
+cmp ecx,512
+jne @f
+mov eax,[hachage+56]
+mov ebx,[hachage+60]
+bswap eax
+bswap ebx
+mov [edi+60],eax
+mov [edi+56],ebx
+@@:
+xor eax,eax
 ret
 
 
@@ -1846,6 +1994,30 @@ ret
 
 
 
-shr512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
-;????????????????????????
+
+
+
+
+ror512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
+bt eax,1
+rcr ebx,1
+rcr eax,1
+
+dec cl
+jnz ror512
+ret
+
+
+
+
+
+
+
+shr512: ;effectue un shr de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
+clc
+rcr ebx,1
+rcr eax,1
+
+dec cl
+jnz shr512
 ret
