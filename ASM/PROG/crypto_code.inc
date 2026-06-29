@@ -1502,12 +1502,12 @@ calc_SHA384:
 push dword 384
 push edi
 
-;calcul le nombre de bloc de 64 octet
+;calcul le nombre de bloc de 128 octet
 mov [taille_SHA],ecx
 mov ebp,ecx
-add ebp,9+63
-shr ebp,6
-inc ecx  ;pour inclure l'octet a 80h
+add ebp,17+127
+shr ebp,7
+
 
 ;initialise le hachage initiale
 mov dword[hachage+00],0c1059ed8h
@@ -1537,12 +1537,11 @@ calc_SHA512:
 push dword 512
 push edi
 
-;calcul le nombre de bloc de 64 octet
+;calcul le nombre de bloc de 128 octet
 mov [taille_SHA],ecx
 mov ebp,ecx
-add ebp,9+63
-shr ebp,6
-inc ecx  ;pour inclure l'octet a 80h
+add ebp,17+127
+shr ebp,7
 
 ;initialise le hachage initiale
 mov dword[hachage+00],0f3bcc908h
@@ -1686,25 +1685,25 @@ adc [esi+132],edi
 
 
 mov eax,[esi+72] ;w+9 (7)
-mov ebx,[esi+80]
+mov ebx,[esi+76]
 add [esi+128],eax ;w+16 (0)
 adc [esi+132],ebx
 
 
 mov eax,[esi+112] ;w+14 (2)
-mov ebx,[esi+120]
+mov ebx,[esi+116]
 mov cl,19
 call ror512
 mov edx,eax
 mov edi,ebx
 mov eax,[esi+112] ;w+14 (2)
-mov ebx,[esi+120]
+mov ebx,[esi+116]
 mov cl,61
 call ror512
 xor edx,eax
 xor edi,ebx
 mov eax,[esi+112] ;w+14 (2)
-mov ebx,[esi+120]
+mov ebx,[esi+116]
 mov cl,6
 call shr512
 xor edx,eax
@@ -1714,9 +1713,8 @@ adc [esi+132],edi
 
 
 add esi,8
-cmp esi,variables_sha2+384
+cmp esi,variables_sha2+512
 jne boucle_calc_ws512
-
 
 
 
@@ -1738,7 +1736,6 @@ mov eax,[H_sha2]
 mov ebx,[H_sha2+4]
 mov [temp1_sha2],eax 
 mov [temp1_sha2+4],ebx 
-
 
 mov eax,[E_sha2]
 mov ebx,[E_sha2+4]
@@ -1882,10 +1879,12 @@ mov [A_sha2],eax
 mov [A_sha2+4],ebx
 
 add esi,8
-cmp esi,512
+cmp esi,640
 jne boucle_calc_wk512
 
-;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§!!!!!!!!!!!!!??????????????????????
+
+
+;
 mov eax,[A_sha2]
 mov ebx,[A_sha2+4]
 add [hachage],eax
@@ -1997,27 +1996,24 @@ ret
 
 
 
-
+;******************************************
 ror512: ;effectue un ror de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
-bt eax,1
+bt eax,0
 rcr ebx,1
 rcr eax,1
-
 dec cl
 jnz ror512
 ret
-
-
-
-
-
 
 
 shr512: ;effectue un shr de cl bit sur le mot de 64bit eax(lsb) et ebx(msb)
 clc
 rcr ebx,1
 rcr eax,1
-
 dec cl
 jnz shr512
 ret
+
+
+
+
