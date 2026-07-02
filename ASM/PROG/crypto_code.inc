@@ -1439,6 +1439,7 @@ cmp esi,256
 jne boucle_calc_wk256
 
 
+;ajoute les registres au hachage
 mov eax,[A_sha2]
 add [hachage],eax
 mov eax,[B_sha2]
@@ -1635,7 +1636,6 @@ sub ecx,128
 sha512_fincopiebloc:
 
 
-
 pushad
 ;mise du bloc en doublemot de 32bits little endian
 mov esi,variables_sha2
@@ -1649,7 +1649,6 @@ mov [esi],edx
 add esi,8
 cmp esi,variables_sha2+128
 jne @b
-
 
 
 ;boucle calcul de w16 à w63 ***************************************
@@ -1724,7 +1723,6 @@ mov edi,A_sha2
 mov ecx,16
 cld
 rep movsd
-
 
 
 ;boucle calcul A-H progressif ******************************************
@@ -1883,8 +1881,7 @@ cmp esi,640
 jne boucle_calc_wk512
 
 
-
-;
+;ajoute les registres au hachage
 mov eax,[A_sha2]
 mov ebx,[A_sha2+4]
 add [hachage],eax
@@ -1893,10 +1890,10 @@ adc [hachage+4],ebx
 mov eax,[B_sha2]
 mov ebx,[B_sha2+4]
 add [hachage+8],eax
-add [hachage+12],ebx
+adc [hachage+12],ebx
 
 mov eax,[C_sha2]
-mov ebx,[C_sha2]
+mov ebx,[C_sha2+4]
 add [hachage+16],eax
 adc [hachage+20],ebx
 
@@ -1913,7 +1910,7 @@ adc [hachage+36],ebx
 mov eax,[F_sha2]
 mov ebx,[F_sha2+4]
 add [hachage+40],eax
-adc [hachage+44],eax
+adc [hachage+44],ebx
 
 mov eax,[G_sha2]
 mov ebx,[G_sha2+4]
@@ -1923,7 +1920,8 @@ adc [hachage+52],ebx
 mov eax,[H_sha2]
 mov ebx,[H_sha2+4]
 add [hachage+56],eax
-add [hachage+60],ebx
+adc [hachage+60],ebx
+
 
 popad
 dec ebp
@@ -1969,14 +1967,14 @@ bswap eax
 bswap ebx
 mov [edi+44],eax
 mov [edi+40],ebx
+cmp ecx,512
+jne @f
 mov eax,[hachage+48]
 mov ebx,[hachage+52]
 bswap eax
 bswap ebx
 mov [edi+52],eax
 mov [edi+48],ebx
-cmp ecx,512
-jne @f
 mov eax,[hachage+56]
 mov ebx,[hachage+60]
 bswap eax
@@ -1986,14 +1984,6 @@ mov [edi+56],ebx
 @@:
 xor eax,eax
 ret
-
-
-
-
-
-
-
-
 
 
 ;******************************************
