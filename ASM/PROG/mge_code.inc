@@ -1,4 +1,4 @@
-mge_:
+﻿mge_:
 ;index des fonctions mge_*
 ;tout les registres sont des pointeur
 
@@ -7,6 +7,7 @@ mge_:
 ;mge_copie:  ;edi=esi
 ;mge_efface: ;edi=0
 ;mge_compare:  cmp edi,esi
+;mge_compare0:  cmp edi,0
 ;mge_addition:  ;edi=edi+esi
 ;mge_soustraction: ;edi=edi-esi
 ;mge_decalm:    ;edx=edx/2
@@ -14,7 +15,7 @@ mge_:
 ;mge_hexa:  affiche edx en hexadécimal
 ;mge_deci:  affiche edx en décimal
 ;mge_exp_mod: ;edi=edi^esi modulo ecx
-
+;mge_pgcd: edi=pgcd de esi et edi
 
 
 
@@ -173,6 +174,60 @@ jnz @b
 @@:
 pop edi
 pop esi
+pop ecx
+pop eax
+ret
+
+
+;***************************************
+mge_compare0:   ;cmp edi,0
+push eax
+push ecx
+push edi
+
+mov ecx,[mge_nb_dw]
+push ecx
+shl ecx,2
+add edi,ecx
+pop ecx
+
+@@:
+sub edi,4
+cmp dword[edi],0
+jne @f
+dec ecx
+jnz @b
+
+@@:
+pop edi
+pop ecx
+pop eax
+ret
+
+;***************************************
+mge_compare1:   ;cmp edi,1
+push eax
+push ecx
+push edi
+
+mov ecx,[mge_nb_dw]
+push ecx
+shl ecx,2
+add edi,ecx
+pop ecx
+dec ecx
+
+@@:
+sub edi,4
+cmp dword[edi],0
+jne @f
+dec ecx
+jnz @b
+sub edi,4
+cmp dword[edi],1
+
+@@:
+pop edi
 pop ecx
 pop eax
 ret
@@ -431,3 +486,143 @@ jmp boucle_mge_exp_mod
 popad
 ret
 
+;****************************
+mge_pgcd: ;edi=pgcd de esi et edi (méthode d'Εὐκλείδης)
+push esi
+pushad
+
+call mge_compare
+jb @f
+xchg esi,edi
+@@:
+
+push edi
+mov edi,mge_temp3  ;a
+call mge_copie
+pop esi
+mov edi,mge_temp4  ;b
+call mge_copie
+
+boucle_mge_pgcd:
+mov esi,mge_temp4  ;b
+mov edi,mge_temp5  ;sauvegarde de b
+call mge_copie
+
+;mge_divise: ;edi=esi/edi esi=reste
+mov esi,mge_temp3
+mov edi,mge_temp4
+call mge_divise
+
+mov edi,mge_temp3
+call mge_compare0 
+je fin_mge_pgcd   ;si le rest est nul on as trouvé
+
+mov esi,mge_temp3   
+mov edi,mge_temp4 ;reste dans b 
+call mge_copie
+
+mov esi,mge_temp5  
+mov edi,mge_temp3 ;ancien b dans a 
+call mge_copie
+
+
+
+jmp boucle_mge_pgcd
+
+fin_mge_pgcd:
+popad
+mov esi,mge_temp5  
+call mge_copie
+pop esi
+ret
+
+
+
+
+
+;****************************
+mge_inv_mod: ;edi=inversion modulaire de edi modulo esi (algo d'Εὐκλείδης etendu et relation de bézout)
+push esi
+pushad
+
+
+push edi
+mov edi,mge_temp3  ;n
+call mge_copie
+pop esi
+mov edi,mge_temp4  ;a
+call mge_copie
+
+
+mov esi,mge_temp3 
+mov edi,mge_temp5  ;sauvegarde de n
+call mge_copie
+mov esi,mge_temp4 
+mov edi,mge_temp6  ;sauvegarde de a
+call mge_copie
+
+mov esi,mge_temp3
+mov edi,mge_temp4
+call mge_divise
+;r=3 k=4 n=5 a=6 (n-ak=r)
+
+mov edi,mge_temp3
+call mge_compare1 
+je fin_mge_inv_mod  ;si le rest est 1 on as trouvé
+
+
+boucle_inv_mod:
+
+mov esi,mge_temp4  
+mov edi,mge_temp7 ;k(-1)
+call mge_copie
+mov esi,mge_temp6  
+mov edi,mge_temp5 ;a(-1) devient n
+call mge_copie
+mov esi,mge_temp3  
+mov edi,mge_temp6 ;r(-1) devient a
+call mge_copie
+
+;calcule r et k
+mov esi,mge_temp5 
+mov edi,mge_temp3  
+call mge_copie
+mov esi,mge_temp6 
+mov edi,mge_temp4 
+call mge_copie
+mov esi,mge_temp3
+mov edi,mge_temp4
+call mge_divise 
+;r=3 k=4 n=5 a=6 (n-ak=r)
+
+
+;remplace a et k
+mov edi,mge_temp4
+mov esi,mge_temp7
+call mge_multiplie
+
+mov edi,mge_temp6
+call mge_efface
+mov byte[mge_temp6],1
+mov edi,mge_temp4
+mov esi,mge_temp6
+call mge_addition
+
+mov esi,mge_temp5  
+mov edi,mge_temp6 ;a(-1) devient a
+call mge_copie
+
+
+
+mov edi,mge_temp3
+call mge_compare1 
+jne boucle_inv_mod ;si le rest n'est pas 1 on recommence
+
+
+
+fin_mge_inv_mod:   
+popad
+mov esi,mge_temp4  
+call mge_copie
+pop esi
+ret
