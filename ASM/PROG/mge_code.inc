@@ -45,7 +45,7 @@ inc ecx
 mov edi,mge_temp1
 mov esi,eax
 call mge_compare
-jb @b
+jbe @b
 
 
 boucle_mge_division:
@@ -372,12 +372,11 @@ call mge_efface
 @@:
 
 
-mov byte[mge_temp2],10
+mov dword[mge_temp2],10
 
 mov esi,mge_temp3
 mov edi,mge_temp2
 call mge_divise
-
 
 mov eax,[mge_temp3]
 add eax,"0"
@@ -542,25 +541,30 @@ ret
 
 ;****************************
 mge_inv_mod: ;edi=inversion modulaire de edi modulo esi (algo d'Εὐκλείδης etendu et relation de bézout)
+call mge_compare1 ;l'inverse modulaire de 1 est 1
+jne @f
+ret
+@@:
 push esi
 pushad
 
-
 push edi
-mov edi,mge_temp3  ;n
+mov edi,mge_temp5  ;n
+call mge_copie
+mov edi,mge_temp8  ;n absolue
 call mge_copie
 pop esi
-mov edi,mge_temp4  ;a
+mov edi,mge_temp6  ;a
 call mge_copie
 
-
-mov esi,mge_temp3 
-mov edi,mge_temp5  ;sauvegarde de n
+;init_mge_inv_mod:
+;calcul r et k
+mov esi,mge_temp5 
+mov edi,mge_temp3  
 call mge_copie
-mov esi,mge_temp4 
-mov edi,mge_temp6  ;sauvegarde de a
+mov esi,mge_temp6 
+mov edi,mge_temp4 
 call mge_copie
-
 mov esi,mge_temp3
 mov edi,mge_temp4
 call mge_divise
@@ -568,11 +572,13 @@ call mge_divise
 
 mov edi,mge_temp3
 call mge_compare1 
-je fin_mge_inv_mod  ;si le rest est 1 on as trouvé
+je vneg_mge_inv_mod
+xor ebp,ebp
 
 
-boucle_inv_mod:
+boucle_mge_inv_mod:
 
+;sauvegarde les état précédent interessant
 mov esi,mge_temp4  
 mov edi,mge_temp7 ;k(-1)
 call mge_copie
@@ -596,33 +602,69 @@ call mge_divise
 ;r=3 k=4 n=5 a=6 (n-ak=r)
 
 
-;remplace a et k
+;k=N-(kk(-1)+1)mod N
 mov edi,mge_temp4
 mov esi,mge_temp7
-call mge_multiplie
+call mge_multiplie  ;KK(-1)
 
 mov edi,mge_temp6
 call mge_efface
 mov byte[mge_temp6],1
 mov edi,mge_temp4
 mov esi,mge_temp6
-call mge_addition
+call mge_addition  ;+1
 
-mov esi,mge_temp5  
-mov edi,mge_temp6 ;a(-1) devient a
+mov esi,mge_temp8
+mov edi,mge_temp6
 call mge_copie
+mov edi,mge_temp6
+mov esi,mge_temp4
+call mge_divise   ;mod(N)
 
+
+mov esi,mge_temp4
+mov edi,mge_temp6
+call mge_copie
+mov esi,mge_temp8
+mov edi,mge_temp4
+call mge_copie
+mov edi,mge_temp4
+mov esi,mge_temp6
+call mge_soustraction   ;N-
+
+
+;a=a(-1)
+mov esi,mge_temp5  
+mov edi,mge_temp6 
+call mge_copie
 
 
 mov edi,mge_temp3
+call mge_compare0 
+je erreur_mge_inv_mod ;si le reste est nul, il n'y as pas de solution
+
+mov edi,mge_temp3
 call mge_compare1 
-jne boucle_inv_mod ;si le rest n'est pas 1 on recommence
+jne boucle_mge_inv_mod ;si le reste n'est pas 1 on recommence
 
-
-
-fin_mge_inv_mod:   
+vneg_mge_inv_mod:
+mov edi,mge_temp8 
+mov esi,mge_temp4 
+call mge_soustraction
 popad
-mov esi,mge_temp4  
+mov esi,mge_temp8  
 call mge_copie
 pop esi
+ret
+
+
+erreur_mge_inv_mod:
+popad
+call mge_efface
+pop esi
+ret
+
+
+mge_aks: ;cf=1 si edi est un nombre premier https://fr.wikipedia.org/wiki/Test_de_primalit%C3%A9_AKS
+clc
 ret
