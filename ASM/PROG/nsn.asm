@@ -439,20 +439,6 @@ mov byte[edi],0
 
 ;§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§
 
-mov al,5   
-mov ah,"a"   ;lettre de l'option de commande a lire
-mov cl,32 
-mov edx,zt_url
-int 61h
-
-cmp eax,0
-je @f 
-mov edx,zt_host
-@@:
-
-mov al,109
-mov ecx,ip_serveur
-int 61h
 
 
 
@@ -481,13 +467,11 @@ inc esi
 jmp ajuste_deb_url
 @@:
 
-
 cmp dword[esi],"file"
 jne @f
 cmp byte[esi+4],0
 je ouvrir_fichier
 @@:
-
 
 cmp dword[esi],"goph"
 jne @f
@@ -529,6 +513,7 @@ jmp affiche_erreur
 
 ;*********************************************************************************
 ouvrir_gopher:
+call lit_addr_serv
 
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
@@ -759,7 +744,7 @@ jmp detecte_type
 ouvrir_fichier:  ;ouvre le fichier
 
 
-
+int 3
 
 
 ;***********************************
@@ -787,8 +772,11 @@ inc esi
 inc edi
 jmp @b
 @@:
+mov byte[edi],0
 
 
+;extrait l'extention
+mov dword[zt_type],"stx"
 
 
 ;**********************
@@ -809,7 +797,7 @@ jmp @b
 
 
 
-
+int 3
 
 
 mov edx,fichier
@@ -862,11 +850,12 @@ mov ebx,[handle]
 int 64h
 
 ;enregistre le fichier comme étant celui en mémoire
-mov esi,fichier
-mov edi,fichier_mem
-mov ecx,64
-cld
-rep movsd
+;mov esi,fichier
+;mov edi,fichier_mem
+;mov ecx,64
+;cld
+;rep movsd
+
 jmp detecte_type
 
 
@@ -894,6 +883,7 @@ jmp suite_cnx_http
 
 ;****************************************************************************************
 ouvrir_http:
+call lit_addr_serv
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
 mov cx,80
@@ -1151,6 +1141,18 @@ cmp word[zt_type],"1"
 je conversion_menugopher
 cmp word[zt_type],"7"
 je conversion_menugopher
+
+
+cmp dword[zt_type],"stx"
+je fichier_stx 
+cmp dword[zt_type],"htm"
+je conversion_html
+cmp dword[zt_type],"html"
+jne @f
+cmp byte[zt_type+4],0
+je conversion_html 
+@@:
+
 
 
 ;text/...
@@ -2314,18 +2316,21 @@ push ecx
 mov dl,[coul_base]
 mov dh,[coul_base]
 
+fs
+mov cx,[resx_texte]
 
 cmp byte[ebx],"?"
 jne @f
 inc esi
+jmp continue_ligne_stx
 @@:
 
 
 @@:
 cmp byte[esi],">"
 jne @f
-mov dword[edi],20202020h
-add edi,4
+add edi,16
+sub cx,4
 inc esi
 jmp @b
 @@:
@@ -2351,9 +2356,6 @@ inc esi
 
 
 continue_ligne_stx:
-fs
-mov cx,[resx_texte]
-@@:
 call lirecarac
 call carac_stx
 fs
@@ -2362,7 +2364,7 @@ fs
 mov [edi+3],dl
 add edi,4
 dec cx
-jnz @b
+jnz continue_ligne_stx
 
 call lirecarac
 call carac_stx
@@ -2373,6 +2375,8 @@ pop ecx
 dec cx
 jz touche_boucle
 push ecx
+fs
+mov cx,[resx_texte]
 jmp continue_ligne_stx
 
 
@@ -2886,6 +2890,29 @@ mov al,12
 int 63h     ;place le curseur en 0.0
 popad
 ret
+
+
+;******************************************
+;lit l'adresse du serveur
+lit_addr_serv:
+mov al,5   
+mov ah,"a"   ;lettre de l'option de commande a lire
+mov cl,32 
+mov edx,zt_url
+int 61h
+
+cmp eax,0
+je @f 
+mov edx,zt_host
+@@:
+
+mov al,109
+mov ecx,ip_serveur
+int 61h
+ret
+
+
+
 
 
 ;************************************
@@ -3593,9 +3620,9 @@ rb 4096
 adresse:
 rb 256
 fichier:
-rb 256
+rb 512
 fichier_mem:
-rb 256
+rb 512
 
 zt_recep:
 rb 512
