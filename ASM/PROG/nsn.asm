@@ -299,6 +299,12 @@ cmp al,":"
 je extrait_port
 cmp al,"/"
 je extrait_ressource
+cmp al,"?"
+je extrait_param
+cmp al,9
+je extrait_param
+cmp al,"#"
+je extrait_ancre
 cmp al,0
 je extrait_fin
 mov [edi],al
@@ -316,6 +322,12 @@ mov edi,zt_port
 mov al,[esi]
 cmp al,"/"
 je extrait_ressource
+cmp al,"?"
+je extrait_param
+cmp al,9
+je extrait_param
+cmp al,"#"
+je extrait_ancre
 cmp al,0
 je extrait_fin
 mov [edi],al
@@ -744,7 +756,6 @@ jmp detecte_type
 ouvrir_fichier:  ;ouvre le fichier
 
 
-int 3
 
 
 ;***********************************
@@ -753,7 +764,7 @@ mov esi,zt_host
 mov edi,fichier
 @@:
 mov al,[esi]
-cmp al,"0"
+cmp al,0
 je @f
 mov [edi],al
 inc esi
@@ -765,7 +776,7 @@ mov esi,zt_ressource
 inc edi
 @@:
 mov al,[esi]
-cmp al,"0"
+cmp al,0
 je @f
 mov [edi],al
 inc esi
@@ -777,7 +788,7 @@ mov byte[edi],0
 
 ;extrait l'extention
 mov dword[zt_type],"stx"
-
+;???????????????????????????????????????????????????????????
 
 ;**********************
 ;test si le fichier en mémoire est le fichier a lire
@@ -797,7 +808,7 @@ mov dword[zt_type],"stx"
 
 
 
-int 3
+
 
 
 mov edx,fichier
@@ -2691,7 +2702,6 @@ jmp touche_boucle
 
 trouve_clique:
 mov ebx,[esi]
-mov edx,zt_url
 @@:
 mov al,[ebx]
 inc ebx
@@ -2700,6 +2710,74 @@ je @f
 cmp byte[ebx],"~"
 jne @b
 mov ebx,[esi]
+jmp url_type_ancre
+
+@@:
+cmp byte[ebx],"#"
+jne @f
+inc ebx
+jmp url_type_ancre
+@@:
+
+
+mov edi,ebx
+boucle_test_type_lien:
+cmp word[edi],":/"
+je @f
+cmp byte[edi],"/"
+je url_type_relative
+cmp byte[edi],"~"
+je url_type_relative
+cmp byte[edi],0
+je url_type_relative
+
+inc edi
+jmp boucle_test_type_lien
+
+
+@@:
+cmp byte[edi+2],"/"
+je url_type_complete
+inc edi
+jmp boucle_test_type_lien
+
+
+;*************
+url_type_relative:
+mov edi,zt_url
+
+mov esi,zt_protocole
+call ajoutetexte
+
+mov dword[edi],"://"
+add edi,3
+
+mov esi,zt_host
+call ajoutetexte
+
+mov dword[edi],"/"
+inc edi
+
+
+mov esi,ebx
+@@:
+mov al,[esi]
+cmp al,"~"
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov byte[edi],0
+jmp ouvrir_url
+
+
+
+;*************
+url_type_complete:
+mov edx,zt_url
 @@:
 mov al,[ebx]
 mov [edx],al
@@ -2709,6 +2787,39 @@ cmp byte[ebx],"~"
 jne @b
 mov byte[edx],0
 jmp ouvrir_url
+
+
+;*************
+url_type_ancre:
+mov edi,zt_url
+
+mov esi,zt_protocole
+call ajoutetexte
+
+mov dword[edi],"://"
+add edi,3
+
+mov esi,zt_host
+call ajoutetexte
+
+mov dword[edi],"#"
+inc edi
+
+mov esi,ebx
+@@:
+mov al,[esi]
+cmp al,"~"
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov byte[edi],0
+jmp ouvrir_url
+
+
 
 
 ;****************************************
@@ -2954,6 +3065,18 @@ inc ebx
 ret
 
 
+;*********************************
+ajoutetexte:
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+ret
 
 
 
