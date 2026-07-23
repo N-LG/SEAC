@@ -20,6 +20,11 @@
 ;al=18  lire le dossier de travail en cours
 ;al=19  recherche les taches que l'on as créer
 ;al=20  lire langue actuellement uttilisé
+;al=21  rechercher tache par commande
+;al=22  rechercher tache avec interface par commande
+;al=23  lire commande de la tache
+;al=24  lire descripteur de la tache
+;al=25  lire info tache
 
 ;*****************************************************************************************
 ;fonctions "pratique"
@@ -95,6 +100,21 @@ cmp al,19
 je sfs_rech_cree
 cmp al,20
 je sfs_langue
+cmp al,21
+je sfs_rech_id_cmd
+cmp al,22
+je sfs_rech_id_cmd
+cmp al,23
+je sfs_cmd_tache
+cmp al,24
+je sfs_descr_tache
+cmp al,25
+je sfs_info_tache
+
+
+
+
+
 
 
 cmp al,100
@@ -1457,6 +1477,265 @@ mov eax,[code_langue]
 pop ds
 iret
 
+
+
+
+;*********************************************
+sfs_rech_id_cmd:
+pushad         
+;cx=nb de tache max a lister
+;ds:edx=table
+;ds:ebx=chaine asciiz de la commande a rechercher (chaine vide=tout)
+push es
+
+mov ax,cx
+mov si,selramh
+mov es,si
+xor esi,esi
+
+push edx
+boucle_sfs_rech_id_cmd:
+push ebx
+
+es
+cmp byte [esi+type_dm],'F'
+je fin_sfs_rech_id_cmd
+es
+cmp byte [esi+type_dm],'T'
+jne ignore_sfs_rech_id_cmd
+
+
+mov edi,esi
+add edi,recop_commande
+@@:
+mov al,[ebx]
+cmp al,0
+je @f
+cmp [edi],al
+jne ignore_sfs_rech_id_cmd
+inc ebx
+inc edi
+jmp @b
+
+@@:
+cmp byte[edi],0
+je @f
+cmp byte[edi],20h
+jne ignore_sfs_rech_id_cmd
+@@:
+
+es
+mov cx,[esi+id_tache]
+mov [edx],cx
+dec ax
+jz fin_sfs_rech_id_cmd
+add edx,2
+
+ignore_sfs_rech_id_cmd:
+pop ebx
+es
+mov ecx,[esi+to_tache]
+add esi,ecx
+jmp boucle_sfs_rech_id_cmd
+
+fin_sfs_rech_id_cmd:
+pop ebx
+
+
+
+
+
+
+
+;*********************************************
+sfs_rech_id_cmd2:
+pushad         
+;cx=nb de tache max a lister
+;ds:edx=table
+;ds:ebx=chaine asciiz de la commande a rechercher (chaine vide=tout)
+push es
+
+mov ax,cx
+mov si,selramh
+mov es,si
+xor esi,esi
+
+push edx
+boucle_sfs_rech_id_cmd2:
+push ebx
+
+es
+cmp byte [esi+type_dm],'F'
+je fin_sfs_rech_id_cmd2
+es
+cmp byte [esi+type_dm],'T'
+jne ignore_sfs_rech_id_cmd2
+es
+cmp word[esi+sel_ecranv],0
+je ignore_sfs_rech_id_cmd2
+
+mov edi,esi
+add edi,recop_commande
+@@:
+mov al,[ebx]
+cmp al,0
+je @f
+cmp [edi],al
+jne ignore_sfs_rech_id_cmd2
+inc ebx
+inc edi
+jmp @b
+
+@@:
+cmp byte[edi],0
+je @f
+cmp byte[edi],20h
+jne ignore_sfs_rech_id_cmd2
+@@:
+
+es
+mov cx,[esi+id_tache]
+mov [edx],cx
+dec ax
+jz fin_sfs_rech_id_cmd2
+add edx,2
+
+ignore_sfs_rech_id_cmd2:
+pop ebx
+es
+mov ecx,[esi+to_tache]
+add esi,ecx
+jmp boucle_sfs_rech_id_cmd2
+
+fin_sfs_rech_id_cmd2:
+pop ebx
+
+
+
+
+
+
+;*********************************************
+sfs_cmd_tache:
+;ecx=taille max de la chaine
+;ds:edx=zone ou ecrire la chaine
+;bx=id de la tache
+
+pushad         
+push ds
+push es
+
+mov ax,ds
+mov si,selramh
+mov ds,si
+mov es,ax
+xor esi,esi
+
+push edx
+boucle_sfs_cmd_tache:
+
+cmp byte [esi+type_dm],'F'
+je erreur_sfs_cmd_tache
+cmp byte [esi+type_dm],'T'
+jne ignore_sfs_cmd_tache
+cmp [esi+id_tache],bx
+je trouve_sfs_cmd_tache
+
+ignore_sfs_cmd_tache:
+mov eax,[esi+to_tache]
+add esi,eax
+jmp boucle_sfs_cmd_tache
+
+erreur_sfs_cmd_tache:
+pop es
+pop ds
+popad
+mov eax,cer_znd
+iret
+
+
+trouve_sfs_cmd_tache:
+cmp ecx,512
+jb @f
+mov ecx,512
+@@:
+dec ecx
+add esi,recop_commande
+mov edi,edx
+cld
+rep movsb
+xor eax,eax
+stosb
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+
+;*********************************************
+sfs_descr_tache:
+;ecx=taille max de la chaine
+;ds:edx=zone ou ecrire la chaine
+;bx=id de la tache
+
+pushad         
+push ds
+push es
+
+mov ax,ds
+mov si,selramh
+mov ds,si
+mov es,ax
+xor esi,esi
+
+push edx
+boucle_sfs_descr_tache:
+
+cmp byte [esi+type_dm],'F'
+je erreur_sfs_descr_tache
+cmp byte [esi+type_dm],'T'
+jne ignore_sfs_descr_tache
+cmp [esi+id_tache],bx
+je trouve_sfs_descr_tache
+
+ignore_sfs_descr_tache:
+mov eax,[esi+to_tache]
+add esi,eax
+jmp boucle_sfs_descr_tache
+
+erreur_sfs_descr_tache:
+pop es
+pop ds
+popad
+mov eax,cer_znd
+iret
+
+
+trouve_sfs_descr_tache:
+cmp ecx,256
+jb @f
+mov ecx,256
+@@:
+dec ecx
+add esi,descriptif_tache
+mov edi,edx
+cld
+rep movsb
+xor eax,eax
+stosb
+pop es
+pop ds
+popad
+xor eax,eax
+iret
+
+
+
+;*********************************************
+sfs_info_tache:
+xor eax,eax
+iret
 
 
 
