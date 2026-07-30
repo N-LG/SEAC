@@ -103,7 +103,7 @@ je sfs_langue
 cmp al,21
 je sfs_rech_id_cmd
 cmp al,22
-je sfs_rech_id_cmd
+je sfs_rech_id_cmd2
 cmp al,23
 je sfs_cmd_tache
 cmp al,24
@@ -1492,10 +1492,11 @@ mov ax,cx
 mov si,selramh
 mov es,si
 xor esi,esi
-
 push edx
+
 boucle_sfs_rech_id_cmd:
 push ebx
+
 
 es
 cmp byte [esi+type_dm],'F'
@@ -1504,6 +1505,8 @@ es
 cmp byte [esi+type_dm],'T'
 jne ignore_sfs_rech_id_cmd
 
+cmp byte[ebx],0
+je trouve_sfs_rech_id_cmd
 
 mov edi,esi
 add edi,recop_commande
@@ -1511,6 +1514,7 @@ add edi,recop_commande
 mov al,[ebx]
 cmp al,0
 je @f
+es
 cmp [edi],al
 jne ignore_sfs_rech_id_cmd
 inc ebx
@@ -1518,12 +1522,14 @@ inc edi
 jmp @b
 
 @@:
+es
 cmp byte[edi],0
-je @f
+je trouve_sfs_rech_id_cmd
+es
 cmp byte[edi],20h
 jne ignore_sfs_rech_id_cmd
-@@:
 
+trouve_sfs_rech_id_cmd:
 es
 mov cx,[esi+id_tache]
 mov [edx],cx
@@ -1540,7 +1546,7 @@ jmp boucle_sfs_rech_id_cmd
 
 fin_sfs_rech_id_cmd:
 pop ebx
-
+jmp fin_sfs_rech_service
 
 
 
@@ -1559,8 +1565,8 @@ mov ax,cx
 mov si,selramh
 mov es,si
 xor esi,esi
-
 push edx
+
 boucle_sfs_rech_id_cmd2:
 push ebx
 
@@ -1574,12 +1580,17 @@ es
 cmp word[esi+sel_ecranv],0
 je ignore_sfs_rech_id_cmd2
 
+cmp byte[ebx],0
+je trouve_sfs_rech_id_cmd2
+
+
 mov edi,esi
 add edi,recop_commande
 @@:
 mov al,[ebx]
 cmp al,0
 je @f
+es
 cmp [edi],al
 jne ignore_sfs_rech_id_cmd2
 inc ebx
@@ -1587,12 +1598,14 @@ inc edi
 jmp @b
 
 @@:
+es
 cmp byte[edi],0
-je @f
+je trouve_sfs_rech_id_cmd2
+es
 cmp byte[edi],20h
 jne ignore_sfs_rech_id_cmd2
-@@:
 
+trouve_sfs_rech_id_cmd2:
 es
 mov cx,[esi+id_tache]
 mov [edx],cx
@@ -1609,7 +1622,7 @@ jmp boucle_sfs_rech_id_cmd2
 
 fin_sfs_rech_id_cmd2:
 pop ebx
-
+jmp fin_sfs_rech_service
 
 
 
@@ -1631,9 +1644,7 @@ mov ds,si
 mov es,ax
 xor esi,esi
 
-push edx
 boucle_sfs_cmd_tache:
-
 cmp byte [esi+type_dm],'F'
 je erreur_sfs_cmd_tache
 cmp byte [esi+type_dm],'T'
@@ -1689,9 +1700,7 @@ mov ds,si
 mov es,ax
 xor esi,esi
 
-push edx
 boucle_sfs_descr_tache:
-
 cmp byte [esi+type_dm],'F'
 je erreur_sfs_descr_tache
 cmp byte [esi+type_dm],'T'
@@ -1734,6 +1743,77 @@ iret
 
 ;*********************************************
 sfs_info_tache:
+
+pushad         
+push ds
+push es
+
+mov ax,ds
+mov si,selramh
+mov ds,si
+mov es,ax
+xor esi,esi
+
+boucle_sfs_info_tache:
+cmp byte [esi+type_dm],'F'
+je erreur_sfs_info_tache
+cmp byte [esi+type_dm],'T'
+jne ignore_sfs_info_tache
+cmp [esi+id_tache],bx
+je trouve_sfs_info_tache
+
+ignore_sfs_info_tache:
+mov eax,[esi+to_tache]
+add esi,eax
+jmp boucle_sfs_info_tache
+
+erreur_sfs_info_tache:
+pop es
+pop ds
+popad
+mov eax,cer_znd
+iret
+
+
+trouve_sfs_info_tache:
+mov eax,[esi+to_tache]
+es
+mov [edx],eax
+
+mov eax,[esi+to_code_fe]
+es
+mov [edx+4],eax
+
+mov eax,[esi+tt_data1_dt]
+add eax,[esi+tt_data2_dt]
+add eax,[esi+tt_data3_dt]
+add eax,[esi+tt_data4_dt]
+es
+mov [edx+8],eax
+
+mov eax,[esi+to_pile_fe]
+shl eax,2
+es
+mov [edx+12],eax
+
+mov al,[esi+code_service]
+es
+mov [edx+16],al
+
+mov al,[esi+temp_exec_tache]
+es
+mov [edx+17],al
+
+mov ax,[esi+id_maitre]
+es
+mov [edx+18],ax
+
+
+
+
+pop es
+pop ds
+popad
 xor eax,eax
 iret
 
