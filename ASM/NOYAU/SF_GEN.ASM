@@ -1033,7 +1033,7 @@ iret
 sfs_rech_service:
 pushad              ;ah=code de service a rechercher (0=liste toutes les applications) cl=nombre de service a rechercher ds:edx=adresse ou ecrire la liste des services
 push es
-
+dec cl
 mov al,cl
 mov bx,selramh
 mov es,bx
@@ -1097,6 +1097,7 @@ jne boucle2_sfs_rech_service
 
 
 fin2_sfs_rech_service:
+mov word[edx],0
 pop es
 popad
 iret
@@ -1487,7 +1488,7 @@ pushad
 ;ds:edx=table
 ;ds:ebx=chaine asciiz de la commande a rechercher (chaine vide=tout)
 push es
-
+dec cx
 mov ax,cx
 mov si,selramh
 mov es,si
@@ -1560,7 +1561,7 @@ pushad
 ;ds:edx=table
 ;ds:ebx=chaine asciiz de la commande a rechercher (chaine vide=tout)
 push es
-
+dec cx
 mov ax,cx
 mov si,selramh
 mov es,si
@@ -1776,37 +1777,41 @@ iret
 
 
 trouve_sfs_info_tache:
+es
+mov [edx],esi
+
+
 mov eax,[esi+to_tache]
 es
-mov [edx],eax
+mov [edx+4],eax
 
 mov eax,[esi+to_code_fe]
 es
-mov [edx+4],eax
+mov [edx+8],eax
 
 mov eax,[esi+tt_data1_dt]
 add eax,[esi+tt_data2_dt]
 add eax,[esi+tt_data3_dt]
 add eax,[esi+tt_data4_dt]
 es
-mov [edx+8],eax
+mov [edx+12],eax
 
 mov eax,[esi+to_pile_fe]
 shl eax,2
 es
-mov [edx+12],eax
+mov [edx+16],eax
 
 mov al,[esi+code_service]
 es
-mov [edx+16],al
+mov [edx+20],al
 
 mov al,[esi+temp_exec_tache]
 es
-mov [edx+17],al
+mov [edx+21],al
 
 mov ax,[esi+id_maitre]
 es
-mov [edx+18],ax
+mov [edx+22],ax
 
 
 
