@@ -245,7 +245,7 @@ int 63h
 
 mov ah,07h
 mov edx,ip_cible
-mov ecx,15
+mov ecx,128
 mov al,6
 int 63h
 
@@ -655,7 +655,7 @@ adresse_canal:
 dd 0
 
 ip_cible:
-dd 0,0,0,0,0,0,0,0,0,0,0,0,0
+rb 128
 
 port_cible:
 dd 0,0

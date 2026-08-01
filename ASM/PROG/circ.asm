@@ -114,7 +114,7 @@ mov [port_serveur],cx
 mov al,0
 mov bx,[id_tache]
 mov ecx,64
-mov edx,1
+mov edx,0
 mov esi,2000
 mov edi,2000
 int 65h
@@ -158,9 +158,28 @@ mov dx,sel_dat2
 mov ah,1   ;option=mode texte
 mov al,0   ;création console     
 int 63h
-
 mov dx,sel_dat2    ;écran video
 mov fs,dx
+
+
+;supprime la ligne de texte partielle en bas de l'écran
+xor eax,eax
+fs
+mov ax,[resy_texte]
+shl ax,4
+fs
+cmp [resy_ecran],ax
+je @f
+
+fs
+mov ax,[resx_texte]
+shl eax,2
+fs
+sub [to_texte],eax
+fs
+dec word[resy_ecran]
+@@:
+
 
 ;***********************************************
 ;demande identifiant
@@ -175,9 +194,18 @@ mov ecx,32
 mov al,6
 int 63h
 
-;§§§§§§§§§§§§§§§§§§§§§§checker si il y as pas d'espace et redemander (ou remplacer par _)
-
-
+;remplacer les espaces dans l'identifiant par des _
+mov edx,identifiant
+@@:
+cmp byte[edx],0
+je @f
+cmp byte[edx]," "
+jne pasespace
+mov byte[edx],"_"
+pasespace:
+inc edx
+jmp @b
+@@:
 
 
 
@@ -202,26 +230,14 @@ mov edi,zt_recep+5
 mov esi,identifiant
 call insert_chaine
 
-mov byte[edi]," "
-inc edi
+mov dword[edi]," 0 *"
+mov byte[edi+4]," "
+add edi,5
+
 
 mov esi,identifiant
 call insert_chaine
 
-mov word[edi],"1 "
-add edi,2
-
-mov esi,identifiant
-call insert_chaine
-
-mov word[edi],"2 "
-add edi,2
-
-mov esi,identifiant
-call insert_chaine
-
-mov word[edi],"3 "
-add edi,2
 mov word[edi],0D0Ah
 add edi,2
 
@@ -259,7 +275,7 @@ mov esi,zt_recep
 sub ecx,esi
 int 65h
 
-
+;??????????????????????????????????????????????????????????????
 
 ;envoie la commande JOIN
 mov dword[zt_recep],"JOIN"
@@ -873,7 +889,7 @@ dw 0
 cmd_max:
 dw 0
 cmd_fifo:
-dw 2000,2000 
+dw 2000,2000
 port_serveur:
 dw 0
 ip_serveur:
