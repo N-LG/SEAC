@@ -163,11 +163,12 @@ int 61h
 call charge_icones
 
 
+
+
+
 redim_ecran:
 call charge_ecran
-
-
-
+call charge_barre
 
 ;************************************************************************************************
 affichage:
@@ -183,6 +184,8 @@ jnz redim_ecran
 
 mov al,5
 int 63h
+cmp al,0
+je pas_de_touche
 cmp al,1  ;echap on quitte
 je touche_esc
 cmp al,0F0h
@@ -221,6 +224,23 @@ jmp affichage
 
 
 
+pas_de_touche:
+mov al,9
+int 61h
+shr si,10
+cmp [cpt_maj_barre],si
+jne maj_barre
+int 62h
+jmp attend_touche
+
+
+maj_barre:
+mov [cpt_maj_barre],si
+call affiche_barre
+jmp attend_touche
+
+
+
 
 touche_esc:
 int 60h
@@ -243,6 +263,9 @@ jmp attend_touche
 
 ;**************************
 clique:
+cmp ecx,[py_barre_taches]
+ja barre_des_taches
+
 mov al,12
 int 61h
 cmp eax,[dernier_clique]
@@ -284,7 +307,49 @@ jmp affichage
 
 
 
+;******************************
+barre_des_taches:
+cmp ebx,[tx_bt_menu]
+jb menu_barre_des_taches
+cmp ebx,[px_horloge]
+ja horloge_barre_des_taches
 
+;************clique sur tache
+cmp dword[nb_taches],0
+je attend_touche
+mov eax,ebx
+sub eax,[px_bt_tache]
+xor edx,edx
+mov ecx,[tx_bt_tache]
+div ecx
+
+cmp eax,[nb_taches]
+ja attend_touche
+
+shl eax,1
+mov dx,[eax+taches]
+mov eax,3
+int 63h
+jmp attend_touche
+
+;*********
+menu_barre_des_taches:
+;?????????????????
+jmp attend_touche
+
+;**********
+horloge_barre_des_taches:
+;?????????????????
+jmp attend_touche
+
+
+
+
+
+
+
+
+;*****************************
 double_clique:
 call recherche_objet
 cmp esi,0
@@ -625,6 +690,15 @@ call ajuste_langue
 int 61h
 int 60h
 
+
+erreur_barre:
+mov al,6
+mov edx,msg_ereur_bar
+call ajuste_langue
+int 61h
+int 60h
+
+
 erreur_fond:
 mov al,6
 mov edx,msg_ereur_fde
@@ -687,6 +761,178 @@ mov eax,[esi]
 add esi,eax
 jmp @b
 @@:
+
+
+
+;**************************
+affiche_barre:    ;affiche la barre des taches
+xor ebx,ebx
+mov ecx,[py_barre_taches]
+xor edi,edi
+xor esi,esi
+fs
+mov di,[resy_ecran]
+fs
+mov si,[resx_ecran]
+dec edi
+call bouton
+
+
+;affiche bouton menu
+mov ecx,[py_barre_taches]
+mov ebx,1
+inc ecx
+xor edi,edi
+mov esi,ebx
+fs
+mov di,[resy_ecran]
+add esi,[tx_bt_menu]
+sub edi,2
+sub esi,2
+call bouton
+
+mov al,27
+inc ebx
+inc ecx
+mov edx,zt_image_menu
+int 63h
+
+
+;affiche heure/jour
+;???????????????????????????
+
+
+
+;liste les taches
+mov al,22
+mov ebx,vide
+mov edx,taches
+mov ecx,128
+int 61h
+
+
+;compte le nombre de taches
+mov ecx,taches
+@@:
+cmp word[ecx],0
+je @f
+add ecx,2
+jmp @b
+@@:
+sub ecx,taches
+shr ecx,1
+mov [nb_taches],ecx
+
+;retire  la tache de la liste
+mov al,2
+int 61h
+mov edi,taches
+@@:
+cmp [edi],bx
+je @f
+add edi,2
+dec ecx
+jmp @b 
+@@:
+mov esi,edi
+add esi,2
+cld
+rep movsw
+dec dword[nb_taches]
+jz fin_afficher_tache 
+
+
+;calcul la taille des boutons de tache
+xor edx,edx
+mov eax,[px_horloge]
+sub eax,[px_bt_tache]
+mov ecx,[nb_taches]
+div ecx
+cmp eax,200 ;taille max d'une tache dans la barre
+jb @f
+mov eax,200
+@@:
+mov [tx_bt_tache],eax
+
+
+
+
+
+
+
+;boucle afficher taches
+mov edi,taches
+mov ebx,[px_bt_tache]
+boucle_afficher_tache:
+cmp word[edi],0
+je fin_afficher_tache
+push ebx
+push edi
+
+
+;affiche bouton tache
+push edi
+mov ecx,[py_barre_taches]
+inc ecx
+xor edi,edi
+mov esi,ebx
+fs
+mov di,[resy_ecran]
+add esi,[tx_bt_tache]
+sub edi,2
+dec esi
+call bouton
+pop edi
+
+
+;récupère descriptif tache
+push ebx
+mov eax,24
+mov bx,[edi]
+mov edx,zt_descr_tache
+int 61h
+
+;tronque eventuellement le début du descriptif
+mov edx,zt_descr_tache
+@@:
+cmp byte[edx],0
+je @f
+inc edx
+jmp @b
+@@:
+
+mov ecx,[tx_bt_tache]
+sub ecx,12
+shr ecx,3
+@@:
+mov al,[edx]
+dec edx
+cmp edx,zt_descr_tache
+je @f
+and al,0C0h
+cmp al,80h
+je @b
+dec ecx
+jnz @b
+mov word[edx],2E2Eh
+@@:
+
+;affiche descriptif tache
+pop ebx
+mov eax,25
+add ebx,6
+mov ecx,[lt_barre_taches]
+int 63h
+
+
+
+pop edi
+pop ebx
+add edi,2
+add ebx,[tx_bt_tache]
+jmp boucle_afficher_tache
+fin_afficher_tache:
+
 
 
 mov eax,7  ;demande la mise a jour ecran
@@ -1010,6 +1256,73 @@ jne erreur_icone
 ret
 
 
+
+
+
+
+
+
+
+
+;********************************************
+charge_barre:
+;lit la taille du fichier de bouton
+xor eax,eax
+xor ebx,ebx
+mov edx,fichier_menu_def
+int 64h
+cmp eax,0
+jne erreur_barre
+mov ebp,ebx
+
+
+mov al,51
+int 63h
+cmp eax,0
+jne erreur_barre
+add ebx,4
+add ecx,4
+mov [tx_bt_menu],ebx
+mov [ty_barre_taches],ecx
+
+
+;réserve la mémoire pour
+shr edx,8 ;edx= taille de l'image
+;?????????????
+
+
+;charge l'image
+mov al,52
+mov ebx,ebp
+mov edi,zt_image_menu
+int 63h
+cmp eax,0
+jne erreur_barre
+
+
+;calcul les dimensions des boutons
+xor eax,eax
+fs
+mov ax,[resy_ecran]
+sub eax,[ty_barre_taches]
+mov [py_barre_taches],eax ;position de la barre des taches
+
+mov eax,[ty_barre_taches]
+sub eax,18
+shr eax,1
+add eax,[py_barre_taches]
+mov [lt_barre_taches],eax ; position texte de la barre des taches
+
+mov eax,[tx_bt_menu]
+mov [px_bt_tache],eax  ;position des taches dans la barre
+
+xor eax,eax
+fs
+mov ax,[resx_ecran]
+sub eax,90
+mov [px_horloge],eax ;position de l'horloge
+
+ret
 
 
 ;***************************************
@@ -2626,6 +2939,9 @@ db "ICS: erreur lors de la lecture du fichier de fond d'ecran",13,0
 msg_ereur_ldo:
 db "ICS: error loading icon definition",13,0
 db "ICS: erreur erreur lors du chargement de la définition des icônes",13,0
+msg_ereur_bar:
+db "ICS: Error loading the taskbar menu image",13,0
+db "ICS: erreur erreur lors du chargement de l'image du menu de la barre des taches",13,0
 msg_ereur_svo:
 db "ICS: error saving icon definition",13,0
 db "ICS: erreur lors de la sauvegarde de la définition des icônes",13,0
@@ -2740,6 +3056,40 @@ nb_icones:
 dd 0
 
 
+;variables barre des taches
+ty_barre_taches:
+dd 0
+py_barre_taches:
+dd 0
+lt_barre_taches:
+dd 0
+cpt_maj_barre:
+dw 0
+tx_bt_menu:
+dd 0
+
+nb_taches:
+dd 0
+taches:
+rb 256
+vide:
+db 0
+
+px_bt_tache:
+dd 0
+tx_bt_tache:
+dd 0
+
+px_horloge:
+dd 0
+
+
+zt_descr_tache:
+rb 256
+
+zt_image_menu:
+rb 4000   ;taille a revoir lors de l'adaptation de taille!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 
 
@@ -2766,9 +3116,12 @@ dd 0
 
 ;informations par défaut
 fichier_fond_def:
-db "fond.png",0
+db "ics_fond.png",0
 fichier_icones_def:
-db "icones.png",0
+db "ics_icones.png",0
+fichier_menu_def:
+db "ics_menu.png",0
+
 fichier_objets_def:
 db "ICS.DAT",0
 
