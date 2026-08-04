@@ -184,8 +184,6 @@ jnz redim_ecran
 
 mov al,5
 int 63h
-cmp al,0
-je pas_de_touche
 cmp al,1  ;echap on quitte
 je touche_esc
 cmp al,0F0h
@@ -196,7 +194,7 @@ cmp al,0F2h
 je clique_droit
 
 cmp byte[mode],0
-je attend_touche
+je pas_de_touche
 mov esi,[adresse_objet_deplace]
 xor eax,eax
 xor ebx,ebx
@@ -798,7 +796,40 @@ mov edx,zt_image_menu
 int 63h
 
 
-;affiche heure/jour
+;affiche heure/jour (juste heure pour l'instant)
+mov al,9
+int 61h
+push ebx
+
+mov al,102
+xor ecx,ecx
+mov cl,bh
+mov edx,zt_descr_tache
+int 61h
+@@:
+cmp byte[edx],0
+je @f
+inc edx
+jmp @b
+@@:
+mov byte[edx],":"
+inc edx
+
+pop ebx
+mov al,102
+xor ecx,ecx
+mov cl,bl
+int 61h
+
+mov eax,25
+mov ebx,[px_horloge]
+add ebx,48
+mov ecx,[lt_barre_taches]
+mov edx,zt_descr_tache
+int 63h
+
+
+
 ;???????????????????????????
 
 
@@ -1300,6 +1331,12 @@ cmp eax,0
 jne erreur_barre
 
 
+;ferme l'image
+mov al,1
+mov ebx,ebp
+int 64h
+
+
 ;calcul les dimensions des boutons
 xor eax,eax
 fs
@@ -1308,7 +1345,7 @@ sub eax,[ty_barre_taches]
 mov [py_barre_taches],eax ;position de la barre des taches
 
 mov eax,[ty_barre_taches]
-sub eax,18
+sub eax,16
 shr eax,1
 add eax,[py_barre_taches]
 mov [lt_barre_taches],eax ; position texte de la barre des taches
