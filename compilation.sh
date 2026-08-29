@@ -54,6 +54,7 @@ fasm ASM/PROG/snake.asm BIN/SNAKE.FE
 fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 fasm ASM/PROG/install.asm BIN/INSTALL.FE
 fasm ASM/PROG/iff.asm BIN/IFF.FE
+fasm ASM/PROG/ltp.asm BIN/LTP.FE
 
 #compilation du noyau
 fasm ASM/NOYAU/ETAGE3.ASM BIN/ETAGE3.BIN
@@ -91,7 +92,7 @@ zip -9 SEAC.ZIP *.png
 
 zip -9 CFG.ZIP *.CFG
 zip -9 CFG.ZIP *.def
-zip -9 CFG.ZIP *.TXT
+zip -9 CFG.ZIP *.stx
 cd ..
 
 
@@ -112,7 +113,8 @@ cd ..
 ./ajarch BIN/EDH.FE BIN/ETAGE4.BIN
 ./ajarch BIN/EDG.FE BIN/ETAGE4.BIN
 ./ajarch BIN/ICS.FE BIN/ETAGE4.BIN
-./ajarch BIN/icones.png BIN/ETAGE4.BIN
+./ajarch BIN/ics_icones.png BIN/ETAGE4.BIN
+./ajarch BIN/ics_menu.png BIN/ETAGE4.BIN
 ./ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ./ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
 ./ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
@@ -150,6 +152,7 @@ cd ..
 ./ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
 ./ajarch BIN/INSTALL.FE BIN/ETAGE4.BIN
 ./ajarch BIN/IFF.FE BIN/ETAGE4.BIN
+./ajarch BIN/LTP.FE BIN/ETAGE4.BIN
 ./ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 #ajout de la bibliotheque de base pour la création d'application assembleur et d'un exemple a l'archive du noyau
@@ -199,11 +202,10 @@ zip -9  pxe.zip *.ids -mx9
 zip -9 pxe.zip *.FE -mx9
 zip -9 pxe.zip *.png -mx9
 zip -9 pxe.zip *.def -mx9
+zip -9 pxe.zip *.stx -mx9
 
 zip -9 pxe.zip LSPCI.CFG
 zip -9 pxe.zip LSPCI.CFG
-zip -9 pxe.zip MANUEL.TXT
-zip -9 pxe.zip MANUAL.TXT
 zip -9 pxe.zip AUTOCOMP.CFG
 zip -9 pxe.zip EXPL.CFG
 

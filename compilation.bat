@@ -56,7 +56,7 @@ fasm ASM/PROG/snake.asm BIN/SNAKE.FE
 fasm ASM/PROG/palette.asm BIN/PALETTE.FE
 fasm ASM/PROG/install.asm BIN/INSTALL.FE
 fasm ASM/PROG/iff.asm BIN/IFF.FE
-
+fasm ASM/PROG/ltp.asm BIN/LTP.FE
 
 
 :compilation des secteur de boot
@@ -99,7 +99,7 @@ cd BIN
 
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.def -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.cfg -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.txt -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip CFG.ZIP *.stx -mx9
 cd ..
 
 
@@ -112,7 +112,8 @@ ajarch BIN/EDT.FE BIN/ETAGE4.BIN
 ajarch BIN/EDH.FE BIN/ETAGE4.BIN
 ajarch BIN/EDG.FE BIN/ETAGE4.BIN
 ajarch BIN/ICS.FE BIN/ETAGE4.BIN
-ajarch BIN/icones.png BIN/ETAGE4.BIN
+ajarch BIN/ics_icones.png BIN/ETAGE4.BIN
+ajarch BIN/ics_menu.png BIN/ETAGE4.BIN
 ajarch BIN/PARTD.FE BIN/ETAGE4.BIN
 ajarch BIN/LSPCI.FE BIN/ETAGE4.BIN
 ajarch BIN/LSUSB.FE BIN/ETAGE4.BIN
@@ -153,6 +154,7 @@ ajarch BIN/SNAKE.FE BIN/ETAGE4.BIN
 ajarch BIN/PALETTE.FE BIN/ETAGE4.BIN
 ajarch BIN/INSTALL.FE BIN/ETAGE4.BIN
 ajarch BIN/IFF.FE BIN/ETAGE4.BIN
+ajarch BIN/LTP.FE BIN/ETAGE4.BIN
 ajarch BIN/CFG.ZIP BIN/ETAGE4.BIN
 
 
@@ -212,11 +214,10 @@ cd BIN
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.FE -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.png -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.def -mx9
+"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip *.stx -mx9
 
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip LSPCI.CFG -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip LSPCI.CFG -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip MANUEL.TXT -mx9
-"C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip MANUAL.TXT -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip AUTOCOMP.CFG -mx9
 "C:\Program Files\7-Zip\7z.exe" a -tzip pxe.zip EXPL.CFG -mx9
 
