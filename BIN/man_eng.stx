@@ -52,6 +52,7 @@ SMLTX;
 >~SCANIP~ ip address scanner
 >~CHTTP~ http client
 >~CFTP~ ftp client
+>~NSN~ smolnet navigator
 ##Servers:
 >~SHTTP~ http server
 >~STFTP~ tftp server
@@ -103,7 +104,7 @@ List Tasks running on the system
 Stop task numbers XXX
 "command: mtt XXX YYY
 set the execution time of the task XXX to the value YYY (unit of time 2.5ms)
-:lv:mod
+:lv:modv
 #Video setting commands
 
 "command: lv       

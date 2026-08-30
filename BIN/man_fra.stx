@@ -75,6 +75,7 @@ lorsque le ~tecop~ est affiché vous avez la possibilité d'acceder directement 
 >~CHTTP~ client http
 >~CFTP~ client ftp
 >~CTFTP~ client tftp
+>~NSN~ navigateur smolnet
 ##Serveurs: 
 >~SHTTP~ serveur http
 >~STFTP~ serveur tftp
@@ -166,58 +167,73 @@ les touches fonctions permettent d'acceder aux interfaces listé en haut de l'é
 chargement d'un fichier de définition langue, clavier, ou une police supplémentaire
 
 "commande: def XXX
->>>XXX = nom du fichier a charger
+>Avec:
+>>XXX = nom du fichier a charger
 
 ##langues
-fr-txt.def  -> message systeme en français
-en-txt.def  -> message systeme en anglais
+>fr-txt.def  -> message systeme en français
+>en-txt.def  -> message systeme en anglais
 
 ##claviers 
-fr-aza.def  -> azerty spécial Seac
-be-azs.def  -> azerty belge
-en-qwi.def  -> qwerty US international 
-bepo.def    -> Bépo 
-dvorak.def  -> Dvorak 
-colemak.def -> Colemak 
+>fr-aza.def  -> azerty Français amélioré 
+>be-azs.def  -> azerty Belge
+>ca-qws.def  -> qwerty Cananadien
+>ch-qzf.def  -> qwertz Suisse Français
+>ch-qzg.def  -> qwertz Suisse Allemand
+>en-qus.def  -> qwerty US simple
+>en-qwi.def  -> qwerty US international
+>gr-aza.def  -> combiné Grec/azerty (bascule avec Ctrl+Alt+`)
+>gr-qwi.def  -> combiné Grec/qwerty (bascule avec Ctrl+Alt+`)
+>bepo.def    -> Bépo 
+>colemak.def -> Colemak
+>dvorak.def  -> Dvorak 
+>ergol.def   -> Ergol
+ 
 
-#polices
-0u0.def     -> caractères de 0 a FF 
-1u0.def     -> caractères de 100 à 1FF (incomplet)
-25u0.def    -> caractères de 2500 à 25FF
-F00u0.def   -> caractères de F0000 à F00FF
+##polices
+>0u0.def     -> caractères de 0 a FF (latin)
+>1u0.def     -> caractères de 100 à 1FF (latin étendu 1)
+>2u0.def     -> caractères de 200 à 2FF (latin étendu 2) @tres incomplet@
+>3u0.def     -> caractères de 300 à 3FF (grec)
+>4u0.def     -> caractères de 400 à 4FF (cyrillique) @incomplet@
+>5u0.def     -> caractères de 500 à 5FF (cyrillique Arménien,Hébreu) @tres incomplet@
+>25u0.def    -> caractères de 2500 à 25FF (symboles)
+>FFu0.def    -> caractères de FF00 à FFFF (compatibilité CJC/japonais) @incomplet@
+>F00u0.def   -> caractères de F0000 à F00FF (personalisé)
+
 "les polices sont éditable grâce à ~edg~  
 :edg
 #EDG
 editeur de police matriciel (dans un fichier ~def~)
 
 "commande: edg XXX
->>avec:
->>>XXX = nom du fichier a ouvrir(paramètre optionnel)
+>avec:
+>XXX = nom du fichier a ouvrir(paramètre optionnel)
 :ex
 #EX
 execute un script
 
 "commande: ex XXX Y
->>Avec:
->>>XXX = nom du fichier a executer
->>>Y = options
+>Avec:
+>>XXX = nom du fichier a executer
+>>Y = options
 
 ##Option:
->>>-v  = on execute la liste de commande sans verifier si la précédente a fini (paramètre optionnel)
+>-v  = on execute la liste de commande sans verifier si la précédente a fini (paramètre optionnel)
 :edt
 #EDT
 editeur de texte
 
 "commande: edh XXX
->>Avec:
->>>XXX = nom du fichier a ouvrir(paramètre optionnel)
+>Avec:
+>>XXX = nom du fichier a ouvrir(paramètre optionnel)
 :edh
 #EDH
  editeur Hexadécimal
 
 "commande: edh XXX
->>Avec:
->>>XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramètre optionnel)
+>Avec:
+>>XXX = nom du fichier a ouvrir ou # pour acceder a la liste des disques a éditer (paramètre optionnel)
 :partd
 #PARTD
 outils de partitionnement
@@ -232,27 +248,22 @@ configuration des cartes Ethernet
 affiche les information sur les driver ip actif
 
 "commande: ipconfig X YYY ZZZZZ
->>avec:
->>>
-
 configure le paramètre YYY avec la valeur ZZZZZ dans la carte X
- valeurs possible pour YYY:
-         amac = adresse mac
-         ipv4 = adresse ip v4
-         mas4 = masque de sous réseau ip v4
-         pas4 = passerelle ip v4 
-         ip6p = adresse ip v6 privée
-         ip6g = adresse ip v6 global
-
-"commande: ipconfig X comp ZZZZZZ
-configure les paramètres de la carte X
->>avec
->>>ZZZZZZ liste des paramètres séparé par un espace:
+>valeurs possible pour YYY:
+>>amac = adresse mac
+>>ipv4 = adresse ip v4
+>>mas4 = masque de sous réseau ip v4
+>>pas4 = passerelle ip v4 
+>>ip6p = adresse ip v6 privée
+>>ip6g = adresse ip v6 global
+>>comp = liste des paramètres séparé par un espace:
 >>>>adresse ip v4
-         masque de sous réseau ip v4
-         passerelle ip v4 
-         adresse ip v6 privée
-         adresse ip v6 global
+>>>>masque de sous réseau ip v4
+>>>>passerelle ip v4 
+>>>>adresse ip v6 privée
+>>>>adresse ip v6 global
+
+
 :man
 #MAN
  affiche une rubrique d'aide dans le journal
@@ -260,22 +271,102 @@ configure les paramètres de la carte X
 "commande: man XXX YYY
  avec XXX = mot clef de la rubrique
       YYY = nom du fichier ou sont contenue les informations (paramètre optionnel)
+:nsn
+#NSN
+navigateur smolnet
 
- par défaut, a base de donnée est le fichier MANUEL.TXT qui se trouve dans le ~dossier systeme~
- le format du fichier est un simple fichier texte, le premier caractère de chaque ligne indique de quel type est la ligne
- " " la ligne est une simple ligne de texte
- ":" la ligne est une liste de mot clef et marque de début d'une rubrique
- "#" affiche la ligne en vert clair (titre de la rubrique)
- """ affiche la ligne en blanc clair (sous titre/information importante)
- une expression entouré de ~~ indique qu'il s'agit d'un mot clef ou d'un lien 
+"commande: nsn XXX
+>Avec:
+>>XXX = URL du fichier a ouvrir
+
+pour l'instant seul le protocole gopher et le protocole http sont supporté
+les menu gopher et les page html sont transformé (plus ou moin bien) en ~smoltexte~ pour pouvoir être affiché, les textes bruts sont affiché sans formatage
+
+:smoltexte
+#SMOLTEXTE
+
+le smoltexte est une variante du markdown qui sert a enregistrer les pages de documentations du systeme d'exploitation SEaC
+
+le smoltexte est principalement organisé en ligne, les marqueur de fin de ligne peut être CR, LF, ou CRLF
+la première ligne est dédié aux métadonnée du fichier, ensuite chaque fonctions d'une ligne est définis par ses premiers caractère
+
+
+
+## première ligne
+la première ligne est destiné à avertir du format et à contenir les métadonnée du document, celle ci as le format suivant:
+
+"SMLTX;titre;auteur;date dernière modification;version;organisation;date de valididité;
+
+seule la chaine SMLTX; au début est obligatoire pour indiquer de quel type est le document. Les dates sont au format YYYY-MM-JJ ou YYYY-MM-JJThh:mm:ss.ms suivant le jour et l'heure UTC 
+
+
+## marques en début de ligne
+
+### # titre et sous titre 
+de 1 à 3 croisillon marque les titres et sous titres
+
+### | tableau
+chaque ligne est une ligne du tableau, chaque colonne est séparé par le caractère |
+exemple:
+"||colonne 1|colonne 2
+"|ligne 1||
+"|ligne 2||
+donnera:
+||colonne 1|colonne 2
+|ligne 1||
+|ligne 2||
+
+### ! fichier multimédia 
+permet d'inserer un fichier dans le document,un navigateur qui ne supporte pas le type du fichier affichera un lien pour le télécharger
+exemple:
+"!texte alternatif|url du fichier 
+
+### : rubrique/liens interne
+marque le début d'une rubrique et est suivis par le nom de la rubrique, si la rubrique as plusieurs nom on marque les nom on les marques a la suite séparé par des :
+exemple:
+":nom rubrique:nom alternatif1:nom alternatif 2
+
+### > indentation de la ligne
+ajoute une indentation au texte pour un peu plus de lisibilité, on peut repeter le > pour indenter sur plusieurs niveaux
+
+### ? caractere d'échapement
+on ignore le caractère de début de ligne (si on veux faire commencer une ligne par un caractère réservé)
+
+### " paragraphe spécial
+résumé, citations, extrais de code...) ,des indentations avec le symbole > peuvent être ajouté a la suite  pour la mise en forme et on doit utiliser une police a chasse fixe 
+
+
+## marque de mise en forme du texte 
+chaque caractère spécial encadre la zone concerné, si on as besoin d'afficher le caractère, on as simplement besoin de le répéter, un seul caractère sera affiché et aucune mise en forme spécifique sera appliqué
+
+### ~~ liens  
+exemple:
+"~~nom d'affichage|url~~
+donnera:
+~nom d'affichage|url~
+si il n'y as pas d'url, le nom d'affichage correspond a une sous rubrique du même document, si l'url commence par # c'est aussi une sous rubrique du même document
+
+### __ souligné
+exemple:
+"__texte souligné__
+donnera:
+_texte souligné_
+
+### @@ emphase
+exemple:
+"@@texte emphasé@@
+donnera:
+@texte emphasé@
+
+
 :shttp
 #SHTTP
 serveur http
 
 "commande: shttp XXX YYYY
->>avec:
->>>XXX = nom du dossier des fichiers du site que l'on peut consulter
->>>YYYY = paramètres optionnels
+>avec:
+>>XXX = nom du dossier des fichiers du site que l'on peut consulter
+>>YYYY = paramètres optionnels
 
 ##paramètres optionnels:
 >-c:XXX numéros de l'interface réseau a utiliser
@@ -283,9 +374,9 @@ serveur http
 #STFTP: serveur tftp
 
 "commande: stftp X YYY
->>avec:
->>>XXX = nom du dossier des fichiers du site que l'on peut télecharger
->>>YYYY = paramètres optionnels
+>avec:
+>>XXX = nom du dossier des fichiers du site que l'on peut télecharger
+>>YYYY = paramètres optionnels
 
 ##paramètres optionnels:
 >-c:XXX numéros de l'interface réseau a utiliser
@@ -295,8 +386,8 @@ serveur http
 #STLNT: serveur telnet
 
 "commande: stlnt XXXX
->>avec:
->>>XXXX = paramètres optionnels
+>avec:
+>>XXXX = paramètres optionnels
 
 #paramètres optionnels:
 >-c:XXX numéros de l'interface réseau a utiliser (0 par défaut)
@@ -500,7 +591,7 @@ téléchargeur de ressource avec le protocole FTP
 >>avec:
 >>>XXX = dossier a ouvrir
 
-:ics:bureau
+:ics:bureau:gui
 #ICS
 Interface de commande simplifié
 
