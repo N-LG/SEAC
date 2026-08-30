@@ -330,10 +330,320 @@ mov eax,3
 int 63h
 jmp attend_touche
 
-;*********
+;**************clique sur le bouton du menu
 menu_barre_des_taches:
-;?????????????????
-jmp attend_touche
+
+;initialise les variables du menu général
+mov dword[x_menu_gen],0
+mov dword[y_menu_gen],ecx
+mov dword[niv_menu_gen],0
+mov dword[ligne_menu_gen],0
+
+
+;ouvre le fichier du menu
+mov al,0
+mov ebx,1
+mov edx,fichier_menu_cfg
+int 64h
+cmp eax,0
+jne objet_de_base;?????????????????????????????????
+
+;lit la taille
+mov al,6
+mov ah,1
+mov edx,tempo
+int 64h
+cmp eax,0
+jne erreur_objet
+
+
+;agrandit la zone tampon pour l'acceuillir
+mov ecx,[tempo]
+inc ecx
+shl ecx,2
+mov edx,ad_tempo
+call redim_mem
+
+;lit les objets
+mov al,4
+mov ecx,[tempo]
+xor edx,edx
+mov edi,[ad_tempo]
+int 64h
+cmp eax,0
+jne erreur_objet ;?????????????????????????????????
+
+;ferme le fichier
+mov eax,1
+int 64h
+
+
+
+
+;******************************prépare le menu
+prepare_menu:
+mov ebx,[niv_menu_gen]
+mov ecx,[ligne_menu_gen]
+mov esi,[ad_tempo]
+mov edi,[ad_tempo]
+add edi,[tempo]
+mov byte[edi],0
+inc edi
+
+call rechercheligne
+boucle_preparemenu:
+cmp byte[esi],0
+je fin_preparemenu
+call compte_indent
+cmp eax,ebx
+ja suivant_preparemenu
+jb fin_preparemenu
+@@:
+mov ax,[esi]
+cmp ax,0D0Ah
+je fdl2_preparemenu
+cmp ax,0A0Dh
+je fdl2_preparemenu
+cmp al,0Dh
+je fdl1_preparemenu
+cmp al,0Ah
+je fdl1_preparemenu
+cmp al,"|"
+je ignore_preparemenu
+cmp al,0
+je fin_preparemenu
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+
+fdl2_preparemenu:
+mov byte[edi],13
+add esi,2
+inc edi
+jmp boucle_preparemenu
+
+fdl1_preparemenu:
+mov byte[edi],13
+inc esi
+inc edi
+jmp boucle_preparemenu
+
+ignore_preparemenu:
+mov byte[edi],13
+inc esi
+inc edi
+
+suivant_preparemenu:
+cmp word[esi],0D0Ah
+je fdl2b_preparemenu
+cmp word[esi],0A0Dh
+je fdl2b_preparemenu
+cmp byte[esi],0Dh
+je fdl1b_preparemenu
+cmp byte[esi],0Ah
+je fdl1b_preparemenu
+cmp byte[esi],0
+je fin_preparemenu
+inc esi
+jmp suivant_preparemenu 
+
+fdl2b_preparemenu:
+add esi,2
+jmp boucle_preparemenu
+
+fdl1b_preparemenu:
+inc esi
+jmp boucle_preparemenu
+
+fin_preparemenu:
+dec edi
+cmp byte[edi],13
+je @f
+inc edi
+@@:
+mov byte[edi],0
+
+
+mov ebx,[x_menu_gen]
+mov ecx,[y_menu_gen]
+mov edx,[ad_tempo]
+add edx,[tempo]
+inc edx
+call menu
+cmp eax,-1
+je affichage
+
+
+
+;recherche la ligne dans le fichier qui correspond a l'endroit ou on as cliqué dans le menu
+mov edx,eax   ;edx=n° de ligne du menu a trouver
+mov ebp,eax
+mov ebx,[niv_menu_gen]
+mov ecx,[ligne_menu_gen]
+mov esi,[ad_tempo]
+
+call rechercheligne
+
+boucle_recherchemenu:
+cmp byte[esi],0
+je affichage
+call compte_indent
+cmp eax,ebx
+jb affichage
+jne suivant_recherchemenu
+cmp edx,0
+je trouve_recherchemenu
+dec edx
+
+suivant_recherchemenu:
+cmp word[esi],0D0Ah
+je fdl2_recherchemenu
+cmp word[esi],0A0Dh
+je fdl2_recherchemenu
+cmp byte[esi],0Dh
+je fdl1_recherchemenu
+cmp byte[esi],0Ah
+je fdl1_recherchemenu
+cmp byte[esi],0
+je affichage
+inc esi
+jmp suivant_recherchemenu
+
+fdl1_recherchemenu:
+inc esi
+inc dword[ligne_menu_gen]
+jmp boucle_recherchemenu
+
+fdl2_recherchemenu:
+add esi,2
+inc dword[ligne_menu_gen]
+jmp boucle_recherchemenu
+
+
+trouve_recherchemenu:
+cmp byte[esi],"|"
+je commande_recherchemenu
+cmp byte[esi],13
+je sousmenu_recherchemenu
+cmp byte[esi],10
+je sousmenu_recherchemenu
+cmp byte[esi],0
+je affichage
+inc esi
+jmp trouve_recherchemenu
+
+
+commande_recherchemenu:
+inc esi
+mov edi,[ad_tempo]
+@@:
+mov al,[esi]
+cmp al,0
+je @f
+cmp al,10
+je @f
+cmp al,13
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+mov byte[edi],0
+xor eax,eax
+mov edx,[ad_tempo]
+int 61h
+jmp affichage
+
+
+
+sousmenu_recherchemenu:
+shl ebp,4
+add ebp,[Ymenu]
+mov [y_menu_gen],ebp
+
+mov eax,[Cmenu]
+inc eax
+add [x_menu_gen],eax
+inc dword[niv_menu_gen]
+inc dword[ligne_menu_gen]
+jmp prepare_menu
+
+
+
+
+
+
+
+;*************
+rechercheligne:
+push ecx
+cmp ecx,0
+je fin_rechercheligne
+
+suivant_rechercheligne:
+cmp word[esi],0D0Ah
+je fdl2_rechercheligne
+cmp word[esi],0A0Dh
+je fdl2_rechercheligne
+cmp byte[esi],0Dh
+je fdl1_rechercheligne
+cmp byte[esi],0Ah
+je fdl1_rechercheligne
+cmp byte[esi],0
+je fin_rechercheligne
+inc esi
+jmp suivant_rechercheligne
+
+fdl1_rechercheligne:
+inc esi
+dec ecx
+jz fin_rechercheligne
+jmp suivant_rechercheligne
+
+fdl2_rechercheligne:
+add esi,2
+dec ecx
+jz fin_rechercheligne
+jmp suivant_rechercheligne
+
+fin_rechercheligne:
+pop ecx
+ret
+
+;*************
+compte_indent:
+xor eax,eax
+@@:
+cmp byte[esi]," "
+jne @f
+inc eax
+inc esi
+jmp @b
+@@:
+ret
+
+
+
+;?????????????????????????????????,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;**********
 horloge_barre_des_taches:
@@ -384,6 +694,7 @@ je menu_param
 
 menu_fichier:
 mov edx,texte_menu_fichier
+call ajuste_langue
 push esi
 call menu
 pop esi
@@ -615,6 +926,7 @@ jmp affichage
 ;************************************************
 menu_param:
 mov edx,texte_menu_param
+call ajuste_langue
 call menu
 
 cmp eax,0
@@ -1300,7 +1612,7 @@ charge_barre:
 ;lit la taille du fichier de bouton
 xor eax,eax
 xor ebx,ebx
-mov edx,fichier_menu_def
+mov edx,fichier_menu_png
 int 64h
 cmp eax,0
 jne erreur_barre
@@ -1487,7 +1799,6 @@ ret
 menu:
 mov [Xmenu],ebx
 mov [Ymenu],ecx
-call ajuste_langue
 mov [Tmenu],edx
 
 
@@ -1532,10 +1843,8 @@ jbe @f
 sub eax,[Cmenu]
 mov [Xmenu],eax
 @@:
-xor eax,eax
 mov edx,[Ymenu]
-fs
-mov ax,[resy_ecran]
+mov eax,[py_barre_taches]
 add edx,[Lmenu]
 cmp edx,eax
 jbe @f
@@ -1862,10 +2171,6 @@ int 63h
 
 mov eax,7  ;demande la mise a jour ecran
 int 63h
-
-
-
-
 
 
 saisie_texte_touche:
@@ -3040,6 +3345,7 @@ db "   annuler",0
 
 
 
+;gestion des différentes zones mémoires
 
 ad_objet:
 dd 0
@@ -3059,6 +3365,11 @@ dd 0
 ad_icone:
 dd 0
 to_icone:
+dd 0
+
+ad_menu:
+dd 0
+to_menu:
 dd 0
 
 ad_tempo:
@@ -3143,6 +3454,17 @@ dd 0
 Tmenu:
 dd 0
 
+;variables du menu général
+x_menu_gen:
+dd 0
+y_menu_gen:
+dd 0
+niv_menu_gen:
+dd 0
+ligne_menu_gen:
+dd 0
+
+
 ;variables saisie texte
 max_chaine_saisie:
 dd 0
@@ -3156,9 +3478,10 @@ fichier_fond_def:
 db "ics_fond.png",0
 fichier_icones_def:
 db "ics_icones.png",0
-fichier_menu_def:
+fichier_menu_png:
 db "ics_menu.png",0
-
+fichier_menu_cfg:
+db "MENU.CFG",0
 fichier_objets_def:
 db "ICS.DAT",0
 
