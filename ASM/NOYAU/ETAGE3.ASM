@@ -3091,7 +3091,8 @@ cmp eax,"def"
 je cmddef
 cmp eax,"pwr"
 je cmdpwr
-
+cmp eax,"aft"
+je cmdaft
 jmp commande_fichier
 
 
@@ -4019,6 +4020,34 @@ jmp selcod16:reboot
 
 cmdpwr_stop:
 jmp pascommande
+
+
+;****************************************************************
+cmdaft:
+mov edx,ad_zdc
+boucle_cmdaft:
+cmp byte[edx]," "
+jne @f
+cmp byte[edx+1]," "
+jne suite_cmdaft
+@@:
+inc edx
+cmp edx,ad_zdc+200h
+jne boucle_cmdaft
+xor edx,edx
+jmp @f 
+
+suite_cmdaft:
+inc edx
+mov al,101
+int 61h
+mov dx,cx
+
+@@:
+mov al,3
+int 63h
+jmp pascommande
+
 
 
 ;****************************************************************
