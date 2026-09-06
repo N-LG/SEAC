@@ -346,7 +346,7 @@ mov ebx,1
 mov edx,fichier_menu_cfg
 int 64h
 cmp eax,0
-jne objet_de_base;?????????????????????????????????
+jne erreur_chargement_menu
 
 ;lit la taille
 mov al,6
@@ -371,7 +371,7 @@ xor edx,edx
 mov edi,[ad_tempo]
 int 64h
 cmp eax,0
-jne erreur_objet ;?????????????????????????????????
+jne erreur_chargement_menu
 
 ;ferme le fichier
 mov eax,1
@@ -536,8 +536,32 @@ jmp trouve_recherchemenu
 
 commande_recherchemenu:
 inc esi
+call envoie_commandes
+jmp affichage
+
+
+
+
+
+
+erreur_chargement_menu:
+
+mov edx,msg_erreur_menu
+call ajuste_langue
+
+call menu
+jmp affichage
+
+
+
+
+
+
+
+
+envoie_commandes:
 mov edi,[ad_tempo]
-@@:
+boucle_envoie_cmds:
 mov al,[esi]
 cmp al,0
 je @f
@@ -545,17 +569,27 @@ cmp al,10
 je @f
 cmp al,13
 je @f
+cmp al,"|"
+je @f
 mov [edi],al
 inc esi
 inc edi
-jmp @b
+jmp boucle_envoie_cmds
+
 @@:
 mov byte[edi],0
 xor eax,eax
 mov edx,[ad_tempo]
 int 61h
-jmp affichage
 
+cmp byte[esi],"|"
+jne @f
+inc esi
+mov edi,[ad_tempo]
+jmp boucle_envoie_cmds
+
+@@:
+ret
 
 
 sousmenu_recherchemenu:
@@ -626,23 +660,6 @@ ret
 
 
 
-;?????????????????????????????????,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ;**********
@@ -672,14 +689,8 @@ jmp @b
 
 @@:
 inc edx
-cmp byte[edx],0
-je @f
-xor eax,eax   ;envoie la commande
-int 61h
-@@:
-mov eax,3   ;affichage du tecop
-xor edx,edx
-int 63h
+mov esi,edx
+call envoie_commandes
 jmp attend_touche
 
 
@@ -1104,7 +1115,7 @@ call bouton
 mov al,27
 inc ebx
 inc ecx
-mov edx,zt_image_menu
+mov edx,[ad_menu]
 int 63h
 
 
@@ -1343,7 +1354,7 @@ jne erreur_fond
 
 ;agrandit la zone tampon pour l'acceuillir
 push edx
-shr edx,7       ;8 pour la taille, -1 pour doubler cette taille et avoir de la place pour l'mage intermédiaire
+shr edx,7       ;8 pour la taille, -1 pour doubler cette taille et avoir de la place pour l'image intermédiaire
 mov ecx,edx
 mov edx,ad_tempo
 call redim_mem
@@ -1631,13 +1642,14 @@ mov [ty_barre_taches],ecx
 
 ;réserve la mémoire pour
 shr edx,8 ;edx= taille de l'image
-;?????????????
-
+mov ecx,edx
+mov edx,ad_menu
+call redim_mem 
 
 ;charge l'image
 mov al,52
 mov ebx,ebp
-mov edi,zt_image_menu
+mov edi,[ad_menu]
 int 63h
 cmp eax,0
 jne erreur_barre
@@ -3287,7 +3299,9 @@ db "ICS: erreur erreur lors du chargement de l'image du menu de la barre des tac
 msg_ereur_svo:
 db "ICS: error saving icon definition",13,0
 db "ICS: erreur lors de la sauvegarde de la définition des icônes",13,0
-
+msg_erreur_menu:
+db "error while reading the menu file",0
+db "erreur lors de la lecture du fichier de menu",0
 
 texte_menu_param:
 db "add new shortcut",13
@@ -3435,8 +3449,7 @@ dd 0
 zt_descr_tache:
 rb 256
 
-zt_image_menu:
-rb 4000   ;taille a revoir lors de l'adaptation de taille!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 
 
@@ -3589,8 +3602,8 @@ db 0        ;attributs b0=visible b1=selectionné
 db 0        ;numéros de l'icone
 dw 0        ;vide
 dd 160,16   ;coordonné coin supérieur gauche
-db "Tecop",0  ;texte de l'icone
-db 0  ;commande de l'icone
+db "Tecop",0;texte de l'icone
+db "aft 0",0;commande de l'icone
 @@:
 
 dd @f-$     ;taille de l'objet
