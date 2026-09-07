@@ -381,14 +381,20 @@ mov byte[edi],0
 inc esi
 mov edi,zt_ancre
 
-@@:
+boucle_extrait_ancre:
 mov al,[esi]
 cmp al,0
 je extrait_fin
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
 mov [edi],al
 inc esi
 inc edi
-jmp @b
+jmp boucle_extrait_ancre
 
 extrait_fin:
 mov byte[edi],0
@@ -1256,10 +1262,12 @@ mov edi,zt_recep
 mov esi,zt_recep
 add edi,[taille]
 mov ebp,edi
-;mov dword[edi],":ind"
-;mov word[edi+4],"ex"
-;mov word[edi+6],0A0Dh
-;add edi,8
+
+;crée l'en-tête smoltexte
+mov dword[edi],"SMLT"
+mov word[edi+4],"X;"
+mov byte[edi+6],13
+add edi,7
 
 
 boucle_conversion_menugopher:
@@ -1518,6 +1526,12 @@ mov edi,zt_recep
 mov esi,zt_recep
 add edi,[taille]
 mov ebp,edi
+
+;crée l'en-tête smoltexte
+mov dword[edi],"SMLT"
+mov word[edi+4],"X;"
+mov byte[edi+6],13
+add edi,7
 
 ;commence a la balise body
 mov edx,mot_body
@@ -1908,12 +1922,12 @@ ret
 
 ;*************************************************
 fichier_stx:
+cmp dword[zt_recep],"SMLT"
+jne fichier_txt
+cmp word[zt_recep+4],"X;"
+jne fichier_txt
+
 mov byte[mode],1
-
-;mov al,6
-;mov edx,zt_recep
-;int 61h
-
 call transforme_crlf
 
 
@@ -2157,6 +2171,7 @@ recherche_rubrique:
 mov ebp,zt_recep
 mov ebx,zt_recep
 add ebp,[taille]
+call atteint_ligne_suivante ;on ignore la première ligne
 
 boucle_recherche:
 cmp byte[ebx],":"
@@ -2206,6 +2221,7 @@ jb boucle_recherche
 
 ;si aucunes rubrique n'as été trouvé, on affiche une erreur
 mov ebx,zt_recep
+call atteint_ligne_suivante ;on ignore la première ligne
 jmp @f
 
 nom_ok:
@@ -2217,6 +2233,11 @@ jmp affiche_page
 
 
 fichier_txt:
+cmp dword[zt_recep],"SMLT"
+jne @f
+cmp word[zt_recep+4],"X;"
+je fichier_stx
+@@:
 mov byte[mode],0
 call transforme_crlf
 mov dword[page_encours],zt_recep
@@ -2320,8 +2341,6 @@ mov esi,ebx
 
 cmp esi,ebp
 jae touche_boucle
-cmp byte[esi],":"
-je touche_boucle
 
 push ecx
 mov dl,[coul_base]
@@ -2337,13 +2356,20 @@ jmp continue_ligne_stx
 @@:
 
 
-@@:
 cmp byte[esi],">"
 jne @f
 add edi,16
 sub cx,4
 inc esi
 jmp @b
+@@:
+
+
+cmp byte[esi],22h
+jne @f
+mov dl,[coul_parag]
+mov dh,[coul_parag]
+inc esi
 @@:
 
 
@@ -3395,12 +3421,17 @@ ret
 
 carac_stx:
 cmp eax,"~"
-je @f
+je carac_stx_liens
+cmp eax,"_"
+je carac_stx_rem
+cmp eax,"@"
+je carac_stx_surligne
 cmp eax,"|"
 je stop_lien
 ret
 
-@@:
+
+carac_stx_liens:
 cmp byte[esi],"~"
 jne @f
 inc esi
@@ -3440,6 +3471,39 @@ cmp byte[esi],"~"
 jne @b
 inc esi
 jmp fin_lien
+
+
+carac_stx_rem:
+cmp byte[esi],"_"
+jne @f
+inc esi
+ret
+@@:
+cmp dl,[coul_rem]
+je @f
+mov dl,[coul_rem]
+call  lirecarac
+ret
+@@:
+mov dl,dh
+call  lirecarac
+ret
+
+carac_stx_surligne:
+cmp byte[esi],"@"
+jne @f
+inc esi
+ret
+@@:
+cmp dl,[coul_surl]
+je @f
+mov dl,[coul_surl]
+call  lirecarac
+ret
+@@:
+mov dl,dh
+call  lirecarac
+ret
 
 
 
