@@ -1124,10 +1124,16 @@ mov al,9
 int 61h
 push ebx
 
+
+mov edx,zt_descr_tache
+cmp bh,10
+jae @f
+mov byte[edx],"0"
+inc edx
+@@:
 mov al,102
 xor ecx,ecx
 mov cl,bh
-mov edx,zt_descr_tache
 int 61h
 @@:
 cmp byte[edx],0
@@ -1139,6 +1145,12 @@ mov byte[edx],":"
 inc edx
 
 pop ebx
+cmp bl,10
+jae @f
+mov byte[edx],"0"
+inc edx
+@@:
+
 mov al,102
 xor ecx,ecx
 mov cl,bl
