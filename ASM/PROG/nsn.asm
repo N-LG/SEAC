@@ -1931,240 +1931,6 @@ mov byte[mode],1
 call transforme_crlf
 
 
-jmp ignore_ajout_rubrique;???????????????????????????????????????????
-
-;***************************************************
-;fait une liste des mots clefs
-mov ebx,zt_recep
-mov eax,[taille]
-mov ecx,[taille]
-mov esi,[taille]
-shr eax,1
-add ecx,zt_recep
-add esi,eax
-add esi,ebx
-
-
-mov ebp,esi
-dec esi
-
-boucle1_liste:
-cmp byte[ebx],":"
-jne suite1_liste
-
-
-boucle2_liste:
-mov al,[ebx]
-cmp al,0
-je suite1_liste
-mov[esi],al
-inc ebx
-inc esi
-cmp ebx,ecx
-jae fin1_liste
-jmp boucle2_liste
-
-
-suite1_liste:
-call atteint_ligne_suivante
-cmp ebx,ecx
-jb boucle1_liste
-fin1_liste:
-mov byte[esi],0
-
-
-
-;********************************************
-;trie les rubriques par ordre alphabetique
-mov edx,ebp
-mov edi,ebp
-
-sff_lit_dossier_trie_fichier_suivant:
-cmp byte[edi],":"
-je @f
-cmp byte[edi],0
-je sff_lit_dossier_trie_fin
-inc edi
-jmp sff_lit_dossier_trie_fichier_suivant
-@@:
-inc edi
-
-;test si le fichier doit être placé avant et le déplace si nécessaire
-mov esi,edx
-sff_lit_dossier_trie_boucle:
-call sff_lit_dossier_test
-jnc @f
-call sff_lit_dossier_decale
-jmp sff_lit_dossier_trie_fichier_suivant
-
-
-@@:
-cmp byte[esi],":"
-je @f
-cmp byte[esi],0
-je sff_lit_dossier_trie_fichier_suivant
-inc esi
-jmp @b
-@@:
-inc esi
-cmp esi,edi
-je sff_lit_dossier_trie_fichier_suivant
-jmp sff_lit_dossier_trie_boucle
-
-sff_lit_dossier_trie_fin: 
-
-
-;****************************************************
-;compte les mots clefs et la largeur max d'un mot clef
-mov dword[nb_motclef],0
-mov dword[taille_colonne],0
-mov dword[nb_colonnes],0
-mov dword[nb_lignes],0
-
-
-xor eax,eax
-mov ebx,ebp
-
-boucle_comptaille:
-cmp byte[ebx],":"
-jne @f
-
-inc dword[nb_motclef]
-mov ecx,eax
-xor eax,eax
-cmp ecx,[taille_colonne]
-jb @f
-add ecx,4 ;espace de 4 caractère entre chaque colonnes
-mov [taille_colonne],ecx
-
-@@:
-mov dl,[ebx]
-inc ebx
-and dl,0C0h
-cmp dl,80h
-je @f
-inc eax
-@@:
-cmp byte[ebx],0
-jne boucle_comptaille
-
-
-cmp dword[nb_motclef],0
-je ignore_ajout_rubrique 
-cmp dword[taille_colonne],0
-je ignore_ajout_rubrique 
-jmp ignore_ajout_rubrique  
-
-xor eax,eax
-fs
-mov ax,[resx_texte]
-xor edx,edx
-mov ecx,[taille_colonne]
-div ecx
-mov [nb_colonnes],eax
-
-xor edx,edx
-mov ecx,eax
-mov eax,[nb_motclef]
-div ecx
-mov [nb_lignes],eax
-cmp edx,0
-je @f
-inc dword[nb_lignes]
-@@:
-
-
-
-;***********************************************
-;créer une rubrique étoile qui est une liste des rubriques du fichier
-mov edi,zt_recep
-mov esi,ebp
-add edi,[taille]
-dec edi
-cmp byte[edi],0
-je @f
-inc edi
-mov byte[edi],0
-@@:
-inc edi
-mov dword[edi],":*  "
-mov byte[edi+2],0
-add edi,4
-
-mov ebx,[nb_lignes]
-
-boucle_rubrique:
-mov ebp,[nb_colonnes]
-push esi
-
-boucle_ligne_rubrique:
-mov ecx,[taille_colonne]
-
-mov byte[edi],"~"
-inc edi
-
-boucle_mot_rubrique:
-mov al,[esi]
-cmp al,0
-je fin_mot_rubrique
-inc esi
-cmp al,":"
-je fin_mot_rubrique
-
-mov [edi],al 
-inc edi
-and al,0C0h
-cmp al,80h
-je boucle_mot_rubrique
-dec ecx
-jmp boucle_mot_rubrique
-
-
-fin_mot_rubrique:
-mov byte[edi],"~"
-inc edi
-cmp al,0
-je fin_ligne_rubrique
-
-@@:
-mov byte[edi]," "
-inc edi
-dec ecx
-jnz @b
-
-mov ecx,[nb_lignes]
-dec ecx
-@@:
-inc esi
-cmp byte[esi],0
-je fin_ligne_rubrique
-cmp byte[esi],":"
-jne @b
-dec ecx
-jnz @b
-inc esi
-
-dec ebp
-jnz boucle_ligne_rubrique
-
-fin_ligne_rubrique:
-mov word[edi],2000h
-add edi,2
-pop esi
-
-@@:
-inc esi
-cmp byte[esi],":"
-jne @b
-inc esi
-
-dec ebx
-jnz boucle_rubrique
-dec edi
-mov [taille],edi
-
-ignore_ajout_rubrique:
-
 ;***********************************************
 ;recherche la rubrique
 recherche_rubrique:
@@ -2172,6 +1938,10 @@ mov ebp,zt_recep
 mov ebx,zt_recep
 add ebp,[taille]
 call atteint_ligne_suivante ;on ignore la première ligne
+mov word[offsety],0
+cmp byte[zt_ancre],0
+je nom_nok
+
 
 boucle_recherche:
 cmp byte[ebx],":"
@@ -2216,22 +1986,22 @@ jmp boucle_test_nom
 
 suite_recherche:
 call atteint_ligne_suivante
+inc word[offsety]
 cmp ebx,ebp
 jb boucle_recherche
 
-;si aucunes rubrique n'as été trouvé, on affiche une erreur
-mov ebx,zt_recep
-call atteint_ligne_suivante ;on ignore la première ligne
-jmp @f
+;si aucunes rubrique n'as été trouvé, on affiche le début du document
+nom_nok:
+mov word[offsety],0
+
 
 nom_ok:
-call atteint_ligne_suivante
-@@:
-mov [page_encours],ebx
-mov word[offsety],0
+mov ebx,zt_recep
+call atteint_ligne_suivante ;on ignore la première ligne
+mov dword[page_encours],ebx
 jmp affiche_page
 
-
+;************************
 fichier_txt:
 cmp dword[zt_recep],"SMLT"
 jne @f
@@ -2240,7 +2010,11 @@ je fichier_stx
 @@:
 mov byte[mode],0
 call transforme_crlf
+
 mov dword[page_encours],zt_recep
+mov word[offsety],0
+
+
 
 ;*************************************************************************************************************************
 ;*************************************************************************************************************************
@@ -2336,7 +2110,6 @@ jmp touche_boucle
 
 ;*****************
 affiche_ligne_stx:
-mov eax,zt_recep
 mov esi,ebx
 
 cmp esi,ebp
@@ -2363,6 +2136,9 @@ sub cx,4
 inc esi
 jmp @b
 @@:
+
+cmp byte[esi],":"
+je separation_ligne_stx
 
 
 cmp byte[esi],22h
@@ -2406,7 +2182,7 @@ jnz continue_ligne_stx
 call lirecarac
 call carac_stx
 cmp byte[esi],0
-je @f
+je suivante_ligne_stx
 
 pop ecx
 dec cx
@@ -2417,7 +2193,17 @@ mov cx,[resx_texte]
 jmp continue_ligne_stx
 
 
-@@:
+separation_ligne_stx:
+fs
+mov dword[edi],"="
+fs
+mov [edi+3],dl
+add edi,4
+dec ecx
+jnz separation_ligne_stx
+
+
+suivante_ligne_stx:
 call atteint_ligne_suivante
 pop ecx
 dec cx
@@ -2657,8 +2443,8 @@ jmp affiche_page
 
 
 plus:
-cmp byte[esi],":"
-je touche_boucle
+;cmp esi,[taille]
+;jae touche_boucle
 inc word[offsety]
 jmp affiche_page
 
