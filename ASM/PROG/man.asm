@@ -163,7 +163,7 @@ jmp ignore_transf
 transf_ligne:
 cmp al,ah
 jne @f
-mov al,1Eh
+mov al,1Fh
 mov [ebx],al
 jmp ignore_transf
 

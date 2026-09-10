@@ -1280,12 +1280,25 @@ jmp lien_conversion_menugopher
 ;****************
 texte_conversion_menugopher:
 inc esi
-@@:
+boucle_texte_conversion_menugopher:
 mov al,[esi]
 call ajoute_carac_menugopher
+cmp al,"_"
+je @f
+cmp al,"@"
+je @f
 cmp al,0
 je ligne_conversion_menugopher
-jmp @b
+jmp boucle_texte_conversion_menugopher
+
+@@:
+dec esi
+call ajoute_carac_menugopher
+
+cmp al,0
+je ligne_conversion_menugopher
+jmp boucle_texte_conversion_menugopher
+
 
 
 ;*****************
@@ -3205,6 +3218,9 @@ dec esi
 @@:
 ret
 
+
+
+;**************
 carac_stx:
 cmp eax,"~"
 je carac_stx_liens
@@ -3218,6 +3234,10 @@ ret
 
 
 carac_stx_liens:
+cmp dl,[coul_rem]
+je carac_stx_nop
+cmp dl,[coul_surl]
+je carac_stx_nop
 cmp byte[esi],"~"
 jne @f
 inc esi
@@ -3260,6 +3280,10 @@ jmp fin_lien
 
 
 carac_stx_rem:
+cmp dl,[coul_lien]
+je carac_stx_nop
+cmp dl,[coul_surl]
+je carac_stx_nop
 cmp byte[esi],"_"
 jne @f
 inc esi
@@ -3276,6 +3300,10 @@ call  lirecarac
 ret
 
 carac_stx_surligne:
+cmp dl,[coul_lien]
+je carac_stx_nop
+cmp dl,[coul_rem]
+je carac_stx_nop
 cmp byte[esi],"@"
 jne @f
 inc esi
@@ -3291,7 +3319,8 @@ mov dl,dh
 call  lirecarac
 ret
 
-
+carac_stx_nop:
+ret
 
 
 ;*********************
@@ -3543,17 +3572,17 @@ db 70h
 coul_lien:
 db 03h
 coul_titre:
-db 0Ah
+db 8Ah
 coul_stitre:
-db 0Fh
+db 82h
 coul_sstitre:
-db 0Bh
+db 87h
 coul_parag:
-db 70h
+db 0F0h
 coul_rem:
-db 0Bh
+db 0Fh
 coul_surl:
-db 0A0h
+db 04h
 
 raccourcis:
 rb 512*6
