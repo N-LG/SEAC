@@ -4035,6 +4035,7 @@ inc edx
 cmp edx,ad_zdc+200h
 jne boucle_cmdaft
 xor edx,edx
+or byte[at_csl],20h
 jmp @f 
 
 suite_cmdaft:

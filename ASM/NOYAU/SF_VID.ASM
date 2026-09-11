@@ -2607,12 +2607,12 @@ mov eax,ebx
 add eax,8
 es
 cmp [resx_ecran],ax
-jbe fin_sfv_chaine_pix
+jb fin_sfv_chaine_pix
 mov eax,ecx
 add eax,16
 es
 cmp [resy_ecran],ax
-jbe fin_sfv_chaine_pix
+jb fin_sfv_chaine_pix
 call lireutf8
 cmp eax,0
 je fin_sfv_chaine_pix
@@ -2672,14 +2672,14 @@ mov eax,ebx
 add eax,8
 es
 cmp [resx_ecran],ax
-jbe fin_sfv_chaine_pix2
+jb fin_sfv_chaine_pix2
 
 boucle_sfv_chaine_pix2:
 mov eax,ecx
 add eax,16
 es
 cmp [resy_ecran],ax
-jbe fin_sfv_chaine_pix2
+jb fin_sfv_chaine_pix2
 mov eax,ebx
 add eax,8
 es
