@@ -15,13 +15,17 @@ org 0
 ;[ok]ajouter une touche actualisation (F5)
 ;[ok]ajouter des touches de raccourcis (F7 à F12)
 ;ajouter timeout réponse serveur
-;affichage destination liens si on survole le lien
-;[ok]téléchargement HTTP
+;affichage destination liens si on survole le lien????
+;[bof bof]téléchargement HTTP
 ;lecture type de fichier
 ;html: gestion du caractère d'échapement
 ;html: gestion d'une image
 ;html: gestion d'un tableau
+;gestion du timeout lors des chargements
 
+;a corriger
+;mode de construction des adresse relative et des ancres a revoir
+;erreur lors d'enregistrement de fichier????
 
 
 ;*****************************************
@@ -303,8 +307,6 @@ cmp al,"?"
 je extrait_param
 cmp al,9
 je extrait_param
-cmp al,"#"
-je extrait_ancre
 cmp al,0
 je extrait_fin
 mov [edi],al
@@ -522,10 +524,7 @@ je ouvrir_https
 ;je ouvrir_tftp
 ;@@:
 
-mov edx,msg6
-call ajuste_langue
-mov [page_encours],edx
-jmp affiche_erreur
+jmp aff_err_protocole
 
 
 
@@ -661,6 +660,7 @@ call envoie_utf8z
 
 ;******************************
 ;lit les données reçu jusqu'a la fermeture de la connexion
+mov ebp,-1
 call raz_ecr
 call affiche_adresse
 mov al,11
@@ -763,7 +763,6 @@ ouvrir_fichier:  ;ouvre le fichier
 
 
 
-
 ;***********************************
 ;extrait le nom de fichier de l'url
 mov esi,zt_host
@@ -790,6 +789,7 @@ inc edi
 jmp @b
 @@:
 mov byte[edi],0
+
 
 
 ;extrait l'extention
@@ -842,7 +842,7 @@ cmp eax,0
 jne aff_err_fichier
 
 
-;agrandit la zone mémoire pour pouvoir contenir 2 fois le fichier pour rajouter le listing des mots clefs
+;agrandit la zone mémoire pour pouvoir contenir 2 fois le fichier pour eventuellement convertir le fichier
 mov ecx,[taille]
 shl ecx,2
 call ajuste_memoire
@@ -976,12 +976,7 @@ mov edx,http_req1
 call envoie_utf8z
 
 mov edx,zt_ressource
-cmp byte[edx],0
-jne @f
-mov word[edx],"/"
-@@:
 call envoie_utf8z
-
 
 cmp byte[zt_param],0
 je @f
@@ -1047,12 +1042,6 @@ fin_entete:
 add esi,4    ;esi=début du fichier
 
 
-;****************************
-;affiche si réponse négative?????????????????
-;cmp dword[zt_recep+8]," 200"
-;je ok_chargement
-;jmp aff_err_serv   ;?????????????????????????????????
-;ok_chargement:
 
 
 ;*****************************
@@ -1063,9 +1052,6 @@ mov edi,taille_http
 call cherche_option_http  ;cherche "Content-Length: " dans l'en-tête (insensible a la casse)
 cmp edx,esi
 je @f
-
-mov al,6
-int 61h
 mov al,100
 int 61h
 mov [taille_attendue],ecx 
@@ -1097,8 +1083,6 @@ jne @b
 @@:
 mov byte[edi],0
 
-
-
 ;aggrandit la zone pour reçevoir le document
 pushad
 mov ecx,[taille_attendue]
@@ -1108,6 +1092,34 @@ cmp eax,0
 jne aff_err_mem
 popad
 
+
+
+;cherche le code d'erreur
+;mov edx,zt_recep  
+;@@:
+;cmp byte[edx],20h
+;je @f
+;inc edx
+;jmp @b 
+;@@:
+;inc edx
+;cmp byte[edx],20h
+;jne @f
+;inc edx
+;jmp @b 
+;@@:
+;mov eax,[edx]
+;and eax,0FFFFFFh
+;cmp eax,"200"
+;je
+
+
+
+
+
+
+
+
 ;supprime l'en-tête
 mov edi,zt_recep
 mov ecx,[taille]
@@ -1116,8 +1128,6 @@ sub ecx,esi
 mov [taille],ecx
 cld
 rep movsb
-
-
 
 
 ;télécharge la suite du document
@@ -1144,7 +1154,7 @@ jb boucle_telecharge_http
 @@:
 
 
-;jmp affiche_page
+;jmp detecte_type
 
 
 
@@ -1194,6 +1204,30 @@ detecte_type_pastexte:
 ;*************************
 ;si le type est inconnue, on propose de le télécharger
 pushad
+mov esi,zt_ressource
+mov edi,zt_enreg
+mov ebx,esi
+boucle1_extraitnomfichier:
+cmp byte[ebx],0
+je fin1_extraitnomfichier
+cmp byte[ebx],"/"
+jne @f
+mov esi,ebx
+inc esi
+@@:
+inc ebx
+jmp boucle1_extraitnomfichier
+
+fin1_extraitnomfichier:
+mov al,[esi]
+mov [edi],al
+inc esi
+inc edi
+cmp al,0
+jne fin1_extraitnomfichier
+
+
+mov ebp,-1
 call raz_ecr
 call affiche_adresse
 mov al,11
@@ -1279,7 +1313,9 @@ jmp lien_conversion_menugopher
 
 ;****************
 texte_conversion_menugopher:
+mov byte[edi],"?"
 inc esi
+inc edi
 boucle_texte_conversion_menugopher:
 mov al,[esi]
 call ajoute_carac_menugopher
@@ -1519,20 +1555,12 @@ ret
 
 ;*************************************************
 conversion_html:
-mov edx,zt_recep
-mov al,6
-int 61h
-
-
 ;agrandit la zone mémoire
 mov ecx,[taille]
 shl ecx,2
 call ajuste_memoire
 cmp eax,0
 jne aff_err_mem
-
-
-
 
 ;parcours le document
 mov edi,zt_recep
@@ -1611,8 +1639,20 @@ cmp dword[type_balise],"br"
 je balise_br
 cmp dword[type_balise],"/br"
 je balise_br
+cmp dword[type_balise],"code"
+jne @f
+cmp dword[type_balise+4],0    ;une balise code? traité comme un souligné
+je balise_u_on
+@@:
+cmp dword[type_balise],"/cod"
+jne @f
+cmp dword[type_balise+4],"e"    ;une fin de balise code? traité comme une fin souligné
+je balise_u_off
+@@:
 cmp dword[type_balise],"em"
-je balise_em
+je balise_em_on
+cmp dword[type_balise],"/em"
+je balise_em_off
 cmp dword[type_balise],"img"
 ;je balise_img
 cmp dword[type_balise],"h1"
@@ -1623,6 +1663,10 @@ cmp dword[type_balise],"h3"
 je balise_h3
 cmp dword[type_balise],"hr"
 je balise_hr
+cmp dword[type_balise],"li" ;un nouveau élément d'une liste? on passe a la ligne
+je balise_br
+cmp word[type_balise],"p" ;un nouveau paragraphe? on passe a la ligne
+je balise_br
 cmp word[type_balise],"sc"
 jne @f
 cmp dword[type_balise+2],"ript"
@@ -1631,7 +1675,10 @@ je balise_script
 cmp dword[type_balise],"td"
 ;je balise_td
 cmp dword[type_balise],"u"
-je balise_u
+je balise_u_on
+cmp dword[type_balise],"/u"
+je balise_u_off
+
 
 
 ;on ignore la balise inconnue
@@ -1666,6 +1713,15 @@ jmp @b
 @@:
 inc esi
 
+
+mov al,[col_conv]
+cmp al,0
+je @f
+mov [edi],al
+inc edi
+@@:
+
+
 mov byte[edi],"~"
 inc edi
 cmp byte[esi],"<"
@@ -1680,10 +1736,17 @@ call ajoute_jusque_guil
 mov byte[edi],"~"
 inc edi
 pop esi
+
+mov al,[col_conv]
+cmp al,0
+je ignore_balise_inc
+mov [edi],al
+inc edi
 jmp ignore_balise_inc
 
 ;******
 balise_br:
+mov dword[col_conv],0
 mov byte[edi],13
 inc edi
 jmp ignore_balise_inc
@@ -1691,7 +1754,8 @@ jmp ignore_balise_inc
 
 
 ;******
-balise_em:
+balise_em_on:
+mov byte[col_conv],"@"
 mov byte[edi],"@"
 inc edi
 @@:
@@ -1702,10 +1766,27 @@ cmp esi,ebp
 jae fin_conversion_html
 jmp @b
 @@:
-call ajoute_jusque_balise
+inc esi
+jmp boucle_parcours_html
+
+
+
+;******
+balise_em_off:
+mov dword[col_conv],0
 mov byte[edi],"@"
 inc edi
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+inc esi
 jmp boucle_parcours_html
+
 
 
 ;******
@@ -1784,7 +1865,8 @@ jmp @b
 
 
 ;******
-balise_u:
+balise_u_on:
+mov byte[col_conv],"_"
 mov byte[edi],"_"
 inc edi
 @@:
@@ -1795,9 +1877,25 @@ cmp esi,ebp
 jae fin_conversion_html
 jmp @b
 @@:
-call ajoute_jusque_balise
+inc esi
+jmp boucle_parcours_html
+
+
+
+;******
+balise_u_off:
+mov dword[col_conv],0
 mov byte[edi],"_"
 inc edi
+@@:
+cmp byte[esi],">"
+je @f
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
+@@:
+inc esi
 jmp boucle_parcours_html
 
 
@@ -1819,12 +1917,6 @@ je fichier_txt
 mov [taille],ecx
 cld
 rep movsb
-
-
-mov edx,zt_recep
-mov al,6
-int 61h
-
 jmp fichier_stx
 
 
@@ -2045,6 +2137,7 @@ call affiche_adresse
 
 
 ;atteint la première ligne
+xor ecx,ecx
 mov cx,[offsety]
 @@:
 cmp cx,0
@@ -2096,8 +2189,6 @@ mov [edi+3],dl
 add edi,4
 dec cx
 jnz @b
-
-call lirecarac
 cmp byte[esi],0
 je @f
 
@@ -2163,21 +2254,22 @@ inc esi
 
 
 cmp byte[esi],"#"
-jne @f
+jne pastitre_ligne_stx
 mov dl,[coul_titre]
 mov dh,[coul_titre]
 inc esi
 cmp byte[esi],"#"
-jne @f
+jne pastitre_ligne_stx
 mov dl,[coul_stitre]
 mov dh,[coul_stitre]
 inc esi
 cmp byte[esi],"#"
-jne @f
+jne pastitre_ligne_stx
 mov dl,[coul_sstitre]
 mov dh,[coul_sstitre]
 inc esi
-@@:
+pastitre_ligne_stx:
+
 
 
 
@@ -2191,9 +2283,6 @@ mov [edi+3],dl
 add edi,4
 dec cx
 jnz continue_ligne_stx
-
-call lirecarac
-call carac_stx
 cmp byte[esi],0
 je suivante_ligne_stx
 
@@ -2207,13 +2296,47 @@ jmp continue_ligne_stx
 
 
 separation_ligne_stx:
+@@:
+fs
+mov dword[edi]," "
+fs
+mov [edi+3],dl
+add edi,4
+dec ecx
+jnz @b
+
+pop ecx
+dec cx
+jz touche_boucle
+push ecx
+fs
+mov cx,[resx_texte]
+
+@@:
+fs
+mov dword[edi]," "
+fs
+mov [edi+3],dl
+add edi,4
+dec ecx
+jnz @b
+
+pop ecx
+dec cx
+jz touche_boucle
+push ecx
+fs
+mov cx,[resx_texte]
+
+
+@@:
 fs
 mov dword[edi],"="
 fs
 mov [edi+3],dl
 add edi,4
 dec ecx
-jnz separation_ligne_stx
+jnz @b
 
 
 suivante_ligne_stx:
@@ -2531,22 +2654,45 @@ mov ebx,[esi]
 mov al,[ebx]
 inc ebx
 cmp al,"|"
-je @f
+je url_avecnom
 cmp byte[ebx],"~"
 jne @b
-mov ebx,[esi]
-jmp url_type_ancre
+
+
+;****************************************
+mov ebx,[esi]  ;url sans nom
+
+mov edi,ebx
+boucle_test1_type_lien:
+cmp word[edi],":/"
+je @f
+cmp byte[edi],"/"
+je url_type_relative
+cmp byte[edi],"~"
+je url_type_ancre
+cmp byte[edi],0
+je url_type_ancre
+
+inc edi
+jmp boucle_test1_type_lien
 
 @@:
+cmp byte[edi+2],"/"
+je url_type_complete
+inc edi
+jmp boucle_test1_type_lien
+
+
+;*****************
+url_avecnom:
 cmp byte[ebx],"#"
 jne @f
 inc ebx
 jmp url_type_ancre
 @@:
 
-
 mov edi,ebx
-boucle_test_type_lien:
+boucle_test2_type_lien:
 cmp word[edi],":/"
 je @f
 cmp byte[edi],"/"
@@ -2557,14 +2703,14 @@ cmp byte[edi],0
 je url_type_relative
 
 inc edi
-jmp boucle_test_type_lien
+jmp boucle_test2_type_lien
 
 
 @@:
 cmp byte[edi+2],"/"
 je url_type_complete
 inc edi
-jmp boucle_test_type_lien
+jmp boucle_test2_type_lien
 
 
 ;*************
@@ -2625,6 +2771,12 @@ mov dword[edi],"://"
 add edi,3
 
 mov esi,zt_host
+call ajoutetexte
+
+mov dword[edi],"/"
+inc edi
+
+mov esi,zt_ressource
 call ajoutetexte
 
 mov dword[edi],"#"
@@ -2705,51 +2857,38 @@ mov al,6
 int 61h
 int 60h
 
-aff_err_fichier:
-mov edx,msg4
-call ajuste_langue
-mov [page_encours],edx
-jmp affiche_erreur
 
 aff_err_net:
 mov edx,msg3
 call ajuste_langue
-mov [page_encours],edx
+jmp affiche_erreur
+
+aff_err_fichier:
+mov edx,msg4
+call ajuste_langue
 jmp affiche_erreur
 
 aff_err_serv:
 mov edx,msg5
 call ajuste_langue
-mov [page_encours],edx
+jmp affiche_erreur
+
+aff_err_protocole:
+mov edx,msg6
+call ajuste_langue
 ;jmp affiche_erreur
 
 ;***************************************
 affiche_erreur:
-mov ebx,[page_encours]
-
+mov ebp,-1
+push edx
 call raz_ecr
-fs
-mov edi,[ad_texte]
-
-
-;affiche le nom de la rubrique
-fs
-mov cx,[resx_texte]
-mov esi,zt_url
-@@:
-call lirecarac
-fs
-mov [edi],eax
-fs
-mov byte[edi+3],70h
-add edi,4
-dec cx
-jnz @b
+call affiche_adresse
+pop esi
 
 ;affiche le message d'erreur
 fs
 mov cx,[resx_texte]
-mov esi,ebx
 @@:
 call lirecarac
 fs
@@ -2876,10 +3015,7 @@ ret
 ;************************************
 atteint_ligne_suivante:
 cmp byte[ebx],0
-jne @f
-cmp byte[ebx+1],0
-jne fin_ligne_trouve
-@@:
+je fin_ligne_trouve
 inc ebx
 cmp ebx,ebp
 jbe atteint_ligne_suivante
@@ -3293,11 +3429,12 @@ cmp dl,[coul_rem]
 je @f
 mov dl,[coul_rem]
 call  lirecarac
-ret
+jmp carac_stx
+
 @@:
 mov dl,dh
 call  lirecarac
-ret
+jmp carac_stx
 
 carac_stx_surligne:
 cmp dl,[coul_lien]
@@ -3313,40 +3450,56 @@ cmp dl,[coul_surl]
 je @f
 mov dl,[coul_surl]
 call  lirecarac
-ret
+jmp carac_stx
+
 @@:
 mov dl,dh
 call  lirecarac
-ret
+jmp carac_stx
 
 carac_stx_nop:
 ret
 
 
 ;*********************
-transforme_crlf:
-;transforme cr et lf en zéros
-mov ecx,[taille]
+transforme_crlf:      ;transforme les saut de ligne en u simple zéros
+pushad
+mov ebp,[taille]
 mov ebx,zt_recep
-add ecx,ebx
+add ebp,ebx
 
 boucle_transf:
-cmp byte[ebx],10
-je transf_zero
-cmp byte[ebx],13
-je transf_zero
-jmp ignore_transf
-
-transf_zero:
-mov byte[ebx],0
+cmp word[ebx],0A0Dh
+je transf2_zero
+cmp word[ebx],0D0Ah
+je transf2_zero
+cmp byte[ebx],0Ah
+je transf1_zero
+cmp byte[ebx],0Dh
+je transf1_zero
 
 ignore_transf:
 inc ebx
-cmp ebx,ecx
+cmp ebx,ebp
 jbe boucle_transf
+popad
 ret
 
+transf2_zero:
+mov esi,ebx
+mov edi,ebx
+mov ecx,ebp
+inc esi
+sub ecx,ebx
+cld
+rep movsb 
 
+dec word[taille]
+dec ebp
+
+transf1_zero:
+mov byte[ebx],0
+jmp ignore_transf
 
 
 
@@ -3400,13 +3553,14 @@ db 13,10,0
 
 
 http_req1:
-db "GET ",0
+db "GET /",0
 http_req2:
 db "?",0
 http_req3:
 db " HTTP/1.0",13,10,"Host: ",0
 http_req4:
 db 13,10,"User-Agent: NSn/SEaC"
+db 13,10,"Connection: close"
 db 13,10,13,10,0
 
 taille_http:
@@ -3511,7 +3665,8 @@ dw 0
 offsety:
 dw 0
 
-
+col_conv:
+dd 0
 
 
 msg_menu:
