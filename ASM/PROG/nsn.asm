@@ -24,7 +24,6 @@ org 0
 ;gestion du timeout lors des chargements
 
 ;a corriger
-;mode de construction des adresse relative et des ancres a revoir
 ;erreur lors d'enregistrement de fichier????
 
 
@@ -296,6 +295,11 @@ mov byte[edi],0
 ;**************************************************************
 extrait_adresse:  ; note: penser a distinguer les éventuelles adresse ipv6
 mov edi,zt_host
+mov al,[esi]
+mov [edi],al
+inc esi
+inc edi
+
 
 @@:
 mov al,[esi]
@@ -307,6 +311,8 @@ cmp al,"?"
 je extrait_param
 cmp al,9
 je extrait_param
+cmp al,"#"
+je extrait_ancre
 cmp al,0
 je extrait_fin
 mov [edi],al
@@ -2714,39 +2720,6 @@ jmp boucle_test2_type_lien
 
 
 ;*************
-url_type_relative:
-mov edi,zt_url
-
-mov esi,zt_protocole
-call ajoutetexte
-
-mov dword[edi],"://"
-add edi,3
-
-mov esi,zt_host
-call ajoutetexte
-
-mov dword[edi],"/"
-inc edi
-
-
-mov esi,ebx
-@@:
-mov al,[esi]
-cmp al,"~"
-je @f
-mov [edi],al
-inc esi
-inc edi
-jmp @b
-@@:
-
-mov byte[edi],0
-jmp ouvrir_url
-
-
-
-;*************
 url_type_complete:
 mov edx,zt_url
 @@:
@@ -2764,6 +2737,167 @@ jmp ouvrir_url
 url_type_ancre:
 mov edi,zt_url
 
+;cherche la fin de l'adresse
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+
+;regarde si il y avait déjà une ancre
+cmp byte[zt_ancre],0
+je nouvelle_ancre
+
+;si oui efface l'ancienne ancre
+@@:
+cmp byte[edi],"#"
+je @f
+dec edi
+jmp @b
+@@:
+
+nouvelle_ancre:
+mov dword[edi],"#"
+inc edi
+
+mov esi,ebx
+@@:
+mov al,[esi]
+cmp al,"~"
+je @f
+mov [edi],al
+inc esi
+inc edi
+jmp @b
+@@:
+
+mov byte[edi],0
+jmp ouvrir_url
+
+
+;*******************************
+url_type_relative:
+cmp word[ebx],"//"
+je url_type_relative_protocole
+cmp byte[ebx],"/"
+je url_type_relative_domaine
+
+
+;cherche la fin de l'adresse
+mov edi,zt_url
+@@:
+cmp byte[edi],0
+je @f
+inc edi
+jmp @b
+@@:
+
+;regarde si il y avait déjà une ancre
+cmp byte[zt_ancre],0
+je url_type_relative_sansancre
+
+;si oui efface l'ancienne ancre
+@@:
+cmp byte[edi],"#"
+je @f
+dec edi
+jmp @b
+@@:
+dec edi
+url_type_relative_sansancre:
+
+;regarde si il y avait déjà des parametres
+cmp byte[zt_param],0
+je url_type_relative_sansparam
+
+;si oui efface les anciens parametres
+@@:
+cmp byte[edi],"?"
+je @f
+dec edi
+jmp @b
+@@:
+dec edi
+url_type_relative_sansparam:
+
+;regarde si il y as un / a la fin sinon en rajoute 1
+dec edi
+cmp byte[edi],"/"
+je @f
+inc edi
+mov dword[edi],"/"
+@@:
+inc edi
+
+
+;regarde si il y a une ressource
+cmp byte[zt_ressource],0
+je url_type_relative_sansressource
+
+;si oui remonte d'un niveau
+sub edi,2
+@@:
+cmp byte[edi],"/"
+je @f
+dec edi
+jmp @b
+@@:
+inc edi
+
+url_type_relative_sansressource:
+
+
+;on determine le type de relation de liens
+cmp word[ebx],".."
+jne @f
+cmp byte[ebx+2],"/"
+je url_type_relative_precedent
+@@:
+cmp word[ebx],"./"
+jne url_type_relative_fin
+add ebx,2
+jmp url_type_relative_fin
+
+
+
+url_type_relative_precedent:
+add ebx,3
+sub edi,2
+
+@@:
+cmp byte[edi],"/"
+je @f
+dec edi
+jmp @b
+@@:
+inc edi
+
+cmp word[ebx],".."
+jne url_type_relative_fin
+cmp byte[ebx+2],"/"
+jne url_type_relative_fin
+jmp url_type_relative_precedent
+
+
+
+;***********
+url_type_relative_protocole:
+mov edi,zt_url
+
+mov esi,zt_protocole
+call ajoutetexte
+
+mov dword[edi],"://"
+add edi,3
+
+add ebx,2
+jmp url_type_relative_fin
+
+;***********
+url_type_relative_domaine:
+mov edi,zt_url
+
 mov esi,zt_protocole
 call ajoutetexte
 
@@ -2773,15 +2907,8 @@ add edi,3
 mov esi,zt_host
 call ajoutetexte
 
-mov dword[edi],"/"
-inc edi
 
-mov esi,zt_ressource
-call ajoutetexte
-
-mov dword[edi],"#"
-inc edi
-
+url_type_relative_fin:
 mov esi,ebx
 @@:
 mov al,[esi]

@@ -334,10 +334,11 @@ jmp attend_touche
 menu_barre_des_taches:
 
 ;initialise les variables du menu général
-mov dword[x_menu_gen],0
-mov dword[y_menu_gen],ecx
-mov dword[niv_menu_gen],0
-mov dword[ligne_menu_gen],0
+xor ebx,ebx
+mov [niv_menu_gen],ebx
+mov dword[ebx+ligne_menu_gen],0
+mov dword[ebx+x_menu_gen],0
+mov dword[ebx+y_menu_gen],ecx
 
 
 ;ouvre le fichier du menu
@@ -377,13 +378,25 @@ jne erreur_chargement_menu
 mov eax,1
 int 64h
 
+mov dword[niv_menu_gen_max],0
 
 
+affichage_menu_gen:
+;attend que les précédentes modif d'ecran ait été effectué
+@@:
+fs
+test byte[at_console],90h
+jz @f
+int 62h
+jmp @b 
+@@:
+mov dword[niv_menu_gen],0
 
-;******************************prépare le menu
-prepare_menu:
+
+boucle_affichage_menu_gen:
 mov ebx,[niv_menu_gen]
-mov ecx,[ligne_menu_gen]
+shl ebx,5
+mov ecx,[ebx+ligne_menu_gen]
 mov esi,[ad_tempo]
 mov edi,[ad_tempo]
 add edi,[tempo]
@@ -465,25 +478,86 @@ inc edi
 mov byte[edi],0
 
 
-mov ebx,[x_menu_gen]
-mov ecx,[y_menu_gen]
+mov esi,[niv_menu_gen]
+shl esi,5
+mov ebx,[esi+x_menu_gen]
+mov ecx,[esi+y_menu_gen]
 mov edx,[ad_tempo]
 add edx,[tempo]
 inc edx
-call menu
-cmp eax,-1
+call affichage_menu
+
+;sauvegarde les coordonnée du bloc du menu
+mov esi,[niv_menu_gen]
+shl esi,5
+mov eax,[Xmenu]
+mov ebx,[Ymenu]
+mov ecx,[Lmenu]
+mov edx,[Cmenu] 
+mov [esi+x_menu_gen],eax 
+mov [esi+y_menu_gen],ebx 
+mov [esi+l_menu_gen],ecx 
+mov [esi+c_menu_gen],edx 
+
+
+;passe a l'affichage du bloc suivant
+inc dword[niv_menu_gen]
+mov eax,[niv_menu_gen_max]
+cmp [niv_menu_gen],eax
+jbe boucle_affichage_menu_gen
+
+
+
+;test si on as cliqué 
+mov al,5
+int 63h
+cmp al,1  ;echap on quitte
+je affichage    
+cmp al,0F0h
+jne pasclique_menu_gen
+
+
+
+;cherche si le clique est dans un menu
+mov esi,[niv_menu_gen_max]
+shl esi,5
+
+boucle_test_clique_menu_gen:
+pushad
+cmp ebx,[esi+x_menu_gen] 
+jb @f
+cmp ecx,[esi+y_menu_gen] 
+jb @f
+sub ebx,[esi+x_menu_gen] 
+sub ecx,[esi+y_menu_gen] 
+cmp ebx,[esi+l_menu_gen] 
+ja @f
+cmp ecx,[esi+c_menu_gen] 
+jbe cliquedans_menu_gen
+@@:
+popad
+cmp esi,0
 je affichage
+sub esi,32
+dec dword[niv_menu_gen_max]
+jmp boucle_test_clique_menu_gen
 
 
+cliquedans_menu_gen:
+popad
+sub ecx,[esi+y_menu_gen] 
+shr ecx,4
 
 ;recherche la ligne dans le fichier qui correspond a l'endroit ou on as cliqué dans le menu
-mov edx,eax   ;edx=n° de ligne du menu a trouver
-mov ebp,eax
-mov ebx,[niv_menu_gen]
-mov ecx,[ligne_menu_gen]
+mov edx,ecx   ;edx=n° de ligne du menu a trouver
+mov edi,ecx
+mov ebx,esi
+mov ecx,[ebx+ligne_menu_gen]
 mov esi,[ad_tempo]
+mov ebp,ecx
 
 call rechercheligne
+mov ecx,edx
 
 boucle_recherchemenu:
 cmp byte[esi],0
@@ -512,12 +586,12 @@ jmp suivant_recherchemenu
 
 fdl1_recherchemenu:
 inc esi
-inc dword[ligne_menu_gen]
+inc ebp
 jmp boucle_recherchemenu
 
 fdl2_recherchemenu:
 add esi,2
-inc dword[ligne_menu_gen]
+inc ebp
 jmp boucle_recherchemenu
 
 
@@ -535,27 +609,18 @@ jmp trouve_recherchemenu
 
 
 commande_recherchemenu:
+int 3
 inc esi
 call envoie_commandes
 jmp affichage
 
 
 
-
-
-
 erreur_chargement_menu:
-
 mov edx,msg_erreur_menu
 call ajuste_langue
-
 call menu
 jmp affichage
-
-
-
-
-
 
 
 
@@ -593,16 +658,64 @@ ret
 
 
 sousmenu_recherchemenu:
-shl ebp,4
-add ebp,[Ymenu]
-mov [y_menu_gen],ebp
+mov esi,[niv_menu_gen_max]
+shl esi,5
 
-mov eax,[Cmenu]
+mov ebx,[esi+y_menu_gen]
+shl edi,4
+add ebx,edi
+
+mov eax,[esi+x_menu_gen]
+add eax,[esi+c_menu_gen]
 inc eax
-add [x_menu_gen],eax
-inc dword[niv_menu_gen]
-inc dword[ligne_menu_gen]
-jmp prepare_menu
+
+inc ebp
+
+add esi,32
+inc dword[niv_menu_gen_max]
+cmp dword[niv_menu_gen_max],8
+je affichage
+
+mov [esi+x_menu_gen],eax
+mov [esi+y_menu_gen],ebx
+mov [esi+ligne_menu_gen],ebp 
+
+call affiche_ecran
+jmp affichage_menu_gen
+
+
+
+
+
+
+
+
+
+
+
+
+pasclique_menu_gen:
+;test si le curseur est dans la dernière partie du menu
+
+
+;si oui on raffiche cette partie
+
+
+;si non on atttend
+
+;si le temps dépasse on vérifie que le curseur est dans une autre partie du menu
+
+
+;si oui on réduit le menu a cette partie
+
+
+jmp affichage_menu_gen
+
+
+;??????????????????????????????????????????????????????????????????
+
+
+
 
 
 
@@ -646,6 +759,7 @@ fin_rechercheligne:
 pop ecx
 ret
 
+
 ;*************
 compte_indent:
 xor eax,eax
@@ -656,8 +770,8 @@ inc eax
 inc esi
 jmp @b
 @@:
+shl eax,5
 ret
-
 
 
 
@@ -1821,10 +1935,72 @@ ret
 
 ;********************************
 menu:
+
+;attend que les précédentes modif d'ecran ait été effectué
+@@:
+fs
+test byte[at_console],90h
+jz @f
+int 62h
+jmp @b 
+@@:
+
+call affichage_menu
+
+menu_touche:
+mov al,5
+int 63h
+cmp al,1  ;echap on quitte
+je menu_sortie
+cmp al,0F0h
+je menu_clique
+
+mov ebx,[Xmenu]
+mov ecx,[Ymenu]
+mov edx,[Tmenu]
+jmp menu
+
+
+
+menu_clique:
+;test si la fenetre est dans la
+mov esi,[Xmenu]
+mov edi,[Ymenu]
+inc esi
+inc edi
+cmp bx,si
+jb menu_sortie
+cmp cx,di
+jb menu_sortie
+add esi,[Cmenu]
+add edi,[Lmenu]
+sub esi,2
+sub edi,2
+cmp bx,si
+jae menu_sortie
+cmp cx,di
+jae menu_sortie
+
+
+sub ecx,[Ymenu]
+dec ecx
+and ecx,0FFFFFFF0h 
+shr ecx,4
+mov eax,ecx
+ret
+
+
+
+menu_sortie:
+mov eax,-1
+ret
+
+
+;***************************************************
+affichage_menu:
 mov [Xmenu],ebx
 mov [Ymenu],ecx
 mov [Tmenu],edx
-
 
 ;compte les colonnes et ligne du menu
 mov eax,1
@@ -1877,15 +2053,6 @@ mov [Ymenu],eax
 @@:
 
 
-menu_affichage:
-;attend que les précédentes modif d'ecran ait été effectué
-@@:
-fs
-test byte[at_console],90h
-jz @f
-int 62h
-jmp @b 
-@@:
 
 
 mov ebx,[Xmenu]
@@ -1938,61 +2105,7 @@ int 63h
 
 mov eax,7  ;demande la mise a jour ecran
 int 63h
-
-
-menu_touche:
-mov al,5
-int 63h
-cmp al,1  ;echap on quitte
-je menu_sortie
-cmp al,0F0h
-je menu_clique
-jmp menu_affichage
-
-
-
-
-
-
-
-
-menu_clique:
-
-;test si la fenetre est dans la
-mov esi,[Xmenu]
-mov edi,[Ymenu]
-inc esi
-inc edi
-cmp bx,si
-jb menu_sortie
-cmp cx,di
-jb menu_sortie
-add esi,[Cmenu]
-add edi,[Lmenu]
-sub esi,2
-sub edi,2
-cmp bx,si
-jae menu_sortie
-cmp cx,di
-jae menu_sortie
-
-
-sub ecx,[Ymenu]
-dec ecx
-and ecx,0FFFFFFF0h 
-shr ecx,4
-mov eax,ecx
 ret
-
-
-
-menu_sortie:
-mov eax,-1
-ret
-
-
-
-
 
 
 
@@ -3480,14 +3593,25 @@ Tmenu:
 dd 0
 
 ;variables du menu général
+niv_menu_gen:
+dd 0
+niv_menu_gen_max:
+dd 0
+
+;table des différent niveau du menu
 x_menu_gen:
 dd 0
 y_menu_gen:
 dd 0
-niv_menu_gen:
+l_menu_gen:
+dd 0
+c_menu_gen:
 dd 0
 ligne_menu_gen:
 dd 0
+
+rb (8*32)-20   ;8 niveaux de menu max!
+
 
 
 ;variables saisie texte
