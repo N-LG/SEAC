@@ -3714,8 +3714,28 @@ jne boucle_cmddef
 cmp byte[edx+1]," "
 je boucle_cmddef           
 
-
+;marque la fin du nom
 inc edx
+mov al,20h
+cmp byte[edx],22h
+jne @f
+inc edx
+mov al,22h
+@@:
+mov esi,edx
+@@:
+cmp [esi],al
+je @f
+cmp byte[esi],0
+je cmddef_ouvrir
+inc esi
+jmp @b
+@@:
+mov byte[esi],0
+inc esi
+cmddef_ouvrir:
+
+
 mov ebp,edx
 xor eax,eax         ;ouvre le fichier
 xor ebx,ebx
@@ -3802,15 +3822,25 @@ mov cl,98
 call affmsgsyst
 mov edx,ebp
 call affjournal
-mov cl,87   
+mov cl,86   
 call affmsgsyst
 jmp pascommande
 
 
 ;**********
 cmddef_clav: 
+;test si il y as l'option "-s" qui signal que la definition est a appliquer sur le clavier secondaire
+@@:
+cmp word[esi],"-s"
+je cmddef_clavalt
+cmp byte[esi],0
+je @f
+inc esi
+jmp @b
+@@:
 
 ;charge la nouvelle definition de chasse si existant
+cmddef_clav_ok:
 xor edx,edx
 mov dx,[ad_chaine_travail+12]
 cmp edx,0
@@ -3856,7 +3886,7 @@ ignore_codeps2_cmddef_clav:
 
 ;charge la nouvelle definition de touche usb si existant
 xor edx,edx
-mov dx,[ad_chaine_travail+8]
+mov dx,[ad_chaine_travail+6]
 cmp edx,0
 je ignore_codeusb_cmddef_clav 
 mov al,4
@@ -3898,6 +3928,8 @@ dec dh
 mov [alclat1],dx
 ignore_touchesp_cmddef_clav:
 
+and byte[attcl],07Fh
+
 mov eax,1
 int 64h
 mov cl,98  
@@ -3905,6 +3937,31 @@ call affmsgsyst
 mov edx,ebp
 call affjournal
 mov cl,88   
+call affmsgsyst
+jmp pascommande
+
+
+
+;charge juste le jeu de touche comme jeu de clavier alternatif
+cmddef_clavalt:
+xor edx,edx
+mov dx,[ad_chaine_travail+8]
+mov al,4
+mov ecx,2048
+mov edi,ad_tabclav_carac+2048
+int 64h
+cmp eax,0
+jne erreur_cmddef_autres
+
+mov word[alclat1],0FF10h ;défini la touche 17 (juste sous echap habituellement) comme la touche employé avec ctrl pour changer de clavier 
+
+mov eax,1
+int 64h
+mov cl,98  
+call affmsgsyst
+mov edx,ebp
+call affjournal
+mov cl,86   
 call affmsgsyst
 jmp pascommande
 

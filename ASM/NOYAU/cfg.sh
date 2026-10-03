@@ -1,9 +1,11 @@
 dcp CFG.ZIP
 modv 800*600
-#def en-txt.def
-#def en-qwi.def
 **
 ics
+#def en-txt.def
+#def en-qwi.def
+def 3u0.def
+def 4u0.def
 pilote pci
 **
 stftp #dm -w

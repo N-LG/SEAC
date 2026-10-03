@@ -10,7 +10,7 @@
 ;ne pas oublier de revenir a gris clair (la couleur d'affichage habituelle)
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.24 Septembre 2026 version de dévellopement",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.24 Octobre 2026 version de dévellopement",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 db 13,16h,"Commande inconnue: ",0 ;1
@@ -113,7 +113,7 @@ db "bits fenêtré",13,0 ;82
 db "bits linéaire",13,0 ;83
 db 0 ;84
 db 0 ;85
-db 0 ;86
+db " à été chargé comme clavier alternatif",13,0             ;86
 db " de definition de langue a été chargé",13,0              ;87
 db " de definition de clavier à été chargé",13,0             ;88
 db " de definition graphique de caractère a été chargé",13,0 ;89

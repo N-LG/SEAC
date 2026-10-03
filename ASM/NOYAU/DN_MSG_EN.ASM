@@ -4,7 +4,7 @@
 
 
 messages_systeme:
-db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.24 September 2026 development version",13 
+db 1Ah,0C2h,080h,0C2h,081h,0C2h,082h,0C2h,083h,1Fh,"SEAC",1Ah," V0.24 October 2026 development version",13 
 db 0C2h,084h,0C2h,085h,0C2h,086h,0C2h,087h,1Fh,"S",1Ah,"ysteme d'",1Fh,"E",1Ah,"xploitation ",1Fh,"A",1Ah,"proximativement ",1Fh,"C",1Ah,"omplet",17h,13,0
 
 
@@ -108,9 +108,9 @@ db "bits banked memory",13,0 ;82
 db "bits linear memory",13,0 ;83
 db 0 ;84
 db 0 ;85
-db 0 ;86
-db " file has been loaded for the language definition",13,0               ;87
-db " file has been loaded for the keyboard definition",13,0               ;88
+db " file has been loaded as an alternative keyboard",13,0           ;86
+db " file has been loaded for the language definition",13,0          ;87
+db " file has been loaded for the keyboard definition",13,0          ;88
 db " file has been loaded for the graphic character definition",13,0 ;89
 
 db 0 ;90
