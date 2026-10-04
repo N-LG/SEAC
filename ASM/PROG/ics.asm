@@ -382,14 +382,6 @@ mov dword[niv_menu_gen_max],0
 
 
 affichage_menu_gen:
-;attend que les précédentes modif d'ecran ait été effectué
-@@:
-fs
-test byte[at_console],90h
-jz @f
-int 62h
-jmp @b 
-@@:
 mov dword[niv_menu_gen],0
 
 
@@ -512,7 +504,7 @@ jbe boucle_affichage_menu_gen
 mov al,5
 int 63h
 cmp al,1  ;echap on quitte
-je affichage    
+je affichage
 cmp al,0F0h
 jne pasclique_menu_gen
 
@@ -530,9 +522,9 @@ cmp ecx,[esi+y_menu_gen]
 jb @f
 sub ebx,[esi+x_menu_gen] 
 sub ecx,[esi+y_menu_gen] 
-cmp ebx,[esi+l_menu_gen] 
+cmp ebx,[esi+c_menu_gen] 
 ja @f
-cmp ecx,[esi+c_menu_gen] 
+cmp ecx,[esi+l_menu_gen] 
 jbe cliquedans_menu_gen
 @@:
 popad
@@ -609,7 +601,6 @@ jmp trouve_recherchemenu
 
 
 commande_recherchemenu:
-int 3
 inc esi
 call envoie_commandes
 jmp affichage
@@ -684,42 +675,145 @@ call affiche_ecran
 jmp affichage_menu_gen
 
 
-
-
-
-
-
-
-
-
-
-
 pasclique_menu_gen:
-;test si le curseur est dans la dernière partie du menu
+;test si la souris est au dessus d'un menu
+mov esi,[niv_menu_gen_max]
+shl esi,5
+
+boucle_test_position_menu_gen:
+xor ebx,ebx
+xor ecx,ecx
+fs
+mov bx,[posx_souris]
+fs
+mov cx,[posy_souris]
+cmp ebx,[esi+x_menu_gen] 
+jb @f
+cmp ecx,[esi+y_menu_gen] 
+jb @f
+sub ebx,[esi+x_menu_gen] 
+sub ecx,[esi+y_menu_gen] 
+cmp ebx,[esi+c_menu_gen] 
+ja @f
+cmp ecx,[esi+l_menu_gen] 
+jbe sourisdans_menu_gen
+@@:
+cmp esi,0
+je sourishors_menu_gen
+sub esi,32
+jmp boucle_test_position_menu_gen
+
+sourishors_menu_gen:
+mov esi,-1
+jmp @f
+
+sourisdans_menu_gen:
+shr ecx,4
+@@:
 
 
-;si oui on raffiche cette partie
+;regarde si le curseur est dans la même zone
+cmp esi,[mem_menu]
+jne zone_differente
+cmp ecx,[mem_ligne]
+jne zone_differente
+
+;si il n'as pas changé on verifie que le délais n'est pas dépassé
+mov al,12
+int 61h
+cmp [menu_attente+4],edx
+ja affichage_menu_gen
+cmp [menu_attente],eax
+ja affichage_menu_gen
+
+mov [mem_menu],esi
+mov [mem_ligne],ecx
+mov al,12
+int 61h
+add eax,400
+adc edx,0
+mov [menu_attente],eax
+mov [menu_attente+4],edx
+
+;si le curseur est en dehors d'un menu on quitte le menu
+cmp esi,-1
+je affichage
+
+mov eax,esi
+shr eax,5
+mov [niv_menu_gen_max],eax
 
 
-;si non on atttend
+;recherche la ligne dans le fichier qui correspond a l'endroit ou se trouve le curseur
+mov edx,ecx   ;edx=n° de ligne du menu a trouver
+mov edi,ecx
+mov ebx,esi
+mov ecx,[ebx+ligne_menu_gen]
+mov esi,[ad_tempo]
+mov ebp,ecx
 
-;si le temps dépasse on vérifie que le curseur est dans une autre partie du menu
+call rechercheligne
+mov ecx,edx
+
+boucle_recherchemenu2:
+cmp byte[esi],0
+je affichage
+call compte_indent
+cmp eax,ebx
+jb affichage
+jne suivant_recherchemenu2
+cmp edx,0
+je trouve_recherchemenu2
+dec edx
+
+suivant_recherchemenu2:
+cmp word[esi],0D0Ah
+je fdl2_recherchemenu2
+cmp word[esi],0A0Dh
+je fdl2_recherchemenu2
+cmp byte[esi],0Dh
+je fdl1_recherchemenu2
+cmp byte[esi],0Ah
+je fdl1_recherchemenu2
+cmp byte[esi],0
+je affichage
+inc esi
+jmp suivant_recherchemenu2
+
+fdl1_recherchemenu2:
+inc esi
+inc ebp
+jmp boucle_recherchemenu2
+
+fdl2_recherchemenu2:
+add esi,2
+inc ebp
+jmp boucle_recherchemenu2
 
 
-;si oui on réduit le menu a cette partie
+trouve_recherchemenu2:
+cmp byte[esi],"|"
+je affichage_menu_gen
+cmp byte[esi],13
+je sousmenu_recherchemenu
+cmp byte[esi],10
+je sousmenu_recherchemenu
+cmp byte[esi],0
+je affichage_menu_gen
+inc esi
+jmp trouve_recherchemenu2
 
 
+zone_differente:
+mov [mem_menu],esi
+mov [mem_ligne],ecx
+mov al,12
+int 61h
+add eax,400
+adc edx,0
+mov [menu_attente],eax
+mov [menu_attente+4],edx
 jmp affichage_menu_gen
-
-
-;??????????????????????????????????????????????????????????????????
-
-
-
-
-
-
-
 
 
 
@@ -3346,21 +3440,21 @@ ret
 ;****************
 bouton:
 pushad
-mov edx,0C0C0C0h ;afficher un carré (contour clair)
+mov edx,80C0C0C0h ;afficher un carré (contour clair)
 mov al,22   
-mov ah,24
+mov ah,32
 int 63h
 inc ecx  
 dec esi
-mov edx,404040h  ;afficher un carré (contour sombre)
+mov edx,80404040h  ;afficher un carré (contour sombre)
 mov al,22   
-mov ah,24
+mov ah,32
 int 63h
 inc ebx
 dec edi
-mov edx,808080h  ;afficher un carré (centre)
+mov edx,80808080h  ;afficher un carré (centre)
 mov al,22   
-mov ah,24
+mov ah,32
 int 63h
 popad
 ret
@@ -3614,6 +3708,14 @@ rb (8*32)-20   ;8 niveaux de menu max!
 
 
 
+mem_menu:
+dd -1
+mem_ligne:
+dd -1
+menu_attente:
+dd -1,-1
+
+
 ;variables saisie texte
 max_chaine_saisie:
 dd 0
@@ -3775,7 +3877,7 @@ db 4        ;numéros de l'icone
 dw 0        ;vide
 dd 160,240    ;coordonné coin supérieur gauche
 db "Help",0  ;texte de l'icone
-db "help",0  ;commande de l'icone
+db "nsn file://#dm/man_eng.stx",0  ;commande de l'icone
 @@:
 
 dd 0
