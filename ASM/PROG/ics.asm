@@ -173,6 +173,7 @@ call charge_barre
 ;************************************************************************************************
 affichage:
 call affiche_ecran
+call maj_ecran
 
 
 ;************************************************************
@@ -383,7 +384,7 @@ mov dword[niv_menu_gen_max],0
 
 affichage_menu_gen:
 mov dword[niv_menu_gen],0
-
+call affiche_ecran
 
 boucle_affichage_menu_gen:
 mov ebx,[niv_menu_gen]
@@ -670,8 +671,6 @@ je affichage
 mov [esi+x_menu_gen],eax
 mov [esi+y_menu_gen],ebx
 mov [esi+ligne_menu_gen],ebp 
-
-call affiche_ecran
 jmp affichage_menu_gen
 
 
@@ -730,7 +729,7 @@ mov [mem_menu],esi
 mov [mem_ligne],ecx
 mov al,12
 int 61h
-add eax,400
+add eax,200
 adc edx,0
 mov [menu_attente],eax
 mov [menu_attente+4],edx
@@ -809,7 +808,7 @@ mov [mem_menu],esi
 mov [mem_ligne],ecx
 mov al,12
 int 61h
-add eax,400
+add eax,200
 adc edx,0
 mov [menu_attente],eax
 mov [menu_attente+4],edx
@@ -1506,9 +1505,12 @@ add edi,2
 add ebx,[tx_bt_tache]
 jmp boucle_afficher_tache
 fin_afficher_tache:
+ret
 
 
 
+;*****************************
+maj_ecran:
 mov eax,7  ;demande la mise a jour ecran
 int 63h
 ret
@@ -2954,11 +2956,7 @@ mov al,25
 mov ah,0
 int 63h
 
-
-mov al,7
-int 63h
-
-
+call maj_ecran
 
 touche_saisie_icone:
 mov al,5
