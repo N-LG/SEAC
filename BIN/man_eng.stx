@@ -1,17 +1,38 @@
 SMLTX;
+#SEaC help
+
+
+~SEaC~ description
+~navigation~ between interfaces
+Available ~commands~
+~tecop~: main command terminal
+~installation~
+~smoltexte~: Markdown syntax for help files
+~system functions|syscall.stx~
+:seac
+#SEaC: Approximately Complete Operating System
+
+It is a 32-bit, monolithic, preemptive multitasking operating system. A main task handles ~TECOP~ management, interprets ~commands~ sent to the system, updates the screen, and performs periodic tasks (floppy drive management, etc.). Other tasks are created when executing a command associated with an executable file. To switch between applications (when an application requires an interface), use the Alt+Tab keys.
+The system uses a ~log~ where each task can write the results of its operations.
+:navigation
+#Navigation between interfaces
+Each application on SEaC occupies the entire screen; to switch between applications, hold down the Alt key and press the Tab key to cycle through the interfaces.
+
+When ~tecop~ is displayed, you can access an interface directly by clicking the corresponding line at the top of the screen or by pressing the associated function key.
 :commands:command:cmd
 #commands available with the SEaC operating system:
 
 ##Built-in commands:
->~AF~ displays a line of text or the contents of a file
+>~AF~/~ECHO~ displays a line of text or the contents of a file
 >~EFJ~ clear system log
 >~DIR~/~LS~ list the contents of a folder
 >~DEF~ loads a definition file
 >~SUP~/~RM~ delete a file
 >~COP~ copies a file
+>~REN~ rename a file
 >~VER~ displays the system version
 >~CD~ changes working folder
->~ND~ create new folder
+>~ND~/~MK~ create new folder
 >~LD~ lists installed disks and partitions
 >~LM~ displays the memory organization
 >~LV~ displays supported video modes
@@ -21,14 +42,17 @@ SMLTX;
 >~FDS~ set system folder
 >~MTT~ modifies the execution time of the task
 >~STOP~ stop a task
+>~VMEM~ read memory
+>~PWR~ Arrête ou redémarre l'ordinateur
+>~AFT~ change l'affichage principal
 ##Editors:
 >~EDT~ text editor
 >~EDH~ hex editor
 >~EDG~ character map editor
 >~PARTD~ partitioner/disk formatter
-##Various
+##Various:
 >~FASM~ x86 assembler compiler
->~ADJARCH~
+>~AJARCH~
 >~EXPL~ file explorer
 >~CALC~ calculator
 >~DATE~ system clock
@@ -37,12 +61,12 @@ SMLTX;
 >~TERM~ serial and TCP terminal
 >~LSPCI~ list installed pci devices
 >~LSUSB~ list installed usb devices
->~ICS~ GUI
+>~ICS~ GUI/desktop
 >~VOIR~ image file viewer
 >~PILOTE~ driver manager
-##Network Driver
->~RTL8139~ ~3C90X~ ~I8254X~
->##-Network usage:
+>~LTP~ advanced task listing
+>~IFF~ donne des informations sur les fichier
+##-Network usage:
 >~IPCONFIG~ network card configurator
 >~PING~ test connection
 >~CDNS~ DNS client
@@ -57,269 +81,121 @@ SMLTX;
 >~SHTTP~ http server
 >~STFTP~ tftp server
 >~STLNT~ telnet remote command server
+>~SPXE~ serveur DHCP avec option pxe
+##Network Driver:
+>~RTL8139~ ~3C90X~ ~I8254X~
+:cd:cop:cp:sup:rm:ren:mc:dir:ls:nd:mk
+#Commands for file manipulation
+
+command: _cd_    
+change folder, cd.. return to parent folder
+
+command: _dir_ (or _ls_)
+Lists the contents of the folder in use
+
+command: _sup XXX_ (or _rm XXX_)
+delete the XXX file
+
+command: _cop XXX YYY ZZZ_ (or _cp XXX YYY ZZZ_)
+copy the XXX file to the YYY folder with ZZZ options
+>-e overwrites existing files
+>-f only copies files
+>-d only copies folders
+>-n creates the destination folder
+>-r:NNNN renames the copied file
+
+command: _ren XXX YYY_ (or _mv XXX YYY_)
+rename XXX file to YYY
+
+command: _ld_
+list the partitions and cdrom which have been detected by the system (no argument)
+
+command: _nd XXX_ (or _mk XXX_)
+create and open new directory XXX
+:lm:lt:ps:mtt:stop
+#Application management commands
+
+command: _lm_
+List the memory spaces used by the system (no argument)
+
+command: _ltp_ (or _ps_)
+List Tasks running on the system 
+
+command: _ltp_
+a variant of the _LT_ command that provides more information about the tasks
+
+command: _stop XXX_
+Stop task numbers XXX
+
+command: _mtt XXX YYY_
+set the execution time of the task XXX to the value YYY (unit of time 2.5ms)
+
+:lv:modv
+#Video setting commands
+
+command: _lv_       
+List of display modes recognized by the video card
+
+command: _modv XXX_
+change the video mode of the screen to the mode
+XXX = mode numbers, XXX*YYY for resolution
+
+:efj:af:fds:ver:date:vmem
+#Log Manipulation Commands
+
+command: _efj_
+Erase the contents of the system log
+
+command: _fds_
+Makes system record that the folder in use is the system folder
+
+command: _ver_
+Show system version in system log
+
+command: _af XXX_
+add XXX text or XXX file content to log
+
+command: _date_
+displays the time and date from the machine's clock
+
+command: _vmem XXX_
+displays the memory content at absolute address XXX
+:aft
+#AFT
+change the task that is displayed
+
+command: _aft XXX_
+>>with:
+>>>XXX = Task numbers to display, if absent, the ~tecop~ is displayed, and the log is forced to scroll to the end
 
 :ajarch
 #AJARCH
-ajarch allows you to add any file to a kernel file (extension .~BAZ~)
+ajarch allows you to add any file to a kernel file
 
-"command: ajarch XXX YYY
+command: _ajarch XXX YYY_
 >with:
 >>XXX=name of the file to add
 >>YYY=kernel file name
 :calc
 #CALC: calculator
 
-"command: calc
+command: _calc_
 manually enter the expression to calculate
 validate with enter, exit with esc
 you can reuse the result of the last calculation by using the variable x in your expression
-:cd:cop:sup:rm:ren:dir:ls:nd
-#Commands for file manipulation
+:cdg
+#CDG
+chien de garde
+permet de surveiller le plantage d'une application
 
-"command: cd     
-change folder, cd.. return to parent folder
-"command: dir (or ls)
- Lists the contents of the folder in use
-"command: sup XXX (or rm XXX)
- delete the XXX file
-"command: cop XXX YYY
- copy the XXX file to the YYY folder with ZZZ options
-  -e overwrites existing files
-  -f only copies files
-  -d only copies folders
-  -n creates the destination folder
-  -r:NNNN renames the copied file
-"command: ld
- list the partitions and cdrom which have been detected by the system (no argument)
-"command: nd XXX
- create new directory XXX
-:lm:lt:ps:mtt:stop
-#Application management commands
-
-"command: lm
-List the memory spaces used by the system (no argument)
-"command: lt (or ps)
-List Tasks running on the system
-"command: stop XXX
-Stop task numbers XXX
-"command: mtt XXX YYY
-set the execution time of the task XXX to the value YYY (unit of time 2.5ms)
-:lv:modv
-#Video setting commands
-
-"command: lv       
-List of display modes recognized by the video card
-"command: modv XXX
-change the video mode of the screen to the mode
-XXX = mode numbers, XXX*YYY for resolution
-:efj:af:fds
-#Log Manipulation Commands
-
-"command: efj
-Erase the contents of the system log
-"command: fds
-Makes system record that the folder in use is the system folder
-"command: ver
-Show system version in system log
-"command: af XXX
-add XXX text or XXX file content to log
-:tecop:tui
-#TECOP
-Main Control Terminal
-
-The tecop is the name of the interface which makes it possible to drive the SEaC operating system in text mode
-You access the tecop by pressing the "list" key (located to the left of the right ctrl key) or by Ctrl+Alt+Tab
-
-the tecop consists of 4 zones (from top to bottom):
->- Interface available (white on blue background)
->- System Log
->- Work address (in green on a black background)
->- Command being drafted
-
-the up and down arrow keys as well as start, end, page up, and page down allow navigation in the log file
-the inser and shift+inser keys are used to navigate through the history of commands
-the function keys allow access to the interfaces listed at the top of the screen
-:def:keyboard:font:language
-#DEF
-loading a language, keyboard, or additional font definition file
-
-"command: def XXX
->with
->>XXX = name of the file to load
-
-##languages
->fr-txt.def  -> system message in French
->en-txt.def  -> system message in English
-
-##keyboards
->fr-aza.def  -> French enhanced azerty
->be-azs.def  -> Belgian azerty 
->ca-qws.def  -> cananadian qwerty 
->ch-qzf.def  -> French German qwertz
->ch-qzg.def  -> Swiss German qwertz
->en-qus.def  -> simple US qwerty
->en-qwi.def  -> international US qwerty 
->gr-aza.def  -> Greek/azerty combination (switch with Ctrl+Alt+`)
->gr-qwi.def  -> Greek/qwerty combination (switch with Ctrl+Alt+`)
->bepo.def    -> Bépo 
->colemak.def -> Colemak
->dvorak.def  -> Dvorak 
->ergol.def   -> Ergol
-
-
-##fonts
->0u0.def     -> characters from 0 to FF (Latin)
->1u0.def     -> characters from 100 to 1FF (extended Latin 1)
->2u0.def     -> characters from 200 to 2FF (extended Latin 2) @Very incomplete@
->3u0.def     -> characters from 300 to 3FF (Greek)
->4u0.def     -> characters from 400 to 4FF (Cyrillic) @incomplete@
->5u0.def     -> characters from 500 to 5FF (Cyrillic, Armenian, Hebrew) @Very incomplete@
->25u0.def    -> characters from 2500 to 25FF (symbols)
->FFu0.def    -> characters from FF00 to FFFF (CJC/Japanese compatibility) @incomplete@
->F00u0.def   -> characters from F0000 to F00FF (personalisé)
-
-"fonts are editable with ~edg~  
-:edg
-#EDG
-matrix font editor (in a ~def~ file)
-
-"command: edg XXX
->>XXX = name of the file to open (optional parameter)
-:ex
-#EX
-run a script
-
-"command: ex XXX -v
->XXX = name of file to execute
->-v = we execute the list of commands without checking if the previous one has finished (optional parameter)
-:edt
-#EDT
-text editor
-
-"command: edh XXX
->>XXX = name of the file to open (optional parameter)
-:edh
-#EDH
-Hexadecimal editor
-
-"command: edh XXX
->>XXX = name of the file to open or # to access the list of disks to edit (optional parameter)
-:partd
-#PARTD
-partitioning tools
-
-"command: partd
-
-:ipconfig
-#IPCONFIG
-configure ethernet cards
-
-"command: ipconfig
-displays information on the active ip driver
-
-"command: ipconfig X YYY ZZZZZ
-configure parameter YYY with value ZZZZZ in card X
->possible values ​​for YYY:
->>amac = mac address
->>ipv4 = ip v4 address
->>mas4 = ip v4 subnet mask
->>pas4 = ip gateway v4
->>ip6p = private ip v6 address
->>ip6g = global ip v6 address
->>comp = list of parameters separated by a space:
->>>v4 ip address
->>>subnet mask ip v4
->>>ip gateway v4
->>>private v6 ip address
->>>global ip v6 address
-:man
-#MAN
-displays a help topic in the log
-
-"command: man XXX YYY
->with
->>XXX = keyword of the section
->>YYY = name of the file where the information is contained (optional parameter)
-
- by default, the database is the MANUAL.TXT file located in the ~system folder~
-
-:shttp
-#SHTTP
-http-server
-
-"command: shttp XXX YYYY
->with:
->>XXX = name of the site files folder that can be consulted
->>YYYY = optional parameters
-
-optional parameters:
--c:XXX network interface numbers to use
-:stftp
-#STFTP: tftp server
-
-"command: stftp X YYY
->with:
->>XXX = name of the site files folder that can be downloaded
->>YYYY = optional parameters
-
-optional parameters:
--c:XXX network interface numbers to use
--w allow file writing
-
-:stlnt
-#STLNT: telnet server
-
-"command: stlnt XXXX
->with:
->>XXXX = optional parameters
-
-optional parameters:
--c:XXX network interface numbers to use (0 by default)
--p:XXX port numbers to use (23 by default)      
-:system folder:system
-#System Folder
-the system folder is the folder where the executables of the additional commands are stored as well as the files necessary for the proper functioning of the operating system (definition file, help file, etc.)
-we define the system folder with the command ~fds~
-:seac
-#SEaC: approximately complete operating system
- (more explanation to come)
-:sniff
-#SNIF
-ethernet frame interceptor
-
-##command: snif X
->with:
->>X = network interface numbers to use
-:ping
-#PING
-link test by echo request with the ICMP protocol
-
-"command: ping XXX YYYY
->with: XXX = address of the machine to be tested
->>YYYY = optional parameters
-
-optional parameters:
--c:XXX network interface numbers to use (0 by default)
--t:XXX number of ping attempts (4 by default)
-:trace
-#TRACE
-allows you to determine the path taken by the packets transmitted to a machine on an IP network
-
-"command: trace XXX YYYY
->with:
->>XXX = target machine address
->>YYYY = optional parameters
-
-optional parameters:
->-c:XXX network interface numbers to use (0 by default)
->-s:XXX maximum hop count (default 40)
->-t:XXX number of attempts in case of no response (4 by default)
+commande: _cdg_
+A son démarrage l'application enregistre les tache en cours d'execution, puis surveille toutes les 5 secondes si les applications sont en cours d'execution. si une des application est manquante, le systeme enregiste le journal systeme dans un fichier et redémarre l'ordinateur
 :cdns
 #CDNS
 DNS resolver, allows to obtain the info of the machine according to the name
 do not search for name start persistent service
 
-"command: cdns XXX YYYY
+command: _cdns XXX YYYY_
 >with:
 >>XXX = machine name
 >>YYYY = optional parameters
@@ -342,117 +218,11 @@ optional parameters:
 "all unrecognized RRs are displayed in hexadecimal form
 
 to perform a reverse search, you must search for the PTR(12) type RR with a domain name consisting of the IPv4 address whose 4 values have been reversed with ".in-addr.arpa" at the end
-:circ
-#CIRC
-client for messaging system using the IRC protocol
-to communicate with the #devse channel on the server irc.libera.chat:6667 for example
-
-"command: circ XXX YY ZZZZ
->with:
->>XXX = server address
->>YY = server port
->>ZZZZ = optional parameters
-
-optional parameters:
->-c:XXX network interface numbers to use
-:rtl8139:3c90x:i8254x:ethernet:ip
-#Drivers for ethernet/ip card
-
-"command: rtl8139 XXX
-starts the driver for a Realtek 8139 or compatible card
-"command: 3c90x XXX
-starts the driver for a 3Com or compatible card
-"command: I8254x XXX
-starts the driver for an Intel or compatible card
-
->with:
->>XXX = ~pci address~ of the card
-
-driver configuration is done with ~IPCONFIG~
-:fasm
-#FASM
- assembler compiler created by Tomasz Grysztar
- for more information, see ~http://flatassembler.net~
-
-"command: fasm XXX YYY
->with:
->>XXX = source file name
->>YYY = name of the executable file to create
-  ^
- /!\ under SEAC, the names of executable files must be in uppercase
- ---
-:kio:mio:gio:tio
- KiB = kibibyte = 1024 bytes
- MiB = mebibyte = 1024 KiB
- GiB = gibibyte = 1024 MiB
- TiB = tebibyte = 1024 GiB
-:term
-#TERM
- client for connections by serial link or TCP
-:utf8
-#UTF8
- allows to visualize the encodings of a Unicode character/glyph in utf8
-
-"command: utf8 XX YY
->with:
->>XX = character/glyph numbers
->>YY = number of characters to display (optional parameter, 1 by default)
-:lspci
-#LSPCI
-allows you to view the peripherals connected to the PCI and AGP bus
-works with the PCICLASS.TXT file as a database for device class names and with the pci.ids file as a database for the names of manufacturers and their products
-
-the pci.ibs file is maintained by the PCI ID Project(~https://pci-ids.ucw.cz~) and can be downloaded at ~https://pci-ids.ucw.cz/v2. 2/pci.ids~
-:lsusb
-#LSUSB
-allows you to view the peripherals connected to the USB bus
-works with the USBCLASS.TXT file as a database for device class names and with the usb.ids file as a database for the names of manufacturers and their products
-
-the usb.ibs file is maintained by Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) and can be downloaded at ~http://www.linux-usb.org/usb.ids~
-:dcp
-#DCP
-decompresses archives which are in PKzip Gzip and Tar format
-
-"command: dcp XXX YYYY
->with:
->>XXX = name of the archive to decompress
->>YYYY = optional parameters
-
-optional parameters:
->-e overwrites the destination file
->-o:XXX address of the folder where the files will be copied
-:scan
-#SCANIP
-send ICMP pings to a range of ip addresses to test their presence
-
-"command: scanip XXX YYY ZZZZ
->with:
->>XXX = address of the first machine in the range to be tested
->>YYY = address of the last machine in the range to be tested
->>ZZZZ = optional parameters
-
-optional parameters:
->-c:XXX network interface numbers to use
->-n:XXX number of pings to remain per address
-:chttp
-#CHTTP
-resource downloader with HTTP protocol
-
-"command: chttp XXX YYYY
->with:
->>XXX = resource address
->>YYYY = optional parameters
-
-optional parameters:
->-c:XXX network interface numbers to use
->-o:XXX filename or copy resource
->-e allows to overwrite the destination file
->-a:XXX resource server ip address
 :cftp
 #CFTP
 resource downloader with FTP protocol
 
-"command: cftp XXX YYYY
+command: _cftp XXX YYYY_
 >with:
 >>XXX = resource address
 >>YYYY = optional parameters
@@ -464,61 +234,37 @@ resource downloader with FTP protocol
 >-a:XXX resource server ip address
 >-u:XXX name for login
 >-p:XXX password for login
-:expl
-#EXPL
-file explorer
+:chttp
+#CHTTP
+resource downloader with HTTP protocol
 
-"command: expl XXX
+command: _chttp XXX YYYY_
 >with:
->>XXX = folder to open
-
-:ics:gui:desktop
-#ICS
- Simplified command interface
-
-"command: ics XXX
->with:
->>XXX = optional parameters
+>>XXX = resource address
+>>YYYY = optional parameters
 
 optional parameters:
->-f:XXX image file that serves as background
->-i:XXX image file used as icon definition
->-c:XXX background color if there is no image
->-t:X text color
-:voir
-#VOIR: image file viewer
+>-c:XXX network interface numbers to use
+>-o:XXX filename or copy resource
+>-e allows to overwrite the destination file
+>-a:XXX resource server ip address
+:circ
+#CIRC
+client for messaging system using the IRC protocol
+to communicate with the #devse channel on the server irc.libera.chat:6667 for example
 
-
-
-"command: voir XXX YYY
+command: _circ XXX YY ZZZZ_
 >with:
->>XXX = image name
->>YYY = optional parameters
-optional parameters:
->-c:XXX screen background color
->-t hides text information
->-s hide the mouse cursor
-:date
-#DATE
-displays the time and date of the machine's internal clock
-:whois
-
-#WHOIS
-Displays info on a domain
-
-"command: whois XXX YYY
->with:
->>XXX = domain name
->>YYY = optional parameters
+>>XXX = server address
+>>YY = server port
+>>ZZZZ = optional parameters
 
 optional parameters:
-
->-s:XXX server to query
-the program queries a server dedicated to certain top-level domains (.com .net.org .fr .eu .uk .be .wiki .io .de), for all the others, the whois.iana.org server is queried
+>-c:XXX network interface numbers to use
 :ctftp
 #CTFTP: TFTP client
 
-"Command: ctftp XXXX YYYY ZZZZ
+command: _ctftp XXXX YYYY ZZZZ_
 >with
 >>XXXX = server address
 >>YYYY = operation to be performed
@@ -531,37 +277,138 @@ operation to be performed:
 optional parameters:
 >-c:XXX network interface numbers to use
 >-e allows to overwrite the destination file
-:pilote
-#PILOTE
+:ctls
+#CTLS
+client TLS
 
-starts a device driver
+créer un service intermédiaire entre l'application et le pilote ethernet pour prendre en charge le protocole TLS pour que cela devienne presque aussi simple a implementer qu'une connexion via TCP/IP @(application en cours de dévellopement)@
+:dcp
+#DCP
+decompresses archives which are in PKzip Gzip and Tar format
 
+command: _dcp XXX YYYY_
+>with:
+>>XXX = name of the archive to decompress
+>>YYYY = optional parameters
 
+optional parameters:
+>-e overwrites the destination file
+>-o:XXX address of the folder where the files will be copied
+:def:keyboard:font:language
+#DEF
+loading a language, keyboard, or additional font definition file
 
-"Command: driver XXX YYY
- 
+command: _def XXX_
 >with
->>XXX = type of driver to load only "pci" for the moment
+>>XXX = name of the file to load
 
->>YYY = address of the device to load, if this parameter is absent we start all the detected devices
+##languages
+>fr-txt.def  -> system message in French
+>en-txt.def  -> system message in English
 
-:pci address:pci
+##keyboards
+>fr-aza.def  -> French enhanced azerty
+>be-azs.def  -> Belgian azerty 
+>ca-qws.def  -> cananadian qwerty 
+>ch-qzf.def  -> French German qwertz
+>de-qzs.def  -> deutsche 
+>ch-qzg.def  -> Swiss German qwertz
+>en-qus.def  -> simple US qwerty
+>en-qwi.def  -> international US qwerty 
+>gr-pli.def  -> Ελληνικά (Greek)
+>bg-bds.def  -> български (Bulgarian BDS)
+>ua-jcu.def  -> українська (Ukrainian JCUKEN)
+>by-jcu.def  -> Беларуская (Belarusian JCUKEN)
+>bepo.def    -> Bépo 
+>colemak.def -> Colemak
+>dvorak.def  -> Dvorak 
+>ergol.def   -> Ergol
 
-#PCI address
+##fonts
+>0u0.def     -> characters from 0 to FF (Latin)
+>1u0.def     -> characters from 100 to 1FF (extended Latin 1)
+>2u0.def     -> characters from 200 to 2FF (extended Latin 2) @Very incomplete@
+>3u0.def     -> characters from 300 to 3FF (Greek)
+>4u0.def     -> characters from 400 to 4FF (Cyrillic) @incomplete@
+>5u0.def     -> characters from 500 to 5FF (Cyrillic, Armenian, Hebrew) @Very incomplete@
+>25u0.def    -> characters from 2500 to 25FF (symbols)
+>FFu0.def    -> characters from FF00 to FFFF (CJC/Japanese compatibility) @incomplete@
+>F00u0.def   -> characters from F0000 to F00FF (personalisé)
 
-a pci address has the following format:
+"fonts are editable with ~edg~
+:edg
+#EDG
+matrix font editor (in a ~def~ file)
 
-"XX:YY.Z
+command: _edg XXX_
+>>XXX = name of the file to open (optional parameter)
+:edh
+#EDH
+Hexadecimal editor
 
->with
->>XX = bus numbers
+command: _edh XXX_
+>>XXX = name of the file to open or # to access the list of disks to edit (optional parameter)
+:edt
+#EDT
+text editor
 
->>YY = card numbers
+command: _edh XXX_
+>>XXX = name of the file to open (optional parameter)
+:ex
+#EX
+run a script
 
->>Z  = function numbers
+command: _ex XXX -v_
+>XXX = name of file to execute
+>-v = we execute the list of commands without checking if the previous one has finished (optional parameter)
+:expl
+#EXPL
+file explorer
 
+command: _expl XXX_
+>with:
+>>XXX = folder to open
+:fasm
+#FASM
+ assembler compiler created by Tomasz Grysztar
+ for more information, see ~http://flatassembler.net~
+
+command: _fasm XXX YYY_
+>with:
+>>XXX = source file name
+>>YYY = name of the executable file to create
+  ^
+ /!\ under SEAC, the names of executable files must be in uppercase
+ ---
+:ics:gui:desktop
+#ICS
+ Simplified command interface
+
+command: _ics XXX_
+>with:
+>>XXX = optional parameters
+
+optional parameters:
+>-f:XXX image file that serves as background
+>-i:XXX image file used as icon definition
+>-c:XXX background color if there is no image
+>-t:X text color
+:iff
+#IFF
+donne les métadonnées d'un fichier
+
+commande: _IFF XXX_
+>>avec:
+>>>XXX = nom du fichierque l'on souhaite connaitre
 :install
-#Steps to do a manual installation of Seac
+#installation
+
+##Etapes pour une installation semi automatique
+il faut d'abbord avoir un disque avec une partition de type 30h, une partition fat et que l'on puisse ecraser le code d'amorçage
+si on as pas les bonnes partition sur le disque on peut les créer avec la commande ~partd~
+un fois le disque pret on lance la commande _install_ 
+
+##Steps to do a manual installation of Seac
 
   1) first you need to determine the name of the disk on which the computer boots, you can find this information in the bios
   2) start Seac via a usb key, a cdrom, a floppy disk, or pxe
@@ -586,4 +433,294 @@ a pci address has the following format:
 
 "the system is ready!
 "you can now customize the boot phase by editing the "boot.sh" file
+:ipconfig
+#IPCONFIG
+configure ethernet cards
+
+command: _ipconfig_
+displays information on the active ip driver
+
+command: _ipconfig X YYY ZZZZZ_
+configure parameter YYY with value ZZZZZ in card X
+>possible values ​​for YYY:
+>>amac = mac address
+>>ipv4 = ip v4 address
+>>mas4 = ip v4 subnet mask
+>>pas4 = ip gateway v4
+>>ip6p = private ip v6 address
+>>ip6g = global ip v6 address
+>>comp = list of parameters separated by a space:
+>>>v4 ip address
+>>>subnet mask ip v4
+>>>ip gateway v4
+>>>private v6 ip address
+>>>global ip v6 address
+:lspci
+#LSPCI
+allows you to view the peripherals connected to the PCI and AGP bus
+works with the PCICLASS.TXT file as a database for device class names and with the pci.ids file as a database for the names of manufacturers and their products
+
+command: _lspci_
+
+the pci.ibs file is maintained by the PCI ID Project(~https://pci-ids.ucw.cz~) and can be downloaded at ~https://pci-ids.ucw.cz/v2. 2/pci.ids~
+:lsusb
+#LSUSB
+allows you to view the peripherals connected to the USB bus
+works with the USBCLASS.TXT file as a database for device class names and with the usb.ids file as a database for the names of manufacturers and their products
+
+command: _lsusb_
+
+the usb.ibs file is maintained by Stephen J. Gowdy(~mailto:linux.usb.ids@gmail.com~ ~http://www.linux-usb.org/usb-ids.html~) and can be downloaded at ~http://www.linux-usb.org/usb.ids~
+:man
+#MAN
+displays a help topic in the log
+
+command: _man XXX YYY_
+>with
+>>XXX = keyword of the section
+>>YYY = name of the file where the information is contained (optional parameter)
+
+By default, the database is the "man_eng.stx" file located in the system folder (or the "man_fra.stx" file if the system is configured in French).
+:nsn
+#NSN
+smolnet navigator
+
+command: _nsn XXX_
+>Avec:
+>>XXX = URL of the file to open
+
+For now, only local files, the Gopher protocol, and the HTTP protocol are supported.
+ Gopher menus and HTML pages are converted (with varying degrees of success) into ~smoltexte~ so that they can be displayed, plain text is displayed without any formatting.
+:palette
+#PALETTE
+visualizing/searching for a color within the 256-color palette or the 24-bit color palette
+
+command: _palette_
+:partd
+#PARTD
+partitioning tools
+
+command: _partd_
+:pilote
+#PILOTE
+
+starts a device driver
+
+
+
+command: _pilote XXX YYY_
+ 
+>with
+>>XXX = type of driver to load only "pci" for the moment
+
+>>YYY = address of the device to load, if this parameter is absent we start all the detected devices
+
+:ping
+#PING
+link test by echo request with the ICMP protocol
+
+command: _ping XXX YYYY_
+>with: XXX = address of the machine to be tested
+>>YYYY = optional parameters
+
+optional parameters:
+-c:XXX network interface numbers to use (0 by default)
+-t:XXX number of ping attempts (4 by default)
+:pwr
+#PWR
+arret/redémarrage de l'ordinateur
+
+commande: _pwr -s_
+>arrete l'ordinateur
+commande: _pwr -r_
+>redémarre l'ordinateur
+:scanip
+#SCANIP
+send ICMP pings to a range of ip addresses to test their presence
+
+command: _scanip XXX YYY ZZZZ_
+>with:
+>>XXX = address of the first machine in the range to be tested
+>>YYY = address of the last machine in the range to be tested
+>>ZZZZ = optional parameters
+
+optional parameters:
+>-c:XXX network interface numbers to use
+>-n:XXX number of pings to remain per address
+:shttp
+#SHTTP
+http-server
+
+command: _shttp XXX YYYY_
+>with:
+>>XXX = name of the site files folder that can be consulted
+>>YYYY = optional parameters
+
+optional parameters:
+-c:XXX network interface numbers to use
+:snif
+#SNIF
+ethernet frame interceptor
+
+command: _snif X_
+>with:
+>>X = network interface numbers to use
+:spxe
+#SPXE
+serveur dhcp avec option pour le boot par pxe, le serveur distribue les adresss ip a partir de l'adresse qui suis la sienne
+
+commande: _spxe XXX_
+>>avec:
+>>>XXX = paramètres optionnels 
+
+##paramètres optionnels:
+>-b:XXX = nom du fichier bootable a télécharger par TFTP (obligation d'avoir lancé le service le serveur avec la commande ~STFTP~)
+>-n:YYY = nombre d'adresse IP que le serveur peut distribuer (par défaut 16)
+>-c:Z = numéros de la carte ethernet a utiliser
+:stftp
+#STFTP: tftp server
+
+command: _stftp X YYY_
+>with:
+>>XXX = name of the site files folder that can be downloaded
+>>YYYY = optional parameters
+
+optional parameters:
+-c:XXX network interface numbers to use
+-w allow file writing
+:stlnt
+#STLNT: telnet server
+
+command: _stlnt XXXX_
+>with:
+>>XXXX = optional parameters
+
+optional parameters:
+-c:XXX network interface numbers to use (0 by default)
+-p:XXX port numbers to use (23 by default)
+:term
+#TERM
+ client for connections by serial link or TCP
+:trace
+#TRACE
+allows you to determine the path taken by the packets transmitted to a machine on an IP network
+
+command: _trace XXX YYYY_
+>with:
+>>XXX = target machine address
+>>YYYY = optional parameters
+
+optional parameters:
+>-c:XXX network interface numbers to use (0 by default)
+>-s:XXX maximum hop count (default 40)
+>-t:XXX number of attempts in case of no response (4 by default)
+:utf8
+#UTF8
+ allows to visualize the encodings of a Unicode character/glyph in utf8
+
+command: _utf8 XX YY_
+>with:
+>>XX = character/glyph numbers
+>>YY = number of characters to display (optional parameter, 1 by default)
+:voir
+#VOIR: image file viewer
+
+
+
+command: _voir XXX YYY_
+>with:
+>>XXX = image name
+>>YYY = optional parameters
+optional parameters:
+>-c:XXX screen background color
+>-t hides text information
+>-s hide the mouse cursor
+:whois
+
+#WHOIS
+Displays info on a domain
+
+command: _whois XXX YYY_
+>with:
+>>XXX = domain name
+>>YYY = optional parameters
+
+optional parameters:
+
+>-s:XXX server to query
+the program queries a server dedicated to certain top-level domains (.com .net.org .fr .eu .uk .be .wiki .io .de), for all the others, the whois.iana.org server is queried
+:rtl8139:3c90x:i8254x:ethernet:ip
+#Drivers for ethernet/ip card
+
+command: _rtl8139 XXX_
+starts the driver for a Realtek 8139 or compatible card
+command: _3c90x XXX_
+starts the driver for a 3Com or compatible card
+command: _I8254x XXX_
+starts the driver for an Intel or compatible card
+
+>with:
+>>XXX = ~pci address~ of the card
+
+driver configuration is done with ~IPCONFIG~
+:tecop:tui
+#TECOP
+Main Control Terminal
+
+The tecop is the name of the interface which makes it possible to drive the SEaC operating system in text mode
+You access the tecop by pressing the "list" key (located to the left of the right ctrl key) or by Ctrl+Alt+Tab
+
+the tecop consists of 4 zones (from top to bottom):
+>- Interface available (white on blue background)
+>- System Log
+>- Work address (in green on a black background)
+>- Command being drafted
+
+the up and down arrow keys as well as start, end, page up, and page down allow navigation in the log file
+the inser and shift+inser keys are used to navigate through the history of commands
+the function keys allow access to the interfaces listed at the top of the screen
+:smoltexte:stx
+_comming soon_
+
+
+
+
+
+
+     
+:system folder:system
+#System Folder
+the system folder is the folder where the executables of the additional commands are stored as well as the files necessary for the proper functioning of the operating system (definition file, help file, etc.)
+we define the system folder with the command ~fds~
+
+
+
+
+
+
+
+
+
+:kio:mio:gio:tio
+ KiB = kibibyte = 1024 bytes
+ MiB = mebibyte = 1024 KiB
+ GiB = gibibyte = 1024 MiB
+ TiB = tebibyte = 1024 GiB
+
+:pci address:pci
+
+#PCI address
+
+a pci address has the following format:
+
+"XX:YY.Z
+
+>with
+>>XX = bus numbers
+
+>>YY = card numbers
+
+>>Z  = function numbers
+
+
 
