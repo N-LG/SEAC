@@ -43,7 +43,7 @@ lorsque le ~tecop~ est affiché vous avez la possibilité d'acceder directement 
 >~STOP~ arrete une tache
 >~VMEM~ lit la mémoire
 >~PWR~ Arrête ou redémarre l'ordinateur
->~AFT~ change l'affichage principal
+>~AFT~ change la tâche affiché
 ##Editeurs:
 >~EDT~ éditeur de texte
 >~EDH~ éditeur hexadécimale
@@ -183,8 +183,7 @@ validez avec entrée, quittez avec echap
 vous pouvez réutiliser le résutat du dernier calcul en utilisant la variable x dans votre expression
 :cdg
 #CDG
-chien de garde
-permet de surveiller le plantage d'une application
+chien de garde, surveille le plantage d'application
 
 commande: _cdg_
 A son démarrage l'application enregistre les tache en cours d'execution, puis surveille toutes les 5 secondes si les applications sont en cours d'execution. si une des application est manquante, le systeme enregiste le journal systeme dans un fichier et redémarre l'ordinateur
@@ -322,6 +321,8 @@ commande: _def XXX_
 >colemak.def -> Colemak
 >dvorak.def  -> Dvorak 
 >ergol.def   -> Ergol
+
+"ajouter -s a la fin de la commande défini le fichier comme clavier alternatif, passage de l'un a l'autre avec CTRL+² (²=touche juste sous la touche echap d'un clavier de bureau)
 
 ##polices
 >0u0.def     -> caractères de 0 a FF (latin)

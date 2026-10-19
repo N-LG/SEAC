@@ -43,8 +43,8 @@ When ~tecop~ is displayed, you can access an interface directly by clicking the 
 >~MTT~ modifies the execution time of the task
 >~STOP~ stop a task
 >~VMEM~ read memory
->~PWR~ Arrête ou redémarre l'ordinateur
->~AFT~ change l'affichage principal
+>~PWR~ Shut down or restart the machine
+>~AFT~ change the displayed task
 ##Editors:
 >~EDT~ text editor
 >~EDH~ hex editor
@@ -65,7 +65,7 @@ When ~tecop~ is displayed, you can access an interface directly by clicking the 
 >~VOIR~ image file viewer
 >~PILOTE~ driver manager
 >~LTP~ advanced task listing
->~IFF~ donne des informations sur les fichier
+>~IFF~ provides information about the file
 ##-Network usage:
 >~IPCONFIG~ network card configurator
 >~PING~ test connection
@@ -185,11 +185,10 @@ validate with enter, exit with esc
 you can reuse the result of the last calculation by using the variable x in your expression
 :cdg
 #CDG
-chien de garde
-permet de surveiller le plantage d'une application
+watchdog, monitoring of application crashes
 
 commande: _cdg_
-A son démarrage l'application enregistre les tache en cours d'execution, puis surveille toutes les 5 secondes si les applications sont en cours d'execution. si une des application est manquante, le systeme enregiste le journal systeme dans un fichier et redémarre l'ordinateur
+Upon startup, the application records the currently running tasks, then monitors the status of these applications every 5 seconds. If any of the applications are found to be missing, the system saves the system log to a file and restarts the computer.
 :cdns
 #CDNS
 DNS resolver, allows to obtain the info of the machine according to the name
@@ -281,7 +280,7 @@ optional parameters:
 #CTLS
 client TLS
 
-créer un service intermédiaire entre l'application et le pilote ethernet pour prendre en charge le protocole TLS pour que cela devienne presque aussi simple a implementer qu'une connexion via TCP/IP @(application en cours de dévellopement)@
+Create an intermediate service between the application and the Ethernet driver to handle the TLS protocol, making it nearly as simple to implement as a standard TCP/IP connection. @(application currently under development)@
 :dcp
 #DCP
 decompresses archives which are in PKzip Gzip and Tar format
@@ -323,6 +322,8 @@ command: _def XXX_
 >colemak.def -> Colemak
 >dvorak.def  -> Dvorak 
 >ergol.def   -> Ergol
+
+"Adding -s to the end of the command set the definition file as an alternative keyboard layout, you can switch between layouts using CTRL+` (where ` is the key located directly below the Esc key on a desktop keyboard)
 
 ##fonts
 >0u0.def     -> characters from 0 to FF (Latin)
@@ -395,18 +396,18 @@ optional parameters:
 >-t:X text color
 :iff
 #IFF
-donne les métadonnées d'un fichier
+provides information about the file
 
 commande: _IFF XXX_
 >>avec:
->>>XXX = nom du fichierque l'on souhaite connaitre
+>>>XXX = file name that you want
 :install
 #installation
 
-##Etapes pour une installation semi automatique
-il faut d'abbord avoir un disque avec une partition de type 30h, une partition fat et que l'on puisse ecraser le code d'amorçage
-si on as pas les bonnes partition sur le disque on peut les créer avec la commande ~partd~
-un fois le disque pret on lance la commande _install_ 
+##Steps for a semi-automatic installation
+First, you must have a disk with a partition of type 30h and a FAT partition, and it must be possible to overwrite the boot code.
+If the disk does not have the correct partitions, you can create them using the ~partd~ command.
+Once the disk is ready, run the ~install~ command
 
 ##Steps to do a manual installation of Seac
 
@@ -528,12 +529,12 @@ optional parameters:
 -t:XXX number of ping attempts (4 by default)
 :pwr
 #PWR
-arret/redémarrage de l'ordinateur
+Shut down or restart the machine
 
-commande: _pwr -s_
->arrete l'ordinateur
-commande: _pwr -r_
->redémarre l'ordinateur
+command: _pwr -s_
+> Shut down the machine
+command: _pwr -r_
+>restart the machine
 :scanip
 #SCANIP
 send ICMP pings to a range of ip addresses to test their presence
@@ -567,16 +568,16 @@ command: _snif X_
 >>X = network interface numbers to use
 :spxe
 #SPXE
-serveur dhcp avec option pour le boot par pxe, le serveur distribue les adresss ip a partir de l'adresse qui suis la sienne
+DHCP server with an option for PXE booting; the server distributes IP addresses starting from the address immediately following its own.
 
-commande: _spxe XXX_
+command: _spxe XXX_
 >>avec:
 >>>XXX = paramètres optionnels 
 
-##paramètres optionnels:
->-b:XXX = nom du fichier bootable a télécharger par TFTP (obligation d'avoir lancé le service le serveur avec la commande ~STFTP~)
->-n:YYY = nombre d'adresse IP que le serveur peut distribuer (par défaut 16)
->-c:Z = numéros de la carte ethernet a utiliser
+##optional parameters:
+>-b:XXX = name of the bootable file to be downloaded via TFTP (the server service must be started using the ~STFTP~ command)
+>-n:YYY = number of IP addresses that the server can distribute (16 by default)
+>-c:Z = Ethernet card numbers to use
 :stftp
 #STFTP: tftp server
 
@@ -680,33 +681,16 @@ the up and down arrow keys as well as start, end, page up, and page down allow n
 the inser and shift+inser keys are used to navigate through the history of commands
 the function keys allow access to the interfaces listed at the top of the screen
 :smoltexte:stx
-_comming soon_
-
-
-
-
-
-
-     
+_only available in the French version of the help file, sorry_
 :system folder:system
 #System Folder
 the system folder is the folder where the executables of the additional commands are stored as well as the files necessary for the proper functioning of the operating system (definition file, help file, etc.)
 we define the system folder with the command ~fds~
-
-
-
-
-
-
-
-
-
 :kio:mio:gio:tio
  KiB = kibibyte = 1024 bytes
  MiB = mebibyte = 1024 KiB
  GiB = gibibyte = 1024 MiB
  TiB = tebibyte = 1024 GiB
-
 :pci address:pci
 
 #PCI address
