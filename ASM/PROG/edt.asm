@@ -170,11 +170,8 @@ call sauvegarde_conditionnelle
 call raz_ecr
 
 mov dword[taille_fichier],0
-mov ecx,2048
-mov dx,sel_dat2
-mov al,8
-mov [taille_zone],ecx
-int 61h
+call verif_zt
+
 
 call precharge_nomdossier
 
