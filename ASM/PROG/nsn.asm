@@ -2389,6 +2389,10 @@ cmp al,78
 je moinsp
 cmp al,81
 je plusp
+cmp al,77
+je debutf
+cmp al,80
+je finf
 
 cmp al,0F0h
 je clique
@@ -2589,39 +2593,46 @@ jmp affiche_page
 
 
 plus:
-;cmp esi,[taille]
-;jae touche_boucle
+mov ax,[offsety_max] 
+cmp [offsety],ax
+jae touche_boucle
 inc word[offsety]
 jmp affiche_page
-
 
 
 moinsp:
 fs
 mov ax,[resy_texte]
-sub ax,2
+sub ax,8
 cmp word[offsety],ax     
-jb @f
+jb debutf
 sub [offsety],ax
 jmp affiche_page
-@@:
+
+
+plusp:
+fs
+mov ax,[resy_texte]
+sub ax,8
+add [offsety],ax
+mov ax,[offsety_max]
+cmp word[offsety],ax
+jbe affiche_page
+
+
+finf:
+mov ax,[offsety_max] 
+mov [offsety],ax     
+jmp affiche_page
+
+
+debutf:
 mov word[offsety],0     
 jmp affiche_page
 
 
 
 
-plusp:
-fs
-mov ax,[resy_texte]
-sub ax,2
-@@:
-cmp byte[esi],":"
-je touche_boucle
-inc word[offsety]
-dec ax
-jnz @b
-jmp affiche_page
 
 
 ;*****************************************
@@ -3593,7 +3604,8 @@ ret
 
 
 ;*********************
-transforme_crlf:      ;transforme les saut de ligne en u simple zéros
+transforme_crlf:      ;transforme les saut de ligne en simple zéros et les compte
+mov word[offsety_max],0
 pushad
 mov ebp,[taille]
 mov ebx,zt_recep
@@ -3613,6 +3625,11 @@ ignore_transf:
 inc ebx
 cmp ebx,ebp
 jbe boucle_transf
+
+cmp word[offsety_max],8
+jb @f
+sub word[offsety_max],8
+@@:
 popad
 ret
 
@@ -3630,6 +3647,7 @@ dec ebp
 
 transf1_zero:
 mov byte[ebx],0
+inc word[offsety_max]
 jmp ignore_transf
 
 
@@ -3794,6 +3812,8 @@ rb 256
 offsetx:
 dw 0
 offsety:
+dw 0
+offsety_max:
 dw 0
 
 col_conv:
