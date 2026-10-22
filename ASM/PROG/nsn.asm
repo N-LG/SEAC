@@ -536,8 +536,40 @@ jmp aff_err_protocole
 
 ;*********************************************************************************
 ouvrir_gopher:
-call lit_addr_serv
+;s'il y as besoin d'un argument a la requete on le demande
+cmp byte[zt_ressource],"7"
+jne @f
+cmp byte[zt_param],0
+jne @f
 
+pushad
+call raz_ecr
+call affiche_adresse
+mov al,11
+mov ah,[coul_base]
+mov edx,msg_paramg
+call ajuste_langue
+int 63h
+mov al,6
+mov ah,[coul_base]
+mov edx,zt_param
+mov ecx,256
+int 63h
+popad
+@@:
+
+;affiche que l'on est en train de se connecter
+call raz_ecr
+call affiche_adresse
+mov al,11
+mov ah,[coul_base]
+mov edx,msg0
+call ajuste_langue
+int 63h
+
+
+
+call lit_addr_serv
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
 mov cx,70
@@ -615,28 +647,6 @@ inc edi
 jmp @b
 @@:
 
-cmp byte[zt_ressource],"7"
-jne @f
-cmp byte[zt_param],0
-jne @f
-
-pushad
-call raz_ecr
-call affiche_adresse
-mov al,11
-mov ah,[coul_base]
-mov edx,msg_paramg
-call ajuste_langue
-int 63h
-mov al,6
-mov ah,[coul_base]
-mov edx,zt_param
-mov ecx,256
-int 63h
-popad
-
-
-@@:
 
 mov esi,zt_param
 cmp byte[zt_param],0
@@ -667,15 +677,6 @@ call envoie_utf8z
 ;******************************
 ;lit les données reçu jusqu'a la fermeture de la connexion
 mov ebp,-1
-call raz_ecr
-call affiche_adresse
-mov al,11
-mov ah,[coul_base]
-mov edx,msg1
-call ajuste_langue
-int 63h
-
-
 mov dword[taille],0
 mov al,8
 mov ecx,zt_recep+4000h
@@ -712,27 +713,10 @@ jne fin_reception_gopher
 cmp ecx,0
 je @f
 
-
-;????????????????????
-;pushad
-;mov al,6
-;mov edx,zt_recep
-;add edx,[taille]
-;push edx
-;add edx,ecx
-;mov byte[edx],0
-;pop edx
-;int 61h
-;popad
-;?????????????????
-
-
+call affiche_telech
 add [taille],ecx
-mov al,11
-mov ah,[coul_base]
-mov edx,msg2
-int 63h
 jmp boucle_reception_gopher
+
 
 @@:
 int 62h
@@ -755,11 +739,6 @@ mov al,"1"
 @@:
 mov [zt_type],ax
 jmp detecte_type
-
-
-
-
-
 
 
 
@@ -921,6 +900,15 @@ mov bx,[id_ethernet]
 
 suite_cnx_http:
 
+;affiche que l'on est en train de se connecter
+call raz_ecr
+call affiche_adresse
+mov al,11
+mov ah,[coul_base]
+mov edx,msg0
+call ajuste_langue
+int 63h
+
 ;etablie une connexion
 inc word[port_local]
 mov al,0
@@ -1027,7 +1015,7 @@ jne aff_err_serv
 
 cmp ecx,0
 je lecture_entete  ;??????????????????????????????probleme
-
+call affiche_telech
 
 add [taille],ecx
 
@@ -1148,6 +1136,7 @@ cmp eax,0
 jne @f   ;???????????????????????gestion
 cmp ecx,0
 je boucle_telecharge_http
+call affiche_telech
 add [taille],ecx
 cmp dword[taille_attendue],0
 je boucle_telecharge_http
@@ -3268,6 +3257,25 @@ popad
 ret
 
 
+;************************
+;signal que le téléchargement
+affiche_telech:
+pushad
+mov al,11
+mov ah,[coul_base]
+cmp dword[taille],0
+je @f
+mov edx,msg2
+int 63h
+popad
+ret
+@@:
+mov edx,msg1
+call ajuste_langue
+int 63h
+popad
+ret
+
 
 
 ;***************************
@@ -3660,9 +3668,12 @@ sdata1:   ;données dans le segment de donnée N°1
 org 0
 
 
+msg0:
+db 13,"Connecting to server",0
+db 13,"Connexion au serveur en cours",0
 msg1:
-db 13,"Loading in progress",13,0
-db 13,"Chargement en cours",13,0
+db 13,"Loading in progress",0
+db 13,"Chargement en cours",0
 msg2:
 db ".",0
 
