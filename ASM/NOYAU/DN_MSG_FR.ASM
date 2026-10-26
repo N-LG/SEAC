@@ -118,7 +118,7 @@ db " de definition de langue a été chargé",13,0              ;87
 db " de definition de clavier à été chargé",13,0             ;88
 db " de definition graphique de caractère a été chargé",13,0 ;89
 
-db 0 ;90
+db "Choisissez le nouveau nom du fichier:     (échap pour annuler)",13,0 ;90
 db 0 ;91
 db "arret forcé de la tâche ",0  ;92
 db "modification du temp d'execution de la tâche ",0  ;93

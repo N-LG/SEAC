@@ -113,7 +113,7 @@ db " file has been loaded for the language definition",13,0          ;87
 db " file has been loaded for the keyboard definition",13,0          ;88
 db " file has been loaded for the graphic character definition",13,0 ;89
 
-db 0 ;90
+db "Choose the new filename:     (esc to cancel)",13,0 ;90
 db 0 ;91
 db "forced stop of task ",0  ;92
 db "modification of the execution time of the task ",0  ;93

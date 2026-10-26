@@ -37,7 +37,72 @@ mov eax,cer_parami
 cmp byte[cmdren_nom_final],0
 je erreur_autres_cmdren 
 
+;demmande quel nom on souhaite pour le fichier
+cmp dword[cmdren_nom_final],"-q"
+jne oknom_cmdren 
 
+;active l'écran video
+mov dx,sel_dat2
+mov ah,1   ;option=mode texte
+mov al,0   ;création console     
+int 63h
+mov dx,sel_dat1
+mov ds,dx
+mov es,dx
+mov dx,sel_dat2
+mov fs,dx
+
+;affiche la question
+mov ax,13
+mov edx,cmdren_zone_tampon
+mov cx,90
+int 61h
+mov al,11
+mov ah,7
+mov edx,cmdren_zone_tampon
+int 63h
+
+;demande le nouveau nom (a partir de l'ancien)
+mov al,4
+mov ah,0
+mov cl,0
+mov edx,cmdren_nom_final
+int 61h
+
+mov esi,cmdren_nom_final   ;vire le nom de dossier
+boucledossier_cmdren:
+cmp byte[esi],"/"
+je @f
+cmp byte[esi],"\"
+je @f
+cmp byte[esi],0
+je okdossier_cmdren
+inc esi
+jmp boucledossier_cmdren
+
+@@:
+inc esi
+mov ecx,cmdren_mem
+mov edi,cmdren_nom_final
+sub ecx,esi
+cld
+rep movsb
+mov esi,cmdren_nom_final
+jmp boucledossier_cmdren
+
+
+okdossier_cmdren:
+mov al,6
+mov ah,7
+mov edx,cmdren_nom_final
+mov ecx,1024
+int 63h
+cmp eax,1
+jne oknom_cmdren
+int 60h
+
+
+oknom_cmdren:
 xor eax,eax         ;ouvre le fichier
 xor ebx,ebx
 mov edx,cmdren_nom_initial
