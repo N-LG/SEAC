@@ -559,6 +559,7 @@ popad
 @@:
 
 ;affiche que l'on est en train de se connecter
+mov ebp,-1
 call raz_ecr
 call affiche_adresse
 mov al,11
@@ -566,8 +567,6 @@ mov ah,[coul_base]
 mov edx,msg0
 call ajuste_langue
 int 63h
-
-
 
 call lit_addr_serv
 
@@ -608,12 +607,21 @@ jne aff_err_serv
 
 
 ;attend que le programme réponde
+xor edx,edx
+@@:
 mov al,8
 mov ebx,[adresse_canal]
-mov ecx,200  ;500ms
+mov ecx,400  ;1s
 int 65h
 cmp eax,cer_ddi
-jne aff_err_serv
+je @f 
+
+
+dec edx
+
+jmp aff_err_serv
+@@:
+
 
 ;lit la réponse du programme
 mov al,4
@@ -676,7 +684,6 @@ call envoie_utf8z
 
 ;******************************
 ;lit les données reçu jusqu'a la fermeture de la connexion
-mov ebp,-1
 mov dword[taille],0
 mov al,8
 mov ecx,zt_recep+4000h
@@ -885,7 +892,6 @@ jmp suite_cnx_http
 
 ;****************************************************************************************
 ouvrir_http:
-call lit_addr_serv
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
 mov cx,80
@@ -901,6 +907,7 @@ mov bx,[id_ethernet]
 suite_cnx_http:
 
 ;affiche que l'on est en train de se connecter
+mov ebp,-1
 call raz_ecr
 call affiche_adresse
 mov al,11
@@ -908,6 +915,8 @@ mov ah,[coul_base]
 mov edx,msg0
 call ajuste_langue
 int 63h
+
+call lit_addr_serv
 
 ;etablie une connexion
 inc word[port_local]
@@ -2988,6 +2997,14 @@ mov al,6
 int 61h
 int 60h
 
+;aff_err_timeout:
+;mov edx,msg9
+;call ajuste_langue
+;mov al,11
+;mov ah,[coul_surl]
+;int 63h
+;jmp touche_boucle
+
 
 aff_err_net:
 mov edx,msg3
@@ -3739,6 +3756,9 @@ db "</script",0
 
 taille_attendue:
 dd 0
+
+timeout:
+dd 0,0
 
 
 nb_motclef:
