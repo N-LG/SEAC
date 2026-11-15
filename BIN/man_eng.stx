@@ -8,7 +8,8 @@ Available ~commands~
 ~tecop~: main command terminal
 ~installation~
 ~smoltexte~: Markdown syntax for help files
-~system functions|syscall.stx~
+~other~ information
+~system functions|./syscall.stx~
 :seac
 #SEaC: Approximately Complete Operating System
 
@@ -106,6 +107,7 @@ copy the XXX file to the YYY folder with ZZZ options
 
 command: _ren XXX YYY_ (or _mv XXX YYY_)
 rename XXX file to YYY
+"If YYY is the -q option, a window opens to allow editing of the filename XXX.
 
 command: _ld_
 list the partitions and cdrom which have been detected by the system (no argument)
@@ -681,19 +683,83 @@ the up and down arrow keys as well as start, end, page up, and page down allow n
 the inser and shift+inser keys are used to navigate through the history of commands
 the function keys allow access to the interfaces listed at the top of the screen
 :smoltexte:stx
-_only available in the French version of the help file, sorry_
-:system folder:system
-#System Folder
+#SMOLTEXTE
+
+Smoltexte is a variant of Markdown used for storing documentation pages for the SEaC operating system.
+
+Smoltexte is primarily organized by lines, line endings may be CR, LF, or CRLF.
+The first line is reserved for file metadata, while the function of each subsequent line is determined by its initial characters.
+
+## First line
+The first line is intended to identify the format and contain the document's metadata. It follows this format:
+"SMLTX;title;author;last modified date;version;organization;validity date;
+
+Only the string "SMLTX;" at the beginning is mandatory, serving to identify the document type. Dates must be in the format YYYY-MM-JJ or YYYY-MM-JJThh:mm:ss.ms, based on the date and time in UTC.
+
+## Line-start markers
+
+### # title and subtitle 
+1 to 3 hash symbols mark titles and subtitles
+
+### | table
+Each row is a row in the table; each column is separated by the | character.
+exemple:
+"||column 1|column 2
+"|row 1||
+"|row 2||
+donnera:
+||column 1|column 2
+|row 1||
+|row 2||
+
+### ! multimedia file
+allows a file to be inserted into the document; a browser that does not support the file type will display a link to download it
+exemple:
+"!alternative text|file URL 
+
+### : section/internal links
+marks the beginning of a section and is followed by the name of the section; if the section has multiple names, they are listed one after another, separated by colons (:)
+exemple:
+":section name:alternative name 1:alternative name 2
+
+### > line indentation
+Add indentation to the text for better readability; you can repeat the > symbol to create multiple levels of indentation.
+
+### ? escape character
+the start-of-line character is ignored (if you want a line to begin with a reserved character)
+
+### " special paragraph
+summaries, quotations, code snippets, etc.., indentations using the `>` symbol can be added for formatting, and a monospaced (fixed-width) font must be used.
+
+## text formatting mark
+Each special character marks the beginning and end of the affected area; if you need to display the character itself, simply repeat it—only one instance will be shown, and no specific formatting will be applied.
+
+### ~~ links  
+exemple:
+"~~display name|url~~
+show:
+~display name|url~
+si il n'y as pas d'url, le nom d'affichage correspond a une sous rubrique du même document, si l'url commence par # c'est aussi une sous rubrique du même document
+
+### __ underlines
+exemple:
+"__underlined text__
+show:
+_underlined text_
+
+### @@ emphasis
+exemple:
+"@@emphasized text@@
+show:
+@emphasized text@
+:other:system folder:system:pci address:pci:Measures:kio:mio:gio:tio
+#Other information
+
+##System Folder
 the system folder is the folder where the executables of the additional commands are stored as well as the files necessary for the proper functioning of the operating system (definition file, help file, etc.)
 we define the system folder with the command ~fds~
-:kio:mio:gio:tio
- KiB = kibibyte = 1024 bytes
- MiB = mebibyte = 1024 KiB
- GiB = gibibyte = 1024 MiB
- TiB = tebibyte = 1024 GiB
-:pci address:pci
 
-#PCI address
+##PCI address
 
 a pci address has the following format:
 
@@ -706,5 +772,8 @@ a pci address has the following format:
 
 >>Z  = function numbers
 
-
-
+##Measures
+ KiB = kibibyte = 1024 bytes
+ MiB = mebibyte = 1024 KiB
+ GiB = gibibyte = 1024 MiB
+ TiB = tebibyte = 1024 GiB

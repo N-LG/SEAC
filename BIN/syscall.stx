@@ -1,6 +1,4 @@
 SMLTX;
-
-:sommaire
 les fonctions système sont appelé avec les interruptions 60h à 6Fh en assembleur ou avec leurs ~fonctionsC~ équivalent en C
 si il y as plusieurs fonction disponible, le numéros de la fonction sera dans le registre al
 
@@ -15,8 +13,6 @@ si il y as plusieurs fonction disponible, le numéros de la fonction sera dans l
 
 >codes d'~erreurs~
 >codes de ~services~
-
-
 
 
 :int60h
@@ -1693,214 +1689,214 @@ termine la tache en cours
 
 
 :cmd()
-#void cmd(char* ¨commande¨)
+#void cmd(char* _commande_)
 Envoie une commande au systeme
- ¨commande¨ = commande a envoyer au systeme
+ _commande_ = commande a envoyer au systeme
 
 
 :delay()
-#void delay(unsigned long ¨temps¨)
+#void delay(unsigned long _temps_)
  attend
- ¨temps¨ = temps à attendre en milliseconde
+ _temps_ = temps à attendre en milliseconde
 
 
 :id_tache()
-#unsigned int id_tache()
+#unsigned int id__tache()
  Renvoie l'id de la tache
 
 
 
 :arg_tot()
-#long arg_tot(char *¨string¨)
+#long arg__tot(char *_string_)
  lit la commande de la tache
- ¨string¨ = zone de 512 octet ou sera recopiéla commande
+ _string_ = zone de 512 octet ou sera recopiéla commande
 
 
 :arg_num()
-#long arg_num(char ¨numero¨,char *string)
+#long arg__num(char _numero_,char *_string_)
  lit un argument par son numéros
- ¨numero¨ = numéro de l'argument a lire
- ¨string¨ = zone de 256 octet ou sera recopié l'argument
+ _numero_ = numéro de l'argument a lire
+ _string_ = zone de 256 octet ou sera recopié l'argument
 
 
 :arg_lettre()
-#long arg_lettre(char ¨lettre¨,char *¨string¨)
+#long arg__lettre(char _lettre_,char *_string_)
  lit un argument par sa lettre
- ¨lettre¨ = numéro de l'argument a lire
- ¨string¨ = zone de 256 octet ou sera recopié l'argument
+ _lettre_ = numéro de l'argument a lire
+ _string_ = zone de 256 octet ou sera recopié l'argument
 
 
 
 :printJ()
-#void printJ(char *¨string¨)
+#void printJ(char *_string_)
  ecrit dans le journal systeme
- ¨string¨ = chaine a ecrire dans le journal
+ _string_ = chaine a ecrire dans le journal
 
 
 :printD()
-#void printD(char *¨string¨)
+#void printD(char *_string_)
  change le descriptif de tache
- ¨string¨ = chaine a ecrire dans le descripteur de tache
+ _string_ = chaine a ecrire dans le descripteur de tache
 
 
 :changeT()
-#long changeT(long ¨taille¨)
+#long changeT(long _taille_)
  change la taille mémoire occupé par la tache
- ¨taille¨ = taille souhaité
+ _taille_ = taille souhaité
 
 
 :lireDH()
 #struct dateheure lireDH()
  lire la date et l'heure
- renvoie une structure d type dateheure
+ renvoie une structure de type ~dateheure~
 
 
 :changeS()
-#void changeS(unsigned char ¨service¨)
+#void changeS(unsigned char _service_)
  change le service de la tache
- ¨service¨ = ~services~ code service fournis par l'application
+ _service_ = ~services~ code service fournis par l'application
 
 
 :rechercheS()
-#unsigned long rechercheS(unsigned char ¨service¨,unsigned int *table,unsigned char taille)
+#unsigned long rechercheS(unsigned char _service_,unsigned int *table,unsigned char taille)
  recherche une tache par son service
- ¨service¨ = ~services~ code service recherché
- ¨table¨ = table d'int ou seront écrit la liste des id des tache 
- ¨taille¨ = nombre d'entrée maximum de la table
+ _service_ = ~services~ code service recherché
+ _table_ = table d'int ou seront écrit la liste des id des tache 
+ _taille_ = nombre d'entrée maximum de la table
 
 
 :compteur()
 #long compteur()
  lit le compteur temps
- ¨¨ =
+ __ =
 
 
 :message_systeme()
-#void message_systeme(int ¨num¨,char* ¨chaine¨)
+#void message__systeme(int _num_,char* _chaine_)
  charge un message systeme
- ¨num¨ = numéros du message a charger
- ¨chaine¨ = zone de 256 octet ou seront copié le message systeme
+ _num_ = numéros du message a charger
+ _chaine_ = zone de 256 octet ou seront copié le message systeme
 
 
 :message_erreur()
-#void message_erreur(int ¨num¨,char* ¨chaine¨)
+#void message__erreur(int _num_,char* _chaine_)
  charge un message d'erreur
- ¨num¨ =   codes d'~erreurs~
- ¨chaine¨ = zone de 256 octet ou seront copié le message d'erreur
+ _num_ =   codes d'~erreurs~
+ _chaine_ = zone de 256 octet ou seront copié le message d'erreur
 
 
 :lire_journal()
-#void lire_journal(char* ¨chaine¨,long ¨taille¨)
+#void lire__journal(char* _chaine_,long _taille_)
  lit le journal systeme
- ¨chaine¨ = endroit ou copier le journal systeme
- ¨taille¨ = nombre d'octet maximum du journal a lire
+ _chaine_ = endroit ou copier le journal systeme
+ _taille_ = nombre d'octet maximum du journal a lire
 
 
 :ecrire_pp()
-#void ecrire_pp(char* ¨chaine¨,long ¨taille¨)
+#void ecrire__pp(char* _chaine_,long _taille_)
  ecrire dans le presse papier
- ¨¨ =
+ __ =
 
 
 :lire_pp()
-#void lire_pp(char* chaine,long taille)
+#void lire__pp(char* _chaine_,long _taille_)
  lit dans le presse papier
- ¨¨ =
+ __ =
 
 
 :effacer_pp()
-#void effacer_pp()
+#void effacer__pp()
  efface le presse papier
 
 
 :lire_dossier_travail()
-#void lire_dossier_travail(char* ¨chaine¨)
+#void lire__dossier__travail(char* _chaine_)
  lit le dossier de travail
- ¨chaine¨ = espace de 512 octet ou sera copié le dosier de travail
+ _chaine_ = espace de 512 octet ou sera copié le dosier de travail
 
 
 :sous_taches()
-#void sous_taches(int* ¨table¨,char ¨nb¨)
+#void sous__taches(int* _table_,char _nb_)
  liste les taches que l'on as créer
- ¨table¨ = table ou seront recopié la liste de taches
- ¨nb¨ = nombre maximum d'element de cette liste
+ _table_ = table ou seront recopié la liste de taches
+ _nb_ = nombre maximum d'element de cette liste
 
 
 :deci()
-#long deci(char *¨chaine¨)
+#long deci(char *_chaine_)
  convertit chaine décimal en nombre
- ¨chaine¨ = chaine a convertir
+ _chaine_ = chaine a convertir
 
 
 :hexa(hexa()
-#long hexa(char *¨chaine¨)
+#long hexa(char *_chaine_)
  convertit chaine héxadécimal en nombre
- ¨chaine¨ = chaine a convertir
+ _chaine_ = chaine a convertir
 
 
 :long2deci()
-#void long2deci(long ¨nombre¨,char *¨chaine¨)
+#void long2deci(long _nombre_,char *_chaine_)
  convertit un nombre en chaine décimal
- ¨nombre¨ = nombre a convertir
- ¨chaine¨ = chaine de 16 octets ou ecrire la conversion
+ _nombre_ = nombre a convertir
+ _chaine_ = chaine de 16 octets ou ecrire la conversion
 
 
 :long2hexa()
-#void long2hexa(long ¨nombre¨,char *¨chaine¨)
+#void long2hexa(long _nombre_,char *_chaine_)
  convertit un nombre en chaine héxadécimal
- ¨nombre¨ = nombre a convertir
- ¨chaine¨ = chaine de 16 octets ou ecrire la conversion
+ _nombre_ = nombre a convertir
+ _chaine_ = chaine de 16 octets ou ecrire la conversion
 
 
 :etherS2B()
-#void etherS2B(char *¨entrée¨,char *¨sortie¨)
+#void etherS2B(char *_entrée_,char *_sortie_)
  convertit une adresse ethernet sous forme de chaine en forma binaire
- ¨entrée¨ = adresse en format chaine
- ¨sortie¨ = adresse en format binaire
+ _entrée_ = adresse en format chaine
+ _sortie_ = adresse en format binaire
 
 
 
 :ipv4S2B()
-#void ipv4S2B(char *¨entree¨,char *¨sortie¨)
+#void ipv4S2B(char *_entree_,char *_sortie_)
  convertit une adresse ip V4 sous forme de chaine en forma binaire
- ¨entrée¨ = adresse en format chaine
- ¨sortie¨ = adresse en format binaire
+ _entrée_ = adresse en format chaine
+ _sortie_ = adresse en format binaire
 
 
 :ipv6S2B()
-#ipv6S2B(char *¨entree¨,char *¨sortie¨)
+#ipv6S2B(char *_entree_,char *_sortie_)
  convertit une adresse ip V6 sous forme de chaine en forma binaire
- ¨entrée¨ = adresse en format chaine
- ¨sortie¨ = adresse en format binaire
+ _entrée_ = adresse en format chaine
+ _sortie_ = adresse en format binaire
 
 
 :etherB2S()
-#void etherB2S(char *¨entree¨,char *¨sortie¨)
+#void etherB2S(char *_entree_,char *_sortie_)
  convertit une adresse ethernet sous forme binaire en chaine
- ¨entrée¨ = adresse en format binaire
- ¨sortie¨ = adresse en format chaine
+ _entrée_ = adresse en format binaire
+ _sortie_ = adresse en format chaine
 
 
 
 :ipv4B2S()
-#void ipv4B2S(char *¨entree¨,char *¨sortie¨)
+#void ipv4B2S(char *_entree_,char *_sortie_)
  convertit une adresse ip v4 sous forme binaire en chaine
- ¨entrée¨ = adresse en format binaire
- ¨sortie¨ = adresse en format chaine
+ _entrée_ = adresse en format binaire
+ _sortie_ = adresse en format chaine
 
 
 
 :ipv6B2S()
-#void ipv6B2S(char *¨entree¨,char *¨sortie¨)
+#void ipv6B2S(char *_entree_,char *_sortie_)
  convertit une adresse ip v6 sous forme binaire en chaine
- ¨entrée¨ = adresse en format binaire
- ¨sortie¨ = adresse en format chaine
+ _entrée_ = adresse en format binaire
+ _sortie_ = adresse en format chaine
 
 
 :base64binaire()
-#base64binaire(char *¨entree¨,char *¨sortie¨, long ¨taille¨)
+#base64binaire(char *_entree_,char *_sortie_, long _taille_)
  convertir une chaine codé en base64 en donnée binaire
- ¨¨ =
+ __ =
 
 
 :raf()
@@ -1909,56 +1905,56 @@ Envoie une commande au systeme
  
 
 :open_file()
-#long open_file(char* ¨nom¨)
+#long open__file(char* _nom_)
  ouvre un fichier, renvoie l'id du fichier ouvert ou -1 si cela as échoué
- ¨nom¨ = nom du fichier
+ _nom_ = nom du fichier
 
 
 :close_file()
-#long close_file(long ¨id¨)
+#long close__file(long _id_)
  ferme un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
- ¨id¨ = id du fichier a fermer
+ _id_ = id du fichier a fermer
  
 
 :create_file()
-#long create_file(long ¨nom¨)
+#long create__file(long _nom_)
  crée un fichier, renvoie l'id du fichier ouvert ou -1 si cela as échoué
- ¨nom¨ = nom du fichier
+ _nom_ = nom du fichier
 
 
 :delete_file()
-#long delete_file(long ¨id¨)
+#long delete__file(long _id_)
  supprime un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
- ¨id¨ = id du fichier a supprimer
+ _id_ = id du fichier a supprimer
 
 
 :read_file()
-#long read_file(long ¨id¨,long ¨offset¨,long ¨count¨,char* ¨data¨)
+#long read__file(long _id_,long _offset_,long _count_,char* _data_)
  lit dans un fichier, renvoie le ~erreurs~ codes d'erreur de l'opération
- ¨id¨ = id du fichier a supprimer
- ¨offset¨ = adresse dans le fichier
- ¨count¨ = nombre d'octet
- ¨data¨ = ou seront écrit les donnée lut
+ _id_ = id du fichier a supprimer
+ _offset_ = adresse dans le fichier
+ _count_ = nombre d'octet
+ _data_ = ou seront écrit les donnée lut
 
 
 :write_file()
-#long write_file(long ¨id¨,long ¨offset¨,long ¨count¨,char* ¨data¨)
+#long write__file(long _id_,long _offset_,long _count_,char* _data_)
  ecrit dans un fichier, renvoie le  ~erreurs~ codes d'erreur de l'opération
- ¨id¨ = id du fichier a supprimer
- ¨offset¨ = adresse dans le fichier
- ¨count¨ = nombre d'octet
- ¨data¨ = donnée a ecrire
+ _id_ = id du fichier a supprimer
+ _offset_ = adresse dans le fichier
+ _count_ = nombre d'octet
+ _data_ = donnée a ecrire
 
 
 
-:taille_file()
-#long taille_file(long ¨id¨)
+:taille__file()
+#long taille_file(long _id_)
  lit la taille d'un fichier, renvoie la taille du fichier ouvert ou -1 si cela as échoué
- ¨id¨ = id du fichier a supprimer
+ _id_ = id du fichier a supprimer
 
 
 :error_file()
-#long error_file()
+#long error__file()
  donne le code de la dernière ~erreurs~ erreur lorsque les fonctions renvoie -1
 
 
@@ -1976,27 +1972,4 @@ Envoie une commande au systeme
  objimage_y   2 octets hauteur de l'imabe en pixel
  objimage_opl 4 octets nombre d'octet par ligne
  objimage_ctp 4 octets couleur de transparence
- objimage_dat variable donnée de chaque pixel de gauche à droite et de haut en bas
-
-
-
-
-
-   
- objimage_dat variable donnée de chaque pixel de gauche à droite et de haut en bas
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                
+ objimage_dat variable donnée de chaque pixel de gauche à droite et de haut en bas                               

@@ -7,7 +7,8 @@ description de ~SEaC~
 ~tecop~: terminal de commande principal
 ~installation~
 ~smoltexte~: syntaxe markdown pour les fichier d'aide
-~fonctions systeme|syscall.stx~
+~autres~ informations
+~fonctions systeme|./syscall.stx~
 :seac
 #SEaC: systeme d'exploitation approximativement complet
 
@@ -106,6 +107,7 @@ copie le fichier XXX dans le dossier YYY avec les options ZZZ
 
 commande _ren XXX YYY_ (ou _mv XXX YYY_)
 renomme le fichier XXX en YYY
+"Si YYY est l'option -q,  une fenetre s'ouvre pour permetre d'éditer le nom du fichier XXX.
 
 commande: _ld_
 liste les partitions et cdrom qui ont été détecté par le système (pas d'argument)
@@ -679,21 +681,16 @@ les touches inser et maj+inser permettent de naviguer dans l'hisorique des comma
 les touches fonctions permettent d'acceder aux interfaces listé en haut de l'écran
 :smoltexte:stx
 #SMOLTEXTE
-
 le smoltexte est une variante du markdown qui sert a enregistrer les pages de documentations du systeme d'exploitation SEaC
 
 le smoltexte est principalement organisé en ligne, les marqueur de fin de ligne peut être CR, LF, ou CRLF
 la première ligne est dédié aux métadonnée du fichier, ensuite chaque fonctions d'une ligne est définis par ses premiers caractère
 
-
-
 ## première ligne
 la première ligne est destiné à avertir du format et à contenir les métadonnée du document, celle ci as le format suivant:
-
 "SMLTX;titre;auteur;date dernière modification;version;organisation;date de valididité;
 
 seule la chaine SMLTX; au début est obligatoire pour indiquer de quel type est le document. Les dates sont au format YYYY-MM-JJ ou YYYY-MM-JJThh:mm:ss.ms suivant le jour et l'heure UTC 
-
 
 ## marques en début de ligne
 
@@ -762,21 +759,22 @@ les argument sont séparé par des espaces, si dans votre argument il doit y avo
 si les arguments ne sont pas dans un ordre particulier, il faut les identifier par une lettre précédé d'un espace au début de l'argument suivie de deux points avec la valeur de l'argument. 
 "exemple: dcp archive.zip -e -o:"dossier temporaire"
 
-:adresse pci:pci
-#Adresse PCI
-une adresse pci a le format suivant: _X:YY.Z_
+:autres:dossier systeme:systeme:adresse pci:pci:mesures:kio:mio:gio:tio
+#Autres informations
+
+##Dossier systeme
+le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
+on définis le dossier systeme avec la commande ~fds~
+
+##Adresse PCI
+une adresse pci a le format suivant: _XX:YY.Z_
 >>avec:
 >>>XX = numéros du bus
 >>>YY = numéros de la carte
 >>>Z  = numéros de la fonction
-:kio:mio:gio:tio
- Kio = kibioctet = 1024 octets
- Mio = mébioctet = 1024 Kio
- Gio = gibioctet = 1024 Mio
- Tio = tébioctet = 1024 Gio
 
-
-:dossier systeme:systeme
-#Dossier systeme
-le dossier systême est le dossier ou sont stoké les executables des commandes aditionnels ainsi que les fichier nécessaires au bon fonctionnement du systeme d'exploitation (fichier de définition, fichier d'aide, etc...)
-on définis le dossier systeme avec la commande ~fds~
+##Mesures
+>Kio = kibioctet = 1024 octets
+>Mio = mébioctet = 1024 Kio
+>Gio = gibioctet = 1024 Mio
+>Tio = tébioctet = 1024 Gio
