@@ -121,8 +121,8 @@ zone_attente_tcp_nb          equ 28   ;nombre de réexpédions maximum restante
 
 ;pour type 5
 ;zone_attente_tcp_descr       equ 6   ;adresse du descripteur de connexion
-zone_attente_tcp_seq_trame   equ 10   ;numéros d'acquittement de la trame
-;zone_attente_tcp_compteur    equ 16   ;valeur compteur maximum durant laquelle conserver la trame
+;zone_attente_tcp_compteur    equ 8   ;valeur compteur maximum durant laquelle conserver la trame
+zone_attente_tcp_seq_trame   equ 16   ;numéros d'acquittement de la trame
 
 
 zone_attente_trame equ 32
@@ -2371,10 +2371,13 @@ je trame_tcp_seq_ok
 ja trame_tcp_aquitte    ;si on l'as déjà reçu on la ré acquitte (parce que l'ack n'as pas dût être reçu par le destinataire)
 
 ;sauvegarde la trame reçu en avance
+
+push eax
 mov al,5
 mov esi,zt_decod
 mov ecx,[to_decod]
 call trame_attente
+pop eax
 cmp esi,0
 je verifie_trame_attente
 mov ecx,400
@@ -2525,10 +2528,13 @@ add edx,zone_attente_tcp_compteur
 call comp64
 jb traite_trame_attente_avance_efface   ;si temp dépassé efface la trame
 
+
 mov edi,[ebx+zone_attente_tcp_descr]
 mov eax,[edi+cnx_seq_client_attendue]
 cmp eax,[ebx+zone_attente_tcp_seq_trame]
 jne ignore_rexp_trame_nack     ;si numéros de séquence toujours pas valide ignore la trame
+
+
 
 xor ecx,ecx
 mov cx,[ebx+zone_attente_taille]
