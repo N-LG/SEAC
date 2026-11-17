@@ -605,21 +605,27 @@ int 65h
 cmp eax,0
 jne aff_err_serv
 
+call reset_timeout
 
 ;attend que le programme réponde
 xor edx,edx
 @@:
 mov al,8
 mov ebx,[adresse_canal]
-mov ecx,400  ;1s
+mov ecx,200  ;0.5s
 int 65h
 cmp eax,cer_ddi
 je @f 
 
 
-dec edx
+mov al,11
+mov ah,[coul_base]
+mov edx,msg2
+int 63h
+call verif_timeout
+jc aff_err_timeout
+jmp @b
 
-jmp aff_err_serv
 @@:
 
 
@@ -678,10 +684,6 @@ call envoie_utf8z
 
 
 
-
-
-
-
 ;******************************
 ;lit les données reçu jusqu'a la fermeture de la connexion
 mov dword[taille],0
@@ -720,19 +722,26 @@ jne fin_reception_gopher
 cmp ecx,0
 je @f
 
+call reset_timeout
 call affiche_telech
 add [taille],ecx
 jmp boucle_reception_gopher
 
 
 @@:
-int 62h
 mov edi,zt_recep-3
 add edi,[taille]
 mov eax,[edi]
 and eax,0FFFFFFh
 cmp eax,0A0D2Eh
-jne boucle_reception_gopher
+je @f
+
+call verif_timeout
+jc aff_err_timeout
+int 62h
+jmp boucle_reception_gopher
+
+@@: 
 sub dword[taille],3
 
 
@@ -932,7 +941,7 @@ mov [adresse_canal],ebx
 
 ;prépare la commande d'ouverture de port
 mov byte[commande_ethernet],8h
-;???????????????????????????????????????????????
+;???????????????????????????????????????????????copie le nom de l'hote pour la connexion https
 mov esi,zt_host
 mov edi,commande_ethernet+32 
 mov ecx,512-32
@@ -950,14 +959,27 @@ int 65h
 cmp eax,0
 jne aff_err_serv
 
+call reset_timeout
 
 ;attend que le programme réponde
+xor edx,edx
+@@:
 mov al,8
 mov ebx,[adresse_canal]
-mov ecx,200  ;500ms
+mov ecx,200  ;0.5s
 int 65h
 cmp eax,cer_ddi
-jne aff_err_serv
+je @f 
+
+mov al,11
+mov ah,[coul_base]
+mov edx,msg2
+int 63h
+call verif_timeout
+jc aff_err_timeout
+jmp @b
+
+@@:
 
 ;lit la réponse du programme
 mov al,4
@@ -989,7 +1011,6 @@ mov edx,zt_param
 call envoie_utf8z
 @@:
 
-
 mov edx,http_req3
 call envoie_utf8z
 
@@ -1001,14 +1022,7 @@ call envoie_utf8z
 
 mov dword[taille],0
 
-;***********************
-;attend réponse
-mov al,9
-mov ecx,1000
-mov ebx,[adresse_canal]
-int 65h
-cmp eax,cer_ddi    ;???????????????????????????probleme
-jne aff_err_serv
+
 
 ;**************************
 lecture_entete:
@@ -1020,12 +1034,17 @@ add edi,[taille]
 mov ebx,[adresse_canal]
 int 65h
 cmp eax,0
-jne aff_err_serv
-
+jne aff_err_timeout
 cmp ecx,0
-je lecture_entete  ;??????????????????????????????probleme
-call affiche_telech
+jne @f
 
+call verif_timeout
+jc aff_err_timeout
+jmp lecture_entete 
+@@:
+
+
+call affiche_telech
 add [taille],ecx
 
 ;recherche si fin d'en_tête 
@@ -1118,11 +1137,6 @@ popad
 
 
 
-
-
-
-
-
 ;supprime l'en-tête
 mov edi,zt_recep
 mov ecx,[taille]
@@ -1142,9 +1156,15 @@ mov ebx,[adresse_canal]
 add edi,[taille]
 int 65h
 cmp eax,0
-jne @f   ;???????????????????????gestion
+jne aff_err_timeout
 cmp ecx,0
-je boucle_telecharge_http
+jne @f
+
+call verif_timeout
+jc aff_err_timeout
+jmp boucle_telecharge_http
+@@:
+
 call affiche_telech
 add [taille],ecx
 cmp dword[taille_attendue],0
@@ -2941,6 +2961,11 @@ jmp ouvrir_url
 
 ;****************************************
 selection_manuelle:
+xor ebx,ebx
+xor ecx,ecx
+mov al,12
+int 63h     ;place le curseur en 0.0
+
 mov al,6
 mov ah,70h
 mov edx,zt_url
@@ -2997,13 +3022,13 @@ mov al,6
 int 61h
 int 60h
 
-;aff_err_timeout:
-;mov edx,msg9
-;call ajuste_langue
-;mov al,11
-;mov ah,[coul_surl]
-;int 63h
-;jmp touche_boucle
+aff_err_timeout:
+mov edx,msg7
+call ajuste_langue
+mov al,11
+mov ah,[coul_surl]
+int 63h
+jmp touche_boucle
 
 
 aff_err_net:
@@ -3677,6 +3702,43 @@ jmp ignore_transf
 
 
 
+;*************
+reset_timeout:
+push edx
+push eax
+mov al,12
+int 61h
+add eax,12000 ;30s
+adc edx,0
+mov [timeout],eax
+mov [timeout+4],edx
+pop eax
+pop edx
+ret
+
+;************
+verif_timeout:
+push edx
+push eax
+mov al,12
+int 61h
+cmp [timeout+4],edx
+jb verif_timeout_nok
+ja verif_timeout_ok
+cmp [timeout],eax
+jb verif_timeout_nok
+
+verif_timeout_ok:
+pop eax
+pop edx
+clc
+ret
+
+verif_timeout_nok:
+pop eax
+pop edx
+stc
+ret
 
 
 
@@ -3706,6 +3768,12 @@ db "erreur lors de la connexion au serveur",0
 msg6:
 db "unknow protocol",0
 db "protocole de communication inconnu",0
+
+
+msg7:
+db "allowed response time exceeded",0
+db "temps de réponse autorisé dépassé",0
+
 
 
 msg8:
