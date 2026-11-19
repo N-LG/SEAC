@@ -793,29 +793,57 @@ mov byte[edi],0
 
 
 
-;extrait l'extention
-mov dword[zt_type],"stx"
-;???????????????????????????????????????????????????????????
+;extrait l'extention en minuscule
+mov ebx,fichier
+mov esi,fichier
+boucle1_rechext_ouvf:
+cmp byte[ebx],0
+je suite_rechext_ouvf
+cmp byte[ebx],"."
+jne @f
+mov esi,ebx
+@@:
+cmp byte[ebx],"/"
+jne @f
+mov esi,ebx
+@@:
+cmp byte[ebx],"\"
+jne @f
+mov esi,ebx
+@@:
+inc ebx
+jmp boucle1_rechext_ouvf
 
-;**********************
-;test si le fichier en mémoire est le fichier a lire
-;mov esi,fichier
-;mov edi,fichier_mem
-;@@:
-;mov al,[esi]
-;cmp al,[edi]
-;jne @f
-;cmp al,0
-;je recherche_rubrique
-;inc esi
-;inc edi
-;jmp @b
+suite_rechext_ouvf:
+mov edi,zt_type
+cmp esi,fichier
+je fin_rechext_ouvf
+cmp byte[esi],"/"
+je fin_rechext_ouvf
+cmp byte[esi],"\"
+je fin_rechext_ouvf
+inc esi
 
-;@@:
+boucle2_rechext_ouvf:
+mov ax,[esi]
+cmp ax,"/"
+je fin_rechext_ouvf
+cmp ax,"\"
+je fin_rechext_ouvf
+cmp al,"A"
+jb @f
+cmp al,"Z"
+ja @f
+add al,20h
+@@:
+mov [edi],al
+inc esi
+inc edi
+cmp al,0
+jne boucle2_rechext_ouvf
 
-
-
-
+fin_rechext_ouvf:
+mov byte[edi],0
 
 
 mov edx,fichier
@@ -1194,6 +1222,8 @@ cmp word[zt_type],"7"
 je conversion_menugopher
 
 
+cmp dword[zt_type],"txt"
+je fichier_txt 
 cmp dword[zt_type],"stx"
 je fichier_stx 
 cmp dword[zt_type],"htm"

@@ -228,16 +228,9 @@ mov al,9
 int 61h
 shr si,10
 cmp [cpt_maj_barre],si
-jne maj_barre
+jne affichage
 int 62h
 jmp attend_touche
-
-
-maj_barre:
-mov [cpt_maj_barre],si
-call affiche_barre
-jmp attend_touche
-
 
 
 
@@ -1326,11 +1319,10 @@ mov edx,[ad_menu]
 int 63h
 
 
-;affiche heure/jour (juste heure pour l'instant)
+;affiche heure/jour (ou juste heure si il n'y as pas la place)
 mov al,9
 int 61h
 push ebx
-
 
 mov edx,zt_descr_tache
 cmp bh,10
@@ -1365,18 +1357,79 @@ int 61h
 
 mov eax,25
 mov ebx,[px_horloge]
-add ebx,48
+add ebx,24
 mov ecx,[lt_barre_taches]
+
+cmp dword[ty_barre_taches],32
+je fin_affiche_heure
+sub ecx,8
+mov edx,zt_descr_tache
+int 63h
+
+mov al,9
+int 61h
+push ecx
+push edx
+
+mov ebx,edx
+mov edx,zt_descr_tache
+cmp bl,10
+jae @f
+mov byte[edx],"0"
+inc edx
+@@:
+mov al,102
+xor ecx,ecx
+mov cl,bl
+int 61h
+@@:
+cmp byte[edx],0
+je @f
+inc edx
+jmp @b
+@@:
+mov byte[edx],"/"
+inc edx
+
+pop ebx
+cmp bh,10
+jae @f
+mov byte[edx],"0"
+inc edx
+@@:
+
+mov al,102
+xor ecx,ecx
+mov cl,bh
+int 61h
+@@:
+cmp byte[edx],0
+je @f
+inc edx
+jmp @b
+@@:
+
+mov byte[edx],"/"
+inc edx
+
+pop ecx
+mov al,102
+int 61h
+
+
+mov eax,25
+mov ebx,[px_horloge]
+add ebx,8
+mov ecx,[lt_barre_taches]
+add ecx,4
+
+fin_affiche_heure:
 mov edx,zt_descr_tache
 int 63h
 
 
-
-;???????????????????????????
-
-
-
-;liste les taches
+;****************************
+;liste les taches dans la barre
 mov al,22
 mov ebx,vide
 mov edx,taches
@@ -1477,6 +1530,11 @@ jmp @b
 mov ecx,[tx_bt_tache]
 sub ecx,12
 shr ecx,3
+push ecx
+;cmp 
+;ja
+shl ecx,1
+
 @@:
 mov al,[edx]
 dec edx
@@ -1491,10 +1549,12 @@ mov word[edx],2E2Eh
 @@:
 
 ;affiche descriptif tache
+pop esi
 pop ebx
-mov eax,25
+mov eax,26
 add ebx,6
 mov ecx,[lt_barre_taches]
+sub ecx,8
 int 63h
 
 
@@ -3456,6 +3516,9 @@ mov ah,32
 int 63h
 popad
 ret
+
+
+
 
 ;***************************
 ajuste_langue:  ;selectionne le message adapté a la langue employé par le système
