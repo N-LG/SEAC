@@ -14,14 +14,10 @@ org 0
 ;[ok]ajouter une page de config (F4)
 ;[ok]ajouter une touche actualisation (F5)
 ;[ok]ajouter des touches de raccourcis (F7 à F12)
-;ajouter timeout réponse serveur
 ;affichage destination liens si on survole le lien????
-;[bof bof]téléchargement HTTP
-;lecture type de fichier
 ;html: gestion du caractère d'échapement
 ;html: gestion d'une image
 ;html: gestion d'un tableau
-;gestion du timeout lors des chargements
 
 ;a corriger
 ;erreur lors d'enregistrement de fichier????
@@ -136,11 +132,6 @@ int 61h
 shl ebx,1
 mov ax,[zt_recep+ebx]
 mov [id_tls],ax
-
-
-
-
-
 
 
 
@@ -536,6 +527,8 @@ jmp aff_err_protocole
 
 ;*********************************************************************************
 ouvrir_gopher:
+mov byte[zt_erreur],0
+
 ;s'il y as besoin d'un argument a la requete on le demande
 cmp byte[zt_ressource],"7"
 jne @f
@@ -761,7 +754,7 @@ jmp detecte_type
 
 ;****************************************************************************************
 ouvrir_fichier:  ;ouvre le fichier
-
+mov byte[zt_erreur],0
 
 
 ;***********************************
@@ -910,6 +903,7 @@ jmp detecte_type
 
 ;****************************************************************************************
 ouvrir_https:
+mov byte[zt_erreur],0
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
 mov cx,443
@@ -929,6 +923,7 @@ jmp suite_cnx_http
 
 ;****************************************************************************************
 ouvrir_http:
+mov byte[zt_erreur],0
 
 ;convertir le numéros de port en valeur (si pas de valeur on prend le port standard)
 mov cx,80
@@ -1062,7 +1057,7 @@ add edi,[taille]
 mov ebx,[adresse_canal]
 int 65h
 cmp eax,0
-jne aff_err_timeout
+jne err_tete_http
 cmp ecx,0
 jne @f
 
@@ -1071,7 +1066,7 @@ jc aff_err_timeout
 jmp lecture_entete 
 @@:
 
-
+call reset_timeout
 call affiche_telech
 add [taille],ecx
 
@@ -1088,10 +1083,22 @@ jne @b
 jmp lecture_entete
 
 
+;si la communication coupe, on vérifie qu'on as bien reçu au moin l'en tête
+err_tete_http:
+mov edi,zt_recep-3
+mov esi,zt_recep
+add edi,[taille]
+@@:
+cmp dword[esi],0A0D0A0Dh
+je fin_entete
+inc esi
+cmp esi,edi
+jne @b
+jmp aff_err_incomp
+
+
 fin_entete:
 add esi,4    ;esi=début du fichier
-
-
 
 
 ;*****************************
@@ -1140,29 +1147,72 @@ shl ecx,1
 call ajuste_memoire
 cmp eax,0
 jne aff_err_mem
-popad
-
 
 
 ;cherche le code d'erreur
-;mov edx,zt_recep  
-;@@:
-;cmp byte[edx],20h
-;je @f
-;inc edx
-;jmp @b 
-;@@:
-;inc edx
-;cmp byte[edx],20h
-;jne @f
-;inc edx
-;jmp @b 
-;@@:
-;mov eax,[edx]
-;and eax,0FFFFFFh
-;cmp eax,"200"
-;je
+mov edx,zt_recep  
+@@:
+cmp byte[edx],20h
+je @f
+inc edx
+jmp @b 
+@@:
+inc edx
+cmp byte[edx],20h
+jne @f
+inc edx
+jmp @b 
+@@:
+cmp byte[edx],"2"
+je pas_erreur_http
 
+
+;sauvegarde le code et le message d'erreur
+mov edi,zt_erreur
+@@:
+mov al,[edx]
+cmp al,10
+je @f
+cmp al,13
+je @f
+mov [edi],al
+inc edx
+inc edi
+jmp @b
+@@:
+mov byte[edi],13
+inc edi
+
+
+
+;sauvegarde le liens de redirection
+push edi
+mov edx,zt_recep  
+mov edi,location_http
+call cherche_option_http 
+pop edi
+cmp edx,esi
+je pas_redirection_http
+mov byte[edi],"~"
+inc edi
+@@:
+mov al,[edx]
+cmp al,10
+je @f
+cmp al,13
+je @f
+mov [edi],al
+inc edx
+inc edi
+jmp @b
+@@:
+mov byte[edi],"~"
+mov byte[edi+1],13
+pas_redirection_http:
+
+
+pas_erreur_http:
+popad
 
 
 ;supprime l'en-tête
@@ -1184,7 +1234,7 @@ mov ebx,[adresse_canal]
 add edi,[taille]
 int 65h
 cmp eax,0
-jne aff_err_timeout
+jne err_suite_http
 cmp ecx,0
 jne @f
 
@@ -1193,6 +1243,7 @@ jc aff_err_timeout
 jmp boucle_telecharge_http
 @@:
 
+call reset_timeout
 call affiche_telech
 add [taille],ecx
 cmp dword[taille_attendue],0
@@ -1201,12 +1252,18 @@ je boucle_telecharge_http
 mov ecx,[taille_attendue]
 cmp [taille],ecx
 jb boucle_telecharge_http
+jmp detecte_type
 
 
-@@:
+;si la communication coupe, on vérifie qu'on as bien tout reçu
+err_suite_http:
+add [taille],ecx
+mov eax,[taille_attendue]
+cmp eax,0
+je detecte_type 
+cmp [taille],eax
+jne aff_err_incomp
 
-
-;jmp detecte_type
 
 
 
@@ -1627,6 +1684,18 @@ mov dword[edi],"SMLT"
 mov word[edi+4],"X;"
 mov byte[edi+6],13
 add edi,7
+
+;ajoute le code d'erreur qui est en mémoire
+mov edx,zt_erreur
+@@:
+mov al,[edx]
+cmp al,0
+je @f
+mov [edi],al
+inc edx
+inc edi
+jmp @b
+@@:
 
 ;commence a la balise body
 mov edx,mot_body
@@ -3060,6 +3129,13 @@ mov ah,[coul_surl]
 int 63h
 jmp touche_boucle
 
+aff_err_incomp:
+mov edx,msg9
+call ajuste_langue
+mov al,11
+mov ah,[coul_surl]
+int 63h
+jmp touche_boucle
 
 aff_err_net:
 mov edx,msg3
@@ -3738,7 +3814,7 @@ push edx
 push eax
 mov al,12
 int 61h
-add eax,12000 ;30s
+add eax,6000 ;15s
 adc edx,0
 mov [timeout],eax
 mov [timeout+4],edx
@@ -3776,39 +3852,44 @@ ret
 sdata1:   ;données dans le segment de donnée N°1
 org 0
 
-
 msg0:
 db 13,"Connecting to server",0
 db 13,"Connexion au serveur en cours",0
+
 msg1:
 db 13,"Loading in progress",0
 db 13,"Chargement en cours",0
+
 msg2:
 db ".",0
 
 msg3:
 db "error accessing network",0
 db "erreur d'acces au réseau",0
+
 msg4:
 db "error accessing file",0
 db "erreur d'acces au fichier",0
+
 msg5:
 db "error during server access",0
 db "erreur lors de la connexion au serveur",0
+
 msg6:
 db "unknow protocol",0
 db "protocole de communication inconnu",0
-
 
 msg7:
 db "allowed response time exceeded",0
 db "temps de réponse autorisé dépassé",0
 
-
-
 msg8:
 db 13,"NSN: memory reservation error",13,0
 db 13,"NSN: erreur de reservation mémoire",13,0
+
+msg9:
+db "The connection was cut before the data was fully received.",0
+db "liaison coupée avant réception complete des données",0
 
 
 msg_paramg:
@@ -3842,6 +3923,11 @@ taille_http:
 db "content-length",0 
 type_http:
 db "content-type",0 
+location_http:
+db "location",0
+
+
+
 option_href:
 db "href",0
 
@@ -4047,6 +4133,8 @@ zt_type:
 rb 64
 type_balise:
 rb 64
+zt_erreur:
+rb 2048
 
 ligne_vide:
 rb 512
