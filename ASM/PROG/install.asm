@@ -78,6 +78,35 @@ call cherche_cmd
 mov [clavier],edx
 
 
+;**********************************
+;ecran selection clavier alternatif
+selection_clavier2:
+call raz_ecr
+mov edx,msg_clav2
+call ajuste_langue
+mov al,11
+mov ah,7
+int 63h
+
+
+mov dword[clavier2],0
+mov al,13   ;menu
+mov cl,1    ;démarre a la ligne
+mov ch,13    ;sur ch ligne
+mov bl,0    ;ligne preselectionné
+mov bh,7    ;couleur
+int 63h
+cmp bh,1
+je selection_clavier
+cmp bl,0
+je @f
+dec bl
+mov edx,cmd_clav2
+call cherche_cmd
+mov [clavier2],edx
+@@:
+
+
 
 ;**********************************
 ;selection taille de l'écran
@@ -165,7 +194,7 @@ mov bl,0
 mov cl,1
 int 63h
 cmp bh,1
-je selection_clavier
+je selection_clavier2
 
 and ebx,0FFh
 mov al,[ebx+disques]
@@ -314,7 +343,6 @@ int 64h
 
 mov edx,fichier2
 call oc_fichier
-
 mov esi,base2a
 call aj_fichier
 mov esi,[langue]
@@ -323,6 +351,13 @@ mov esi,crlf
 call aj_fichier
 mov esi,[clavier]
 call aj_fichier
+cmp dword[clavier2],0
+je @f
+mov esi,crlf
+call aj_fichier
+mov esi,[clavier2]
+call aj_fichier
+@@:
 mov esi,base2b
 call aj_fichier
 
@@ -681,70 +716,134 @@ db "def en-txt.def",0
 db "def fr-txt.def",0
 
 
-
-
-
 msg_clav:
 db "Please select your keyboard layout:",13
-db "QWERTY International",13
-
-db "QWERTY US",13
-
-db "QWERTY Canadian",13
-
-db "AZERTY French",13
-
-db "AZERTY Belgian",13
-
-db "QWERTZ Swiss (French)",13
-
-db "QWERTZ Swiss (German)",13
-
+db "US simple",13
+db "US international",13
+db "Canadian",13
+db "Français",13
+db "Belge",13
+db "Suisse français",13
+db "deutsche",13
+db "Schweizer deutsche",13
+db "Ελληνικά",13
+db "български",13
+db "українська",13
+db "Беларуская",13
 db "Bépo",13
-
 db "Dvorak",13
-
 db "Colemak",13
-
 db "Ergol",13
-
-db "Greek + QWERTY International",13
-
-db "Greek + AZERTY French",13
-
 db 13,13,13,"Press Escape key to return to the previous screen",0
 
 db "veuillez choisir votre disposition clavier:",13
-db "QWERTY international",13
-db "QWERTY usa",13
-db "QWERTY canadien",13
-db "AZERTY français",13
-db "AZERTY belge",13
-db "QWERTZ suisse francophone",13
-db "QWERTZ suisse germanophone",13
-db "bépo",13
-db "dvorak",13
-db "colemak",13
-db "ergol",13
-db "grec+QWERTY international",13
-db "grec+AZERTY français",13
+db "US simple",13
+db "US international",13
+db "Canadien",13
+db "Français",13
+db "Belge",13
+db "Suisse français",13
+db "deutsche",13
+db "Schweizer deutsche",13
+db "Ελληνικά",13
+db "български",13
+db "українська",13
+db "Беларуская",13
+db "Bépo",13
+db "Dvorak",13
+db "Colemak",13
+db "Ergol",13
 db 13,13,13,"touche Echap pour revenir a l'écran précédent",0
 
 
 cmd_clav:
-db "def en-qwi.def",0
 db "def en-qus.def",0
+db "def en-qwi.def",0
 db "def ca-qws.def",0
 db "def fr-aza.def",0
 db "def be-azs.def",0
 db "def ch-qzf.def",0
+db "def de-qzs.def",0
 db "def ch-qzg.def",0
+db "def gr-pli.def",0
+db "def bg-bds.def",0
+db "def ua-jcu.def",0
+db "def by-jcu.def",0
 db "def bepo.def",0
 db "def dvorak.def",0
 db "def colemak.def",0
 db "def ergol.def",0
-db "def gr-qwi.def",0
-db "def gr-aza.def",0
+
+
+msg_clav2:
+db "please choose an alternative keyboard layout:",13
+db "None",13
+db "US simple",13
+db "US international",13
+db "Canadian",13
+db "Français",13
+db "Belge",13
+db "Suisse français",13
+db "deutsche",13
+db "Schweizer deutsche",13
+db "Ελληνικά",13
+db "български",13
+db "українська",13
+db "Беларуская",13
+db "Bépo",13
+db "Dvorak",13
+db "Colemak",13
+db "Ergol",13
+db 13,13,13,"An alternative layout is recommended for entering commands if you have not chosen a primary keyboard with Latin characters.",13
+db 13,13,13,"Press Escape key to return to the previous screen",0
+
+db "veuillez choisir une disposition de clavier alternative:",13
+db "Aucuns",13
+db "US simple",13
+db "US international",13
+db "Canadien",13
+db "Français",13
+db "Belge",13
+db "Suisse français",13
+db "deutsche",13
+db "Schweizer deutsche",13
+db "Ελληνικά",13
+db "български",13
+db "українська",13
+db "Беларуская",13
+db "Bépo",13
+db "Dvorak",13
+db "Colemak",13
+db "Ergol",13
+db 13,13,13,"une disposition alternative est conseillé pour pouvoir taper les commandes si vous n'avez pas choisis un clavier principal avec des caractères Latins",13
+db 13,13,13,"touche Echap pour revenir a l'écran précédent",0
+
+
+cmd_clav2:
+db "def en-qus.def -s",0
+db "def en-qwi.def -s",0
+db "def ca-qws.def -s",0
+db "def fr-aza.def -s",0
+db "def be-azs.def -s",0
+db "def ch-qzf.def -s",0
+db "def de-qzs.def -s",0
+db "def ch-qzg.def -s",0
+db "def gr-pli.def -s",0
+db "def bg-bds.def -s",0
+db "def ua-jcu.def -s",0
+db "def by-jcu.def -s",0
+db "def bepo.def -s",0
+db "def dvorak.def -s",0
+db "def colemak.def -s",0
+db "def ergol.def -s",0
+
+
+
+
+
+
+
+
 
 
 
@@ -817,8 +916,8 @@ db "INSTALL: erreur lors de l'accès au fichier",13,0
 
 
 msg_fin:
-db "INSTALL: The installation is now complete.",13,0
-db "INSTALL: l'installation est a présent terminé,",13,0
+db "INSTALL: The installation is now complete, but some desktop shortcuts and entries in the MENU.CFG file still need to be updated manually.",13,0
+db "INSTALL: l'installation est a présent terminé, mais il y as encore besoin de mettre a jour manuellement quelques liens du bureau et dans le fichier MENU.CFG",13,0
 
 
 fichier1:
@@ -840,8 +939,12 @@ db "fds",13,0
 base2b:
 db 13
 db "modv 800*600",13
-db "ics",0
+db "ics",13
 db "pilote pci",13
+db "def 3u0.def",13
+db "def 4u0.def",13
+db "***",13
+db "cdns",13
 db "ipconfig 0 auto",13
 db 0
 
@@ -884,6 +987,8 @@ rb 256
 langue:
 dd 0
 clavier:
+dd 0
+clavier2:
 dd 0
 disque:
 db 0
