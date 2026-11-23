@@ -535,7 +535,7 @@ jne @f
 cmp byte[zt_param],0
 jne @f
 
-pushad
+mov ebp,-1
 call raz_ecr
 call affiche_adresse
 mov al,11
@@ -548,7 +548,8 @@ mov ah,[coul_base]
 mov edx,zt_param
 mov ecx,256
 int 63h
-popad
+cmp al,1
+je backspace
 @@:
 
 ;affiche que l'on est en train de se connecter
@@ -1117,7 +1118,6 @@ mov [taille_attendue],ecx
 
 
 ;extrait le type de fichier
-mov dword[zt_type],0
 mov edx,zt_recep  
 mov edi,type_http
 call cherche_option_http  ;cherche "Content-Type: " dans l'en-tête (insensible a la casse)
@@ -1139,6 +1139,14 @@ cmp edi,zt_type+63
 jne @b
 @@:
 mov byte[edi],0
+
+;s'il n'y as aucuns type c'est du html
+cmp byte[zt_type],0
+jne @f
+mov dword[zt_type],"htm"
+@@:
+
+
 
 ;aggrandit la zone pour reçevoir le document
 pushad
@@ -1257,7 +1265,6 @@ jmp detecte_type
 
 ;si la communication coupe, on vérifie qu'on as bien tout reçu
 err_suite_http:
-add [taille],ecx
 mov eax,[taille_attendue]
 cmp eax,0
 je detecte_type 
@@ -1697,15 +1704,23 @@ inc edi
 jmp @b
 @@:
 
-;commence a la balise body
-mov edx,mot_body
-call recherche_chaine
-cmp edx,0
-je fichier_txt
-mov esi,edx
-jmp ignore_balise_inc 
+;s'il n'y as pas de contenu on as terminé
+cmp dword[taille],0
+jne @f
+sub edi,zt_recep
+mov [taille],edi
+jmp fichier_stx
+@@:
 
-
+;commence a la balise body s'il y en, as une sinon on se débrouille comme on peut
+;mov edx,mot_body
+;call recherche_chaine
+;cmp edx,0
+;je fichier_txt
+;mov esi,edx
+;jmp ignore_balise_inc 
+;@@:
+mov esi,zt_recep
 
 
 ;*************
@@ -2247,14 +2262,9 @@ mov word[offsety],0
 ;*************************************************************************************************************************
 ;*************************************************************************************************************************
 affiche_page:
-mov al,7
-mov edx,zt_url
-int 61h
-
 mov ebp,zt_recep
 mov ebx,[page_encours]
 add ebp,[taille]
-
 
 call raz_ecr
 mov dword[fin_cliquable],cliquable
@@ -2643,7 +2653,8 @@ mov eax,101
 mov edx,ligne_vide
 int 61h
 mov [esi],cl
-;jmp enregistre_param
+call enregistre_param
+jmp affiche_page
 
 
 
@@ -2662,7 +2673,8 @@ mov ebx,1
 mov edx,fichier_parametres
 int 64h
 cmp eax,0
-jne affiche_page
+je @f
+ret
 
 @@:
 mov al,5
@@ -2673,7 +2685,7 @@ int 64h
 
 mov al,1
 int 64h
-jmp affiche_page
+ret
 
 ;*********************
 goto_raccourcis:
@@ -2697,8 +2709,8 @@ mov ecx,128
 mov esi,zt_url
 cld
 rep movsd
-jmp enregistre_param
-
+call enregistre_param
+jmp touche_boucle
 
 
 ;****************************************
@@ -3271,6 +3283,10 @@ ret
 
 ;************************************
 affiche_adresse:
+mov al,7
+mov edx,zt_url
+int 61h
+
 fs
 mov edi,[ad_texte]
 fs
@@ -3893,13 +3909,13 @@ db "liaison coupée avant réception complete des données",0
 
 
 msg_paramg:
-db 13,"page option:",0
-db 13,"option de la page:",0
+db 13,"page option: (Press Esc to return to the previous pagel)",0
+db 13,"option de la page: (Echap pour revenir a la page précédente)",13,0
 
 
 msg_enreg:
 db 13,"Unknown document type, what name do you want to save it under? (Press Esc to cancel)",13,0
-db 13,"type de document inconnu, sous quel nom voulez vous l'enregistrer? (echap pour annuler)",13,0
+db 13,"type de document inconnu, sous quel nom voulez vous l'enregistrer? (Echap pour annuler)",13,0
 
 
 
