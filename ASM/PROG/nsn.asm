@@ -619,7 +619,6 @@ int 63h
 call verif_timeout
 jc aff_err_timeout
 jmp @b
-
 @@:
 
 
@@ -1002,8 +1001,8 @@ int 63h
 call verif_timeout
 jc aff_err_timeout
 jmp @b
-
 @@:
+
 
 ;lit la réponse du programme
 mov al,4
@@ -1676,6 +1675,7 @@ conversion_html:
 ;agrandit la zone mémoire
 mov ecx,[taille]
 shl ecx,2
+add ecx,20000h
 call ajuste_memoire
 cmp eax,0
 jne aff_err_mem
@@ -1713,13 +1713,13 @@ jmp fichier_stx
 @@:
 
 ;commence a la balise body s'il y en, as une sinon on se débrouille comme on peut
-;mov edx,mot_body
-;call recherche_chaine
-;cmp edx,0
-;je fichier_txt
-;mov esi,edx
-;jmp ignore_balise_inc 
-;@@:
+mov edx,mot_body
+call recherche_chaine
+cmp edx,0
+je @f
+mov esi,edx
+jmp ignore_balise_inc 
+@@:
 mov esi,zt_recep
 
 
@@ -1809,6 +1809,11 @@ cmp word[type_balise],"sc"
 jne @f
 cmp dword[type_balise+2],"ript"
 je balise_script
+@@:
+cmp word[type_balise],"st"
+jne @f
+cmp dword[type_balise+1],"tyle"
+je balise_style
 @@:
 cmp dword[type_balise],"td"
 ;je balise_td
@@ -2000,6 +2005,20 @@ jae fin_conversion_html
 jmp @b
 
 
+;******
+balise_style:
+mov edx,mot_style
+call recherche_chaine
+cmp edx,0
+je @f
+mov esi,edx
+@@:
+cmp byte[esi],"<"
+je boucle_parcours_html
+inc esi
+cmp esi,ebp
+jae fin_conversion_html
+jmp @b
 
 
 ;******
@@ -3951,8 +3970,8 @@ mot_body:
 db "<body",0
 mot_script:
 db "</script",0
-
-
+mot_style:
+db "</style",0
 
 taille_attendue:
 dd 0
