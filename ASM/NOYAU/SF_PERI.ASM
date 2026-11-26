@@ -1,6 +1,6 @@
 ﻿SF_PERI.ASM:         ;fonction effectué périodiquement par la tache principale
 
-;********************************
+;************************************************************************************
 mov ax,seldat    ;gestion du moteur de la disquette
 mov ds,ax
 mov es,ax
@@ -18,7 +18,7 @@ pasarretmoteurdisquette:
 
 
 
-;*********************************************************
+;***************************************************************************************
 ;gestion de la detection de nouvelles connexion/déconnexion a un port de controleur USB
 cmp byte[usb_action],0
 je pastempousb
@@ -43,7 +43,7 @@ je uhci_test_cnx_usb
 ;je xhci_test_cnx_usb
 jmp ctrl_suivant_test_cnx_usb
 
-;*************************************************************************************
+;***********************************************
 uhci_test_cnx_usb:
 xor edx,edx
 mov dl,[usb_port_test]
@@ -54,14 +54,27 @@ add dx,[ebx+dcu_es]
 cmp byte[usb_action],1
 je uhci_reset1_port
 cmp byte[usb_action],2
-je uhci_finreset1_adresse
+je uhci_finreset1_port
 cmp byte[usb_action],3
-je uhci_lit_descripteur
+je uhci_restart1_port
 cmp byte[usb_action],4
-je uhci_finreset2_adresse
-cmp byte[usb_action],5
+je uhci_clear1_port
+
+
+cmp byte[usb_action],8
+je uhci_lit_descripteur
+
+cmp byte[usb_action],9
+je uhci_finreset2_port
+cmp byte[usb_action],10
+je uhci_restart2_port
+cmp byte[usb_action],11
+je uhci_clear2_port
+
+
+cmp byte[usb_action],16
 je global_set_adresse
-cmp byte[usb_action],6
+cmp byte[usb_action],17
 je global_fin_conf_usb
 
 in ax,dx
@@ -70,13 +83,14 @@ jz suite_test_cnx_usb
 out dx,ax
 test ax,1
 jz uhci_supp_periph_usb
-mov ax,06h
-out dx,ax 
 
+mov ax,06h      ;raz du bit status change
+out dx,ax 
 mov eax,[cptsf]
 add eax,180      ;attent 200ms avant de reseter le port (norme:100ms)
 mov [usb_tempo],eax
 mov byte[usb_action],1
+mov byte[usb_rtry],0
 jmp fin_test_cnx_usb
 
 
@@ -86,94 +100,56 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,22          ;attent 50ms avant d'arretet le reset
+add eax,20          ;attent 50ms avant d'arretet le reset
 mov [usb_tempo],eax
 mov byte[usb_action],2
 jmp fin_test_cnx_usb
 
 
 ;*****************
-uhci_finreset1_adresse:
+uhci_finreset1_port:
 mov ecx,[cptsf]
-add ecx,1200 ;3 secondes
-xor eax,eax
-out dx,ax
-bc1_uhci_finreset1_adresse:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,02h
-jz bc1_uhci_finreset1_adresse 
-mov ax,06h
-out dx,ax
-bc2_uhci_finreset1_adresse:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,04h
-jz bc2_uhci_finreset1_adresse 
-
-mov eax,[cptsf]
-add eax,40           ;attend 100ms avant de chercher a lire le descripteur
+inc ecx
 mov [usb_tempo],eax
 mov byte[usb_action],3
+
+xor eax,eax
+out dx,ax
 jmp fin_test_cnx_usb
 
 
-;????????????????????????????????????????????????????????????
+;*****************
+uhci_restart1_port:
 mov ecx,[cptsf]
-add ecx,1200 ;3 secondes
-xor eax,eax
+inc ecx
+mov [usb_tempo],eax
+mov byte[usb_action],4
+
+mov ax,6
 out dx,ax
+jmp fin_test_cnx_usb
 
-@@:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,02h ;csc (connect status change)
-jz @b 
-mov ax,06h ;enable + clear csc
+
+
+;*****************
+uhci_clear1_port:
+mov ecx,[cptsf]
+add ecx,20     ;attend 50ms avant de lire le descripteur
+mov [usb_tempo],eax
+mov byte[usb_action],8
+
+mov ax,0Eh
 out dx,ax
-@@:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,04h;attend enable change
-jz @b 
-
-;mov ax,0 
-;out dx,ax
-;mov ecx,[cptsf]
-;inc ecx
-;@@:
-;nop
-;cmp [cptsf],ecx
-;jbe @b
-;mov ax,06h ;enable+csc
-;out dx,ax
-;mov ecx,[cptsf]
-;inc ecx
-;@@:
-;nop
-;cmp [cptsf],ecx
-;jbe @b
-;mov ax,0Ch ;enable+EC
-;out dx,ax
+jmp fin_test_cnx_usb
 
 
 
-;????????????????????????????????????????????????????????????
+
+
 
 
 ;****************************************************************
 uhci_lit_descripteur:
-;pushad
-;in ax,dx
-;call affh1j
-;mov al,13
-;call affcj
-;popad
-
 
 ;remplit les parametre de base du périphérique 0
 mov al,[usb_ctrl_test]
@@ -209,7 +185,8 @@ mov edi,usb_commande
 call sfusb_commande
 pop edx
 cmp eax,0
-jne global_erreur_connexionUSB
+jne @f
+;jne global_erreur_connexionUSB
 
 ;enregistre la taille de l'enpoint 0
 mov al,[usb_commande+7]
@@ -219,92 +196,65 @@ mov ax,0204h   ;met a 1  reset
 out dx,ax
 
 mov eax,[cptsf]
-add eax,22          ;attent 55ms avant d'arretet le reset
+add eax,20          ;attent 50ms avant d'arretet le reset
 mov [usb_tempo],eax
-mov byte[usb_action],4
+mov byte[usb_action],9
+jmp fin_test_cnx_usb
+
+
+@@:
+inc byte[usb_rtry]    ;si on n'as pas réussit a lire le descripteur on retente
+cmp byte[usb_rtry],30 ;qu'un certain nombre de fois
+je global_erreur_connexionUSB
+
+mov ax,0204h   ;met a 1  reset 
+out dx,ax
+
+mov eax,[cptsf]
+add eax,20          ;attent 50ms avant d'arretet le reset
+mov [usb_tempo],eax
+mov byte[usb_action],1
+jmp fin_test_cnx_usb
+
+
+
+
+
+;*****************
+uhci_finreset2_port:
+mov ecx,[cptsf]
+inc ecx
+mov [usb_tempo],eax
+mov byte[usb_action],10
+
+xor eax,eax
+out dx,ax
+jmp fin_test_cnx_usb
+
+
+;*****************
+uhci_restart2_port:
+mov ecx,[cptsf]
+inc ecx
+mov [usb_tempo],eax
+mov byte[usb_action],11
+
+mov ax,6
+out dx,ax
 jmp fin_test_cnx_usb
 
 
 
 ;*****************
-uhci_finreset2_adresse:
+uhci_clear2_port:
 mov ecx,[cptsf]
-add ecx,1200 ;3 secondes
-xor eax,eax
-out dx,ax
-bc1_uhci_finreset2_adresse:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,02h
-jz bc1_uhci_finreset2_adresse 
-mov ax,06h
-out dx,ax
-bc2_uhci_finreset2_adresse:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,04h
-jz bc2_uhci_finreset2_adresse 
-
-mov eax,[cptsf]
-add eax,40           ;attent 100ms avant de chercher a affecter l'adresse
+add ecx,20     ;attend 50ms avant de lire le descripteur
 mov [usb_tempo],eax
-mov byte[usb_action],5
-jmp fin_test_cnx_usb
+mov byte[usb_action],16
 
-
-
-
-
-
-;????????????????????????????????????????????????????????????
-
-mov ecx,[cptsf]
-add ecx,1200 ;3 secondes
-xor eax,eax
+mov ax,0Eh
 out dx,ax
-
-@@:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,02h
-jz @b 
-mov ax,06h
-out dx,ax
-@@:
-cmp [cptsf],ecx
-ja global_erreur_connexionUSB
-in ax,dx
-test ax,04h
-jz @b 
-
-
-;mov ecx,[cptsf]
-;inc ecx
-;@@:
-;nop
-;cmp [cptsf],ecx
-;jbe @b
-;mov ax,06h ;enable+csc
-;out dx,ax
-;mov ecx,[cptsf]
-;inc ecx
-;@@:
-;nop
-;cmp [cptsf],ecx
-;jbe @b
-;mov ax,0Ch ;enable+EC
-;out dx,ax
-
-
-mov eax,[cptsf]
-add eax,40           ;attent 100ms avant de chercher a affecter l'adresse
-mov [usb_tempo],eax
-mov byte[usb_action],5
 jmp fin_test_cnx_usb
-
 
 
 
@@ -322,7 +272,7 @@ jmp supp_periph_usb
 
 
 
-;********************************************************************************************
+;*********************************************************************************************************
 global_set_adresse:
 
 ;cherche une adresse libre
@@ -373,7 +323,7 @@ rep movsd
 mov eax,[cptsf]
 add eax,400           ;attent 1s avant de poursuivre
 mov [usb_tempo],eax
-mov byte[usb_action],6
+mov byte[usb_action],17
 jmp fin_test_cnx_usb
 
 
@@ -1236,6 +1186,8 @@ ret
 
 ;******************************************
 supp_periph_usb:
+mov byte[usb_action],0
+mov dword[usb_tempo],0
 mov edx,ad_desc_periph_usb+64
 mov ax,[usb_ctrl_test]  ;al=n° de controleur ah=N°de port (usb_ctrl_port)
 boucle_supp_periph_usb:
